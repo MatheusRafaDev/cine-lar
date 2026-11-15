@@ -192,7 +192,7 @@ function appendCards(grid, movies) {
             <div class="mf-poster-wrap">
                 <img src="${escapeHtml(m.poster)}" alt="" loading="lazy" class="mf-poster-img" />
                 ${m.rating ? `<span class="mf-badge-rating">⭐ ${m.rating}</span>` : ''}
-                ${m.isLocal ? '<span class="mf-badge-on-disk">Na pasta</span>' : ''}
+                ${m.isLocal ? '<span class="mf-badge-on-disk"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta</span>' : ''}
             </div>
             <div class="mf-movie-info" style="padding: 10px 12px 14px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
                 <h4 class="mf-movie-title" style="color: #ffffff !important; font-size: 14px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${escapeHtml(m.title)}</h4>

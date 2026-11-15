@@ -46,6 +46,7 @@ export async function openStremioDetails(rawMovie) {
                         </div>
                     </div>
                     <p class="mf-stremio-synopsis">${escapeHtml(movie.description || 'Sinopse não disponível.')}</p>
+                    <div class="mf-local-status-container"></div>
                     <div class="mf-stremio-hero-action" style="display: flex; gap: 12px; align-items: center;">
                         <button type="button" class="mf-btn-hero-watch" disabled>
                             <span class="material-icons">play_arrow</span>
@@ -130,39 +131,107 @@ export async function openStremioDetails(rawMovie) {
     try {
         const data = await searchTorrents(movie.imdbId, movie.title);
         if (activeModal !== modalEl) return; // usuário já fechou
-        renderStreams((data.torrents || []).map(normalizeStream).filter(s => s.magnet), movie, modalEl);
+        renderStreams((data.torrents || []).map(normalizeStream).filter(s => s.magnet), movie, modalEl, data.localFile);
     } catch {
         if (activeModal !== modalEl) return;
-        renderStreams([], movie, modalEl);
+        renderStreams([], movie, modalEl, null);
     }
 }
 
-function renderStreams(streams, movie, modalEl) {
+function renderStreams(streams, movie, modalEl, localFile = null) {
     const listEl = modalEl.querySelector('.mf-stremio-streams-list');
     const countEl = modalEl.querySelector('.mf-streams-count');
     const heroBtn = modalEl.querySelector('.mf-btn-hero-watch');
     const heroText = modalEl.querySelector('.mf-hero-watch-text');
+    const localStatus = modalEl.querySelector('.mf-local-status-container');
 
-    if (!streams.length) {
+    // Se o filme já existe salvo na pasta D:\filmes
+    if (localFile && localStatus) {
+        localStatus.innerHTML = `
+            <div class="mf-local-alert-banner">
+                <span class="material-icons mf-local-alert-icon">folder_special</span>
+                <div class="mf-local-alert-text">
+                    <strong>Filme já disponível na sua pasta local (D:\\filmes)!</strong>
+                    <span>Qualidade: ${escapeHtml(localFile.quality)} • Tamanho: ${escapeHtml(localFile.sizeFormatted)} • Sem gastar internet</span>
+                </div>
+            </div>
+        `;
+
+        heroBtn.disabled = false;
+        heroBtn.className = 'mf-btn-hero-watch mf-btn-play-local';
+        heroText.textContent = movie.resumePosition > 10 ? `Continuar da Pasta Local (${localFile.quality})` : `Assistir da Pasta Local (${localFile.quality})`;
+        heroBtn.onclick = () => {
+            openCinemaPlayer({
+                streamUrl: localFile.streamUrl,
+                title: movie.title,
+                subInfo: [localFile.quality, localFile.sizeFormatted].filter(Boolean).join(' • '),
+                quality: localFile.quality,
+                isLocal: true,
+                movieId: movie.imdbId || movie.id,
+                poster: movie.poster,
+                resumePosition: movie.resumePosition || 0
+            });
+        };
+    }
+
+    if (!streams.length && !localFile) {
         listEl.innerHTML = '<div class="mf-empty-state" style="padding: 40px 20px; text-align: center; color: #a0a6b5;"><p>Nenhuma fonte encontrada para este filme.</p></div>';
         countEl.textContent = '';
         heroText.textContent = 'Indisponível';
         return;
     }
 
-    // Prioriza 1080p dublado/legendado PT com mais sementes (backend já ordena PT + seeders).
-    const best = streams.find(s => /1080p/i.test(s.quality) && s.seeders > 0)
-        || streams.find(s => s.seeders > 0)
-        || streams[0];
+    if (!localFile) {
+        // Prioriza 1080p dublado/legendado PT com mais sementes (backend já ordena PT + seeders).
+        const best = streams.find(s => /1080p/i.test(s.quality) && s.seeders > 0)
+            || streams.find(s => s.seeders > 0)
+            || streams[0];
 
-    heroBtn.disabled = false;
-    heroText.textContent = movie.resumePosition > 10 ? `Continuar (${best.quality})` : `Assistir (${best.quality})`;
-    heroBtn.onclick = () => playStream(best, movie);
+        heroBtn.disabled = false;
+        heroText.textContent = movie.resumePosition > 10 ? `Continuar (${best.quality})` : `Assistir (${best.quality})`;
+        heroBtn.onclick = () => playStream(best, movie);
+    }
 
     const shown = streams.slice(0, MAX_SOURCES);
     countEl.textContent = streams.length > MAX_SOURCES ? `${MAX_SOURCES} melhores de ${streams.length}` : `${streams.length}`;
 
     listEl.innerHTML = '';
+
+    // Insere o arquivo local no topo da lista de fontes
+    if (localFile) {
+        const localItem = document.createElement('div');
+        localItem.className = 'mf-stream-item mf-stream-item-local';
+        localItem.innerHTML = `
+            <div class="mf-stream-meta">
+                <div class="mf-stream-badges">
+                    <span class="mf-badge-on-disk" style="position: static !important; margin-right: 6px;">
+                        <span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta
+                    </span>
+                    <span class="mf-stream-quality">${escapeHtml(localFile.quality)}</span>
+                    <span class="mf-stream-size">${escapeHtml(localFile.sizeFormatted)}</span>
+                </div>
+                <div class="mf-stream-title" style="color: #4ade80; font-weight: 700;">Reproduzir arquivo salvo no disco local (D:\\filmes)</div>
+            </div>
+            <div class="mf-stream-actions">
+                <button type="button" class="mf-btn-stream-play mf-btn-stream-play-local" title="Assistir agora do computador">
+                    <span class="material-icons" style="font-size: 18px;">play_arrow</span>
+                </button>
+            </div>
+        `;
+        localItem.querySelector('.mf-btn-stream-play').addEventListener('click', () => {
+            openCinemaPlayer({
+                streamUrl: localFile.streamUrl,
+                title: movie.title,
+                subInfo: [localFile.quality, localFile.sizeFormatted].filter(Boolean).join(' • '),
+                quality: localFile.quality,
+                isLocal: true,
+                movieId: movie.imdbId || movie.id,
+                poster: movie.poster,
+                resumePosition: movie.resumePosition || 0
+            });
+        });
+        listEl.appendChild(localItem);
+    }
     shown.forEach((stream) => {
         const item = document.createElement('div');
         item.className = 'mf-stream-item';

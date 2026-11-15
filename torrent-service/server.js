@@ -336,6 +336,30 @@ async function createJellyfinUserProfile(name) {
     return newUser;
 }
 
+/**
+ * Cruza a lista de filmes do catálogo com a biblioteca local (D:\filmes)
+ * garantindo que qualquer filme já baixado seja sinalizado com is_local: 1
+ */
+async function markLocalMoviesInList(movieList) {
+    if (!movieList || !movieList.length) return;
+    try {
+        const localMovies = await getLocalLibrary(SAVE_PATH, false);
+        const localImdbSet = new Set(localMovies.map(m => m.imdbId).filter(Boolean));
+        const localTitlesSet = new Set(localMovies.map(m => (m.cleanName || m.title || '').toLowerCase().trim()).filter(Boolean));
+
+        movieList.forEach(m => {
+            const id = m.imdb_id || m.imdbId || m.id;
+            const title = (m.title || m.name || m.original_title || '').toLowerCase().trim();
+            if ((id && localImdbSet.has(id)) || (title && localTitlesSet.has(title))) {
+                m.is_local = 1;
+                m.isLocal = true;
+            }
+        });
+    } catch {
+        // Fallback silently
+    }
+}
+
 // Create HTTP server
 const server = http.createServer(async (req, res) => {
     // Enable CORS
@@ -538,6 +562,7 @@ const server = http.createServer(async (req, res) => {
                         cinemeta.metas.forEach(m => upsertMovie(m));
                         // Re-query
                         const freshResults = searchCatalog({ q, genre, year, sort, limit, offset });
+                        await markLocalMoviesInList(freshResults.movies);
                         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                         res.end(JSON.stringify(freshResults));
                         return;
@@ -547,6 +572,7 @@ const server = http.createServer(async (req, res) => {
                 }
             }
 
+            await markLocalMoviesInList(results.movies);
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify(results));
             return;
@@ -559,6 +585,7 @@ const server = http.createServer(async (req, res) => {
             const sort = urlObj.searchParams.get('sort') || 'trending';
 
             const results = searchCatalog({ genre, year, sort, limit: 50, offset: 0 });
+            await markLocalMoviesInList(results.movies);
 
             // If database still seeding and has few movies, fetch live Cinemeta
             if (results.movies.length < 5) {
@@ -628,6 +655,7 @@ const server = http.createServer(async (req, res) => {
         // Search Torrents for a Movie
         if ((pathname === '/api/torrents/search' || pathname === '/api/torrents') && req.method === 'GET') {
             const imdb = urlObj.searchParams.get('imdb') || urlObj.searchParams.get('imdbId');
+            const titleParam = (urlObj.searchParams.get('title') || '').trim();
             if (!imdb) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Parameter imdb is required' }));
@@ -725,8 +753,31 @@ const server = http.createServer(async (req, res) => {
                     return b.seeders - a.seeders;
                 });
 
+                // Verifica se o filme já existe salvo na pasta D:\filmes
+                let localFile = null;
+                try {
+                    const localMovies = await getLocalLibrary(SAVE_PATH, false);
+                    const found = localMovies.find(l => (imdb && l.imdbId === imdb) || (titleParam && l.cleanName.toLowerCase() === titleParam.toLowerCase()));
+                    if (found) {
+                        localFile = {
+                            title: found.title,
+                            quality: found.quality,
+                            sizeFormatted: found.sizeFormatted,
+                            streamUrl: found.streamUrl,
+                            format: found.format,
+                            videoPath: found.videoPath
+                        };
+                    }
+                } catch {
+                    // Fallback local check
+                }
+
                 res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-                res.end(JSON.stringify({ torrents }));
+                res.end(JSON.stringify({
+                    torrents,
+                    isLocal: Boolean(localFile),
+                    localFile
+                }));
             } catch (err) {
                 console.error('[TorrentService] Torrent search error:', err.message);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
