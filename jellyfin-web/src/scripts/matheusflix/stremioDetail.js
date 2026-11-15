@@ -1,6 +1,6 @@
 /**
- * MatheusFlix - Detalhes do filme (catálogo / torrents).
- * Um botão principal "Assistir" (melhor fonte) e uma lista curta de fontes alternativas.
+ * MatheusFlix - Página completa de detalhes do filme (catálogo / torrents / local).
+ * Substitui o antigo modal por uma visualização de página inteira imersiva com botão de Voltar.
  */
 
 import { checkIsFavorite, searchTorrents, startDownload, toggleFavorite } from './api';
@@ -11,8 +11,9 @@ import toast from 'components/toast/toast';
 const MAX_SOURCES = 12;
 let activeModal = null;
 let activeKeyHandler = null;
+let activePopHandler = null;
 
-function closeDetails() {
+function closeDetails(triggerBack = true) {
     if (activeModal) {
         activeModal.remove();
         activeModal = null;
@@ -21,23 +22,48 @@ function closeDetails() {
         window.removeEventListener('keydown', activeKeyHandler);
         activeKeyHandler = null;
     }
+    if (activePopHandler) {
+        window.removeEventListener('popstate', activePopHandler);
+        activePopHandler = null;
+    }
+    document.body.style.overflow = '';
+
+    if (triggerBack && window.history.state && window.history.state.mfMoviePage) {
+        window.history.back();
+    }
 }
 
 export async function openStremioDetails(rawMovie) {
-    closeDetails();
+    closeDetails(false);
     const movie = normalizeMovie(rawMovie);
 
+    // Suporte ao botão Voltar do navegador
+    activePopHandler = () => {
+        closeDetails(false);
+    };
+    window.addEventListener('popstate', activePopHandler, { once: true });
+    window.history.pushState({ mfMoviePage: true }, '');
+
+    document.body.style.overflow = 'hidden';
+
     const modalEl = document.createElement('div');
-    modalEl.className = 'mf-stremio-modal mf-stremio-modal-backdrop';
+    modalEl.className = 'mf-movie-page mf-stremio-modal mf-stremio-modal-backdrop';
     modalEl.innerHTML = `
-        <div class="mf-stremio-window mf-stremio-card">
-            <button type="button" class="mf-stremio-close-btn mf-close-btn" title="Fechar (Esc)">✕</button>
-            <div class="mf-stremio-content">
-                <div class="mf-stremio-left" style="background-image: linear-gradient(180deg, rgba(13,16,24,0.6) 0%, rgba(13,16,24,0.98) 85%), url('${escapeHtml(movie.backdrop)}');">
+        <div class="mf-movie-page-window mf-stremio-window mf-stremio-card">
+            <header class="mf-movie-page-topbar">
+                <button type="button" class="mf-movie-page-back-btn mf-stremio-close-btn" title="Voltar (Esc)">
+                    <span class="material-icons" style="font-size: 20px;">arrow_back</span>
+                    <span style="font-size: 14px; font-weight: 700;">Voltar</span>
+                </button>
+                <div class="mf-movie-page-top-title">${escapeHtml(movie.title)}</div>
+                <div style="width: 80px;"></div>
+            </header>
+            <div class="mf-movie-page-body mf-stremio-content">
+                <div class="mf-stremio-left" style="background-image: linear-gradient(180deg, rgba(9,12,18,0.7) 0%, rgba(9,12,18,0.98) 75%), url('${escapeHtml(movie.backdrop)}');">
                     <div class="mf-stremio-poster-wrap">
                         <img src="${escapeHtml(movie.poster)}" alt="" class="mf-stremio-poster" />
                         <div class="mf-stremio-header-info">
-                            <h2 class="mf-stremio-title">${escapeHtml(movie.title)}</h2>
+                            <h1 class="mf-stremio-title">${escapeHtml(movie.title)}</h1>
                             <div class="mf-stremio-subinfo">
                                 ${movie.year ? `<span class="mf-badge-year">${escapeHtml(movie.year)}</span>` : ''}
                                 ${movie.rating ? `<span class="mf-badge-rating">⭐ ${movie.rating}</span>` : ''}
@@ -47,19 +73,19 @@ export async function openStremioDetails(rawMovie) {
                     </div>
                     <p class="mf-stremio-synopsis">${escapeHtml(movie.description || 'Sinopse não disponível.')}</p>
                     <div class="mf-local-status-container"></div>
-                    <div class="mf-stremio-hero-action" style="display: flex; gap: 12px; align-items: center;">
+                    <div class="mf-stremio-hero-action" style="display: flex; gap: 12px; align-items: center; margin-top: auto; padding-top: 16px;">
                         <button type="button" class="mf-btn-hero-watch" disabled>
                             <span class="material-icons">play_arrow</span>
                             <span class="mf-hero-watch-text">Buscando fontes...</span>
                         </button>
-                        <button type="button" class="mf-btn-fav-toggle" title="Adicionar aos Favoritos" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                        <button type="button" class="mf-btn-fav-toggle" title="Adicionar aos Favoritos" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease;">
                             <span class="material-icons mf-fav-icon">favorite_border</span>
                         </button>
                     </div>
                 </div>
                 <div class="mf-stremio-right">
                     <div class="mf-stremio-streams-header">
-                        <h3>Fontes</h3>
+                        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #ffffff;">Fontes & Downloads</h3>
                         <span class="mf-streams-count" style="font-size: 13px; color: #8c93a4;"></span>
                     </div>
                     <div class="mf-stremio-streams-list">
@@ -73,12 +99,11 @@ export async function openStremioDetails(rawMovie) {
     document.body.appendChild(modalEl);
     activeModal = modalEl;
 
-    modalEl.querySelector('.mf-stremio-close-btn').addEventListener('click', closeDetails);
-    modalEl.addEventListener('click', (e) => {
-        if (e.target === modalEl) closeDetails();
-    });
+    modalEl.querySelector('.mf-movie-page-back-btn').addEventListener('click', () => closeDetails(true));
     activeKeyHandler = (e) => {
-        if (e.key === 'Escape' && !document.querySelector('.mf-cinema-player')) closeDetails();
+        if (e.key === 'Escape' && !document.querySelector('.mf-cinema-player')) {
+            closeDetails(true);
+        }
     };
     window.addEventListener('keydown', activeKeyHandler);
 
