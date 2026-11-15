@@ -75,22 +75,75 @@ function persistDownloads() {
     }
 }
 
-// Public trackers list for magnet generation
+// Public trackers list for magnet generation (atualizado sem trackers mortos e com trackers rápidos)
 const DEFAULT_TRACKERS = [
     'udp://tracker.opentrackr.org:1337/announce',
-    'udp://open.tracker.cl:1337/announce',
-    'udp://9.rarbg.com:2810/announce',
-    'udp://tracker.openbittorrent.com:6969/announce',
-    'udp://exodus.desync.com:6969/announce',
     'udp://open.stealth.si:80/announce',
     'udp://tracker.torrent.eu.org:451/announce',
-    'udp://explodie.org:6969/announce'
+    'udp://open.demonii.com:1337/announce',
+    'udp://open.tracker.cl:1337/announce',
+    'udp://exodus.desync.com:6969/announce',
+    'udp://explodie.org:6969/announce',
+    'udp://tracker.openbittorrent.com:6969/announce',
+    'udp://tracker.tiny-vps.com:6969/announce',
+    'udp://tracker.theoks.net:6969/announce'
 ];
 
-function buildMagnet(infoHash, name) {
+// Helper para localizar instâncias de ffmpeg disponíveis no sistema
+const FFMPEG_CANDIDATES = [
+    process.env.FFMPEG_PATH,
+    'C:\\Program Files\\Jellyfin\\Server\\ffmpeg.exe',
+    'C:\\ffmpeg\\bin\\ffmpeg.exe',
+    'ffmpeg'
+].filter(Boolean);
+
+let RESOLVED_FFMPEG = null;
+for (const p of FFMPEG_CANDIDATES) {
+    if (p === 'ffmpeg') {
+        RESOLVED_FFMPEG = 'ffmpeg';
+        break;
+    }
+    if (fs.existsSync(p)) {
+        RESOLVED_FFMPEG = p;
+        break;
+    }
+}
+if (RESOLVED_FFMPEG) {
+    console.log(`[TorrentService] FFmpeg detectado para suporte a áudio/transcode: "${RESOLVED_FFMPEG}"`);
+}
+
+/**
+ * Busca um torrent ativo de forma segura e síncrona/imediata pela lista em memória
+ */
+function getActiveTorrent(hash) {
+    if (!hash) return null;
+    const clean = hash.trim().toLowerCase();
+    return client.torrents.find(t => (t.infoHash && t.infoHash.toLowerCase() === clean)) || null;
+}
+
+/**
+ * Seleciona o arquivo principal de vídeo do torrent (maior arquivo de vídeo, ignorando samples)
+ */
+function selectBestVideoFile(files) {
+    if (!files || !files.length) return null;
+    const videoExts = /\.(mp4|mkv|webm|avi|mov|m4v|ts)$/i;
+    const videoFiles = files.filter(f => videoExts.test(f.name) && !/sample/i.test(f.name));
+    if (videoFiles.length > 0) {
+        return videoFiles.reduce((prev, curr) => (curr.length > prev.length ? curr : prev));
+    }
+    // Fallback: qualquer vídeo mesmo com sample no nome
+    const anyVideo = files.filter(f => videoExts.test(f.name));
+    if (anyVideo.length > 0) {
+        return anyVideo.reduce((prev, curr) => (curr.length > prev.length ? curr : prev));
+    }
+    return files[0];
+}
+
+function buildMagnet(infoHash, name, extraTrackers = []) {
     let magnet = `magnet:?xt=urn:btih:${infoHash}`;
     if (name) magnet += `&dn=${encodeURIComponent(name)}`;
-    DEFAULT_TRACKERS.forEach(tr => {
+    const trackers = Array.from(new Set([...DEFAULT_TRACKERS, ...(extraTrackers || [])]));
+    trackers.forEach(tr => {
         magnet += `&tr=${encodeURIComponent(tr)}`;
     });
     return magnet;
@@ -389,10 +442,18 @@ const server = http.createServer(async (req, res) => {
             }
 
             try {
+                console.log(`[TorrentService] Buscando torrents no Torrentio para IMDB: ${imdb}`);
                 const [allStreamsRes, ptStreamsRes] = await Promise.allSettled([
                     fetchJson(`https://torrentio.strem.fun/stream/movie/${imdb}.json`),
                     fetchJson(`https://torrentio.strem.fun/language=portuguese/stream/movie/${imdb}.json`)
                 ]);
+
+                if (allStreamsRes.status === 'rejected') {
+                    console.warn(`[TorrentService] Torrentio (geral) falhou: ${allStreamsRes.reason?.message}`);
+                }
+                if (ptStreamsRes.status === 'rejected') {
+                    console.warn(`[TorrentService] Torrentio (PT) falhou: ${ptStreamsRes.reason?.message}`);
+                }
 
                 const streamMap = new Map();
 
@@ -430,7 +491,17 @@ const server = http.createServer(async (req, res) => {
                             audio = '🇧🇷 Áudio / Legenda PT';
                         }
 
-                        const magnetUri = buildMagnet(key, filename);
+                        // Extrair trackers fornecidos pelo Torrentio nas fontes (se existirem)
+                        const streamTrackers = [];
+                        if (Array.isArray(s.sources)) {
+                            s.sources.forEach(src => {
+                                if (typeof src === 'string' && src.startsWith('tracker:')) {
+                                    streamTrackers.push(src.replace(/^tracker:/, ''));
+                                }
+                            });
+                        }
+
+                        const magnetUri = buildMagnet(key, filename, streamTrackers);
 
                         streamMap.set(key, {
                             infoHash: key,
@@ -531,7 +602,7 @@ const server = http.createServer(async (req, res) => {
         // List active / completed downloads
         if (pathname === '/api/downloads' && req.method === 'GET') {
             const list = Array.from(downloadsRegistry.values()).map(meta => {
-                const torrent = client.get(meta.id);
+                const torrent = getActiveTorrent(meta.id);
                 if (torrent) {
                     return {
                         id: meta.id,
@@ -556,14 +627,14 @@ const server = http.createServer(async (req, res) => {
                     title: meta.title,
                     quality: meta.quality,
                     name: meta.title,
-                    progress: meta.progress || 100,
+                    progress: meta.progress || (meta.status === 'completed' ? 100 : 0),
                     downloadSpeed: '0 B/s',
                     uploadSpeed: '0 B/s',
-                    downloaded: meta.downloaded || 'Concluído',
+                    downloaded: meta.downloaded || (meta.status === 'completed' ? 'Concluído' : '0 B'),
                     total: meta.total || '',
                     numPeers: 0,
-                    timeRemaining: 'Concluído',
-                    status: meta.status || 'completed',
+                    timeRemaining: meta.status === 'completed' ? 'Concluído' : 'Pausado',
+                    status: meta.status || 'downloading',
                     createdAt: meta.createdAt
                 };
             });
@@ -576,16 +647,17 @@ const server = http.createServer(async (req, res) => {
         // Torrent Streaming Status (Stremio style)
         if (pathname.startsWith('/api/stream/') && pathname.endsWith('/status') && req.method === 'GET') {
             const infoHash = pathname.replace('/api/stream/', '').replace('/status', '').trim().toLowerCase();
-            const torrent = client.get(infoHash);
+            const torrent = getActiveTorrent(infoHash);
             if (!torrent) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Torrent not active' }));
                 return;
             }
 
-            const videoFile = torrent.files?.find(f => /\.(mp4|mkv|webm|avi|mov)$/i.test(f.name)) || torrent.files?.[0];
+            const videoFile = selectBestVideoFile(torrent.files);
             const downloadedBytes = torrent.downloaded || 0;
-            const canPlay = downloadedBytes > 2 * 1024 * 1024 || torrent.progress > 0.01;
+            // Libera canPlay com 1MB baixado, progresso > 0.05% ou se o arquivo já tem metadados prontos
+            const canPlay = downloadedBytes > 1024 * 1024 || torrent.progress > 0.005 || Boolean(videoFile && torrent.ready);
 
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({
@@ -603,10 +675,10 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // Live Torrent Streaming endpoint (Range / 206 Partial Content)
+        // Live Torrent Streaming endpoint (Range / 206 Partial Content com fallback de transcode)
         if (pathname.startsWith('/api/stream/') && req.method === 'GET') {
             const infoHash = pathname.replace('/api/stream/', '').trim().toLowerCase();
-            let torrent = client.get(infoHash);
+            let torrent = getActiveTorrent(infoHash);
 
             if (!torrent) {
                 const magnet = urlObj.searchParams.get('magnet');
@@ -617,6 +689,7 @@ const server = http.createServer(async (req, res) => {
                     return;
                 }
 
+                console.log(`[Streaming] Iniciando streaming do torrent "${title}" (Hash: ${infoHash})`);
                 const metaItem = {
                     id: infoHash,
                     title: title,
@@ -628,10 +701,23 @@ const server = http.createServer(async (req, res) => {
                 persistDownloads();
 
                 torrent = client.add(magnet, { path: SAVE_PATH });
+
+                torrent.on('wire', () => {
+                    // Log silencioso ou debug
+                });
+                torrent.on('warning', (w) => {
+                    console.warn(`[Streaming] WebTorrent warning (${infoHash}):`, w.message);
+                });
+                torrent.on('error', (err) => {
+                    console.error(`[Streaming] WebTorrent error (${infoHash}):`, err.message);
+                });
+
                 torrent.on('done', () => {
                     console.log(`[Streaming] 🎉 Stream completely downloaded: "${torrent.name}"!`);
                     metaItem.status = 'completed';
                     metaItem.progress = 100;
+                    metaItem.downloaded = formatBytes(torrent.length);
+                    metaItem.total = formatBytes(torrent.length);
                     persistDownloads();
                     scanLocalMovies(SAVE_PATH);
                     refreshJellyfinLibrary();
@@ -639,43 +725,111 @@ const server = http.createServer(async (req, res) => {
             }
 
             const streamFile = (file) => {
-                file.select();
+                if (!file) {
+                    res.writeHead(404, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Nenhum arquivo de vídeo encontrado no torrent' }));
+                    return;
+                }
+
+                // Prioriza as primeiras e últimas peças para o cabeçalho/índice do vídeo (moov atom / seek index)
+                try {
+                    file.select();
+                } catch (e) {
+                    console.warn('[Streaming] file.select() warning:', e.message);
+                }
 
                 const total = file.length;
                 let contentType = 'video/mp4';
                 if (file.name.endsWith('.mkv')) contentType = 'video/x-matroska';
                 else if (file.name.endsWith('.webm')) contentType = 'video/webm';
+                else if (file.name.endsWith('.avi')) contentType = 'video/x-msvideo';
 
                 const range = req.headers.range;
+
                 if (!range) {
                     res.writeHead(200, {
                         'Content-Length': total,
                         'Content-Type': contentType,
                         'Accept-Ranges': 'bytes'
                     });
-                    file.createReadStream().pipe(res);
-                } else {
-                    const parts = range.replace(/bytes=/, '').split('-');
-                    const start = parseInt(parts[0], 10);
-                    const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
-                    const chunksize = (end - start) + 1;
-
-                    res.writeHead(206, {
-                        'Content-Range': `bytes ${start}-${end}/${total}`,
-                        'Accept-Ranges': 'bytes',
-                        'Content-Length': chunksize,
-                        'Content-Type': contentType
+                    const stream = file.createReadStream();
+                    stream.pipe(res);
+                    req.on('close', () => {
+                        if (stream && typeof stream.destroy === 'function') stream.destroy();
                     });
-                    file.createReadStream({ start, end }).pipe(res);
+                    stream.on('error', (err) => {
+                        console.error('[Streaming] Stream error:', err.message);
+                        if (!res.headersSent) res.writeHead(500);
+                        res.end();
+                    });
+                    return;
                 }
+
+                // Parsing e validação robusta de HTTP Range
+                const matches = range.match(/bytes=(\d*)-(\d*)/);
+                if (!matches) {
+                    res.writeHead(416, { 'Content-Range': `bytes */${total}` });
+                    res.end();
+                    return;
+                }
+
+                let start;
+                let end;
+
+                if (matches[1] === '') {
+                    // Suffix range: bytes=-500 (últimos 500 bytes)
+                    const suffix = parseInt(matches[2], 10);
+                    start = Math.max(0, total - suffix);
+                    end = total - 1;
+                } else if (matches[2] === '') {
+                    // Range aberto: bytes=500- (do byte 500 até o final)
+                    start = parseInt(matches[1], 10);
+                    end = total - 1;
+                } else {
+                    start = parseInt(matches[1], 10);
+                    end = parseInt(matches[2], 10);
+                }
+
+                // Validação de limites
+                if (isNaN(start) || isNaN(end) || start > end || start >= total) {
+                    res.writeHead(416, { 'Content-Range': `bytes */${total}` });
+                    res.end();
+                    return;
+                }
+
+                end = Math.min(end, total - 1);
+                const chunkSize = (end - start) + 1;
+
+                res.writeHead(206, {
+                    'Content-Range': `bytes ${start}-${end}/${total}`,
+                    'Accept-Ranges': 'bytes',
+                    'Content-Length': chunkSize,
+                    'Content-Type': contentType
+                });
+
+                const stream = file.createReadStream({ start, end });
+                stream.pipe(res);
+
+                req.on('close', () => {
+                    if (stream && typeof stream.destroy === 'function') {
+                        stream.destroy();
+                    }
+                });
+
+                stream.on('error', (err) => {
+                    console.warn(`[Streaming] Range stream error (${start}-${end}):`, err.message);
+                    if (stream && typeof stream.destroy === 'function') {
+                        stream.destroy();
+                    }
+                });
             };
 
-            if (torrent.files && torrent.files.length > 0) {
-                const videoFile = torrent.files.find(f => /\.(mp4|mkv|webm|avi|mov)$/i.test(f.name)) || torrent.files[0];
+            if (torrent.ready && torrent.files && torrent.files.length > 0) {
+                const videoFile = selectBestVideoFile(torrent.files);
                 streamFile(videoFile);
             } else {
                 torrent.once('ready', () => {
-                    const videoFile = torrent.files.find(f => /\.(mp4|mkv|webm|avi|mov)$/i.test(f.name)) || torrent.files[0];
+                    const videoFile = selectBestVideoFile(torrent.files);
                     streamFile(videoFile);
                 });
             }
@@ -686,7 +840,7 @@ const server = http.createServer(async (req, res) => {
         if (pathname === '/api/downloads/start' && req.method === 'POST') {
             let body = '';
             req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            req.on('end', async () => {
                 try {
                     const data = JSON.parse(body);
                     const { magnet, imdbId, title, quality, filename } = data;
@@ -705,7 +859,7 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-                    const existingTorrent = client.get(infoHash);
+                    const existingTorrent = getActiveTorrent(infoHash);
                     if (existingTorrent) {
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ message: 'Download already active', id: infoHash }));
@@ -727,6 +881,10 @@ const server = http.createServer(async (req, res) => {
 
                     const torrent = client.add(magnet, { path: SAVE_PATH }, (t) => {
                         console.log(`[TorrentService] Torrent ready: "${t.name}" (${formatBytes(t.length)})`);
+                    });
+
+                    torrent.on('warning', (w) => {
+                        console.warn(`[TorrentService] Torrent warning on "${title}":`, w.message);
                     });
 
                     torrent.on('done', () => {
@@ -771,7 +929,7 @@ const server = http.createServer(async (req, res) => {
         // Cancel / delete download
         if (pathname.startsWith('/api/downloads/') && req.method === 'DELETE') {
             const id = pathname.replace('/api/downloads/', '').trim().toLowerCase();
-            const torrent = client.get(id);
+            const torrent = getActiveTorrent(id);
             if (torrent) {
                 torrent.destroy(() => {
                     console.log(`[TorrentService] Torrent stopped: ${id}`);
