@@ -572,14 +572,67 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // Unified Movie Catalog Search & Filtering (SQLite backed)
+        // Unified Catalog Search & Filtering (Movies + Series)
         if ((pathname === '/api/movies' || pathname === '/api/catalog') && req.method === 'GET') {
+            const type = urlObj.searchParams.get('type') || 'movie';
             const q = urlObj.searchParams.get('q') || '';
             const genre = urlObj.searchParams.get('genre') || 'all';
             const year = urlObj.searchParams.get('year') || 'all';
             const sort = urlObj.searchParams.get('sort') || 'trending';
             const limit = parseInt(urlObj.searchParams.get('limit'), 10) || 40;
             const offset = parseInt(urlObj.searchParams.get('offset'), 10) || 0;
+
+            if (type === 'series') {
+                try {
+                    let seriesUrl;
+                    const cleanQ = q.trim();
+                    if (cleanQ.length > 0) {
+                        seriesUrl = `https://v3-cinemeta.strem.io/catalog/series/top/search=${encodeURIComponent(cleanQ)}.json`;
+                    } else if (genre && genre !== 'all') {
+                        seriesUrl = `https://v3-cinemeta.strem.io/catalog/series/top/genre=${encodeURIComponent(genre)}.json`;
+                    } else {
+                        seriesUrl = 'https://cinemeta-catalogs.strem.io/top/catalog/series/top.json';
+                    }
+
+                    console.log(`[TorrentService] Buscando catálogo de séries em: ${seriesUrl}`);
+                    const cinemeta = await fetchJson(seriesUrl);
+                    let metas = (cinemeta?.metas || []).map(m => ({
+                        id: m.imdb_id || m.id,
+                        imdb_id: m.imdb_id || m.id,
+                        title: m.name,
+                        name: m.name,
+                        year: m.releaseInfo || m.year,
+                        poster: m.poster,
+                        backdrop: m.background || m.poster,
+                        description: m.description,
+                        genres: Array.isArray(m.genres) ? m.genres.join(', ') : (m.genres || 'Série'),
+                        rating: m.imdbRating || (m.popularities?.moviedb ? (m.popularities.moviedb / 10).toFixed(1) : '8.0'),
+                        type: 'series',
+                        isSeries: true
+                    }));
+
+                    const total = metas.length;
+                    if (offset > 0 || metas.length > limit) {
+                        metas = metas.slice(offset, offset + limit);
+                    }
+
+                    await markLocalMoviesInList(metas);
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({
+                        movies: metas,
+                        total,
+                        limit,
+                        offset,
+                        type: 'series'
+                    }));
+                    return;
+                } catch (e) {
+                    console.error('[TorrentService] Erro ao buscar séries:', e.message);
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ movies: [], total: 0, limit, offset, type: 'series', error: e.message }));
+                    return;
+                }
+            }
 
             const results = searchCatalog({ q, genre, year, sort, limit, offset });
 
@@ -606,6 +659,28 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify(results));
             return;
+        }
+
+        // Metadados de Séries (Temporadas e Episódios)
+        if (pathname === '/api/series/meta' && req.method === 'GET') {
+            const id = urlObj.searchParams.get('id') || urlObj.searchParams.get('imdbId');
+            if (!id) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Parameter id is required' }));
+                return;
+            }
+            try {
+                const metaUrl = `https://v3-cinemeta.strem.io/meta/series/${encodeURIComponent(id)}.json`;
+                console.log(`[TorrentService] Buscando temporadas/episódios da série: ${id}`);
+                const data = await fetchJson(metaUrl);
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify(data));
+                return;
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: err.message }));
+                return;
+            }
         }
 
         // Trending Movies (Backward-compatible, powered by SQLite)
@@ -682,10 +757,13 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // Search Torrents for a Movie
+        // Search Torrents for a Movie or Series
         if ((pathname === '/api/torrents/search' || pathname === '/api/torrents') && req.method === 'GET') {
             const imdb = urlObj.searchParams.get('imdb') || urlObj.searchParams.get('imdbId');
             const titleParam = (urlObj.searchParams.get('title') || '').trim();
+            const type = urlObj.searchParams.get('type') || 'movie';
+            const season = urlObj.searchParams.get('season');
+            const episode = urlObj.searchParams.get('episode');
             if (!imdb) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Parameter imdb is required' }));
@@ -693,11 +771,16 @@ const server = http.createServer(async (req, res) => {
             }
 
             try {
-                console.log(`[TorrentService] Buscando torrents no Torrentio (PT-BR) para IMDB: ${imdb}`);
+                const isSeries = type === 'series' || (season !== null && episode !== null);
+                const sNum = parseInt(season, 10) || 1;
+                const eNum = parseInt(episode, 10) || 1;
+                const streamPath = isSeries ? `series/${imdb}:${sNum}:${eNum}` : `movie/${imdb}`;
+
+                console.log(`[TorrentService] Buscando torrents no Torrentio (PT-BR) para: ${streamPath}`);
                 const [allStreamsRes, ptStreamsRes, brProvidersRes] = await Promise.allSettled([
-                    fetchJson(`https://torrentio.strem.fun/stream/movie/${imdb}.json`),
-                    fetchJson(`https://torrentio.strem.fun/language=portuguese/stream/movie/${imdb}.json`),
-                    fetchJson(`https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,comando,bludv|language=portuguese/stream/movie/${imdb}.json`)
+                    fetchJson(`https://torrentio.strem.fun/stream/${streamPath}.json`),
+                    fetchJson(`https://torrentio.strem.fun/language=portuguese/stream/${streamPath}.json`),
+                    fetchJson(`https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,comando,bludv|language=portuguese/stream/${streamPath}.json`)
                 ]);
 
                 if (allStreamsRes.status === 'rejected') {

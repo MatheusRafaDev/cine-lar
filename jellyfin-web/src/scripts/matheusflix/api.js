@@ -19,9 +19,10 @@ export async function rescanLocalMovies() {
     return res.json();
 }
 
-export async function fetchCatalog({ q = '', genre = 'all', year = 'all', sort = 'trending', limit = 60, offset = 0 } = {}) {
+export async function fetchCatalog({ type = 'movie', q = '', genre = 'all', year = 'all', sort = 'trending', limit = 60, offset = 0 } = {}) {
     /* eslint-disable-next-line compat/compat */
     const params = new URLSearchParams({
+        type,
         q,
         genre,
         year,
@@ -34,17 +35,26 @@ export async function fetchCatalog({ q = '', genre = 'all', year = 'all', sort =
     return res.json();
 }
 
+export async function fetchSeriesMeta(imdbId) {
+    const res = await fetch(`${API_BASE}/series/meta?id=${encodeURIComponent(imdbId)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
 export async function fetchGenres() {
     const res = await fetch(`${API_BASE}/genres`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
 }
 
-export async function searchTorrents(imdbId, title) {
+export async function searchTorrents(imdbId, title, options = {}) {
     /* eslint-disable-next-line compat/compat */
     const params = new URLSearchParams();
     if (imdbId) params.set('imdbId', imdbId);
     if (title) params.set('title', title);
+    if (options.type) params.set('type', options.type);
+    if (options.season != null) params.set('season', String(options.season));
+    if (options.episode != null) params.set('episode', String(options.episode));
 
     const res = await fetch(`${API_BASE}/torrents?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

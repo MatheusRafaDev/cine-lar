@@ -10,14 +10,22 @@ import { escapeHtml, normalizeMovie } from './utils';
 const PAGE_SIZE = 48;
 
 export function renderStreamingView(container) {
-    const state = { q: '', genre: 'all', sort: 'trending', offset: 0, requestId: 0 };
+    const state = { type: 'movie', q: '', genre: 'all', sort: 'trending', offset: 0, requestId: 0 };
 
     container.innerHTML = `
         <div class="mf-catalog">
+            <div class="mf-torrent-type-bar">
+                <button type="button" class="mf-type-chip active" data-type="movie">
+                    <span class="mf-type-chip-icon">🎬</span> Filmes
+                </button>
+                <button type="button" class="mf-type-chip" data-type="series">
+                    <span class="mf-type-chip-icon">📺</span> Séries
+                </button>
+            </div>
             <div class="mf-catalog-toolbar">
                 <div class="mf-search-box">
                     <span class="material-icons mf-search-icon">search</span>
-                    <input type="search" class="mf-search-input" placeholder="Buscar filme… ou descreva o que quer ver e clique em IA" />
+                    <input type="search" class="mf-search-input" placeholder="Buscar filmes em torrent (PT-BR)… ou descreva o que quer ver e clique em IA" />
                 </div>
                 <button type="button" class="mf-btn-ai" title="Recomendação por IA a partir do texto digitado">
                     <span class="material-icons">auto_awesome</span><span>IA</span>
@@ -46,6 +54,7 @@ export function renderStreamingView(container) {
     const aiBtn = container.querySelector('.mf-btn-ai');
     const moreWrap = container.querySelector('.mf-catalog-more');
     const moreBtn = container.querySelector('.mf-btn-more');
+    const typeChips = container.querySelectorAll('.mf-type-chip');
 
     const setStatus = (html) => {
         status.innerHTML = html;
@@ -61,7 +70,7 @@ export function renderStreamingView(container) {
             if (state.genre === 'favorites') {
                 const favRes = await fetchUserFavorites();
                 if (requestId !== state.requestId) return;
-                let movies = (favRes.favorites || []).map(f => normalizeMovie({
+                let movies = (favRes.favorites || []).map((f) => normalizeMovie({
                     id: f.movieId,
                     imdbId: f.movieId,
                     title: f.title,
@@ -71,16 +80,23 @@ export function renderStreamingView(container) {
                 }));
                 if (state.q) {
                     const qLower = state.q.toLowerCase();
-                    movies = movies.filter(m => m.title.toLowerCase().includes(qLower));
+                    movies = movies.filter((m) => m.title.toLowerCase().includes(qLower));
                 }
                 grid.innerHTML = '';
                 appendCards(grid, movies);
                 moreWrap.classList.add('hide');
-                setStatus(movies.length ? '' : '<p class="mf-muted">Sua lista de favoritos está vazia. Abra um filme e clique no coração para adicionar!</p>');
+                setStatus(movies.length ? '' : '<p class="mf-muted">Sua lista de favoritos está vazia. Abra um título e clique no coração para adicionar!</p>');
                 return;
             }
 
-            const data = await fetchCatalog({ q: state.q, genre: state.genre, sort: state.sort, limit: PAGE_SIZE, offset: state.offset });
+            const data = await fetchCatalog({
+                type: state.type,
+                q: state.q,
+                genre: state.genre,
+                sort: state.sort,
+                limit: PAGE_SIZE,
+                offset: state.offset
+            });
             if (requestId !== state.requestId) return; // resposta antiga, ignora
             const movies = (data.movies || []).map(normalizeMovie);
             if (!append) grid.innerHTML = '';
@@ -88,7 +104,8 @@ export function renderStreamingView(container) {
             state.offset += movies.length;
             const total = Number(data.total) || 0;
             moreWrap.classList.toggle('hide', !(total > state.offset && movies.length > 0));
-            setStatus(grid.children.length ? '' : '<p class="mf-muted">Nenhum filme encontrado.</p>');
+            const emptyMsg = state.type === 'series' ? 'Nenhuma série encontrada.' : 'Nenhum filme encontrado.';
+            setStatus(grid.children.length ? '' : `<p class="mf-muted">${emptyMsg}</p>`);
         } catch (err) {
             if (requestId !== state.requestId) return;
             moreWrap.classList.add('hide');
@@ -152,6 +169,30 @@ export function renderStreamingView(container) {
     aiBtn.addEventListener('click', runAi);
     moreBtn.addEventListener('click', () => load(true));
 
+    typeChips.forEach((chip) => {
+        chip.addEventListener('click', () => {
+            const selectedType = chip.getAttribute('data-type') || 'movie';
+            if (state.type === selectedType) return;
+            typeChips.forEach((c) => {
+                c.classList.remove('active');
+            });
+            chip.classList.add('active');
+            state.type = selectedType;
+            state.offset = 0;
+            state.genre = 'all';
+            searchInput.value = '';
+            state.q = '';
+            if (state.type === 'series') {
+                searchInput.placeholder = 'Buscar séries em torrent (PT-BR)…';
+                genreBar.style.display = 'none';
+            } else {
+                searchInput.placeholder = 'Buscar filmes em torrent (PT-BR)… ou descreva o que quer ver e clique em IA';
+                genreBar.style.display = '';
+            }
+            load();
+        });
+    });
+
     renderGenres(genreBar, state, load);
     load();
 }
@@ -182,17 +223,23 @@ async function renderGenres(genreBar, state, load) {
 
 function appendCards(grid, movies) {
     const frag = document.createDocumentFragment();
-    movies.forEach(m => {
+    movies.forEach((m) => {
         const card = document.createElement('button');
         card.type = 'button';
         card.className = 'mf-movie-card';
         card.title = m.reason || m.title;
         card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
+
+        const seriesBadge = m.isSeries || m.type === 'series' ?
+            '<span class="mf-badge-card-series" title="Série de TV">📺 Série</span>' :
+            '';
+
         card.innerHTML = `
             <div class="mf-poster-wrap">
                 <img src="${escapeHtml(m.poster)}" alt="" loading="lazy" class="mf-poster-img" />
                 ${m.rating ? `<span class="mf-badge-rating">⭐ ${m.rating}</span>` : ''}
                 ${m.isLocal ? '<span class="mf-badge-on-disk"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta</span>' : ''}
+                ${seriesBadge}
             </div>
             <div class="mf-movie-info" style="padding: 10px 12px 14px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
                 <h4 class="mf-movie-title" style="color: #ffffff !important; font-size: 14px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${escapeHtml(m.title)}</h4>
