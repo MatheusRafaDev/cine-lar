@@ -13,11 +13,19 @@ export function navigateToTab(tabIndex) {
     const isHome = window.location.hash.startsWith('#/home') || window.location.hash === '' || window.location.hash === '#/';
     if (isHome) {
         import('components/maintabsmanager').then(m => {
-            m.selectedTabIndex(tabIndex);
+            try {
+                m.selectedTabIndex(tabIndex);
+            } catch {
+                import('components/router/appRouter').then(r => {
+                    const router = r.default || r.appRouter || r;
+                    router.show(`/home?tab=${tabIndex}`);
+                });
+            }
         });
     } else {
         import('components/router/appRouter').then(m => {
-            m.default.show(`/home?tab=${tabIndex}`);
+            const router = m.default || m.appRouter || m;
+            router.show(`/home?tab=${tabIndex}`);
         });
     }
 }
