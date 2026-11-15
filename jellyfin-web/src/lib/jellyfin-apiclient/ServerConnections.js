@@ -38,6 +38,26 @@ class ServerConnections extends ConnectionManager {
         this.localApiClient = null;
         this.firstConnection = null;
 
+        // MatheusFlix: Auto-provisionar servidor padrão se credentials estiver vazio
+        try {
+            const creds = credentialProvider.credentials();
+            if (!creds.Servers || creds.Servers.length === 0) {
+                const defaultServer = {
+                    Id: 'a61271d6b728483aa696c8d52ace8e04',
+                    Name: 'MatheusFlix Server',
+                    ManualAddress: 'http://localhost:8096',
+                    LocalAddress: 'http://localhost:8096',
+                    LastConnectionMode: 2,
+                    manualAddressOnly: true,
+                    DateLastAccessed: Date.now()
+                };
+                creds.Servers = [defaultServer];
+                credentialProvider.credentials(creds);
+            }
+        } catch (e) {
+            console.warn('[MatheusFlix] Error preconfiguring server credentials:', e);
+        }
+
         Events.on(this, 'localusersignedout', (_e, logoutInfo) => {
             setUserInfo(null, null);
             // Ensure the updated credentials are persisted to storage
@@ -79,6 +99,22 @@ class ServerConnections extends ConnectionManager {
         return super.connect({
             enableAutoLogin: appSettings.enableAutoLogin(),
             ...options
+        }).then(async (result) => {
+            // MatheusFlix: Se o servidor exigir login (ServerSignIn), autentica automaticamente sem pedir tela
+            if (result && result.State === 2 && result.ApiClient) {
+                try {
+                    console.log('[MatheusFlix] Realizando auto-login transparente de rafae...');
+                    const authRes = await result.ApiClient.authenticateUserByName('rafae', '10092004');
+                    if (authRes && authRes.User) {
+                        result.State = 1; // SignedIn
+                        result.User = authRes.User;
+                        result.AccessToken = authRes.AccessToken;
+                    }
+                } catch (err) {
+                    console.warn('[MatheusFlix] Falha no auto-login transparente:', err);
+                }
+            }
+            return result;
         });
     }
 
