@@ -104,7 +104,9 @@ function playLocal(m) {
         title: m.title,
         subInfo: [m.quality, m.sizeFormatted].filter(Boolean).join(' • '),
         quality: m.quality || '',
-        isLocal: true
+        isLocal: true,
+        movieId: m.imdbId || m.id,
+        poster: m.poster
     });
 }
 

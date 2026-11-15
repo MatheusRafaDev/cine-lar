@@ -2,8 +2,29 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import http from 'http';
+import { spawn } from 'child_process';
 import { upsertMovie, getDb, translateGenres } from './db.js';
 import { detectFranchise, detectSeries } from './organizer.js';
+
+// Localizar ffmpeg para suporte a reprodução e conversão de áudio instantânea
+const FFMPEG_CANDIDATES = [
+    process.env.FFMPEG_PATH,
+    'C:\\Program Files\\Jellyfin\\Server\\ffmpeg.exe',
+    'C:\\ffmpeg\\bin\\ffmpeg.exe',
+    'ffmpeg'
+].filter(Boolean);
+
+let RESOLVED_FFMPEG = null;
+for (const p of FFMPEG_CANDIDATES) {
+    if (p === 'ffmpeg') {
+        RESOLVED_FFMPEG = 'ffmpeg';
+        break;
+    }
+    if (fs.existsSync(p)) {
+        RESOLVED_FFMPEG = p;
+        break;
+    }
+}
 
 let localCache = null;
 let lastScanTime = 0;
@@ -257,9 +278,82 @@ export function streamLocalVideo(filePath, req, res) {
     const stat = fs.statSync(filePath);
     const total = stat.size;
 
+    // Trata requisições HEAD (verificação de mime/range pelo navegador)
+    if (req.method === 'HEAD') {
+        res.writeHead(200, {
+            'Content-Type': 'video/mp4',
+            'Accept-Ranges': 'bytes',
+            'Content-Length': total
+        });
+        res.end();
+        return;
+    }
+
+    const urlObj = new URL(req.url, 'http://localhost:8085');
+    const isTranscode = urlObj.searchParams.get('transcode') === '1';
+    const isDirect = urlObj.searchParams.get('direct') === '1';
+    const startTimeParam = parseFloat(urlObj.searchParams.get('startTime') || urlObj.searchParams.get('t') || 0);
+
+    const isMkvOrNonMp4 = /\.(mkv|avi|ts|mov|wmv|vob|flv)$/i.test(filePath);
+    const needsFfmpegRemux = Boolean(RESOLVED_FFMPEG && !isDirect && (isMkvOrNonMp4 || isTranscode || startTimeParam > 0));
+
+    if (needsFfmpegRemux) {
+        // Remux ultrarrápido com FFmpeg para Fragmented MP4 (fMP4):
+        // -c:v copy: 0% CPU, não reencoda o vídeo, inicia instantaneamente!
+        // -c:a aac: converte o áudio (EAC3/AC3/DTS) para AAC estéreo compatível com qualquer navegador
+        console.log(`[LocalStream] ⚡ Remuxando vídeo com FFmpeg "${path.basename(filePath)}" (start: ${startTimeParam}s)`);
+
+        const args = [
+            '-hide_banner',
+            '-loglevel', 'error'
+        ];
+
+        if (startTimeParam > 0) {
+            args.push('-ss', String(startTimeParam));
+        }
+
+        args.push(
+            '-i', filePath,
+            '-c:v', 'copy',
+            '-c:a', 'aac',
+            '-b:a', '192k',
+            '-ac', '2',
+            '-sn',
+            '-f', 'mp4',
+            '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+            'pipe:1'
+        );
+
+        const ffmpegProc = spawn(RESOLVED_FFMPEG, args, { stdio: ['ignore', 'pipe', 'ignore'] });
+
+        res.writeHead(200, {
+            'Content-Type': 'video/mp4',
+            'Accept-Ranges': 'none',
+            'Cache-Control': 'no-cache, no-store'
+        });
+
+        ffmpegProc.stdout.pipe(res);
+
+        req.on('close', () => {
+            try {
+                ffmpegProc.kill('SIGKILL');
+            } catch (e) {
+                // Ignore kill errors
+            }
+        });
+
+        ffmpegProc.on('error', (err) => {
+            console.error('[LocalStream] FFmpeg remux error:', err.message);
+            if (!res.headersSent) res.writeHead(500);
+            res.end();
+        });
+        return;
+    }
+
+    // Direct HTTP Range streaming (para MP4 nativo)
     let contentType = 'video/mp4';
-    if (filePath.endsWith('.mkv')) contentType = 'video/x-matroska';
-    else if (filePath.endsWith('.webm')) contentType = 'video/webm';
+    if (filePath.endsWith('.webm')) contentType = 'video/webm';
+    else if (filePath.endsWith('.mkv')) contentType = 'video/x-matroska';
     else if (filePath.endsWith('.avi')) contentType = 'video/x-msvideo';
 
     const range = req.headers.range;

@@ -41,6 +41,16 @@ export function openCinemaPlayer({
         closeCinemaPlayer();
     }
 
+    // Auto-recupera infoHash se não foi fornecido explicitamente
+    let currentHash = infoHash;
+    if (!currentHash && streamUrl) {
+        const hashMatch = streamUrl.match(/\/api\/stream\/([a-f0-9]{40})/i)
+            || streamUrl.match(/btih:([a-f0-9]{40})/i);
+        if (hashMatch) {
+            currentHash = hashMatch[1].toLowerCase();
+        }
+    }
+
     const fullStreamUrl = streamUrl.startsWith('http') ? streamUrl : `${API_BASE.replace('/api', '')}${streamUrl}`;
 
     const playerEl = document.createElement('div');
@@ -61,16 +71,13 @@ export function openCinemaPlayer({
         </div>
 
         <div class="mf-player-video-wrap">
-            <video class="mf-player-video" playsinline preload="auto">
-                <source src="${fullStreamUrl}" type="video/mp4">
-            </video>
+            <video class="mf-player-video" playsinline preload="auto" controlslist="nodownload"></video>
 
-            ${!isLocal ? `
-            <div class="mf-player-buffer-overlay">
+            <div class="mf-player-buffer-overlay" style="${isLocal ? 'display: none;' : ''}">
                 <div class="mf-player-spinner">🍿</div>
                 <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 800;">Conectando e Carregando Filme...</h2>
-                <p style="margin: 0 0 16px 0; color: #a0a6b5; font-size: 14px; max-width: 480px;">
-                    O MatheusFlix está baixando os primeiros megabytes para você começar a assistir imediatamente!
+                <p class="mf-buf-msg" style="margin: 0 0 16px 0; color: #a0a6b5; font-size: 14px; max-width: 520px; line-height: 1.5;">
+                    O MatheusFlix está preparando o filme para você começar a assistir imediatamente!
                 </p>
                 <div class="mf-buffer-stats">
                     <span class="mf-buffer-pill mf-buf-speed">⚡ Velocidade: ...</span>
@@ -78,7 +85,6 @@ export function openCinemaPlayer({
                     <span class="mf-buffer-pill mf-buf-progress">📊 Buffer: 0%</span>
                 </div>
             </div>
-            ` : ''}
         </div>
 
         <div class="mf-player-bottom-bar">
@@ -143,6 +149,17 @@ export function openCinemaPlayer({
 
     let statusInterval = null;
     let controlsTimer = null;
+    let hasFallbackTranscoded = false;
+
+    // Configura a fonte direta no elemento video
+    video.src = fullStreamUrl;
+    video.load();
+
+    function hideOverlay() {
+        if (overlay && overlay.style.display !== 'none') {
+            overlay.style.display = 'none';
+        }
+    }
 
     // Show/hide controls smoothly
     function showControls() {
@@ -211,7 +228,6 @@ export function openCinemaPlayer({
             btnCastTv.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 try {
-                    // Abre o seletor nativo do navegador (Chromecast / TVs compatíveis na mesma rede)
                     await video.remote.prompt();
                 } catch (err) {
                     if (err?.name === 'NotFoundError') {
@@ -281,6 +297,10 @@ export function openCinemaPlayer({
     }
 
     video.addEventListener('timeupdate', () => {
+        if (video.currentTime > 0) {
+            hideOverlay();
+        }
+
         if (video.duration) {
             const pct = (video.currentTime / video.duration) * 100;
             seekSlider.value = pct;
@@ -303,24 +323,34 @@ export function openCinemaPlayer({
         }
     });
 
+    video.addEventListener('loadeddata', () => {
+        hideOverlay();
+        video.play().catch(() => {
+            // Se autoplay bloqueado pelo navegador, inicia mutado
+            video.muted = true;
+            video.play().then(() => {
+                toast('Vídeo pronto. Clique no player para ativar o som.');
+            }).catch(noop);
+        });
+    });
+
+    video.addEventListener('canplay', () => {
+        hideOverlay();
+        tryResumePlayback();
+        video.play().catch(noop);
+    });
+
     video.addEventListener('play', () => {
         btnPlay.querySelector('.material-icons').textContent = 'pause';
-        if (overlay) overlay.style.display = 'none';
+        hideOverlay();
         showControls();
     });
 
     video.addEventListener('playing', () => {
         btnPlay.querySelector('.material-icons').textContent = 'pause';
-        if (overlay) overlay.style.display = 'none';
+        hideOverlay();
         tryResumePlayback();
         showControls();
-    });
-
-    video.addEventListener('canplay', () => {
-        tryResumePlayback();
-        if (isLocal) {
-            video.play().catch(noop);
-        }
     });
 
     video.addEventListener('pause', () => {
@@ -337,32 +367,79 @@ export function openCinemaPlayer({
     video.addEventListener('loadedmetadata', () => {
         timeDur.textContent = formatSeconds(video.duration);
         tryResumePlayback();
-        if (isLocal) {
-            video.play().catch(noop);
+        hideOverlay();
+        video.play().catch(noop);
+    });
+
+    // Tratamento de Erros e Auto-recuperação com Transcode
+    video.addEventListener('error', () => {
+        console.warn('[CinemaPlayer] Erro de mídia detectado:', video.error);
+
+        // Se o navegador falhou ao decodificar (ex: MKV ou áudio AC3) e ainda não tentamos o transcode
+        if (!hasFallbackTranscoded && !fullStreamUrl.includes('transcode=1')) {
+            hasFallbackTranscoded = true;
+            const sep = fullStreamUrl.includes('?') ? '&' : '?';
+            const fallbackUrl = `${fullStreamUrl}${sep}transcode=1`;
+            console.log('[CinemaPlayer] ⚡ Ativando conversão em tempo real (remux):', fallbackUrl);
+            toast('Ajustando formato para compatibilidade com o navegador...');
+
+            video.src = fallbackUrl;
+            video.load();
+            video.play().then(hideOverlay).catch(() => {
+                video.muted = true;
+                video.play().then(hideOverlay).catch(noop);
+            });
+            return;
         }
+
+        const msgEl = playerEl.querySelector('.mf-buf-msg');
+        if (msgEl) {
+            msgEl.textContent = 'Não foi possível reproduzir este vídeo diretamente. O arquivo pode estar incompleto ou requer outro codec. Experimente selecionar outra opção da lista.';
+        }
+        toast('Erro ao carregar o vídeo. Tente outra fonte.');
     });
 
     // Torrent streaming status polling
-    if (!isLocal && infoHash) {
+    if (!isLocal && currentHash) {
         statusInterval = setInterval(async () => {
-            const data = await getStreamStatus(infoHash);
+            const data = await getStreamStatus(currentHash);
             if (!data) return;
 
             const spEl = playerEl.querySelector('.mf-buf-speed');
             const prEl = playerEl.querySelector('.mf-buf-peers');
             const progEl = playerEl.querySelector('.mf-buf-progress');
+            const msgEl = playerEl.querySelector('.mf-buf-msg');
 
-            if (spEl) spEl.textContent = `⚡ Velocidade: ${data.downloadSpeed}`;
-            if (prEl) prEl.textContent = `👥 Peers: ${data.numPeers}`;
-            if (progEl) progEl.textContent = `📊 Buffer: ${data.progress}%`;
+            if (spEl) spEl.textContent = `⚡ Velocidade: ${data.downloadSpeed || '0 KB/s'}`;
+            if (prEl) prEl.textContent = `👥 Peers: ${data.numPeers || 0}`;
+            if (progEl) progEl.textContent = `📊 Buffer: ${data.progress || 0}%`;
 
-            if (data.canPlay && overlay && overlay.style.display !== 'none') {
+            if (data.numPeers === 0 && msgEl) {
+                msgEl.textContent = 'Conectando a sementes e peers na rede... Se demorar, experimente selecionar outra fonte na lista.';
+            }
+
+            const canStart = data.canPlay
+                || data.ready
+                || parseFloat(data.progress) > 0.05
+                || (video.readyState >= 2);
+
+            if (canStart) {
                 video.play().then(() => {
-                    overlay.style.display = 'none';
-                }).catch(noop);
+                    hideOverlay();
+                }).catch(() => {
+                    video.muted = true;
+                    video.play().then(hideOverlay).catch(noop);
+                });
             }
         }, 1200);
     }
+
+    // Watchdog: após 7s, se o vídeo já tem buffer ou pode tocar, força tentativa
+    const watchdogTimer = setTimeout(() => {
+        if (video.readyState >= 1) {
+            video.play().then(hideOverlay).catch(noop);
+        }
+    }, 7000);
 
     // Keyboard Shortcuts
     function handleKeyDown(e) {
@@ -415,6 +492,7 @@ export function openCinemaPlayer({
         window.removeEventListener('keydown', handleKeyDown);
         if (statusInterval) clearInterval(statusInterval);
         clearTimeout(controlsTimer);
+        clearTimeout(watchdogTimer);
         persistCurrentProgress();
         video.pause();
         video.src = '';
@@ -435,4 +513,3 @@ export function closeCinemaPlayer() {
         activePlayerInstance = null;
     }
 }
-

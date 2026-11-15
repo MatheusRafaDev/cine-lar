@@ -1046,7 +1046,7 @@ const server = http.createServer(async (req, res) => {
         }
 
         // Stream local file with HTTP Range (206 Partial Content)
-        if (pathname === '/api/local/stream' && req.method === 'GET') {
+        if (pathname === '/api/local/stream' && (req.method === 'GET' || req.method === 'HEAD')) {
             const filePath = urlObj.searchParams.get('file');
             if (!filePath) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
