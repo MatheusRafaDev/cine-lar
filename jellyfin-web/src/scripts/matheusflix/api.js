@@ -175,26 +175,28 @@ export async function createUserProfile(name) {
     return res.json();
 }
 
-export async function switchUserProfile(profile, explicitPassword = null) {
+export async function switchUserProfile(profile) {
     const apiClient = window.ApiClient;
     if (!apiClient) throw new Error('ApiClient não inicializado');
 
-    let pw = explicitPassword;
-    if (pw === null) {
-        if (profile.name === 'rafae') {
-            pw = '10092004';
-        } else if (!profile.hasPassword) {
-            pw = '';
+    // Autenticação direta e sem senha no backend
+    const res = await fetch(`${API_BASE}/user/profiles/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: profile.name, id: profile.id })
+    });
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (data.accessToken && data.userId) {
+        apiClient.setAuthenticationInfo(data.accessToken, data.userId);
+        if (window.Dashboard?.onServerChanged) {
+            window.Dashboard.onServerChanged(data.userId, data.accessToken, apiClient);
         }
     }
-
-    if (pw === null && profile.hasPassword) {
-        pw = window.prompt(`Digite a senha para o perfil "${profile.name}":`) || '';
-    }
-
-    const authRes = await apiClient.authenticateUserByName(profile.name, pw || '');
-    if (window.Dashboard?.onServerChanged) {
-        window.Dashboard.onServerChanged(authRes.User.Id, authRes.AccessToken, apiClient);
-    }
-    return authRes;
+    return data;
 }

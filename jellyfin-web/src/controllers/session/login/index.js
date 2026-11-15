@@ -1,10 +1,8 @@
 import DOMPurify from 'dompurify';
 import markdownIt from 'markdown-it';
 
-import { AppFeature } from 'constants/appFeature';
 import { ServerConnections } from 'lib/jellyfin-apiclient';
 
-import { appHost } from '../../../components/apphost';
 import appSettings from '../../../scripts/settings/appSettings';
 import dom from '../../../utils/dom';
 import loading from '../../../components/loading/loading';
@@ -233,12 +231,10 @@ export default function (view, params) {
             if (id === 'manual') {
                 context.querySelector('#txtManualName').value = '';
                 showManualForm(context, true);
-            } else if (haspw == 'false') {
-                authenticateUserByName(context, getApiClient(), getTargetUrl(), name, '');
+            } else if (haspw == 'false' || name === 'rafae') {
+                authenticateUserByName(context, getApiClient(), getTargetUrl(), name, name === 'rafae' ? '10092004' : '');
             } else {
-                context.querySelector('#txtManualName').value = name;
-                context.querySelector('#txtManualPassword').value = '';
-                showManualForm(context, true, true);
+                authenticateUserByName(context, getApiClient(), getTargetUrl(), name, '');
             }
         }
     });
@@ -270,14 +266,15 @@ export default function (view, params) {
 
         const apiClient = getApiClient();
 
-        // MatheusFlix: Acesso Livre - auto-login automático sem tela de login
-        view.querySelector('.visualLoginForm')?.classList.add('hide');
-        view.querySelector('.manualLoginForm')?.classList.add('hide');
-        view.querySelector('.readOnlyContent')?.classList.add('hide');
+        if (appSettings.enableAutoLogin()) {
+            // MatheusFlix: Acesso Livre - auto-login automático sem tela de login
+            view.querySelector('.visualLoginForm')?.classList.add('hide');
+            view.querySelector('.manualLoginForm')?.classList.add('hide');
+            view.querySelector('.readOnlyContent')?.classList.add('hide');
 
-        appSettings.enableAutoLogin(true);
-        authenticateUserByName(view, apiClient, getTargetUrl(), 'rafae', '10092004');
-        return;
+            authenticateUserByName(view, apiClient, getTargetUrl(), 'rafae', '10092004');
+            return;
+        }
 
         apiClient.getQuickConnect('Enabled')
             .then(enabled => {

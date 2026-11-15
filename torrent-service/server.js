@@ -482,14 +482,14 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // Perfis de usuários estilo Netflix
+        // Perfis de usuários estilo Netflix (Totalmente sem senhas)
         if (pathname === '/api/user/profiles' && req.method === 'GET') {
             try {
                 const publicUsers = await fetchJson(`${JELLYFIN_URL}/Users/Public`);
                 const profiles = (publicUsers || []).map(u => ({
                     id: u.Id,
                     name: u.Name,
-                    hasPassword: Boolean(u.HasPassword),
+                    hasPassword: false, // Perfis no MatheusFlix são 100% livres de senhas
                     isAdmin: Boolean(u.Policy?.IsAdministrator)
                 }));
                 res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -498,6 +498,70 @@ const server = http.createServer(async (req, res) => {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: e.message }));
             }
+            return;
+        }
+
+        // Login direto de perfis no backend sem senhas
+        if (pathname === '/api/user/profiles/login' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    const name = (data.name || '').trim();
+                    if (!name) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Nome de perfil obrigatório' }));
+                        return;
+                    }
+
+                    console.log(`[TorrentService] Alternando para o perfil sem senha: "${name}"`);
+                    const pw = (name.toLowerCase() === JELLYFIN_USER.toLowerCase()) ? JELLYFIN_PW : '';
+                    const authRes = await new Promise((resolve, reject) => {
+                        const reqAuth = http.request({
+                            hostname: 'localhost',
+                            port: 8096,
+                            path: '/Users/AuthenticateByName',
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Emby-Authorization': 'MediaBrowser Client="MatheusFlix Web", Device="Browser", DeviceId="matheusflix_client", Version="2.0.0"'
+                            }
+                        }, (r) => {
+                            let d = '';
+                            r.on('data', c => d += c);
+                            r.on('end', () => {
+                                try {
+                                    resolve(JSON.parse(d));
+                                } catch {
+                                    reject(new Error('Falha ao autenticar com o Jellyfin'));
+                                }
+                            });
+                        });
+                        reqAuth.on('error', reject);
+                        reqAuth.write(JSON.stringify({ Username: name, Pw: pw }));
+                        reqAuth.end();
+                    });
+
+                    if (!authRes?.AccessToken) {
+                        res.writeHead(401, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Não foi possível autenticar o perfil' }));
+                        return;
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        accessToken: authRes.AccessToken,
+                        userId: authRes.User?.Id,
+                        user: authRes.User,
+                        serverId: authRes.ServerId
+                    }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
             return;
         }
 
