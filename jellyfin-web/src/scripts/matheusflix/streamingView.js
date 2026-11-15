@@ -187,19 +187,20 @@ function appendCards(grid, movies) {
         card.type = 'button';
         card.className = 'mf-movie-card';
         card.title = m.reason || m.title;
+        card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
         card.innerHTML = `
             <div class="mf-poster-wrap">
                 <img src="${escapeHtml(m.poster)}" alt="" loading="lazy" class="mf-poster-img" />
                 ${m.rating ? `<span class="mf-badge-rating">⭐ ${m.rating}</span>` : ''}
                 ${m.isLocal ? '<span class="mf-badge-on-disk">Na pasta</span>' : ''}
             </div>
-            <div class="mf-movie-info">
-                <h4 class="mf-movie-title">${escapeHtml(m.title)}</h4>
-                <div class="mf-movie-meta-row">
-                    <span class="mf-meta-year">${escapeHtml(m.year)}</span>
-                    <span class="mf-meta-genre">${escapeHtml(String(m.genres).split(',')[0])}</span>
+            <div class="mf-movie-info" style="padding: 10px 12px 14px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
+                <h4 class="mf-movie-title" style="color: #ffffff !important; font-size: 14px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${escapeHtml(m.title)}</h4>
+                <div class="mf-movie-meta-row" style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #94a3b8; width: 100%;">
+                    <span class="mf-meta-year" style="color: #cbd5e1 !important; font-weight: 500;">${escapeHtml(m.year)}</span>
+                    <span class="mf-meta-genre" style="color: #ff7a1a !important; font-weight: 600;">${escapeHtml(String(m.genres).split(',')[0])}</span>
                 </div>
-                ${m.reason ? `<p class="mf-ai-reason">${escapeHtml(m.reason)}</p>` : ''}
+                ${m.reason ? `<p class="mf-ai-reason" style="font-size: 11px; color: #38bdf8; margin: 2px 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(m.reason)}</p>` : ''}
             </div>
         `;
         card.addEventListener('click', () => openStremioDetails(m));

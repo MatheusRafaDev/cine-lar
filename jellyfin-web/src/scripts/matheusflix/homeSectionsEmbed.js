@@ -169,14 +169,15 @@ function renderRow(sections, { key, title, linkText, tabIndex, movies, onClick }
         card.type = 'button';
         card.className = 'mf-home-card';
         card.title = m.title;
+        card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
         card.innerHTML = `
             <div class="mf-home-card-poster-wrap">
                 <img class="mf-home-card-poster" src="${escapeHtml(m.poster)}" alt="" loading="lazy" />
                 <div class="mf-home-card-play-overlay"><span class="material-icons" style="font-size: 26px; color: #140a02;">play_arrow</span></div>
             </div>
-            <div class="mf-home-card-info">
-                <h4 class="mf-home-card-title">${escapeHtml(m.title)}</h4>
-                <div class="mf-home-card-meta"><span>${escapeHtml(m.year)}</span>${m.rating ? `<span>⭐ ${m.rating}</span>` : ''}</div>
+            <div class="mf-home-card-info" style="padding: 10px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
+                <h4 class="mf-home-card-title" style="color: #ffffff !important; font-size: 13px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(m.title)}</h4>
+                <div class="mf-home-card-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1 !important; text-align: left;"><span>${escapeHtml(m.year)}</span>${m.rating ? `<span>⭐ ${m.rating}</span>` : ''}</div>
             </div>
         `;
         card.addEventListener('click', () => onClick(m));
@@ -199,7 +200,7 @@ function renderHistoryRow(sections, { key, title, movies }) {
 
     row.innerHTML = `
         <div class="sectionTitleContainer sectionTitleContainer-cards">
-            <h2 class="sectionTitle" style="color: #ff7a1a;">${escapeHtml(title)}</h2>
+            <h2 class="sectionTitle" style="color: #ff7a1a !important; font-weight: 800;">${escapeHtml(title)}</h2>
         </div>
         <div class="mf-home-scroller"></div>
     `;
@@ -210,6 +211,7 @@ function renderHistoryRow(sections, { key, title, movies }) {
         card.type = 'button';
         card.className = 'mf-home-card mf-home-card-history';
         card.title = `${m.title} (${m.progressPct}%)`;
+        card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
         const remainingMin = Math.max(1, Math.round((m.duration - m.position) / 60));
         card.innerHTML = `
             <div class="mf-home-card-poster-wrap">
@@ -217,9 +219,9 @@ function renderHistoryRow(sections, { key, title, movies }) {
                 <div class="mf-home-card-play-overlay"><span class="material-icons" style="font-size: 26px; color: #140a02;">play_arrow</span></div>
                 <div class="mf-history-bar"><div class="mf-history-bar-fill" style="width: ${m.progressPct}%;"></div></div>
             </div>
-            <div class="mf-home-card-info">
-                <h4 class="mf-home-card-title">${escapeHtml(m.title)}</h4>
-                <div class="mf-home-card-meta"><span style="color: #ef4444; font-weight: 700;">${m.progressPct}%</span> • <span>Faltam ${remainingMin}m</span></div>
+            <div class="mf-home-card-info" style="padding: 10px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
+                <h4 class="mf-home-card-title" style="color: #ffffff !important; font-size: 13px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(m.title)}</h4>
+                <div class="mf-home-card-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1 !important; text-align: left;"><span style="color: #ef4444 !important; font-weight: 700;">${m.progressPct}%</span> • <span>Faltam ${remainingMin}m</span></div>
             </div>
         `;
         card.addEventListener('click', () => openStremioDetails({ ...m, resumePosition: m.position }));
