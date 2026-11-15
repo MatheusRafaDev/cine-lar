@@ -26,9 +26,9 @@ export function renderLocalFolderView(container) {
                 <div class="mf-local-actions">
                     <div class="mf-local-search-wrap">
                         <span class="material-icons" style="font-size: 18px; color: #8c93a4;">search</span>
-                        <input type="search" class="mf-local-search-input" placeholder="Filtrar filmes da pasta" />
+                        <input type="search" class="mf-local-search-input focusable" placeholder="Filtrar filmes da pasta" />
                     </div>
-                    <button type="button" class="mf-btn-rescan-folder" title="Procurar arquivos novos na pasta">
+                    <button type="button" class="mf-btn-rescan-folder focusable" title="Procurar arquivos novos na pasta">
                         <span class="material-icons">refresh</span><span>Atualizar</span>
                     </button>
                 </div>
@@ -36,17 +36,17 @@ export function renderLocalFolderView(container) {
 
             <!-- Barra de Categorias e Agrupamentos (Todos, Franquias, Séries) -->
             <div class="mf-local-category-bar">
-                <button type="button" class="mf-category-chip active" data-view="all">
+                <button type="button" class="mf-category-chip focusable active" data-view="all">
                     <span class="material-icons" style="font-size: 16px;">folder</span>
                     <span>Todos os Filmes</span>
                     <span class="mf-chip-count mf-count-all">0</span>
                 </button>
-                <button type="button" class="mf-category-chip" data-view="franchises">
+                <button type="button" class="mf-category-chip focusable" data-view="franchises">
                     <span class="material-icons" style="font-size: 16px;">movie_filter</span>
                     <span>🎬 Franquias & Coleções</span>
                     <span class="mf-chip-count mf-count-franchises">0</span>
                 </button>
-                <button type="button" class="mf-category-chip" data-view="series">
+                <button type="button" class="mf-category-chip focusable" data-view="series">
                     <span class="material-icons" style="font-size: 16px;">tv</span>
                     <span>📺 Séries</span>
                     <span class="mf-chip-count mf-count-series">0</span>
@@ -249,7 +249,7 @@ function renderSeriesView(container, series, query) {
 function createMovieCard(m) {
     const card = document.createElement('button');
     card.type = 'button';
-    card.className = 'mf-movie-card mf-local-card';
+    card.className = 'mf-movie-card mf-local-card focusable';
     card.title = `Assistir ${m.title}`;
     card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
 

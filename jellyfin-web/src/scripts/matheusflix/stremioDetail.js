@@ -53,13 +53,13 @@ export async function openStremioDetails(rawMovie) {
         <div class="mf-movie-page-window mf-stremio-window mf-stremio-card">
             <!-- Topbar fixa de vidro fosco -->
             <header class="mf-movie-page-topbar">
-                <button type="button" class="mf-movie-page-back-btn mf-stremio-close-btn" title="Voltar (Esc)">
+                <button type="button" class="mf-movie-page-back-btn mf-stremio-close-btn focusable" title="Voltar (Esc)">
                     <span class="material-icons" style="font-size: 20px;">arrow_back</span>
                     <span>Voltar</span>
                 </button>
                 <div class="mf-movie-page-top-title">${escapeHtml(movie.title)}</div>
                 <div class="mf-topbar-actions">
-                    <button type="button" class="mf-btn-topbar-fav mf-btn-fav-toggle" title="Favoritar filme">
+                    <button type="button" class="mf-btn-topbar-fav mf-btn-fav-toggle focusable" title="Favoritar filme">
                         <span class="material-icons mf-fav-icon">favorite_border</span>
                     </button>
                 </div>
@@ -97,7 +97,7 @@ export async function openStremioDetails(rawMovie) {
 
                         <!-- Ações Principais -->
                         <div class="mf-stremio-hero-action">
-                            <button type="button" class="mf-btn-hero-watch" disabled>
+                            <button type="button" class="mf-btn-hero-watch focusable" disabled>
                                 <span class="material-icons" style="font-size: 26px;">play_circle_filled</span>
                                 <span class="mf-hero-watch-text">Buscando fontes disponíveis...</span>
                             </button>
@@ -111,7 +111,7 @@ export async function openStremioDetails(rawMovie) {
                     <div class="mf-series-episodes-section hide">
                         <div class="mf-series-season-bar">
                             <span class="mf-series-label">Temporada:</span>
-                            <select class="mf-series-season-select"></select>
+                            <select class="mf-series-season-select focusable"></select>
                         </div>
                         <div class="mf-series-episodes-list"></div>
                     </div>
@@ -122,10 +122,10 @@ export async function openStremioDetails(rawMovie) {
                             <span class="mf-streams-count"></span>
                         </div>
                         <div class="mf-streams-filter-chips">
-                            <button type="button" class="mf-filter-chip active" data-filter="all">Todos PT-BR</button>
-                            <button type="button" class="mf-filter-chip" data-filter="dub">🇧🇷 Dublado / Dual</button>
-                            <button type="button" class="mf-filter-chip" data-filter="1080p">1080p</button>
-                            <button type="button" class="mf-filter-chip" data-filter="4k">4K UHD</button>
+                            <button type="button" class="mf-filter-chip focusable active" data-filter="all">Todos PT-BR</button>
+                            <button type="button" class="mf-filter-chip focusable" data-filter="dub">🇧🇷 Dublado / Dual</button>
+                            <button type="button" class="mf-filter-chip focusable" data-filter="1080p">1080p</button>
+                            <button type="button" class="mf-filter-chip focusable" data-filter="4k">4K UHD</button>
                         </div>
                     </div>
                     <div class="mf-stremio-streams-list">
@@ -144,8 +144,68 @@ export async function openStremioDetails(rawMovie) {
 
     modalEl.querySelector('.mf-movie-page-back-btn').addEventListener('click', () => closeDetails(true));
     activeKeyHandler = (e) => {
-        if (e.key === 'Escape' && !document.querySelector('.mf-cinema-player')) {
+        if (['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(e.key) && !document.querySelector('.mf-cinema-player') && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
             closeDetails(true);
+            return;
+        }
+
+        const active = document.activeElement;
+        const hero = modalEl.querySelector('.mf-btn-hero-watch');
+        const backBtn = modalEl.querySelector('.mf-movie-page-back-btn');
+        const favBtn = modalEl.querySelector('.mf-btn-fav-toggle');
+        const firstStream = modalEl.querySelector('.mf-stream-item, .mf-episode-chip');
+
+        if (e.key === 'ArrowDown') {
+            if (active === hero || active === favBtn) {
+                e.preventDefault();
+                firstStream?.focus?.();
+            } else if (active === backBtn) {
+                e.preventDefault();
+                hero?.focus?.();
+            } else if (active?.classList.contains('mf-stream-item')) {
+                const next = active.nextElementSibling;
+                if (next && next.classList.contains('mf-stream-item')) {
+                    e.preventDefault();
+                    next.focus();
+                }
+            }
+        } else if (e.key === 'ArrowUp') {
+            if (active === firstStream) {
+                e.preventDefault();
+                hero?.focus?.();
+            } else if (active === hero) {
+                e.preventDefault();
+                backBtn?.focus?.();
+            } else if (active?.classList.contains('mf-stream-item')) {
+                const prev = active.previousElementSibling;
+                if (prev && prev.classList.contains('mf-stream-item')) {
+                    e.preventDefault();
+                    prev.focus();
+                } else {
+                    e.preventDefault();
+                    hero?.focus?.();
+                }
+            }
+        } else if (e.key === 'ArrowRight') {
+            if (active === backBtn) {
+                e.preventDefault();
+                hero?.focus?.();
+            } else if (active === hero) {
+                e.preventDefault();
+                if (firstStream) {
+                    firstStream.focus();
+                } else if (favBtn) {
+                    favBtn.focus();
+                }
+            }
+        } else if (e.key === 'ArrowLeft') {
+            if (active === favBtn || active?.classList?.contains('mf-stream-item') || active?.classList?.contains('mf-episode-chip')) {
+                e.preventDefault();
+                hero?.focus?.();
+            } else if (active === hero) {
+                e.preventDefault();
+                backBtn?.focus?.();
+            }
         }
     };
     window.addEventListener('keydown', activeKeyHandler);
@@ -277,7 +337,7 @@ export async function openStremioDetails(rawMovie) {
                         const btn = document.createElement('button');
                         btn.type = 'button';
                         const isCurrent = ep === currentEp || epNum === (currentEp.number || currentEp.episode);
-                        btn.className = `mf-episode-chip ${isCurrent ? 'active' : ''}`;
+                        btn.className = `mf-episode-chip focusable ${isCurrent ? 'active' : ''}`;
                         btn.innerHTML = `
                             <span class="mf-ep-chip-badge">E${String(epNum).padStart(2, '0')}</span>
                             <span class="mf-ep-chip-title">${escapeHtml(ep.name || `Episódio ${epNum}`)}</span>
@@ -470,7 +530,15 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
         // Exibe arquivo local no topo se aplicável
         if (localFile && (currentFilter === 'all' || currentFilter === 'pt')) {
             const localItem = document.createElement('div');
-            localItem.className = 'mf-stream-item mf-stream-item-local';
+            localItem.className = 'mf-stream-item mf-stream-item-local focusable';
+            localItem.setAttribute('tabindex', '0');
+            localItem.setAttribute('role', 'button');
+            localItem.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    localItem.click();
+                }
+            });
             localItem.innerHTML = `
                 <div class="mf-stream-meta">
                     <div class="mf-stream-badges">
@@ -514,7 +582,15 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
 
         shown.forEach((stream) => {
             const item = document.createElement('div');
-            item.className = 'mf-stream-item';
+            item.className = 'mf-stream-item focusable';
+            item.setAttribute('tabindex', '0');
+            item.setAttribute('role', 'button');
+            item.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    playStream(stream, movie, currentEp);
+                }
+            });
             const is4k = /4k|2160p/i.test(stream.quality);
             const is1080 = /1080p/i.test(stream.quality);
             let qualityClass = 'q-720p';
@@ -641,6 +717,11 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
     });
 
     updateStreamsList();
+
+    // Foco automático de TV no botão principal de Assistir
+    setTimeout(() => {
+        heroBtn?.focus?.();
+    }, 150);
 }
 
 function playStream(stream, movie, currentEp = null) {

@@ -134,7 +134,7 @@ function renderHero(homeTab, sections, movie) {
             </div>
             ${movie.description ? `<p class="mf-hero-desc">${escapeHtml(movie.description)}</p>` : ''}
             <div class="mf-hero-buttons">
-                <button type="button" class="mf-btn-hero-play">
+                <button type="button" class="mf-btn-hero-play focusable">
                     <span class="material-icons">play_arrow</span>Assistir
                 </button>
             </div>
@@ -159,7 +159,7 @@ function renderRow(sections, { key, title, linkText, tabIndex, movies, onClick }
     row.innerHTML = `
         <div class="sectionTitleContainer sectionTitleContainer-cards">
             <h2 class="sectionTitle">${escapeHtml(title)}</h2>
-            <button type="button" class="mf-btn-see-all">${escapeHtml(linkText)}</button>
+            <button type="button" class="mf-btn-see-all focusable">${escapeHtml(linkText)}</button>
         </div>
         <div class="mf-home-scroller"></div>
     `;
@@ -169,7 +169,7 @@ function renderRow(sections, { key, title, linkText, tabIndex, movies, onClick }
     movies.forEach(m => {
         const card = document.createElement('button');
         card.type = 'button';
-        card.className = 'mf-home-card';
+        card.className = 'mf-home-card focusable';
         card.title = m.title;
         card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
         card.innerHTML = `
@@ -212,7 +212,7 @@ function renderHistoryRow(sections, { key, title, movies }) {
     movies.forEach(m => {
         const card = document.createElement('button');
         card.type = 'button';
-        card.className = 'mf-home-card mf-home-card-history';
+        card.className = 'mf-home-card mf-home-card-history focusable';
         card.title = `${m.title} (${m.progressPct}%)`;
         card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
         const remainingMin = Math.max(1, Math.round((m.duration - m.position) / 60));

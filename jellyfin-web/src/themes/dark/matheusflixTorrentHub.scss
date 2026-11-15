@@ -4439,6 +4439,175 @@ button[aria-label*="Grupo"] {
     max-width: 150px;
 }
 
+/* ==========================================================================
+   MatheusFlix TV Experience & 10-Foot Navigation Design System
+   Interface simplificada e otimizada para uso em Smart TVs e Controles Remotos
+   ========================================================================== */
 
+/* Foco de alto impacto visual com glow âmbar para controle remoto / D-pad */
+.mf-movie-card:focus,
+.mf-movie-card:focus-visible,
+button.mf-movie-card:focus,
+button.mf-movie-card:focus-visible,
+.mf-home-card:focus,
+.mf-home-card:focus-visible,
+button.mf-home-card:focus,
+button.mf-home-card:focus-visible,
+.mf-local-card:focus,
+.mf-local-card:focus-visible,
+.mf-stream-item:focus,
+.mf-stream-item:focus-visible,
+.mf-episode-chip:focus,
+.mf-episode-chip:focus-visible,
+.mf-tab-btn:focus,
+.mf-tab-btn:focus-visible,
+.mf-catalog-tab-btn:focus,
+.mf-catalog-tab-btn:focus-visible,
+.mf-btn-hero-watch:focus,
+.mf-btn-hero-watch:focus-visible,
+.mf-movie-page-back-btn:focus,
+.mf-movie-page-back-btn:focus-visible,
+.mf-btn-fav-toggle:focus,
+.mf-btn-fav-toggle:focus-visible,
+.mf-ctrl-btn:focus,
+.mf-ctrl-btn:focus-visible,
+.mf-player-close-btn:focus,
+.mf-player-close-btn:focus-visible,
+div[role="button"]:focus,
+div[role="button"]:focus-visible {
+    outline: 3px solid #ff7a1a !important;
+    outline-offset: 3px !important;
+    transform: scale(1.08) translateY(-4px) !important;
+    border-color: #ff7a1a !important;
+    box-shadow: 0 0 32px rgba(255, 122, 26, 0.7), 0 16px 36px rgba(0, 0, 0, 0.95) !important;
+    z-index: 100 !important;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, outline 0.15s ease !important;
+}
 
+/* Exibir o overlay de reprodução com destaque máximo no foco de TV */
+.mf-movie-card:focus .mf-poster-play-hover,
+.mf-movie-card:focus-visible .mf-poster-play-hover,
+.mf-local-card:focus .mf-poster-play-hover,
+.mf-local-card:focus-visible .mf-poster-play-hover,
+.mf-home-card:focus .mf-home-card-play-overlay,
+.mf-home-card:focus-visible .mf-home-card-play-overlay {
+    opacity: 1 !important;
+    transform: scale(1) !important;
+    background: rgba(255, 122, 26, 0.9) !important;
+}
+
+.mf-movie-card:focus .mf-movie-title,
+.mf-movie-card:focus-visible .mf-movie-title,
+.mf-home-card:focus .mf-home-card-title,
+.mf-home-card:focus-visible .mf-home-card-title {
+    color: #ff9e42 !important;
+    text-shadow: 0 0 12px rgba(255, 122, 26, 0.5) !important;
+}
+
+/* Tamanhos ampliados para legibilidade a 3 metros (Sofá / TV) */
+.mf-movie-title,
+.mf-home-card-title {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.2px !important;
+}
+
+.mf-movie-meta-row,
+.mf-home-card-meta {
+    font-size: 13px !important;
+    color: #cbd5e1 !important;
+}
+
+/* Botão principal de ação em destaque para TV */
+.mf-btn-hero-watch {
+    height: 56px !important;
+    padding: 0 36px !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    border-radius: 14px !important;
+    letter-spacing: 0.3px !important;
+    cursor: pointer !important;
+}
+
+/* Stream item com espaçamento e clique confortável para TV */
+.mf-stream-item {
+    padding: 18px 24px !important;
+    border-radius: 14px !important;
+    margin-bottom: 12px !important;
+    cursor: pointer !important;
+    user-select: none !important;
+}
+
+.mf-stream-title {
+    font-size: 15px !important;
+    line-height: 1.4 !important;
+    color: #ffffff !important;
+}
+
+.mf-stream-badges {
+    gap: 10px !important;
+    margin-bottom: 8px !important;
+}
+
+/* Botão de voltar grande e visível na TV */
+.mf-movie-page-back-btn {
+    padding: 12px 22px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* Navegação suave em carrosséis de TV */
+.mf-home-scroller {
+    scroll-behavior: smooth !important;
+    padding: 16px 4px !important;
+}
+
+/* Scroll margin para evitar corte nas bordas da TV ao navegar via D-pad */
+.mf-movie-card,
+.mf-home-card,
+.mf-local-card,
+.mf-stream-item,
+.mf-episode-chip,
+.mf-category-chip,
+.mf-genre-chip,
+.mf-type-chip,
+.focusable {
+    scroll-margin: 50px !important;
+}
+
+/* Foco em chips de categorias, tipos e botões de download */
+.mf-type-chip:focus,
+.mf-type-chip:focus-visible,
+.mf-category-chip:focus,
+.mf-category-chip:focus-visible,
+.mf-genre-chip:focus,
+.mf-genre-chip:focus-visible,
+.mf-filter-chip:focus,
+.mf-filter-chip:focus-visible,
+.mf-btn-watch-dl:focus,
+.mf-btn-watch-dl:focus-visible,
+.mf-btn-cancel-dl:focus,
+.mf-btn-cancel-dl:focus-visible,
+.mf-btn-play-completed:focus,
+.mf-btn-play-completed:focus-visible,
+.mf-btn-remove-dl:focus,
+.mf-btn-remove-dl:focus-visible,
+.mf-btn-rescan-folder:focus,
+.mf-btn-rescan-folder:focus-visible,
+.mf-btn-ai:focus,
+.mf-btn-ai:focus-visible,
+.mf-btn-see-all:focus,
+.mf-btn-see-all:focus-visible,
+.focusable:focus,
+.focusable:focus-visible {
+    outline: 3px solid #ff7a1a !important;
+    outline-offset: 2px !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 0 20px rgba(255, 122, 26, 0.6) !important;
+    z-index: 50 !important;
+}
 

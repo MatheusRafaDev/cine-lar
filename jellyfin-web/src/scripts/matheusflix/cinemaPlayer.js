@@ -445,14 +445,20 @@ export function openCinemaPlayer({
     function handleKeyDown(e) {
         if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
 
-        if (e.key === ' ' || e.key === 'k') {
+        if (e.key === ' ' || e.key === 'k' || e.key === 'MediaPlayPause') {
             e.preventDefault();
             togglePlay();
-        } else if (e.key === 'ArrowRight') {
+        } else if (e.key === 'MediaPlay') {
+            e.preventDefault();
+            video.play().catch(noop);
+        } else if (e.key === 'MediaPause' || e.key === 'MediaStop') {
+            e.preventDefault();
+            video.pause();
+        } else if (e.key === 'ArrowRight' || e.key === 'MediaFastForward') {
             e.preventDefault();
             video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
             showControls();
-        } else if (e.key === 'ArrowLeft') {
+        } else if (e.key === 'ArrowLeft' || e.key === 'MediaRewind') {
             e.preventDefault();
             video.currentTime = Math.max(0, video.currentTime - 10);
             showControls();
@@ -476,13 +482,12 @@ export function openCinemaPlayer({
             video.muted = !video.muted;
             updateVolIcon();
             showControls();
-        } else if (e.key === 'Escape') {
+        } else if (['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(e.key)) {
             e.preventDefault();
             if (document.fullscreenElement) {
                 document.exitFullscreen?.().catch(noop);
-            } else {
-                closeCinemaPlayer();
             }
+            closeCinemaPlayer();
         }
     }
 

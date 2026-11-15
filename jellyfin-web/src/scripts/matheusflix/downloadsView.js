@@ -109,12 +109,12 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                     </div>
 
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button type="button" class="mf-btn-watch-dl" title="Assistir imediatamente enquanto o filme baixa" style="background: linear-gradient(135deg, #16a34a, #22c55e); color: #ffffff; border: none; border-radius: 10px; padding: 8px 18px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 4px 14px rgba(34,197,94,0.4); transition: transform 0.2s ease;">
+                        <button type="button" class="mf-btn-watch-dl focusable" title="Assistir imediatamente enquanto o filme baixa" style="background: linear-gradient(135deg, #16a34a, #22c55e); color: #ffffff; border: none; border-radius: 10px; padding: 8px 18px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 4px 14px rgba(34,197,94,0.4); transition: transform 0.2s ease;">
                             <span class="material-icons" style="font-size: 18px;">play_arrow</span>
                             <span>Assistir enquanto baixa</span>
                         </button>
 
-                        <button type="button" class="mf-btn-cancel-dl" title="Cancelar download" style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: #f87171; border-radius: 10px; padding: 8px 14px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; transition: all 0.2s ease;">
+                        <button type="button" class="mf-btn-cancel-dl focusable" title="Cancelar download" style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: #f87171; border-radius: 10px; padding: 8px 14px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; transition: all 0.2s ease;">
                             <span class="material-icons" style="font-size: 16px;">close</span>
                             <span>Cancelar</span>
                         </button>
@@ -194,11 +194,11 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button type="button" class="mf-btn-play-completed" style="background: #22c55e; border: none; color: #080a0f; font-weight: 800; font-size: 13px; padding: 8px 18px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(34,197,94,0.4); transition: transform 0.2s ease;">
+                    <button type="button" class="mf-btn-play-completed focusable" style="background: #22c55e; border: none; color: #080a0f; font-weight: 800; font-size: 13px; padding: 8px 18px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(34,197,94,0.4); transition: transform 0.2s ease;">
                         <span class="material-icons" style="font-size: 18px;">play_arrow</span>
                         <span>Assistir</span>
                     </button>
-                    <button type="button" class="mf-btn-remove-dl" title="Remover do histórico" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #8c93a4; border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: all 0.2s ease;">
+                    <button type="button" class="mf-btn-remove-dl focusable" title="Remover do histórico" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #8c93a4; border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: all 0.2s ease;">
                         <span class="material-icons" style="font-size: 18px;">delete</span>
                     </button>
                 </div>

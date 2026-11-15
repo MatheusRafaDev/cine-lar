@@ -15,22 +15,22 @@ export function renderStreamingView(container) {
     container.innerHTML = `
         <div class="mf-catalog">
             <div class="mf-torrent-type-bar">
-                <button type="button" class="mf-type-chip active" data-type="movie">
+                <button type="button" class="mf-type-chip focusable active" data-type="movie">
                     <span class="mf-type-chip-icon">🎬</span> Filmes
                 </button>
-                <button type="button" class="mf-type-chip" data-type="series">
+                <button type="button" class="mf-type-chip focusable" data-type="series">
                     <span class="mf-type-chip-icon">📺</span> Séries
                 </button>
             </div>
             <div class="mf-catalog-toolbar">
                 <div class="mf-search-box">
                     <span class="material-icons mf-search-icon">search</span>
-                    <input type="search" class="mf-search-input" placeholder="Buscar filmes em torrent (PT-BR)… ou descreva o que quer ver e clique em IA" />
+                    <input type="search" class="mf-search-input focusable" placeholder="Buscar filmes em torrent (PT-BR)… ou descreva o que quer ver e clique em IA" />
                 </div>
-                <button type="button" class="mf-btn-ai" title="Recomendação por IA a partir do texto digitado">
+                <button type="button" class="mf-btn-ai focusable" title="Recomendação por IA a partir do texto digitado">
                     <span class="material-icons">auto_awesome</span><span>IA</span>
                 </button>
-                <select class="mf-select mf-sort-select" title="Ordenar">
+                <select class="mf-select mf-sort-select focusable" title="Ordenar">
                     <option value="trending">Em alta</option>
                     <option value="newest">Lançamentos</option>
                     <option value="rating">Melhor avaliados</option>
@@ -41,7 +41,7 @@ export function renderStreamingView(container) {
             <div class="mf-catalog-status"></div>
             <div class="mf-streaming-grid"></div>
             <div class="mf-catalog-more hide">
-                <button type="button" class="mf-btn-more">Carregar mais</button>
+                <button type="button" class="mf-btn-more focusable">Carregar mais</button>
             </div>
         </div>
     `;
@@ -207,7 +207,7 @@ async function renderGenres(genreBar, state, load) {
 
     const all = [{ id: 'all', name: 'Todos' }, { id: 'favorites', name: '❤️ Minha Lista' }, ...genres];
     genreBar.innerHTML = all.map(g => `
-        <button type="button" class="mf-genre-chip ${g.id === state.genre ? 'active' : ''}" data-genre="${escapeHtml(g.id)}">${escapeHtml(g.name)}</button>
+        <button type="button" class="mf-genre-chip focusable ${g.id === state.genre ? 'active' : ''}" data-genre="${escapeHtml(g.id)}">${escapeHtml(g.name)}</button>
     `).join('');
 
     genreBar.addEventListener('click', (e) => {
@@ -226,7 +226,7 @@ function appendCards(grid, movies) {
     movies.forEach((m) => {
         const card = document.createElement('button');
         card.type = 'button';
-        card.className = 'mf-movie-card';
+        card.className = 'mf-movie-card focusable';
         card.title = m.reason || m.title;
         card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
 
