@@ -2,6 +2,7 @@
 node_modules/
 jellyfin-web/node_modules/
 jellyfin-web/dist/
+jellyfin-web_git_backup/
 
 # Logs e temporários
 *.log

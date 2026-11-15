@@ -1,0 +1,356 @@
+/* ==========================================================================
+   MatheusFlix - Design System & Modern UI Theme
+   Inspirado no design customizado: fundo escuro imersivo, accent âmbar (#ff7a1a)
+   e glassmorphism refinado.
+   ========================================================================== */
+
+:root {
+    --mf-bg-deep: #0a0b0e;
+    --mf-bg-surface: #111318;
+    --mf-accent: #ff7a1a;
+    --mf-accent-hover: #ff8c38;
+    --mf-accent-gradient: linear-gradient(90deg, #ff6200, #ff7a1a 55%, #ffb35c);
+    --mf-accent-glow: 0 0 16px rgba(255, 122, 26, 0.35);
+    --mf-card-radius: 14px;
+    --mf-border-subtle: rgba(255, 255, 255, 0.08);
+    --mf-text-main: #f2f3f5;
+    --mf-text-muted: #9ba1ad;
+}
+
+/* Tipografia global e fundo */
+html,
+body,
+.backgroundContainer {
+    font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    background: radial-gradient(900px 520px at 92% -6%, rgba(255, 122, 26, 0.10), transparent 60%), linear-gradient(180deg, #111318, #0a0b0e) !important;
+    background-color: var(--mf-bg-deep) !important;
+    color: var(--mf-text-main) !important;
+}
+
+/* ==========================================================================
+   1. CABEÇALHO & IDENTIDADE VISUAL (HEADER & LOGO)
+   ========================================================================== */
+
+.skinHeader {
+    background: rgba(10, 11, 14, 0.65) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid var(--mf-border-subtle) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28) !important;
+    transition: background-color 0.3s ease !important;
+}
+
+.skinHeader.semiTransparent {
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    background: rgba(10, 11, 14, 0.75) !important;
+}
+
+/* Logo personalizado MatheusFlix no topo */
+.pageTitleWithDefaultLogo {
+    background-image: none !important;
+    width: auto !important;
+    min-width: 140px;
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.03em !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    color: #f2f3f5 !important;
+    text-decoration: none !important;
+}
+
+.pageTitleWithDefaultLogo::before {
+    content: "Matheus";
+    color: #f2f3f5;
+}
+
+.pageTitleWithDefaultLogo::after {
+    content: "Flix";
+    color: var(--mf-accent);
+    margin-left: 1px;
+}
+
+/* Botões do cabeçalho */
+.headerButton {
+    color: var(--mf-text-muted) !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+}
+
+.headerButton:hover {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Indicador de abas ativas */
+.emby-tab-button.emby-tab-button-active {
+    color: var(--mf-accent) !important;
+}
+
+.emby-tab-button-active .emby-button-foreground {
+    border-bottom: 2px solid var(--mf-accent) !important;
+}
+
+/* ==========================================================================
+   2. MENU LATERAL (DRAWER / SIDEBAR)
+   ========================================================================== */
+
+.mainDrawer {
+    background: linear-gradient(180deg, #111318 0%, #0a0b0e 100%) !important;
+    border-right: 1px solid var(--mf-border-subtle) !important;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+.mainDrawer-scrollContainer {
+    padding-top: 16px;
+}
+
+.navMenuOption {
+    position: relative;
+    border-radius: 12px !important;
+    margin: 4px 14px !important;
+    padding: 12px 16px !important;
+    color: var(--mf-text-muted) !important;
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    transition: all 0.2s ease !important;
+}
+
+.navMenuOption:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #fff !important;
+}
+
+.navMenuOption-selected {
+    background: rgba(255, 122, 26, 0.12) !important;
+    color: var(--mf-accent) !important;
+    font-weight: 700 !important;
+}
+
+.navMenuOption-selected::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--mf-accent-gradient);
+}
+
+/* ==========================================================================
+   3. CARDS, PÔSTERES & ANIMAÇÃO DE HOVER
+   ========================================================================== */
+
+.cardBox {
+    border-radius: var(--mf-card-radius) !important;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+}
+
+.cardScalable {
+    border-radius: var(--mf-card-radius) !important;
+    overflow: hidden !important;
+    border: 1px solid var(--mf-border-subtle) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
+}
+
+.cardImageContainer,
+.cardPadder {
+    border-radius: var(--mf-card-radius) !important;
+}
+
+/* Efeito de zoom e brilho suave ao passar o mouse */
+.card:hover .cardScalable,
+.card:focus .cardScalable {
+    transform: scale(1.04) !important;
+    border-color: rgba(255, 122, 26, 0.45) !important;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55), 0 0 36px -6px rgba(255, 122, 26, 0.35) !important;
+    z-index: 10 !important;
+}
+
+.cardOverlayFab-primary {
+    background: var(--mf-accent-gradient) !important;
+    color: #140a02 !important;
+    box-shadow: 0 8px 24px rgba(255, 122, 26, 0.35) !important;
+    border: none !important;
+}
+
+/* Títulos dos cards */
+.cardText {
+    font-family: inherit !important;
+}
+
+.cardText-first {
+    font-weight: 700 !important;
+    font-size: 15px !important;
+    color: #f2f3f5 !important;
+    margin-top: 10px !important;
+}
+
+.cardText-secondary {
+    font-size: 13px !important;
+    color: var(--mf-text-muted) !important;
+}
+
+/* ==========================================================================
+   4. BARRAS DE PROGRESSO ("CONTINUAR ASSISTINDO")
+   ========================================================================== */
+
+.itemProgressBar {
+    height: 4px !important;
+    border-radius: 99px !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    overflow: hidden !important;
+    backdrop-filter: blur(4px);
+}
+
+.itemProgressBarForeground {
+    height: 100% !important;
+    border-radius: 99px !important;
+    background: var(--mf-accent-gradient) !important;
+    box-shadow: var(--mf-accent-glow) !important;
+}
+
+/* ==========================================================================
+   5. BOTÕES, DESTAQUES E INTERAÇÕES
+   ========================================================================== */
+
+/* Botões primários (Play, Assistir, Enviar) */
+.button-submit,
+.btnPlay,
+.raised.emby-button,
+.emby-button.detailFloatingButton {
+    background: var(--mf-accent-gradient) !important;
+    color: #140a02 !important;
+    border-radius: 12px !important;
+    font-weight: 800 !important;
+    border: none !important;
+    box-shadow: 0 8px 24px -6px rgba(255, 122, 26, 0.55) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.button-submit:hover,
+.btnPlay:hover,
+.raised.emby-button:hover,
+.emby-button.detailFloatingButton:hover {
+    transform: scale(1.04) !important;
+    box-shadow: 0 10px 28px -4px rgba(255, 122, 26, 0.75) !important;
+}
+
+/* Botões planos e secundários */
+.button-flat {
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+}
+
+.button-flat:hover {
+    color: var(--mf-accent) !important;
+    background: rgba(255, 122, 26, 0.1) !important;
+}
+
+/* Ícones de ação com foco/hover */
+.paper-icon-button-light:hover:not(:disabled),
+.paper-icon-button-light:active:not(:disabled) {
+    color: var(--mf-accent) !important;
+    background-color: rgba(255, 122, 26, 0.15) !important;
+}
+
+/* Links e textos em destaque */
+.button-link {
+    color: var(--mf-accent) !important;
+}
+
+/* Badges e tags */
+.cardIndicators,
+.countIndicator {
+    background: var(--mf-accent) !important;
+    color: #140a02 !important;
+    font-weight: 800 !important;
+    border-radius: 8px !important;
+}
+
+.playedIndicator {
+    background: var(--mf-accent) !important;
+    color: #140a02 !important;
+}
+
+/* ==========================================================================
+   6. SEÇÕES DA HOME & TIPOGRAFIA CINEMATOGRÁFICA
+   ========================================================================== */
+
+.sectionTitle,
+.sectionTitleTextButton {
+    font-size: 24px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    color: var(--mf-text-main) !important;
+    margin-bottom: 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.sectionTitleTextButton:hover {
+    color: var(--mf-accent) !important;
+}
+
+.sectionTitleContainer {
+    margin-top: 24px !important;
+    margin-bottom: 8px !important;
+}
+
+/* ==========================================================================
+   7. MODAIS, CAIXAS DE DIÁLOGO E CAMPOS DE ENTRADA
+   ========================================================================== */
+
+.dialog,
+.paperList {
+    background-color: #111318 !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--mf-border-subtle) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6) !important;
+}
+
+.emby-input,
+.emby-textarea,
+.emby-select {
+    border-radius: 10px !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--mf-border-subtle) !important;
+    color: #fff !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.emby-input:focus,
+.emby-textarea:focus,
+.emby-select:focus {
+    border-color: var(--mf-accent) !important;
+    box-shadow: 0 0 0 2px rgba(255, 122, 26, 0.25) !important;
+}
+
+.inputLabelFocused,
+.selectLabelFocused,
+.textareaLabelFocused {
+    color: var(--mf-accent) !important;
+}
+
+/* Scrollbars customizadas e discretas */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--mf-accent);
+}
+
