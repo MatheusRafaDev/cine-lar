@@ -5,6 +5,7 @@
 
 import { cancelDownload, fetchDownloads } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
+import { confirmDeleteModal } from './confirmModal';
 import { escapeHtml } from './utils';
 import toast from 'components/toast/toast';
 
@@ -149,12 +150,22 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
 
         activeList.querySelectorAll('.mf-btn-cancel-dl').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const id = btn.closest('.mf-dl-card').dataset.id;
+                const card = btn.closest('.mf-dl-card');
+                const id = card.dataset.id;
+                const d = active.find(item => item.id === id);
+                const title = d?.title || d?.name || 'este filme';
+
+                const confirmed = await confirmDeleteModal({
+                    title,
+                    isCompleted: false
+                });
+                if (!confirmed) return;
+
                 btn.disabled = true;
                 try {
                     await cancelDownload(id);
-                    toast('Download cancelado.');
-                    btn.closest('.mf-dl-card').remove();
+                    toast(`Download de "${title}" cancelado.`);
+                    card.remove();
                 } catch (err) {
                     btn.disabled = false;
                     toast(`Erro ao cancelar: ${err.message}`);
@@ -196,13 +207,25 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
 
         completedList.querySelectorAll('.mf-btn-remove-dl').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const id = btn.closest('.mf-dl-card').dataset.id;
+                const card = btn.closest('.mf-dl-card');
+                const id = card.dataset.id;
+                const d = completed.find(item => item.id === id);
+                const title = d?.title || d?.name || 'este filme';
+
+                const confirmed = await confirmDeleteModal({
+                    title,
+                    isCompleted: true
+                });
+                if (!confirmed) return;
+
                 btn.disabled = true;
                 try {
                     await cancelDownload(id);
-                    btn.closest('.mf-dl-card').remove();
-                } catch {
+                    toast(`Registro de "${title}" removido do histórico.`);
+                    card.remove();
+                } catch (err) {
                     btn.disabled = false;
+                    toast(`Erro ao remover: ${err.message}`);
                 }
             });
         });

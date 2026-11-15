@@ -6,6 +6,7 @@
 
 import { cancelDownload, fetchDownloads, fetchLocalMovies, rescanLocalMovies } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
+import { confirmDeleteModal } from './confirmModal';
 import { escapeHtml, normalizeMovie } from './utils';
 import toast from 'components/toast/toast';
 
@@ -174,11 +175,21 @@ function renderDownloads(strip, downloads) {
 
     strip.querySelectorAll('.mf-dl-row-cancel').forEach(btn => {
         btn.addEventListener('click', async () => {
-            const id = btn.closest('.mf-dl-row').dataset.id;
+            const row = btn.closest('.mf-dl-row');
+            const id = row.dataset.id;
+            const title = row.querySelector('.mf-dl-row-name')?.textContent || 'este filme';
+
+            const confirmed = await confirmDeleteModal({
+                title,
+                isCompleted: false
+            });
+            if (!confirmed) return;
+
             btn.disabled = true;
             try {
                 await cancelDownload(id);
-                btn.closest('.mf-dl-row').remove();
+                toast(`Download de "${title}" cancelado.`);
+                row.remove();
             } catch (err) {
                 btn.disabled = false;
                 toast(`Erro ao cancelar: ${err.message}`);

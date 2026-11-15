@@ -5,6 +5,7 @@
 
 import { checkIsFavorite, fetchDownloads, searchTorrents, startDownload, toggleFavorite } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
+import { confirmDownloadModal } from './confirmModal';
 import { escapeHtml, normalizeMovie, normalizeStream } from './utils';
 import toast from 'components/toast/toast';
 
@@ -421,6 +422,15 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
             item.querySelector('.mf-btn-stream-play').addEventListener('click', () => playStream(stream, movie));
             item.querySelector('.mf-btn-stream-dl').addEventListener('click', async (e) => {
                 e.stopPropagation();
+
+                const confirmed = await confirmDownloadModal({
+                    title: movie.title,
+                    quality: stream.quality,
+                    size: stream.size,
+                    destination: 'D:\\filmes'
+                });
+                if (!confirmed) return;
+
                 const btn = e.currentTarget;
                 btn.disabled = true;
                 try {
