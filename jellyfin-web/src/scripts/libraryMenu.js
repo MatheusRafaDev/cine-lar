@@ -19,13 +19,10 @@ import viewManager from '../components/viewManager/viewManager';
 import { appRouter } from '../components/router/appRouter';
 import { appHost } from '../components/apphost';
 import { playbackManager } from '../components/playback/playbackmanager';
-import { pluginManager } from '../components/pluginManager';
-import groupSelectionMenu from '../plugins/syncPlay/ui/groupSelectionMenu';
 import browser from './browser';
 import imageHelper from '../utils/image';
 import { getMenuLinks } from '../scripts/settings/webSettings';
 import Dashboard, { pageClassOn } from '../utils/dashboard';
-import { PluginType } from '../types/plugin.ts';
 import Events from '../utils/events.ts';
 import { getParameterByName } from '../utils/url.ts';
 import datetime from '../scripts/datetime';
@@ -173,17 +170,9 @@ function updateUserInHeader(user) {
             headerCastButton.classList.remove('hide');
         }
 
-        const policy = user.Policy ? user.Policy : user.localUser.Policy;
-
-        if (
-        // Button is present
-            headerSyncButton
-                // SyncPlay plugin is loaded
-                && pluginManager.ofType(PluginType.SyncPlay).length > 0
-                // SyncPlay enabled for user
-                && policy?.SyncPlayAccess !== 'None'
-        ) {
-            headerSyncButton.classList.remove('hide');
+        // MatheusFlix: Grupos (SyncPlay) desativados por simplificação da interface
+        if (headerSyncButton) {
+            headerSyncButton.classList.add('hide');
         }
     } else {
         headerHomeButton.classList.add('hide');
@@ -300,8 +289,7 @@ function onCastButtonClicked() {
 }
 
 function onSyncButtonClicked() {
-    const btn = this;
-    groupSelectionMenu.show(btn);
+    // SyncPlay / Grupos desativados
 }
 
 function getItemHref(item, context) {
@@ -369,10 +357,6 @@ function refreshLibraryInfoInDrawer(user) {
         html += '<h3 class="sidebarHeader">';
         html += globalize.translate('HeaderUser');
         html += '</h3>';
-
-        if (appHost.supports(AppFeature.MultiServer)) {
-            html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSelectServer" data-itemid="selectserver" href="#"><span class="material-icons navMenuOptionIcon storage" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('SelectServer')}</span></a>`;
-        }
 
         html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSwitchProfile" data-itemid="switchprofile" href="#" style="color: #ff7a1a;"><span class="material-icons navMenuOptionIcon switch_account" aria-hidden="true" style="color: #ff7a1a;"></span><span class="navMenuOptionText" style="font-weight: 700;">Trocar Perfil</span></a>';
         html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSettings" data-itemid="settings" href="#"><span class="material-icons navMenuOptionIcon settings" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('Settings')}</span></a>`;
