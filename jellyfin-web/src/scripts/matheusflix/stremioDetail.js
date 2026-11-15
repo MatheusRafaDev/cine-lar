@@ -111,8 +111,8 @@ export async function openStremioDetails(rawMovie) {
                             <span class="mf-streams-count"></span>
                         </div>
                         <div class="mf-streams-filter-chips">
-                            <button type="button" class="mf-filter-chip active" data-filter="all">Todos</button>
-                            <button type="button" class="mf-filter-chip" data-filter="pt">PT-BR</button>
+                            <button type="button" class="mf-filter-chip active" data-filter="all">Todos PT-BR</button>
+                            <button type="button" class="mf-filter-chip" data-filter="dub">🇧🇷 Dublado / Dual</button>
                             <button type="button" class="mf-filter-chip" data-filter="1080p">1080p</button>
                             <button type="button" class="mf-filter-chip" data-filter="4k">4K UHD</button>
                         </div>
@@ -300,17 +300,19 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
         listEl.innerHTML = `
             <div class="mf-empty-state" style="padding: 60px 20px; text-align: center; color: #a0a6b5;">
                 <span class="material-icons" style="font-size: 48px; color: #64748b; margin-bottom: 12px; display: block;">search_off</span>
-                <p style="margin: 0; font-size: 15px; font-weight: 600; color: #cbd5e1;">Nenhuma fonte encontrada para este filme.</p>
-                <p style="margin: 6px 0 0 0; font-size: 13px; color: #64748b;">Tente buscar outros filmes do catálogo ou verificar sua conexão.</p>
+                <p style="margin: 0; font-size: 15px; font-weight: 600; color: #cbd5e1;">Nenhuma fonte em Português (PT-BR) encontrada.</p>
+                <p style="margin: 6px 0 0 0; font-size: 13px; color: #64748b;">Fontes exclusivamente em inglês foram ocultadas conforme sua preferência por conteúdo dublado / nacional.</p>
             </div>
         `;
         countEl.textContent = '';
-        heroText.textContent = 'Indisponível';
+        heroText.textContent = 'Indisponível em PT-BR';
         return;
     }
 
     if (!localFile && !activeDl) {
-        const best = streams.find(s => /1080p/i.test(s.quality) && s.seeders > 0)
+        const best = streams.find(s => s.isDubbed && /1080p/i.test(s.quality) && s.seeders > 0)
+            || streams.find(s => s.isDubbed && s.seeders > 0)
+            || streams.find(s => /1080p/i.test(s.quality) && s.seeders > 0)
             || streams.find(s => s.seeders > 0)
             || streams[0];
 
@@ -323,8 +325,8 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
 
     function updateStreamsList() {
         let filtered = streams;
-        if (currentFilter === 'pt') {
-            filtered = streams.filter(s => s.isPortuguese);
+        if (currentFilter === 'dub') {
+            filtered = streams.filter(s => s.isDubbed);
         } else if (currentFilter === '1080p') {
             filtered = streams.filter(s => /1080p/i.test(s.quality));
         } else if (currentFilter === '4k') {
@@ -332,7 +334,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
         }
 
         const shown = filtered.slice(0, MAX_SOURCES);
-        countEl.textContent = `${filtered.length} ${filtered.length === 1 ? 'fonte' : 'fontes'}`;
+        countEl.textContent = `${filtered.length} ${filtered.length === 1 ? 'fonte PT-BR' : 'fontes PT-BR'}`;
 
         listEl.innerHTML = '';
 
@@ -397,7 +399,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 <div class="mf-stream-meta">
                     <div class="mf-stream-badges">
                         <span class="mf-stream-quality ${qualityClass}">${escapeHtml(stream.quality)}</span>
-                        ${stream.isPortuguese ? '<span class="mf-stream-audio-pt"><span class="material-icons" style="font-size: 11px; vertical-align: middle;">translate</span> PT-BR</span>' : ''}
+                        ${stream.isDubbed ? '<span class="mf-stream-audio-dub"><span class="material-icons" style="font-size: 11px; vertical-align: middle;">mic</span> DUBLADO / DUAL</span>' : '<span class="mf-stream-audio-pt"><span class="material-icons" style="font-size: 11px; vertical-align: middle;">subtitles</span> LEGENDA PT-BR</span>'}
                         ${stream.size ? `<span class="mf-stream-size">${escapeHtml(stream.size)}</span>` : ''}
                         <span class="mf-stream-seeds"><span class="mf-seed-dot"></span>${stream.seeders} seeds</span>
                     </div>

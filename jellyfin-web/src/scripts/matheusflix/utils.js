@@ -40,7 +40,9 @@ export function normalizeStream(s = {}) {
         label: s.filename || (s.rawTitle || '').split('\n')[0] || s.rawName || 'Fonte',
         quality: s.quality || 'HD',
         size: s.size || '',
-        seeders: Number(s.seeders) || 0
+        seeders: Number(s.seeders) || 0,
+        isDubbed: Boolean(s.isDubbed),
+        isPortuguese: Boolean(s.isPortuguese ?? true)
     };
 }
 

@@ -692,10 +692,11 @@ const server = http.createServer(async (req, res) => {
             }
 
             try {
-                console.log(`[TorrentService] Buscando torrents no Torrentio para IMDB: ${imdb}`);
-                const [allStreamsRes, ptStreamsRes] = await Promise.allSettled([
+                console.log(`[TorrentService] Buscando torrents no Torrentio (PT-BR) para IMDB: ${imdb}`);
+                const [allStreamsRes, ptStreamsRes, brProvidersRes] = await Promise.allSettled([
                     fetchJson(`https://torrentio.strem.fun/stream/movie/${imdb}.json`),
-                    fetchJson(`https://torrentio.strem.fun/language=portuguese/stream/movie/${imdb}.json`)
+                    fetchJson(`https://torrentio.strem.fun/language=portuguese/stream/movie/${imdb}.json`),
+                    fetchJson(`https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,anidex,comando,bludv|language=portuguese/stream/movie/${imdb}.json`)
                 ]);
 
                 if (allStreamsRes.status === 'rejected') {
@@ -705,18 +706,54 @@ const server = http.createServer(async (req, res) => {
                     console.warn(`[TorrentService] Torrentio (PT) falhou: ${ptStreamsRes.reason?.message}`);
                 }
 
+                function isTorrentPortuguese(s) {
+                    const name = s.name || '';
+                    const title = s.title || '';
+                    const filename = s.behaviorHints?.filename || '';
+                    const full = `${name} ${title} ${filename}`;
+
+                    // Rastreadores ou tags brasileiras inequívocas
+                    const isBrTracker = /⚙️\s*(Comando|BluDV|Lapumia|Vizer|MegaFilmes|BaixarFilme|ThePirateFilmes|StarckFilmes)/i.test(full);
+                    const hasPtFlag = /🇧🇷|🇵🇹/.test(full);
+                    const hasPtWord = /dublado|áudio dublado|audio dublado|nacional|portuguese|português|portugues|brazilian|brasil|\bpt-br\b|\bptbr\b|\bpt-pt\b|\blegenda\b|\blegendado\b/i.test(full);
+
+                    // Se tiver 'dual' ou 'dual audio', só vale se tiver indicação de português (bandeira ou palavra PT) ou tracker BR
+                    const isDualAudio = /dual[\s\-\.]*audio|dual[\s\-\.]*áudio|\bdual\b/i.test(full);
+                    if (isDualAudio && (hasPtFlag || hasPtWord || isBrTracker)) {
+                        return { isPt: true, isDubbed: true };
+                    }
+
+                    if (isBrTracker) {
+                        return { isPt: true, isDubbed: /dublado|dual/i.test(full) };
+                    }
+
+                    // Se tiver indicador explícito de PT
+                    if (hasPtFlag || hasPtWord) {
+                        // Excluir falsos positivos de línguas que não têm áudio/legenda PT
+                        if (/hindi|telugu|tamil|rutracker/i.test(full) && !hasPtFlag && !/dublado/i.test(full)) {
+                            return { isPt: false, isDubbed: false };
+                        }
+                        const isDubbed = /dublado|áudio dublado|audio dublado|nacional/i.test(full) || isDualAudio;
+                        return { isPt: true, isDubbed };
+                    }
+
+                    return { isPt: false, isDubbed: false };
+                }
+
                 const streamMap = new Map();
 
-                const processStreams = (streams, isPtSource = false) => {
+                const processStreams = (streams) => {
                     if (!Array.isArray(streams)) return;
                     for (const s of streams) {
                         if (!s.infoHash) continue;
                         const key = s.infoHash.toLowerCase();
                         if (streamMap.has(key)) continue;
 
-                        const fullText = `${s.name || ''} ${s.title || ''}`;
-                        const isPt = isPtSource || /dublado|dual|nacional|portuguese|\bpt\b|\bbr\b|🇧🇷|🇵🇹/i.test(fullText);
+                        const { isPt, isDubbed } = isTorrentPortuguese(s);
+                        // Filtro estrito: Se for exclusivamente gringo/inglês, nem aparece!
+                        if (!isPt) continue;
 
+                        const fullText = `${s.name || ''} ${s.title || ''}`;
                         const seedsMatch = s.title?.match(/👤\s*(\d+)/);
                         const seeders = seedsMatch ? parseInt(seedsMatch[1], 10) : 0;
 
@@ -734,12 +771,7 @@ const server = http.createServer(async (req, res) => {
                         else if (/1080p/i.test(fullText)) quality = '1080p Full HD';
                         else if (/720p/i.test(fullText)) quality = '720p HD';
 
-                        let audio = 'Original / Legendado';
-                        if (/dublado|dual|nacional/i.test(fullText)) {
-                            audio = '🇧🇷 Dual Áudio / Dublado';
-                        } else if (isPt) {
-                            audio = '🇧🇷 Áudio / Legenda PT';
-                        }
+                        const audio = isDubbed ? '🇧🇷 Dublado / Dual Áudio' : '🇧🇷 Legenda PT-BR';
 
                         // Extrair trackers fornecidos pelo Torrentio nas fontes (se existirem)
                         const streamTrackers = [];
@@ -757,7 +789,8 @@ const server = http.createServer(async (req, res) => {
                             infoHash: key,
                             quality,
                             audio,
-                            isPortuguese: isPt,
+                            isPortuguese: true,
+                            isDubbed,
                             seeders,
                             size,
                             provider,
@@ -769,16 +802,21 @@ const server = http.createServer(async (req, res) => {
                     }
                 };
 
+                if (brProvidersRes.status === 'fulfilled' && brProvidersRes.value?.streams) {
+                    processStreams(brProvidersRes.value.streams);
+                }
                 if (ptStreamsRes.status === 'fulfilled' && ptStreamsRes.value?.streams) {
-                    processStreams(ptStreamsRes.value.streams, true);
+                    processStreams(ptStreamsRes.value.streams);
                 }
                 if (allStreamsRes.status === 'fulfilled' && allStreamsRes.value?.streams) {
-                    processStreams(allStreamsRes.value.streams, false);
+                    processStreams(allStreamsRes.value.streams);
                 }
 
                 const torrents = Array.from(streamMap.values()).sort((a, b) => {
-                    if (a.isPortuguese && !b.isPortuguese) return -1;
-                    if (!a.isPortuguese && b.isPortuguese) return 1;
+                    // 1. Dublado / Dual Áudio sempre no topo absoluto
+                    if (a.isDubbed && !b.isDubbed) return -1;
+                    if (!a.isDubbed && b.isDubbed) return 1;
+                    // 2. Mais seeders primeiro
                     return b.seeders - a.seeders;
                 });
 

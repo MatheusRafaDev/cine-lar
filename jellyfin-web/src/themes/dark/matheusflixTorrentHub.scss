@@ -3413,10 +3413,24 @@
     border: 1px solid rgba(34, 197, 94, 0.4) !important;
 }
 
+.mf-stream-audio-dub {
+    background: linear-gradient(135deg, rgba(255, 122, 26, 0.25) 0%, rgba(245, 158, 11, 0.25) 100%) !important;
+    color: #ff9e42 !important;
+    border: 1px solid rgba(255, 122, 26, 0.5) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    box-shadow: 0 0 10px rgba(255, 122, 26, 0.2) !important;
+}
+
 .mf-stream-audio-pt {
-    background: rgba(34, 197, 94, 0.15) !important;
-    color: #4ade80 !important;
-    border: 1px solid rgba(34, 197, 94, 0.35) !important;
+    background: rgba(56, 189, 248, 0.15) !important;
+    color: #38bdf8 !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
     font-size: 11px !important;
     font-weight: 800 !important;
     padding: 2px 8px !important;
