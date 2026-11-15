@@ -49,6 +49,7 @@ export function init() {
         window.MatheusFlix.openTorrentHub = () => navigateToTab(1);
         window.MatheusFlix.openStreaming = () => navigateToTab(1);
         window.MatheusFlix.openLocalFolder = () => navigateToTab(2);
+        window.MatheusFlix.openDownloads = () => navigateToTab(3);
         window.MatheusFlix.getDownloads = () => activeDownloadsCache;
         window.MatheusFlix.playCinema = openCinemaPlayer;
     }

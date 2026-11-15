@@ -344,8 +344,9 @@ function refreshLibraryInfoInDrawer(user) {
     let html = '';
     html += '<div style="height:.5em;"></div>';
     html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavHome" href="#/home?tab=0"><span class="material-icons navMenuOptionIcon home" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('Home')}</span></a>`;
-    html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavStremio" href="#/home?tab=1" style="color: var(--mf-accent, #ff7a1a);"><span class="material-icons navMenuOptionIcon movie" aria-hidden="true" style="color: var(--mf-accent, #ff7a1a);"></span><span class="navMenuOptionText" style="font-weight: 700;">Filmes</span></a>';
-    html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavLocal" href="#/home?tab=2" style="color: #22c55e;"><span class="material-icons navMenuOptionIcon folder" aria-hidden="true" style="color: #22c55e;"></span><span class="navMenuOptionText" style="font-weight: 700;">Minha Pasta</span></a>';
+    html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavStremio" href="#/home?tab=1" style="color: var(--mf-accent, #ff7a1a);"><span class="material-icons navMenuOptionIcon movie" aria-hidden="true" style="color: var(--mf-accent, #ff7a1a);"></span><span class="navMenuOptionText" style="font-weight: 700;">Torrents</span></a>';
+    html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavLocal" href="#/home?tab=2" style="color: #22c55e;"><span class="material-icons navMenuOptionIcon folder" aria-hidden="true" style="color: #22c55e;"></span><span class="navMenuOptionText" style="font-weight: 700;">Pasta Local</span></a>';
+    html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavDownloads" href="#/home?tab=3" style="color: #38bdf8;"><span class="material-icons navMenuOptionIcon download" aria-hidden="true" style="color: #38bdf8;"></span><span class="navMenuOptionText" style="font-weight: 700;">Downloads</span></a>';
 
     // placeholder for custom menu links
     html += '<div class="customMenuOptions"></div>';
@@ -402,6 +403,7 @@ function refreshLibraryInfoInDrawer(user) {
     bindDrawerTab('.lnkNavHome', 0);
     bindDrawerTab('.lnkNavStremio', 1);
     bindDrawerTab('.lnkNavLocal', 2);
+    bindDrawerTab('.lnkNavDownloads', 3);
 
     const btnSelectServer = navDrawerScrollContainer.querySelector('.btnSelectServer');
     if (btnSelectServer) {

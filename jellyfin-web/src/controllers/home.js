@@ -27,9 +27,11 @@ class HomeView extends TabbedView {
         return [{
             name: 'Início'
         }, {
-            name: 'Filmes'
+            name: 'Torrents'
         }, {
-            name: 'Minha Pasta (D:\\filmes)'
+            name: 'Pasta Local'
+        }, {
+            name: 'Downloads'
         }];
     }
 
@@ -51,6 +53,10 @@ class HomeView extends TabbedView {
 
             case 2:
                 loader = import(/* webpackChunkName: "localFolderTab" */ '../scripts/matheusflix/localFolderTab');
+                break;
+
+            case 3:
+                loader = import(/* webpackChunkName: "downloadsTab" */ '../scripts/matheusflix/downloadsTab');
                 break;
 
             default:
