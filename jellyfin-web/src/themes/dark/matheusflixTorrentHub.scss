@@ -1,4 +1,73 @@
 /* ==========================================================================
+   MATHEUSFLIX DESIGN SYSTEM & DESIGN TOKENS
+   Linguagem visual unificada, moderna e cinematográfica
+   ========================================================================== */
+
+:root {
+    /* 1. Cores de Superfície & Fundo (Deep Cinema Dark) */
+    --mf-bg-app: #080a0f;
+    --mf-bg-surface: #0d1017;
+    --mf-bg-card: #131722;
+    --mf-bg-card-hover: #181d2b;
+    --mf-bg-glass: rgba(13, 16, 23, 0.78);
+    --mf-bg-glass-strong: rgba(10, 13, 19, 0.95);
+    --mf-bg-glass-card: rgba(255, 255, 255, 0.04);
+    --mf-bg-glass-card-hover: rgba(255, 255, 255, 0.08);
+
+    /* 2. Cores da Marca & Destaques (Vibrant Amber & Neon Accents) */
+    --mf-accent: #ff7a1a;
+    --mf-accent-light: #ff9447;
+    --mf-accent-hover: #ff8933;
+    --mf-accent-active: #e6660d;
+    --mf-accent-glow: rgba(255, 122, 26, 0.4);
+    --mf-accent-gradient: linear-gradient(135deg, #ff6200 0%, #ff8c2b 100%);
+
+    /* 3. Cores Semânticas de Status */
+    --mf-color-success: #22c55e;
+    --mf-color-success-light: #4ade80;
+    --mf-color-success-glow: rgba(34, 197, 94, 0.4);
+    --mf-color-success-gradient: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    --mf-color-info: #38bdf8;
+    --mf-color-warning: #f59e0b;
+    --mf-color-danger: #ef4444;
+
+    /* 4. Tipografia & Cores de Texto */
+    --mf-text-title: #ffffff;
+    --mf-text-primary: #f8fafc;
+    --mf-text-secondary: #cbd5e1;
+    --mf-text-muted: #94a3b8;
+    --mf-text-dim: #64748b;
+
+    /* 5. Bordas & Linhas Divisórias */
+    --mf-border-subtle: rgba(255, 255, 255, 0.08);
+    --mf-border-medium: rgba(255, 255, 255, 0.14);
+    --mf-border-strong: rgba(255, 255, 255, 0.22);
+    --mf-border-accent: rgba(255, 122, 26, 0.5);
+    --mf-border-success: rgba(34, 197, 94, 0.5);
+
+    /* 6. Raios de Borda (Corner Radius) */
+    --mf-radius-xs: 6px;
+    --mf-radius-sm: 8px;
+    --mf-radius-md: 14px;
+    --mf-radius-lg: 18px;
+    --mf-radius-xl: 24px;
+    --mf-radius-pill: 9999px;
+
+    /* 7. Sombras Cinematográficas */
+    --mf-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --mf-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --mf-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.85);
+    --mf-shadow-poster: 0 20px 48px rgba(0, 0, 0, 0.9), 0 0 24px rgba(255, 122, 26, 0.15);
+    --mf-shadow-glow-accent: 0 0 28px rgba(255, 122, 26, 0.45);
+    --mf-shadow-glow-success: 0 0 28px rgba(34, 197, 94, 0.45);
+
+    /* 8. Transições & Efeitos de Movimento */
+    --mf-transition-fast: 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    --mf-transition-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    --mf-transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
    MatheusFlix Torrent & Movie Discovery Hub
    ========================================================================== */
 
@@ -2885,7 +2954,7 @@
    Correção Definitiva: Modal de Detalhes dos Torrents & Títulos Escuros
    ========================================================================== */
 
-/* 1. Página Completa de Detalhes do Filme (Substituindo o antigo modal) */
+/* 1. Página Completa de Detalhes do Filme (Design Cinematográfico Imersivo) */
 .mf-stremio-modal,
 .mf-stremio-modal-backdrop,
 .mf-movie-page {
@@ -2898,7 +2967,7 @@
     height: 100vh !important;
     max-width: 100vw !important;
     max-height: 100vh !important;
-    background: #090c12 !important;
+    background: var(--mf-bg-app, #080a0f) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     z-index: 100000 !important;
@@ -2909,7 +2978,7 @@
     padding: 0 !important;
     margin: 0 !important;
     box-sizing: border-box !important;
-    animation: mfFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    animation: mfFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     overflow: hidden !important;
 }
 
@@ -2923,25 +2992,25 @@
     border-radius: 0 !important;
     border: none !important;
     box-shadow: none !important;
-    background: #090c12 !important;
+    background: var(--mf-bg-app, #080a0f) !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
     position: relative !important;
-    color: #f1f5f9 !important;
+    color: var(--mf-text-primary, #f8fafc) !important;
 }
 
 /* Barra superior da página de detalhes com botão Voltar */
 .mf-movie-page-topbar {
-    height: 62px !important;
-    background: rgba(9, 12, 18, 0.95) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    height: 64px !important;
+    background: var(--mf-bg-glass-strong, rgba(8, 10, 15, 0.95)) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border-bottom: 1px solid var(--mf-border-subtle, rgba(255, 255, 255, 0.08)) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    padding: 0 32px !important;
+    padding: 0 36px !important;
     flex-shrink: 0 !important;
     z-index: 100 !important;
     box-sizing: border-box !important;
@@ -2954,17 +3023,17 @@
     align-items: center !important;
     justify-content: center !important;
     gap: 8px !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
-    color: #ffffff !important;
-    padding: 8px 18px !important;
-    border-radius: 99px !important;
+    background: var(--mf-bg-glass-card, rgba(255, 255, 255, 0.06)) !important;
+    border: 1px solid var(--mf-border-medium, rgba(255, 255, 255, 0.14)) !important;
+    color: var(--mf-text-title, #ffffff) !important;
+    padding: 8px 20px !important;
+    border-radius: var(--mf-radius-pill, 9999px) !important;
     cursor: pointer !important;
     font-size: 14px !important;
     font-weight: 700 !important;
     letter-spacing: 0.2px !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    transition: var(--mf-transition-normal) !important;
+    box-shadow: var(--mf-shadow-sm) !important;
     width: auto !important;
     height: auto !important;
 }
@@ -2975,65 +3044,483 @@
     border-color: var(--mf-accent, #ff7a1a) !important;
     color: #ffffff !important;
     transform: translateX(-4px) !important;
-    box-shadow: 0 6px 20px rgba(255, 122, 26, 0.45) !important;
+    box-shadow: var(--mf-shadow-glow-accent) !important;
 }
 
 .mf-movie-page-top-title {
-    font-size: 15px !important;
-    font-weight: 600 !important;
-    color: #94a3b8 !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: var(--mf-text-muted, #94a3b8) !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     max-width: 50vw !important;
 }
 
+.mf-topbar-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.mf-btn-topbar-fav {
+    background: var(--mf-bg-glass-card, rgba(255, 255, 255, 0.06)) !important;
+    border: 1px solid var(--mf-border-medium, rgba(255, 255, 255, 0.14)) !important;
+    color: #ffffff !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: var(--mf-transition-normal) !important;
+}
+
+.mf-btn-topbar-fav:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+    transform: scale(1.08) !important;
+}
+
+/* Corpo principal da página em 2 colunas */
 .mf-stremio-content {
     display: flex !important;
-    height: calc(100vh - 62px) !important;
+    height: calc(100vh - 64px) !important;
     width: 100% !important;
     overflow: hidden !important;
 }
 
+/* Coluna Esquerda: Hero & Detalhes do Filme */
 .mf-stremio-left {
     width: 52% !important;
     max-width: 880px !important;
-    padding: 40px 48px !important;
+    padding: 44px 52px !important;
     display: flex !important;
     flex-direction: column !important;
     overflow-y: auto !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-right: 1px solid var(--mf-border-subtle, rgba(255, 255, 255, 0.08)) !important;
     background-size: cover !important;
     background-position: center top !important;
     box-sizing: border-box !important;
+    position: relative !important;
 }
 
-.mf-stremio-right {
-    width: 48% !important;
-    flex: 1 !important;
-    padding: 36px 40px !important;
+.mf-hero-details-container {
     display: flex !important;
     flex-direction: column !important;
-    background: rgba(13, 16, 24, 0.92) !important;
-    overflow: hidden !important;
-    box-sizing: border-box !important;
+    gap: 24px !important;
+    position: relative !important;
+    z-index: 2 !important;
+    max-width: 780px !important;
+}
+
+.mf-stremio-poster-wrap {
+    display: flex !important;
+    gap: 32px !important;
+    align-items: flex-start !important;
+}
+
+.mf-poster-glow-container {
+    position: relative !important;
+    flex-shrink: 0 !important;
+}
+
+.mf-stremio-poster {
+    width: 195px !important;
+    min-width: 195px !important;
+    height: 290px !important;
+    border-radius: var(--mf-radius-lg, 18px) !important;
+    object-fit: cover !important;
+    box-shadow: var(--mf-shadow-poster) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    display: block !important;
+}
+
+.mf-stremio-header-info {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    justify-content: center !important;
 }
 
 .mf-stremio-title {
-    margin: 0 0 10px 0 !important;
-    font-size: 32px !important;
+    margin: 0 !important;
+    font-size: 38px !important;
     font-weight: 800 !important;
-    color: #ffffff !important;
-    line-height: 1.2 !important;
-    letter-spacing: -0.5px !important;
+    color: var(--mf-text-title, #ffffff) !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.6px !important;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Badges e Tags do Filme (Chips) */
+.mf-stremio-subinfo {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    align-items: center !important;
+}
+
+.mf-badge-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 4px 12px !important;
+    border-radius: var(--mf-radius-pill, 9999px) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px !important;
+    border: 1px solid var(--mf-border-subtle, rgba(255, 255, 255, 0.1)) !important;
+    background: var(--mf-bg-glass-card, rgba(255, 255, 255, 0.05)) !important;
+    backdrop-filter: blur(12px) !important;
+    color: var(--mf-text-secondary, #cbd5e1) !important;
+}
+
+.mf-badge-rating {
+    background: rgba(245, 158, 11, 0.15) !important;
+    border-color: rgba(245, 158, 11, 0.4) !important;
+    color: #fbbf24 !important;
+}
+
+.mf-badge-year {
+    color: #94a3b8 !important;
+}
+
+.mf-badge-genre {
+    background: rgba(255, 122, 26, 0.12) !important;
+    border-color: rgba(255, 122, 26, 0.3) !important;
+    color: #ff9e42 !important;
+}
+
+/* Sinopse */
+.mf-synopsis-wrap {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+}
+
+.mf-section-heading {
+    margin: 0 !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    color: var(--mf-text-muted, #94a3b8) !important;
 }
 
 .mf-stremio-synopsis {
     font-size: 15px !important;
-    line-height: 1.65 !important;
-    color: #cbd5e1 !important;
-    margin: 0 0 24px 0 !important;
+    line-height: 1.7 !important;
+    color: var(--mf-text-secondary, #cbd5e1) !important;
+    margin: 0 !important;
+    text-align: justify !important;
     max-width: 720px !important;
+}
+
+/* Botão Monumental de Play */
+.mf-stremio-hero-action {
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+    margin-top: 10px !important;
+}
+
+.mf-btn-hero-watch {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    background: var(--mf-accent-gradient) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: var(--mf-radius-md, 14px) !important;
+    padding: 16px 36px !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.3px !important;
+    cursor: pointer !important;
+    box-shadow: var(--mf-shadow-glow-accent), var(--mf-shadow-md) !important;
+    transition: var(--mf-transition-normal) !important;
+    outline: none !important;
+}
+
+.mf-btn-hero-watch:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.02) !important;
+    box-shadow: 0 0 36px rgba(255, 122, 26, 0.6), var(--mf-shadow-lg) !important;
+    filter: brightness(1.1) !important;
+}
+
+.mf-btn-hero-watch:disabled {
+    opacity: 0.6 !important;
+    cursor: wait !important;
+    box-shadow: none !important;
+}
+
+/* Coluna Direita: Fontes, Filtros & Downloads */
+.mf-stremio-right {
+    width: 48% !important;
+    flex: 1 !important;
+    padding: 38px 44px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: var(--mf-bg-surface, #0d1017) !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+.mf-stremio-streams-header {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    margin-bottom: 20px !important;
+    padding-bottom: 16px !important;
+    border-bottom: 1px solid var(--mf-border-subtle, rgba(255, 255, 255, 0.08)) !important;
+}
+
+.mf-streams-header-title {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.mf-streams-header-title h3 {
+    margin: 0 !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    color: var(--mf-text-title, #ffffff) !important;
+    letter-spacing: -0.3px !important;
+}
+
+.mf-streams-count {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: var(--mf-accent, #ff7a1a) !important;
+    background: rgba(255, 122, 26, 0.12) !important;
+    padding: 3px 10px !important;
+    border-radius: var(--mf-radius-pill, 9999px) !important;
+    border: 1px solid rgba(255, 122, 26, 0.25) !important;
+}
+
+/* Filtros interativos de fontes (Chips) */
+.mf-streams-filter-chips {
+    display: flex !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+}
+
+.mf-filter-chip {
+    background: var(--mf-bg-glass-card, rgba(255, 255, 255, 0.05)) !important;
+    border: 1px solid var(--mf-border-medium, rgba(255, 255, 255, 0.12)) !important;
+    color: var(--mf-text-secondary, #cbd5e1) !important;
+    padding: 6px 14px !important;
+    border-radius: var(--mf-radius-pill, 9999px) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: var(--mf-transition-fast) !important;
+}
+
+.mf-filter-chip:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.mf-filter-chip.active {
+    background: var(--mf-accent, #ff7a1a) !important;
+    border-color: var(--mf-accent, #ff7a1a) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 12px rgba(255, 122, 26, 0.4) !important;
+}
+
+/* Lista de fontes */
+.mf-stremio-streams-list {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding-right: 6px !important;
+}
+
+/* Item de Fonte Individual */
+.mf-stream-item {
+    background: var(--mf-bg-card, #131722) !important;
+    border: 1px solid var(--mf-border-subtle, rgba(255, 255, 255, 0.08)) !important;
+    border-radius: var(--mf-radius-md, 14px) !important;
+    padding: 14px 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    transition: var(--mf-transition-normal) !important;
+}
+
+.mf-stream-item:hover {
+    background: var(--mf-bg-card-hover, #181d2b) !important;
+    border-color: rgba(255, 122, 26, 0.35) !important;
+    transform: translateX(4px) !important;
+    box-shadow: var(--mf-shadow-md) !important;
+}
+
+.mf-stream-meta {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    flex: 1 !important;
+    overflow: hidden !important;
+}
+
+.mf-stream-badges {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+}
+
+.mf-stream-quality {
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.4px !important;
+}
+
+.mf-stream-quality.q-4k {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(236, 72, 153, 0.25)) !important;
+    color: #e879f9 !important;
+    border: 1px solid rgba(232, 121, 249, 0.4) !important;
+}
+
+.mf-stream-quality.q-1080p {
+    background: rgba(56, 189, 248, 0.15) !important;
+    color: #38bdf8 !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+.mf-stream-quality.q-720p {
+    background: rgba(148, 163, 184, 0.15) !important;
+    color: #94a3b8 !important;
+    border: 1px solid rgba(148, 163, 184, 0.3) !important;
+}
+
+.mf-stream-quality.q-local {
+    background: rgba(34, 197, 94, 0.2) !important;
+    color: #4ade80 !important;
+    border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+
+.mf-stream-audio-pt {
+    background: rgba(34, 197, 94, 0.15) !important;
+    color: #4ade80 !important;
+    border: 1px solid rgba(34, 197, 94, 0.35) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.mf-stream-size {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: var(--mf-text-muted, #94a3b8) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    padding: 2px 7px !important;
+    border-radius: 6px !important;
+}
+
+.mf-stream-seeds {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #4ade80 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+}
+
+.mf-seed-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: #22c55e !important;
+    box-shadow: 0 0 8px #22c55e !important;
+    display: inline-block !important;
+    animation: mfPulseGreen 2s infinite !important;
+}
+
+@keyframes mfPulseGreen {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.25); }
+}
+
+.mf-stream-title {
+    font-size: 13px !important;
+    color: var(--mf-text-secondary, #cbd5e1) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.3 !important;
+}
+
+/* Ações da fonte */
+.mf-stream-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+}
+
+.mf-btn-stream-play {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    background: var(--mf-accent, #ff7a1a) !important;
+    color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: var(--mf-transition-fast) !important;
+    box-shadow: 0 4px 12px rgba(255, 122, 26, 0.35) !important;
+}
+
+.mf-btn-stream-play:hover {
+    transform: scale(1.1) !important;
+    background: #ff9238 !important;
+    box-shadow: 0 6px 18px rgba(255, 122, 26, 0.55) !important;
+}
+
+.mf-btn-stream-dl {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    background: var(--mf-bg-glass-card, rgba(255, 255, 255, 0.08)) !important;
+    border: 1px solid var(--mf-border-medium, rgba(255, 255, 255, 0.15)) !important;
+    color: var(--mf-text-secondary, #cbd5e1) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: var(--mf-transition-fast) !important;
+}
+
+.mf-btn-stream-dl:hover:not(:disabled) {
+    transform: scale(1.1) !important;
+    background: rgba(56, 189, 248, 0.2) !important;
+    border-color: #38bdf8 !important;
+    color: #38bdf8 !important;
+}
+
+.mf-btn-stream-dl:disabled {
+    cursor: wait !important;
+    opacity: 0.6 !important;
 }
 
 /* 2. Títulos Claros, Nítidos e Brancos (Eliminando Títulos Escuros) */

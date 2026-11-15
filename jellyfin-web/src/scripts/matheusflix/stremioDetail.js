@@ -1,6 +1,6 @@
 /**
  * MatheusFlix - Página completa de detalhes do filme (catálogo / torrents / local).
- * Substitui o antigo modal por uma visualização de página inteira imersiva com botão de Voltar.
+ * Design System unificado, layout cinematográfico imersivo, botão de voltar e filtros de fontes.
  */
 
 import { checkIsFavorite, searchTorrents, startDownload, toggleFavorite } from './api';
@@ -8,7 +8,7 @@ import { openCinemaPlayer } from './cinemaPlayer';
 import { escapeHtml, normalizeMovie, normalizeStream } from './utils';
 import toast from 'components/toast/toast';
 
-const MAX_SOURCES = 12;
+const MAX_SOURCES = 15;
 let activeModal = null;
 let activeKeyHandler = null;
 let activePopHandler = null;
@@ -50,46 +50,77 @@ export async function openStremioDetails(rawMovie) {
     modalEl.className = 'mf-movie-page mf-stremio-modal mf-stremio-modal-backdrop';
     modalEl.innerHTML = `
         <div class="mf-movie-page-window mf-stremio-window mf-stremio-card">
+            <!-- Topbar fixa de vidro fosco -->
             <header class="mf-movie-page-topbar">
                 <button type="button" class="mf-movie-page-back-btn mf-stremio-close-btn" title="Voltar (Esc)">
                     <span class="material-icons" style="font-size: 20px;">arrow_back</span>
-                    <span style="font-size: 14px; font-weight: 700;">Voltar</span>
+                    <span>Voltar</span>
                 </button>
                 <div class="mf-movie-page-top-title">${escapeHtml(movie.title)}</div>
-                <div style="width: 80px;"></div>
+                <div class="mf-topbar-actions">
+                    <button type="button" class="mf-btn-topbar-fav mf-btn-fav-toggle" title="Favoritar filme">
+                        <span class="material-icons mf-fav-icon">favorite_border</span>
+                    </button>
+                </div>
             </header>
+
+            <!-- Conteúdo da Página Completa -->
             <div class="mf-movie-page-body mf-stremio-content">
-                <div class="mf-stremio-left" style="background-image: linear-gradient(180deg, rgba(9,12,18,0.7) 0%, rgba(9,12,18,0.98) 75%), url('${escapeHtml(movie.backdrop)}');">
-                    <div class="mf-stremio-poster-wrap">
-                        <img src="${escapeHtml(movie.poster)}" alt="" class="mf-stremio-poster" />
-                        <div class="mf-stremio-header-info">
-                            <h1 class="mf-stremio-title">${escapeHtml(movie.title)}</h1>
-                            <div class="mf-stremio-subinfo">
-                                ${movie.year ? `<span class="mf-badge-year">${escapeHtml(movie.year)}</span>` : ''}
-                                ${movie.rating ? `<span class="mf-badge-rating">⭐ ${movie.rating}</span>` : ''}
-                                ${movie.genres ? `<span class="mf-badge-genres">${escapeHtml(movie.genres)}</span>` : ''}
+                <!-- Coluna Esquerda: Hero Cinematográfico -->
+                <div class="mf-stremio-left" style="background-image: linear-gradient(180deg, rgba(8,10,15,0.7) 0%, rgba(8,10,15,0.96) 65%, #080a0f 100%), url('${escapeHtml(movie.backdrop)}');">
+                    <div class="mf-hero-details-container">
+                        <div class="mf-stremio-poster-wrap">
+                            <div class="mf-poster-glow-container">
+                                <img src="${escapeHtml(movie.poster)}" alt="" class="mf-stremio-poster" />
+                            </div>
+                            <div class="mf-stremio-header-info">
+                                <h1 class="mf-stremio-title">${escapeHtml(movie.title)}</h1>
+                                <div class="mf-stremio-subinfo">
+                                    ${movie.rating ? `<span class="mf-badge-chip mf-badge-rating"><span class="material-icons" style="font-size: 14px; color: #f59e0b;">star</span> ${movie.rating}</span>` : ''}
+                                    ${movie.year ? `<span class="mf-badge-chip mf-badge-year">${escapeHtml(movie.year)}</span>` : ''}
+                                    ${movie.genres ? movie.genres.split(/[,/]/).slice(0, 3).map(g => `<span class="mf-badge-chip mf-badge-genre">${escapeHtml(g.trim())}</span>`).join('') : ''}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <p class="mf-stremio-synopsis">${escapeHtml(movie.description || 'Sinopse não disponível.')}</p>
-                    <div class="mf-local-status-container"></div>
-                    <div class="mf-stremio-hero-action" style="display: flex; gap: 12px; align-items: center; margin-top: auto; padding-top: 16px;">
-                        <button type="button" class="mf-btn-hero-watch" disabled>
-                            <span class="material-icons">play_arrow</span>
-                            <span class="mf-hero-watch-text">Buscando fontes...</span>
-                        </button>
-                        <button type="button" class="mf-btn-fav-toggle" title="Adicionar aos Favoritos" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease;">
-                            <span class="material-icons mf-fav-icon">favorite_border</span>
-                        </button>
+
+                        <!-- Sinopse -->
+                        <div class="mf-synopsis-wrap">
+                            <h3 class="mf-section-heading">Sinopse</h3>
+                            <p class="mf-stremio-synopsis">${escapeHtml(movie.description || 'Sinopse não disponível para este título.')}</p>
+                        </div>
+
+                        <!-- Alerta se o filme estiver salvo no disco local -->
+                        <div class="mf-local-status-container"></div>
+
+                        <!-- Ações Principais -->
+                        <div class="mf-stremio-hero-action">
+                            <button type="button" class="mf-btn-hero-watch" disabled>
+                                <span class="material-icons" style="font-size: 26px;">play_circle_filled</span>
+                                <span class="mf-hero-watch-text">Buscando fontes disponíveis...</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Coluna Direita: Fontes, Filtros & Downloads -->
                 <div class="mf-stremio-right">
                     <div class="mf-stremio-streams-header">
-                        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #ffffff;">Fontes & Downloads</h3>
-                        <span class="mf-streams-count" style="font-size: 13px; color: #8c93a4;"></span>
+                        <div class="mf-streams-header-title">
+                            <h3>Fontes de Streaming & Download</h3>
+                            <span class="mf-streams-count"></span>
+                        </div>
+                        <div class="mf-streams-filter-chips">
+                            <button type="button" class="mf-filter-chip active" data-filter="all">Todos</button>
+                            <button type="button" class="mf-filter-chip" data-filter="pt">PT-BR</button>
+                            <button type="button" class="mf-filter-chip" data-filter="1080p">1080p</button>
+                            <button type="button" class="mf-filter-chip" data-filter="4k">4K UHD</button>
+                        </div>
                     </div>
                     <div class="mf-stremio-streams-list">
-                        <div class="mf-streams-loading"><p>Procurando fontes...</p></div>
+                        <div class="mf-streams-loading">
+                            <div class="mf-spinner"></div>
+                            <p>Procurando as melhores fontes de transmissão...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -155,7 +186,7 @@ export async function openStremioDetails(rawMovie) {
 
     try {
         const data = await searchTorrents(movie.imdbId, movie.title);
-        if (activeModal !== modalEl) return; // usuário já fechou
+        if (activeModal !== modalEl) return;
         renderStreams((data.torrents || []).map(normalizeStream).filter(s => s.magnet), movie, modalEl, data.localFile);
     } catch {
         if (activeModal !== modalEl) return;
@@ -169,6 +200,7 @@ function renderStreams(streams, movie, modalEl, localFile = null) {
     const heroBtn = modalEl.querySelector('.mf-btn-hero-watch');
     const heroText = modalEl.querySelector('.mf-hero-watch-text');
     const localStatus = modalEl.querySelector('.mf-local-status-container');
+    const filterChips = modalEl.querySelectorAll('.mf-filter-chip');
 
     // Se o filme já existe salvo na pasta D:\filmes
     if (localFile && localStatus) {
@@ -176,8 +208,8 @@ function renderStreams(streams, movie, modalEl, localFile = null) {
             <div class="mf-local-alert-banner">
                 <span class="material-icons mf-local-alert-icon">folder_special</span>
                 <div class="mf-local-alert-text">
-                    <strong>Filme já disponível na sua pasta local (D:\\filmes)!</strong>
-                    <span>Qualidade: ${escapeHtml(localFile.quality)} • Tamanho: ${escapeHtml(localFile.sizeFormatted)} • Sem gastar internet</span>
+                    <strong>Disponível na sua pasta local (D:\\filmes)</strong>
+                    <span>Reprodução imediata sem download • ${escapeHtml(localFile.quality)} • ${escapeHtml(localFile.sizeFormatted)} • Sem gastar internet</span>
                 </div>
             </div>
         `;
@@ -200,14 +232,19 @@ function renderStreams(streams, movie, modalEl, localFile = null) {
     }
 
     if (!streams.length && !localFile) {
-        listEl.innerHTML = '<div class="mf-empty-state" style="padding: 40px 20px; text-align: center; color: #a0a6b5;"><p>Nenhuma fonte encontrada para este filme.</p></div>';
+        listEl.innerHTML = `
+            <div class="mf-empty-state" style="padding: 60px 20px; text-align: center; color: #a0a6b5;">
+                <span class="material-icons" style="font-size: 48px; color: #64748b; margin-bottom: 12px; display: block;">search_off</span>
+                <p style="margin: 0; font-size: 15px; font-weight: 600; color: #cbd5e1;">Nenhuma fonte encontrada para este filme.</p>
+                <p style="margin: 6px 0 0 0; font-size: 13px; color: #64748b;">Tente buscar outros filmes do catálogo ou verificar sua conexão.</p>
+            </div>
+        `;
         countEl.textContent = '';
         heroText.textContent = 'Indisponível';
         return;
     }
 
     if (!localFile) {
-        // Prioriza 1080p dublado/legendado PT com mais sementes (backend já ordena PT + seeders).
         const best = streams.find(s => /1080p/i.test(s.quality) && s.seeders > 0)
             || streams.find(s => s.seeders > 0)
             || streams[0];
@@ -217,91 +254,136 @@ function renderStreams(streams, movie, modalEl, localFile = null) {
         heroBtn.onclick = () => playStream(best, movie);
     }
 
-    const shown = streams.slice(0, MAX_SOURCES);
-    countEl.textContent = streams.length > MAX_SOURCES ? `${MAX_SOURCES} melhores de ${streams.length}` : `${streams.length}`;
+    let currentFilter = 'all';
 
-    listEl.innerHTML = '';
+    function updateStreamsList() {
+        let filtered = streams;
+        if (currentFilter === 'pt') {
+            filtered = streams.filter(s => s.isPortuguese);
+        } else if (currentFilter === '1080p') {
+            filtered = streams.filter(s => /1080p/i.test(s.quality));
+        } else if (currentFilter === '4k') {
+            filtered = streams.filter(s => /4k|2160p/i.test(s.quality));
+        }
 
-    // Insere o arquivo local no topo da lista de fontes
-    if (localFile) {
-        const localItem = document.createElement('div');
-        localItem.className = 'mf-stream-item mf-stream-item-local';
-        localItem.innerHTML = `
-            <div class="mf-stream-meta">
-                <div class="mf-stream-badges">
-                    <span class="mf-badge-on-disk" style="position: static !important; margin-right: 6px;">
-                        <span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta
-                    </span>
-                    <span class="mf-stream-quality">${escapeHtml(localFile.quality)}</span>
-                    <span class="mf-stream-size">${escapeHtml(localFile.sizeFormatted)}</span>
+        const shown = filtered.slice(0, MAX_SOURCES);
+        countEl.textContent = `${filtered.length} ${filtered.length === 1 ? 'fonte' : 'fontes'}`;
+
+        listEl.innerHTML = '';
+
+        // Exibe arquivo local no topo se aplicável
+        if (localFile && (currentFilter === 'all' || currentFilter === 'pt')) {
+            const localItem = document.createElement('div');
+            localItem.className = 'mf-stream-item mf-stream-item-local';
+            localItem.innerHTML = `
+                <div class="mf-stream-meta">
+                    <div class="mf-stream-badges">
+                        <span class="mf-badge-on-disk" style="position: static !important;">
+                            <span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta
+                        </span>
+                        <span class="mf-stream-quality q-local">${escapeHtml(localFile.quality)}</span>
+                        <span class="mf-stream-size">${escapeHtml(localFile.sizeFormatted)}</span>
+                    </div>
+                    <div class="mf-stream-title" style="color: #4ade80; font-weight: 700;">Reproduzir arquivo salvo no computador (D:\\filmes)</div>
                 </div>
-                <div class="mf-stream-title" style="color: #4ade80; font-weight: 700;">Reproduzir arquivo salvo no disco local (D:\\filmes)</div>
-            </div>
-            <div class="mf-stream-actions">
-                <button type="button" class="mf-btn-stream-play mf-btn-stream-play-local" title="Assistir agora do computador">
-                    <span class="material-icons" style="font-size: 18px;">play_arrow</span>
-                </button>
-            </div>
-        `;
-        localItem.querySelector('.mf-btn-stream-play').addEventListener('click', () => {
-            openCinemaPlayer({
-                streamUrl: localFile.streamUrl,
-                title: movie.title,
-                subInfo: [localFile.quality, localFile.sizeFormatted].filter(Boolean).join(' • '),
-                quality: localFile.quality,
-                isLocal: true,
-                movieId: movie.imdbId || movie.id,
-                poster: movie.poster,
-                resumePosition: movie.resumePosition || 0
-            });
-        });
-        listEl.appendChild(localItem);
-    }
-    shown.forEach((stream) => {
-        const item = document.createElement('div');
-        item.className = 'mf-stream-item';
-        item.innerHTML = `
-            <div class="mf-stream-meta">
-                <div class="mf-stream-badges">
-                    <span class="mf-stream-quality">${escapeHtml(stream.quality)}</span>
-                    ${stream.isPortuguese ? '<span class="mf-stream-audio-pt">PT-BR</span>' : ''}
-                    ${stream.size ? `<span class="mf-stream-size">${escapeHtml(stream.size)}</span>` : ''}
-                    <span class="mf-stream-seeds">${stream.seeders} seeds</span>
+                <div class="mf-stream-actions">
+                    <button type="button" class="mf-btn-stream-play mf-btn-stream-play-local" title="Assistir agora da pasta local">
+                        <span class="material-icons">play_arrow</span>
+                    </button>
                 </div>
-                <div class="mf-stream-title" title="${escapeHtml(stream.label)}">${escapeHtml(stream.label)}</div>
-            </div>
-            <div class="mf-stream-actions">
-                <button type="button" class="mf-btn-stream-play" title="Assistir agora">
-                    <span class="material-icons" style="font-size: 18px;">play_arrow</span>
-                </button>
-                <button type="button" class="mf-btn-stream-dl" title="Baixar para D:\\filmes">
-                    <span class="material-icons" style="font-size: 18px;">download</span>
-                </button>
-            </div>
-        `;
-
-        item.querySelector('.mf-btn-stream-play').addEventListener('click', () => playStream(stream, movie));
-        item.querySelector('.mf-btn-stream-dl').addEventListener('click', async (e) => {
-            const btn = e.currentTarget;
-            btn.disabled = true;
-            try {
-                await startDownload({
-                    magnet: stream.magnet,
-                    imdbId: movie.imdbId,
+            `;
+            localItem.querySelector('.mf-btn-stream-play').addEventListener('click', () => {
+                openCinemaPlayer({
+                    streamUrl: localFile.streamUrl,
                     title: movie.title,
-                    quality: stream.quality,
-                    filename: stream.label
+                    subInfo: [localFile.quality, localFile.sizeFormatted].filter(Boolean).join(' • '),
+                    quality: localFile.quality,
+                    isLocal: true,
+                    movieId: movie.imdbId || movie.id,
+                    poster: movie.poster,
+                    resumePosition: movie.resumePosition || 0
                 });
-                btn.innerHTML = '<span class="material-icons" style="font-size: 18px; color: #4ade80;">check</span>';
-                toast(`Baixando "${movie.title}" — acompanhe em Minha Pasta.`);
-            } catch (err) {
-                btn.disabled = false;
-                toast(`Não foi possível iniciar o download: ${err.message}`);
-            }
-        });
+            });
+            listEl.appendChild(localItem);
+        }
 
-        listEl.appendChild(item);
+        if (!shown.length && !localFile) {
+            listEl.innerHTML = `
+                <div class="mf-empty-state" style="padding: 40px 20px; text-align: center; color: #a0a6b5;">
+                    <p style="margin: 0; font-size: 14px;">Nenhuma fonte encontrada para o filtro selecionado.</p>
+                </div>
+            `;
+            return;
+        }
+
+        shown.forEach((stream) => {
+            const item = document.createElement('div');
+            item.className = 'mf-stream-item';
+            const is4k = /4k|2160p/i.test(stream.quality);
+            const is1080 = /1080p/i.test(stream.quality);
+            let qualityClass = 'q-720p';
+            if (is4k) {
+                qualityClass = 'q-4k';
+            } else if (is1080) {
+                qualityClass = 'q-1080p';
+            }
+
+            item.innerHTML = `
+                <div class="mf-stream-meta">
+                    <div class="mf-stream-badges">
+                        <span class="mf-stream-quality ${qualityClass}">${escapeHtml(stream.quality)}</span>
+                        ${stream.isPortuguese ? '<span class="mf-stream-audio-pt"><span class="material-icons" style="font-size: 11px; vertical-align: middle;">translate</span> PT-BR</span>' : ''}
+                        ${stream.size ? `<span class="mf-stream-size">${escapeHtml(stream.size)}</span>` : ''}
+                        <span class="mf-stream-seeds"><span class="mf-seed-dot"></span>${stream.seeders} seeds</span>
+                    </div>
+                    <div class="mf-stream-title" title="${escapeHtml(stream.label)}">${escapeHtml(stream.label)}</div>
+                </div>
+                <div class="mf-stream-actions">
+                    <button type="button" class="mf-btn-stream-play" title="Assistir agora">
+                        <span class="material-icons">play_arrow</span>
+                    </button>
+                    <button type="button" class="mf-btn-stream-dl" title="Baixar para D:\\filmes">
+                        <span class="material-icons">download</span>
+                    </button>
+                </div>
+            `;
+
+            item.querySelector('.mf-btn-stream-play').addEventListener('click', () => playStream(stream, movie));
+            item.querySelector('.mf-btn-stream-dl').addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                btn.disabled = true;
+                try {
+                    await startDownload({
+                        magnet: stream.magnet,
+                        imdbId: movie.imdbId,
+                        title: movie.title,
+                        quality: stream.quality,
+                        filename: stream.label
+                    });
+                    btn.innerHTML = '<span class="material-icons" style="color: #4ade80;">check</span>';
+                    toast(`Baixando "${movie.title}" para D:\\filmes`);
+                } catch (err) {
+                    btn.disabled = false;
+                    toast(`Falha no download: ${err.message}`);
+                }
+            });
+
+            listEl.appendChild(item);
+        });
+    }
+
+    filterChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            filterChips.forEach(c => {
+                c.classList.remove('active');
+            });
+            chip.classList.add('active');
+            currentFilter = chip.getAttribute('data-filter') || 'all';
+            updateStreamsList();
+        });
     });
+
+    updateStreamsList();
 }
 
 function playStream(stream, movie) {
