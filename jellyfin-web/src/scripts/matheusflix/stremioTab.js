@@ -14,11 +14,11 @@ class StremioTab {
     }
 
     onResume(options = {}) {
-        if (!this.rendered || options.refresh) {
-            if (this.container) {
-                renderStreamingView(this.container);
-                this.rendered = true;
-            }
+        const container = this.view?.querySelector('.mf-embedded-tab-content') || this.container || this.view;
+        if (container && (!this.rendered || options.refresh)) {
+            renderStreamingView(container);
+            this.rendered = true;
+            this.container = container;
         }
         return Promise.resolve();
     }

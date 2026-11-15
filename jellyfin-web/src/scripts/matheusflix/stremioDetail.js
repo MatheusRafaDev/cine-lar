@@ -28,40 +28,42 @@ export async function openStremioDetails(rawMovie) {
     const movie = normalizeMovie(rawMovie);
 
     const modalEl = document.createElement('div');
-    modalEl.className = 'mf-stremio-modal-backdrop';
+    modalEl.className = 'mf-stremio-modal mf-stremio-modal-backdrop';
     modalEl.innerHTML = `
-        <div class="mf-stremio-card">
-            <button type="button" class="mf-stremio-close-btn" title="Fechar (Esc)">✕</button>
-            <div class="mf-stremio-left" style="background-image: linear-gradient(180deg, rgba(13,16,24,0.4) 0%, rgba(13,16,24,0.95) 85%), url('${escapeHtml(movie.backdrop)}');">
-                <div class="mf-stremio-poster-wrap">
-                    <img src="${escapeHtml(movie.poster)}" alt="" class="mf-stremio-poster" />
-                    <div class="mf-stremio-header-info">
-                        <h2>${escapeHtml(movie.title)}</h2>
-                        <div class="mf-stremio-subinfo">
-                            ${movie.year ? `<span class="mf-badge-year">${escapeHtml(movie.year)}</span>` : ''}
-                            ${movie.rating ? `<span class="mf-badge-rating">⭐ ${movie.rating}</span>` : ''}
-                            ${movie.genres ? `<span class="mf-badge-genres">${escapeHtml(movie.genres)}</span>` : ''}
+        <div class="mf-stremio-window mf-stremio-card">
+            <button type="button" class="mf-stremio-close-btn mf-close-btn" title="Fechar (Esc)">✕</button>
+            <div class="mf-stremio-content">
+                <div class="mf-stremio-left" style="background-image: linear-gradient(180deg, rgba(13,16,24,0.6) 0%, rgba(13,16,24,0.98) 85%), url('${escapeHtml(movie.backdrop)}');">
+                    <div class="mf-stremio-poster-wrap">
+                        <img src="${escapeHtml(movie.poster)}" alt="" class="mf-stremio-poster" />
+                        <div class="mf-stremio-header-info">
+                            <h2 class="mf-stremio-title">${escapeHtml(movie.title)}</h2>
+                            <div class="mf-stremio-subinfo">
+                                ${movie.year ? `<span class="mf-badge-year">${escapeHtml(movie.year)}</span>` : ''}
+                                ${movie.rating ? `<span class="mf-badge-rating">⭐ ${movie.rating}</span>` : ''}
+                                ${movie.genres ? `<span class="mf-badge-genres">${escapeHtml(movie.genres)}</span>` : ''}
+                            </div>
                         </div>
                     </div>
+                    <p class="mf-stremio-synopsis">${escapeHtml(movie.description || 'Sinopse não disponível.')}</p>
+                    <div class="mf-stremio-hero-action" style="display: flex; gap: 12px; align-items: center;">
+                        <button type="button" class="mf-btn-hero-watch" disabled>
+                            <span class="material-icons">play_arrow</span>
+                            <span class="mf-hero-watch-text">Buscando fontes...</span>
+                        </button>
+                        <button type="button" class="mf-btn-fav-toggle" title="Adicionar aos Favoritos" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <span class="material-icons mf-fav-icon">favorite_border</span>
+                        </button>
+                    </div>
                 </div>
-                <p class="mf-stremio-synopsis">${escapeHtml(movie.description || 'Sinopse não disponível.')}</p>
-                <div class="mf-stremio-hero-action" style="display: flex; gap: 12px; align-items: center;">
-                    <button type="button" class="mf-btn-hero-watch" disabled>
-                        <span class="material-icons">play_arrow</span>
-                        <span class="mf-hero-watch-text">Buscando fontes...</span>
-                    </button>
-                    <button type="button" class="mf-btn-fav-toggle" title="Adicionar aos Favoritos" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                        <span class="material-icons mf-fav-icon">favorite_border</span>
-                    </button>
-                </div>
-            </div>
-            <div class="mf-stremio-right">
-                <div class="mf-stremio-streams-header">
-                    <h3>Fontes</h3>
-                    <span class="mf-streams-count" style="font-size: 13px; color: #8c93a4;"></span>
-                </div>
-                <div class="mf-stremio-streams-list">
-                    <div class="mf-streams-loading"><p>Procurando fontes...</p></div>
+                <div class="mf-stremio-right">
+                    <div class="mf-stremio-streams-header">
+                        <h3>Fontes</h3>
+                        <span class="mf-streams-count" style="font-size: 13px; color: #8c93a4;"></span>
+                    </div>
+                    <div class="mf-stremio-streams-list">
+                        <div class="mf-streams-loading"><p>Procurando fontes...</p></div>
+                    </div>
                 </div>
             </div>
         </div>

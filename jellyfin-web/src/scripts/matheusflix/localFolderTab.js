@@ -14,11 +14,11 @@ class LocalFolderTab {
     }
 
     onResume(options = {}) {
-        if (!this.rendered || options.refresh) {
-            if (this.container) {
-                renderLocalFolderView(this.container);
-                this.rendered = true;
-            }
+        const container = this.view?.querySelector('.mf-embedded-tab-content') || this.container || this.view;
+        if (container && (!this.rendered || options.refresh)) {
+            renderLocalFolderView(container);
+            this.rendered = true;
+            this.container = container;
         }
         return Promise.resolve();
     }

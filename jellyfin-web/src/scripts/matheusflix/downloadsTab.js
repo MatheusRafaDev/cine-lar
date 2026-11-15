@@ -14,11 +14,11 @@ class DownloadsTab {
     }
 
     onResume(options = {}) {
-        if (!this.rendered || options.refresh) {
-            if (this.container) {
-                renderDownloadsView(this.container);
-                this.rendered = true;
-            }
+        const container = this.view?.querySelector('.mf-embedded-tab-content') || this.container || this.view;
+        if (container && (!this.rendered || options.refresh)) {
+            renderDownloadsView(container);
+            this.rendered = true;
+            this.container = container;
         }
         return Promise.resolve();
     }
