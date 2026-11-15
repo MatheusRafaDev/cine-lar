@@ -47,7 +47,6 @@ function renderHeader() {
     html += '<span class="headerSelectedPlayer"></span>';
     html += '<button is="paper-icon-button-light" class="headerAudioPlayerButton audioPlayerButton headerButton headerButtonRight hide"><span class="material-icons music_note" aria-hidden="true"></span></button>';
     html += '<button is="paper-icon-button-light" class="headerCastButton castButton headerButton headerButtonRight hide"><span class="material-icons cast" aria-hidden="true"></span></button>';
-    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight matheusflixDiscoverBtn hide" title="Descobrir & Baixar Filmes (Torrents)"><span class="material-icons" aria-hidden="true" style="color: var(--mf-accent, #ff7a1a);">cloud_download</span><span class="matheusflixBadge hide"></span></button>';
     html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton hide"><span class="material-icons search" aria-hidden="true"></span></button>';
     html += '<button is="paper-icon-button-light" class="headerButton headerButtonRight headerUserButton hide"><span class="material-icons person" aria-hidden="true"></span></button>';
     html += '<div class="currentTimeText hide"></div>';
@@ -69,7 +68,6 @@ function renderHeader() {
     headerCastButton = skinHeader.querySelector('.headerCastButton');
     headerAudioPlayerButton = skinHeader.querySelector('.headerAudioPlayerButton');
     headerSearchButton = skinHeader.querySelector('.headerSearchButton');
-    matheusflixDiscoverButton = skinHeader.querySelector('.matheusflixDiscoverBtn');
     headerSyncButton = skinHeader.querySelector('.headerSyncButton');
     currentTimeText = skinHeader.querySelector('.currentTimeText');
 
@@ -162,10 +160,6 @@ function updateUserInHeader(user) {
             headerSearchButton.classList.remove('hide');
         }
 
-        if (matheusflixDiscoverButton) {
-            matheusflixDiscoverButton.classList.remove('hide');
-        }
-
         if (!layoutManager.tv) {
             headerCastButton.classList.remove('hide');
         }
@@ -181,10 +175,6 @@ function updateUserInHeader(user) {
 
         if (headerSearchButton) {
             headerSearchButton.classList.add('hide');
-        }
-
-        if (matheusflixDiscoverButton) {
-            matheusflixDiscoverButton.classList.add('hide');
         }
     }
 
@@ -239,14 +229,6 @@ function bindMenuEvents() {
 
     if (headerSearchButton) {
         headerSearchButton.addEventListener('click', showSearch);
-    }
-
-    if (matheusflixDiscoverButton) {
-        matheusflixDiscoverButton.addEventListener('click', () => {
-            if (window.MatheusFlix?.navigateToTab) {
-                window.MatheusFlix.navigateToTab(1);
-            }
-        });
     }
 
     headerUserButton.addEventListener('click', onHeaderUserButtonClick);
@@ -731,7 +713,6 @@ let headerUserButton;
 let currentUser;
 let headerCastButton;
 let headerSearchButton;
-let matheusflixDiscoverButton;
 let headerAudioPlayerButton;
 let headerSyncButton;
 let currentTimeText;
