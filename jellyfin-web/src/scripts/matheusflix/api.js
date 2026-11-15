@@ -98,3 +98,93 @@ export async function getStreamStatus(infoHash) {
     if (!res.ok) return null;
     return res.json();
 }
+
+export function getCurrentUserId() {
+    return (window.ApiClient && window.ApiClient.getCurrentUserId()) || 'default';
+}
+
+export async function fetchUserFavorites() {
+    const userId = getCurrentUserId();
+    const res = await fetch(`${API_BASE}/user/favorites?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+export async function checkIsFavorite(movieId) {
+    const userId = getCurrentUserId();
+    const res = await fetch(`${API_BASE}/user/favorites/check?userId=${encodeURIComponent(userId)}&movieId=${encodeURIComponent(movieId)}`);
+    if (!res.ok) return { favorite: false };
+    return res.json();
+}
+
+export async function toggleFavorite(movie) {
+    const userId = getCurrentUserId();
+    const res = await fetch(`${API_BASE}/user/favorites/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, movie })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+export async function saveWatchProgress({ movieId, title, poster, position, duration }) {
+    const userId = getCurrentUserId();
+    const res = await fetch(`${API_BASE}/user/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, movieId, title, poster, position, duration })
+    });
+    if (!res.ok) return null;
+    return res.json();
+}
+
+export async function fetchWatchHistory() {
+    const userId = getCurrentUserId();
+    const res = await fetch(`${API_BASE}/user/history?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) return { history: [] };
+    return res.json();
+}
+
+export async function fetchUserProfiles() {
+    const res = await fetch(`${API_BASE}/user/profiles`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+export async function createUserProfile(name) {
+    const res = await fetch(`${API_BASE}/user/profiles/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+export async function switchUserProfile(profile, explicitPassword = null) {
+    const apiClient = window.ApiClient;
+    if (!apiClient) throw new Error('ApiClient não inicializado');
+
+    let pw = explicitPassword;
+    if (pw === null) {
+        if (profile.name === 'rafae') {
+            pw = '10092004';
+        } else if (!profile.hasPassword) {
+            pw = '';
+        }
+    }
+
+    if (pw === null && profile.hasPassword) {
+        pw = window.prompt(`Digite a senha para o perfil "${profile.name}":`) || '';
+    }
+
+    const authRes = await apiClient.authenticateUserByName(profile.name, pw || '');
+    if (window.Dashboard?.onServerChanged) {
+        window.Dashboard.onServerChanged(authRes.User.Id, authRes.AccessToken, apiClient);
+    }
+    return authRes;
+}

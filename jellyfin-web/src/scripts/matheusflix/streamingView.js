@@ -3,7 +3,7 @@
  * Uma barra só: busca + "Perguntar à IA" + ordenação, gêneros em chips e a grade de filmes.
  */
 
-import { askAi, fetchCatalog, fetchGenres } from './api';
+import { askAi, fetchCatalog, fetchGenres, fetchUserFavorites } from './api';
 import { openStremioDetails } from './stremioDetail';
 import { escapeHtml, normalizeMovie } from './utils';
 
@@ -58,6 +58,28 @@ export function renderStreamingView(container) {
             setStatus('<p class="mf-muted">Carregando…</p>');
         }
         try {
+            if (state.genre === 'favorites') {
+                const favRes = await fetchUserFavorites();
+                if (requestId !== state.requestId) return;
+                let movies = (favRes.favorites || []).map(f => normalizeMovie({
+                    id: f.movieId,
+                    imdbId: f.movieId,
+                    title: f.title,
+                    poster: f.poster,
+                    year: f.year,
+                    rating: f.rating
+                }));
+                if (state.q) {
+                    const qLower = state.q.toLowerCase();
+                    movies = movies.filter(m => m.title.toLowerCase().includes(qLower));
+                }
+                grid.innerHTML = '';
+                appendCards(grid, movies);
+                moreWrap.classList.add('hide');
+                setStatus(movies.length ? '' : '<p class="mf-muted">Sua lista de favoritos está vazia. Abra um filme e clique no coração para adicionar!</p>');
+                return;
+            }
+
             const data = await fetchCatalog({ q: state.q, genre: state.genre, sort: state.sort, limit: PAGE_SIZE, offset: state.offset });
             if (requestId !== state.requestId) return; // resposta antiga, ignora
             const movies = (data.movies || []).map(normalizeMovie);
@@ -142,7 +164,7 @@ async function renderGenres(genreBar, state, load) {
         // sem gêneros: a barra fica só com "Todos"
     }
 
-    const all = [{ id: 'all', name: 'Todos' }, ...genres];
+    const all = [{ id: 'all', name: 'Todos' }, { id: 'favorites', name: '❤️ Minha Lista' }, ...genres];
     genreBar.innerHTML = all.map(g => `
         <button type="button" class="mf-genre-chip ${g.id === state.genre ? 'active' : ''}" data-genre="${escapeHtml(g.id)}">${escapeHtml(g.name)}</button>
     `).join('');

@@ -3,7 +3,7 @@
  * Destaque no topo + duas fileiras: "Em alta" (catálogo) e "Na sua pasta" (D:\filmes).
  */
 
-import { fetchCatalog, fetchLocalMovies } from './api';
+import { fetchCatalog, fetchLocalMovies, fetchUserFavorites, fetchWatchHistory } from './api';
 import { openStremioDetails } from './stremioDetail';
 import { openCinemaPlayer } from './cinemaPlayer';
 import { escapeHtml, normalizeMovie } from './utils';
@@ -18,14 +18,63 @@ export async function embedMatheusFlixHomeSections(view) {
 
     inFlight.add(view);
     try {
-        const [catalog, local] = await Promise.allSettled([
+        const [catalog, local, historyRes, favsRes] = await Promise.allSettled([
             fetchCatalog({ limit: 16, sort: 'trending' }),
-            fetchLocalMovies()
+            fetchLocalMovies(),
+            fetchWatchHistory(),
+            fetchUserFavorites()
         ]);
         const trending = catalog.status === 'fulfilled' ? (catalog.value.movies || []).map(normalizeMovie) : [];
         const localMovies = local.status === 'fulfilled' ? (local.value.movies || []).map(normalizeMovie) : [];
+        const historyList = historyRes.status === 'fulfilled' ? (historyRes.value.history || []) : [];
+        const favoritesList = favsRes.status === 'fulfilled' ? (favsRes.value.favorites || []) : [];
 
         renderHero(homeTab, sections, trending[0]);
+
+        // 1. Continuar Assistindo (histórico entre 10s e 95%)
+        const continueWatching = historyList
+            .map(h => {
+                const pos = h.position ?? h.position_seconds ?? 0;
+                const dur = h.duration ?? h.duration_seconds ?? 0;
+                const movieId = h.movieId || h.id;
+                return {
+                    id: movieId,
+                    imdbId: movieId,
+                    title: h.title,
+                    poster: h.poster,
+                    position: pos,
+                    duration: dur,
+                    progressPct: dur > 0 ? Math.min(100, Math.max(1, Math.round((pos / dur) * 100))) : 0
+                };
+            })
+            .filter(h => h.position > 10 && h.duration > 0 && h.position < (h.duration * 0.95));
+
+        renderHistoryRow(sections, {
+            key: 'history',
+            title: 'Continuar Assistindo',
+            movies: continueWatching
+        });
+
+        // 2. Minha Lista (Favoritos do usuário)
+        const userFavs = favoritesList.map(f => ({
+            id: f.movieId || f.id,
+            imdbId: f.movieId || f.id,
+            title: f.title,
+            poster: f.poster,
+            year: f.year || '',
+            rating: f.rating || ''
+        }));
+
+        renderRow(sections, {
+            key: 'favorites',
+            title: 'Minha Lista',
+            linkText: 'Ver catálogo',
+            tabIndex: 1,
+            movies: userFavs,
+            onClick: openStremioDetails
+        });
+
+        // 3. Na sua pasta (arquivos baixados)
         renderRow(sections, {
             key: 'local',
             title: 'Na sua pasta',
@@ -34,6 +83,8 @@ export async function embedMatheusFlixHomeSections(view) {
             movies: localMovies,
             onClick: playLocal
         });
+
+        // 4. Em alta (catálogo global)
         renderRow(sections, {
             key: 'trending',
             title: 'Em alta',
@@ -129,6 +180,49 @@ function renderRow(sections, { key, title, linkText, tabIndex, movies, onClick }
             </div>
         `;
         card.addEventListener('click', () => onClick(m));
+        scroller.appendChild(card);
+    });
+}
+
+function renderHistoryRow(sections, { key, title, movies }) {
+    let row = sections.querySelector(`.mf-home-section[data-mf-row="${key}"]`);
+    if (!movies.length) {
+        row?.remove();
+        return;
+    }
+    if (!row) {
+        row = document.createElement('div');
+        row.className = 'verticalSection mf-home-section';
+        row.dataset.mfRow = key;
+        sections.insertBefore(row, sections.firstElementChild);
+    }
+
+    row.innerHTML = `
+        <div class="sectionTitleContainer sectionTitleContainer-cards">
+            <h2 class="sectionTitle" style="color: #ff7a1a;">${escapeHtml(title)}</h2>
+        </div>
+        <div class="mf-home-scroller"></div>
+    `;
+
+    const scroller = row.querySelector('.mf-home-scroller');
+    movies.forEach(m => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'mf-home-card mf-home-card-history';
+        card.title = `${m.title} (${m.progressPct}%)`;
+        const remainingMin = Math.max(1, Math.round((m.duration - m.position) / 60));
+        card.innerHTML = `
+            <div class="mf-home-card-poster-wrap">
+                <img class="mf-home-card-poster" src="${escapeHtml(m.poster)}" alt="" loading="lazy" />
+                <div class="mf-home-card-play-overlay"><span class="material-icons" style="font-size: 26px; color: #140a02;">play_arrow</span></div>
+                <div class="mf-history-bar"><div class="mf-history-bar-fill" style="width: ${m.progressPct}%;"></div></div>
+            </div>
+            <div class="mf-home-card-info">
+                <h4 class="mf-home-card-title">${escapeHtml(m.title)}</h4>
+                <div class="mf-home-card-meta"><span style="color: #ef4444; font-weight: 700;">${m.progressPct}%</span> • <span>Faltam ${remainingMin}m</span></div>
+            </div>
+        `;
+        card.addEventListener('click', () => openStremioDetails({ ...m, resumePosition: m.position }));
         scroller.appendChild(card);
     });
 }

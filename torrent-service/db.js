@@ -100,6 +100,36 @@ export function initDb() {
         console.warn('[Database] FTS5 initialization warning:', e.message);
     }
 
+    // Create favorites and watch history tables (Netflix-style)
+    try {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS user_favorites (
+                user_id TEXT NOT NULL,
+                movie_id TEXT NOT NULL,
+                title TEXT,
+                poster TEXT,
+                year INTEGER,
+                rating REAL,
+                created_at TEXT,
+                PRIMARY KEY (user_id, movie_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS watch_history (
+                user_id TEXT NOT NULL,
+                movie_id TEXT NOT NULL,
+                title TEXT,
+                poster TEXT,
+                position_seconds REAL DEFAULT 0,
+                duration_seconds REAL DEFAULT 0,
+                completed INTEGER DEFAULT 0,
+                updated_at TEXT,
+                PRIMARY KEY (user_id, movie_id)
+            );
+        `);
+    } catch (e) {
+        console.warn('[Database] User tables initialization warning:', e.message);
+    }
+
     console.log(`[Database] SQLite inicializado com sucesso em "${DB_PATH}"!`);
     return db;
 }
@@ -287,5 +317,92 @@ export function markLocalMovies(movieTitles = []) {
             } catch (e) {}
         }
     });
+}
+
+// User Favorites & Watch History functions (Netflix Style)
+export function getUserFavorites(userId) {
+    if (!userId) return [];
+    const database = getDb();
+    return database.prepare(`
+        SELECT movie_id as id, movie_id as imdbId, title, poster, year, rating, created_at
+        FROM user_favorites
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+    `).all(userId);
+}
+
+export function isUserFavorite(userId, movieId) {
+    if (!userId || !movieId) return false;
+    const database = getDb();
+    const row = database.prepare('SELECT 1 FROM user_favorites WHERE user_id = ? AND movie_id = ?').get(userId, movieId);
+    return Boolean(row);
+}
+
+export function toggleUserFavorite(userId, movie) {
+    if (!userId || !movie || !movie.id) return { favorite: false };
+    const database = getDb();
+    const movieId = movie.id;
+    const exists = isUserFavorite(userId, movieId);
+
+    if (exists) {
+        database.prepare('DELETE FROM user_favorites WHERE user_id = ? AND movie_id = ?').run(userId, movieId);
+        return { favorite: false };
+    }
+
+    const now = new Date().toISOString();
+    database.prepare(`
+        INSERT INTO user_favorites (user_id, movie_id, title, poster, year, rating, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+        userId,
+        movieId,
+        movie.title || '',
+        movie.poster || '',
+        parseInt(movie.year, 10) || null,
+        parseFloat(movie.rating) || null,
+        now
+    );
+    return { favorite: true };
+}
+
+export function updateWatchProgress(userId, movieId, title, poster, position, duration) {
+    if (!userId || !movieId) return;
+    const database = getDb();
+    const now = new Date().toISOString();
+    const completed = (duration > 0 && position / duration > 0.9) ? 1 : 0;
+
+    database.prepare(`
+        INSERT INTO watch_history (user_id, movie_id, title, poster, position_seconds, duration_seconds, completed, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, movie_id) DO UPDATE SET
+            title = excluded.title,
+            poster = excluded.poster,
+            position_seconds = excluded.position_seconds,
+            duration_seconds = excluded.duration_seconds,
+            completed = excluded.completed,
+            updated_at = excluded.updated_at
+    `).run(userId, movieId, title || '', poster || '', position || 0, duration || 0, completed, now);
+}
+
+export function getWatchHistory(userId) {
+    if (!userId) return [];
+    const database = getDb();
+    return database.prepare(`
+        SELECT 
+            movie_id as id, 
+            movie_id as movieId, 
+            title, 
+            poster, 
+            position_seconds as position, 
+            duration_seconds as duration, 
+            position_seconds, 
+            duration_seconds, 
+            completed, 
+            updated_at
+        FROM watch_history
+        WHERE user_id = ? AND completed = 0
+        ORDER BY updated_at DESC
+        LIMIT 20
+    `).all(userId);
 }
 

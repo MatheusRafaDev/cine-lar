@@ -4,7 +4,7 @@
  * Controles de cinema, barra de progresso, volume, atalhos de teclado e telemetria de buffer.
  */
 
-import { API_BASE, getStreamStatus } from './api';
+import { API_BASE, getStreamStatus, saveWatchProgress } from './api';
 import { escapeHtml } from './utils';
 import toast from 'components/toast/toast';
 
@@ -32,7 +32,10 @@ export function openCinemaPlayer({
     subInfo,
     quality = '1080p',
     isLocal = false,
-    infoHash = null
+    infoHash = null,
+    movieId = null,
+    poster = null,
+    resumePosition = 0
 }) {
     if (activePlayerInstance) {
         closeCinemaPlayer();
@@ -254,6 +257,29 @@ export function openCinemaPlayer({
         }
     });
 
+    let lastProgressSave = 0;
+    let hasResumed = false;
+
+    function persistCurrentProgress() {
+        if (movieId && video.duration && video.currentTime > 5) {
+            saveWatchProgress({
+                movieId,
+                title,
+                poster,
+                position: Math.floor(video.currentTime),
+                duration: Math.floor(video.duration)
+            }).catch(noop);
+        }
+    }
+
+    function tryResumePlayback() {
+        if (!hasResumed && resumePosition > 10 && video.duration && resumePosition < (video.duration - 15)) {
+            hasResumed = true;
+            video.currentTime = resumePosition;
+            toast(`Retomando de ${formatSeconds(resumePosition)}...`);
+        }
+    }
+
     video.addEventListener('timeupdate', () => {
         if (video.duration) {
             const pct = (video.currentTime / video.duration) * 100;
@@ -261,6 +287,12 @@ export function openCinemaPlayer({
             progressFill.style.width = `${pct}%`;
             timeCur.textContent = formatSeconds(video.currentTime);
             timeDur.textContent = formatSeconds(video.duration);
+
+            const now = Date.now();
+            if (now - lastProgressSave > 5000) {
+                lastProgressSave = now;
+                persistCurrentProgress();
+            }
         }
 
         // Buffer fill
@@ -280,10 +312,12 @@ export function openCinemaPlayer({
     video.addEventListener('playing', () => {
         btnPlay.querySelector('.material-icons').textContent = 'pause';
         if (overlay) overlay.style.display = 'none';
+        tryResumePlayback();
         showControls();
     });
 
     video.addEventListener('canplay', () => {
+        tryResumePlayback();
         if (isLocal) {
             video.play().catch(noop);
         }
@@ -292,10 +326,17 @@ export function openCinemaPlayer({
     video.addEventListener('pause', () => {
         btnPlay.querySelector('.material-icons').textContent = 'play_arrow';
         playerEl.classList.add('controls-visible');
+        persistCurrentProgress();
+    });
+
+    video.addEventListener('ended', () => {
+        btnPlay.querySelector('.material-icons').textContent = 'replay';
+        persistCurrentProgress();
     });
 
     video.addEventListener('loadedmetadata', () => {
         timeDur.textContent = formatSeconds(video.duration);
+        tryResumePlayback();
         if (isLocal) {
             video.play().catch(noop);
         }
@@ -374,6 +415,7 @@ export function openCinemaPlayer({
         window.removeEventListener('keydown', handleKeyDown);
         if (statusInterval) clearInterval(statusInterval);
         clearTimeout(controlsTimer);
+        persistCurrentProgress();
         video.pause();
         video.src = '';
     };

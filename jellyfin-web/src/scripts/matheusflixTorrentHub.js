@@ -50,6 +50,7 @@ export function init() {
         window.MatheusFlix.openStreaming = () => navigateToTab(1);
         window.MatheusFlix.openLocalFolder = () => navigateToTab(2);
         window.MatheusFlix.openDownloads = () => navigateToTab(3);
+        window.MatheusFlix.openProfileSelector = () => import('./matheusflix/profileSelector').then(m => m.openProfileSelector());
         window.MatheusFlix.getDownloads = () => activeDownloadsCache;
         window.MatheusFlix.playCinema = openCinemaPlayer;
     }

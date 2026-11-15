@@ -3,7 +3,7 @@
  * Um botão principal "Assistir" (melhor fonte) e uma lista curta de fontes alternativas.
  */
 
-import { searchTorrents, startDownload } from './api';
+import { checkIsFavorite, searchTorrents, startDownload, toggleFavorite } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
 import { escapeHtml, normalizeMovie, normalizeStream } from './utils';
 import toast from 'components/toast/toast';
@@ -45,10 +45,13 @@ export async function openStremioDetails(rawMovie) {
                     </div>
                 </div>
                 <p class="mf-stremio-synopsis">${escapeHtml(movie.description || 'Sinopse não disponível.')}</p>
-                <div class="mf-stremio-hero-action">
+                <div class="mf-stremio-hero-action" style="display: flex; gap: 12px; align-items: center;">
                     <button type="button" class="mf-btn-hero-watch" disabled>
                         <span class="material-icons">play_arrow</span>
                         <span class="mf-hero-watch-text">Buscando fontes...</span>
+                    </button>
+                    <button type="button" class="mf-btn-fav-toggle" title="Adicionar aos Favoritos" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                        <span class="material-icons mf-fav-icon">favorite_border</span>
                     </button>
                 </div>
             </div>
@@ -75,6 +78,47 @@ export async function openStremioDetails(rawMovie) {
         if (e.key === 'Escape' && !document.querySelector('.mf-cinema-player')) closeDetails();
     };
     window.addEventListener('keydown', activeKeyHandler);
+
+    // Configurar botão de favoritos
+    const btnFav = modalEl.querySelector('.mf-btn-fav-toggle');
+    const favIcon = modalEl.querySelector('.mf-fav-icon');
+    if (btnFav && movie.imdbId) {
+        checkIsFavorite(movie.imdbId).then(res => {
+            if (res.favorite) {
+                favIcon.textContent = 'favorite';
+                favIcon.style.color = '#ef4444';
+            }
+        }).catch(() => {
+            // Ignore failure on favorite check
+        });
+
+        btnFav.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            btnFav.disabled = true;
+            try {
+                const res = await toggleFavorite({
+                    id: movie.imdbId,
+                    title: movie.title,
+                    poster: movie.poster,
+                    year: movie.year,
+                    rating: movie.rating
+                });
+                if (res.favorite) {
+                    favIcon.textContent = 'favorite';
+                    favIcon.style.color = '#ef4444';
+                    toast(`"${movie.title}" adicionado aos Favoritos!`);
+                } else {
+                    favIcon.textContent = 'favorite_border';
+                    favIcon.style.color = '#fff';
+                    toast(`"${movie.title}" removido dos Favoritos.`);
+                }
+            } catch (err) {
+                toast(`Erro ao favoritar: ${err.message}`);
+            } finally {
+                btnFav.disabled = false;
+            }
+        });
+    }
 
     if (!movie.imdbId) {
         renderStreams([], movie, modalEl);
@@ -110,7 +154,7 @@ function renderStreams(streams, movie, modalEl) {
         || streams[0];
 
     heroBtn.disabled = false;
-    heroText.textContent = `Assistir (${best.quality})`;
+    heroText.textContent = movie.resumePosition > 10 ? `Continuar (${best.quality})` : `Assistir (${best.quality})`;
     heroBtn.onclick = () => playStream(best, movie);
 
     const shown = streams.slice(0, MAX_SOURCES);
@@ -179,6 +223,9 @@ function playStream(stream, movie) {
         subInfo: [stream.quality, stream.size, stream.isPortuguese ? 'PT-BR' : ''].filter(Boolean).join(' • '),
         quality: stream.quality,
         isLocal: false,
-        infoHash
+        infoHash,
+        movieId: movie.imdbId || movie.id,
+        poster: movie.poster,
+        resumePosition: movie.resumePosition || 0
     });
 }

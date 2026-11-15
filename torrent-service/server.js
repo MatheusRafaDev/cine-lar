@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import WebTorrent from 'webtorrent';
-import { initDb, upsertMovie, searchCatalog, getGenresSummary } from './db.js';
+import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites, isUserFavorite, toggleUserFavorite, updateWatchProgress, getWatchHistory } from './db.js';
 import { seedCatalog, scanLocalMovies } from './seeder.js';
 import { askAiMovieRecommendations } from './aiSearch.js';
 import { getLocalLibrary, streamLocalVideo } from './localScanner.js';
@@ -247,6 +247,95 @@ async function refreshJellyfinLibrary() {
     }
 }
 
+async function getJellyfinAdminToken() {
+    try {
+        const authPayload = JSON.stringify({ Username: JELLYFIN_USER, Pw: JELLYFIN_PW });
+        return await new Promise((resolve) => {
+            const req = http.request({
+                hostname: 'localhost',
+                port: 8096,
+                path: '/Users/AuthenticateByName',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Emby-Authorization': 'MediaBrowser Client="MatheusFlix Backend", Device="Node", DeviceId="matheusflix_backend", Version="2.0.0"'
+                }
+            }, (res) => {
+                let data = '';
+                res.on('data', c => data += c);
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+                        resolve(json?.AccessToken || null);
+                    } catch {
+                        resolve(null);
+                    }
+                });
+            });
+            req.on('error', () => resolve(null));
+            req.write(authPayload);
+            req.end();
+        });
+    } catch {
+        return null;
+    }
+}
+
+async function createJellyfinUserProfile(name) {
+    const token = await getJellyfinAdminToken();
+    if (!token) throw new Error('Não foi possível autenticar como administrador no Jellyfin');
+
+    const newUser = await new Promise((resolve, reject) => {
+        const req = http.request({
+            hostname: 'localhost',
+            port: 8096,
+            path: '/Users/New',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Emby-Token': token
+            }
+        }, (res) => {
+            let data = '';
+            res.on('data', c => data += c);
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(data));
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+        req.on('error', reject);
+        req.write(JSON.stringify({ Name: name }));
+        req.end();
+    });
+
+    if (newUser?.Id) {
+        // Desoculta o perfil para aparecer na tela inicial estilo Netflix
+        await new Promise((resolve) => {
+            const req = http.request({
+                hostname: 'localhost',
+                port: 8096,
+                path: `/Users/${newUser.Id}/Policy`,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Emby-Token': token
+                }
+            }, () => resolve());
+            req.on('error', () => resolve());
+            req.write(JSON.stringify({
+                ...(newUser.Policy || {}),
+                IsHidden: false
+            }));
+            req.end();
+        });
+    }
+
+    return newUser;
+}
+
 // Create HTTP server
 const server = http.createServer(async (req, res) => {
     // Enable CORS
@@ -274,6 +363,110 @@ const server = http.createServer(async (req, res) => {
                 totalDownloads: downloadsRegistry.size,
                 qbittorrentInstalled: fs.existsSync('C:\\Program Files\\qBittorrent\\qbittorrent.exe')
             }));
+            return;
+        }
+
+        // User Favorites & Continuar Assistindo (Netflix style)
+        if (pathname === '/api/user/favorites' && req.method === 'GET') {
+            const userId = urlObj.searchParams.get('userId') || 'default';
+            const favorites = getUserFavorites(userId);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ favorites }));
+            return;
+        }
+
+        if (pathname === '/api/user/favorites/check' && req.method === 'GET') {
+            const userId = urlObj.searchParams.get('userId') || 'default';
+            const movieId = urlObj.searchParams.get('movieId');
+            const favorite = isUserFavorite(userId, movieId);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ favorite }));
+            return;
+        }
+
+        if (pathname === '/api/user/favorites/toggle' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body);
+                    const { userId = 'default', movie } = data;
+                    const result = toggleUserFavorite(userId, movie);
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify(result));
+                } catch (e) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+            return;
+        }
+
+        if (pathname === '/api/user/history' && req.method === 'GET') {
+            const userId = urlObj.searchParams.get('userId') || 'default';
+            const history = getWatchHistory(userId);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ history }));
+            return;
+        }
+
+        if (pathname === '/api/user/progress' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body);
+                    const { userId = 'default', movieId, title, poster, position, duration } = data;
+                    updateWatchProgress(userId, movieId, title, poster, position, duration);
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ success: true }));
+                } catch (e) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+            return;
+        }
+
+        // Perfis de usuários estilo Netflix
+        if (pathname === '/api/user/profiles' && req.method === 'GET') {
+            try {
+                const publicUsers = await fetchJson(`${JELLYFIN_URL}/Users/Public`);
+                const profiles = (publicUsers || []).map(u => ({
+                    id: u.Id,
+                    name: u.Name,
+                    hasPassword: Boolean(u.HasPassword),
+                    isAdmin: Boolean(u.Policy?.IsAdministrator)
+                }));
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ profiles }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: e.message }));
+            }
+            return;
+        }
+
+        if (pathname === '/api/user/profiles/create' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    const name = (data.name || '').trim();
+                    if (!name) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Nome de perfil inválido' }));
+                        return;
+                    }
+                    const newUser = await createJellyfinUserProfile(name);
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ success: true, profile: { id: newUser.Id, name: newUser.Name } }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
             return;
         }
 

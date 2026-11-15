@@ -374,6 +374,7 @@ function refreshLibraryInfoInDrawer(user) {
             html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSelectServer" data-itemid="selectserver" href="#"><span class="material-icons navMenuOptionIcon storage" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('SelectServer')}</span></a>`;
         }
 
+        html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSwitchProfile" data-itemid="switchprofile" href="#" style="color: #ff7a1a;"><span class="material-icons navMenuOptionIcon switch_account" aria-hidden="true" style="color: #ff7a1a;"></span><span class="navMenuOptionText" style="font-weight: 700;">Trocar Perfil</span></a>';
         html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSettings" data-itemid="settings" href="#"><span class="material-icons navMenuOptionIcon settings" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('Settings')}</span></a>`;
         html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnLogout" data-itemid="logout" href="#"><span class="material-icons navMenuOptionIcon exit_to_app" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('ButtonSignOut')}</span></a>`;
 
@@ -408,6 +409,15 @@ function refreshLibraryInfoInDrawer(user) {
     const btnSelectServer = navDrawerScrollContainer.querySelector('.btnSelectServer');
     if (btnSelectServer) {
         btnSelectServer.addEventListener('click', onSelectServerClick);
+    }
+
+    const btnSwitchProfile = navDrawerScrollContainer.querySelector('.btnSwitchProfile');
+    if (btnSwitchProfile) {
+        btnSwitchProfile.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeMainDrawer();
+            import('./matheusflix/profileSelector').then(m => m.openProfileSelector());
+        });
     }
 
     const btnSettings = navDrawerScrollContainer.querySelector('.btnSettings');

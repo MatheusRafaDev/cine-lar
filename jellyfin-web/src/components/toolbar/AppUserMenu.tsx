@@ -8,6 +8,7 @@ import Logout from '@mui/icons-material/Logout';
 import PhonelinkLock from '@mui/icons-material/PhonelinkLock';
 import Settings from '@mui/icons-material/Settings';
 import Storage from '@mui/icons-material/Storage';
+import SwitchAccount from '@mui/icons-material/SwitchAccount';
 import Divider from '@mui/material/Divider';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
@@ -58,6 +59,12 @@ const AppUserMenu: FC<AppUserMenuProps> = ({
         onMenuClose();
     }, [ onMenuClose ]);
 
+    const onSwitchProfileClick = useCallback(() => {
+        const mf = (window as unknown as { MatheusFlix?: { openProfileSelector?: () => void } }).MatheusFlix;
+        mf?.openProfileSelector?.();
+        onMenuClose();
+    }, [ onMenuClose ]);
+
     const onSelectServerClick = useCallback(() => {
         Dashboard.selectServer();
         onMenuClose();
@@ -90,6 +97,14 @@ const AppUserMenu: FC<AppUserMenuProps> = ({
                 <ListItemText>
                     {globalize.translate('Profile')}
                 </ListItemText>
+            </MenuItem>
+            <MenuItem
+                onClick={onSwitchProfileClick}
+            >
+                <ListItemIcon>
+                    <SwitchAccount />
+                </ListItemIcon>
+                <ListItemText primary='Trocar Perfil' />
             </MenuItem>
             <MenuItem
                 component={Link}
