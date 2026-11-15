@@ -71,20 +71,19 @@
    MatheusFlix Torrent & Movie Discovery Hub
    ========================================================================== */
 
-.matheusflixDiscoverBtn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: relative !important;
-    color: var(--mf-accent) !important;
-    font-weight: 600 !important;
-    margin-right: 6px !important;
-    transition: transform 0.2s ease, color 0.2s ease !important;
-}
-
-.matheusflixDiscoverBtn:hover {
-    transform: scale(1.1) !important;
-    color: #fff !important;
+.matheusflixDiscoverBtn,
+.matheusflixBadge,
+.headerButtonRight:has(.cloud_download),
+button:has(.cloud_download),
+.skinHeader .cloud_download {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .matheusflixBadge {

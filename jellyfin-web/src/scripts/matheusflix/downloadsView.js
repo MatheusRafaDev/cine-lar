@@ -15,7 +15,7 @@ export function renderDownloadsView(container) {
             <div class="mf-downloads-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 20px;">
                 <div>
                     <h2 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 800; display: flex; align-items: center; gap: 12px; color: #ffffff;">
-                        <span class="material-icons" style="color: var(--mf-accent, #ff7a1a); font-size: 32px;">download</span>
+                        <span class="material-icons" style="color: #38bdf8; font-size: 30px;">download</span>
                         Gerenciador de Downloads & Streaming
                     </h2>
                     <p class="mf-dl-summary" style="margin: 0; color: #94a3b8; font-size: 14px;">Carregando status dos downloads...</p>

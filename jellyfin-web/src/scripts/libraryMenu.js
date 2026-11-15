@@ -59,6 +59,14 @@ function renderHeader() {
     skinHeader.classList.add('skinHeader-blurred');
     skinHeader.innerHTML = html;
 
+    // MatheusFlix: assegurar remoção completa de qualquer nuvem/discover residual
+    const residuals = skinHeader.querySelectorAll('.matheusflixDiscoverBtn, .cloud_download');
+    residuals.forEach((el) => {
+        const btn = el.closest('button');
+        if (btn) btn.remove();
+        else el.remove();
+    });
+
     Events.trigger(document, EventType.HEADER_RENDERED);
 
     headerBackButton = skinHeader.querySelector('.headerBackButton');
@@ -168,6 +176,13 @@ function updateUserInHeader(user) {
         if (headerSyncButton) {
             headerSyncButton.classList.add('hide');
         }
+
+        // MatheusFlix: assegurar remoção completa de qualquer nuvem/discover residual
+        skinHeader.querySelectorAll('.matheusflixDiscoverBtn, .cloud_download').forEach((el) => {
+            const btn = el.closest('button');
+            if (btn) btn.remove();
+            else el.remove();
+        });
     } else {
         headerHomeButton.classList.add('hide');
         headerCastButton.classList.add('hide');
