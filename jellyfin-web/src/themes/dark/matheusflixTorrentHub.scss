@@ -3733,3 +3733,154 @@ button[aria-label*="Grupo"] {
     display: none !important;
     pointer-events: none !important;
 }
+
+/* ==========================================================================
+   ALTA LEGIBILIDADE PARA TODOS OS CARDS E TÍTULOS (Zero texto escuro)
+   ========================================================================== */
+.cardText,
+.cardText-first,
+.cardText-first > .textActionButton,
+.cardText-first > a,
+.cardText > .textActionButton,
+.cardText > a,
+.mf-movie-title,
+.mf-home-card-title,
+.mf-local-card-title,
+.cardTitle,
+.cardFooter {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
+    opacity: 1 !important;
+}
+
+.cardText-secondary,
+.cardText-secondary > .textActionButton,
+.cardText-secondary > a,
+.mf-movie-meta-row,
+.mf-meta-year,
+.mf-home-card-meta,
+.cardSubTitle {
+    color: #cbd5e1 !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
+    opacity: 1 !important;
+}
+
+/* ==========================================================================
+   STREAMING ENQUANTO BAIXA & LINHAS DE TORRENT CLICÁVEIS
+   ========================================================================== */
+.mf-stream-item {
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.mf-stream-item:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 122, 26, 0.45) !important;
+    transform: translateX(4px) !important;
+}
+
+.mf-downloading-alert-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(255, 122, 26, 0.14) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    box-shadow: 0 8px 24px rgba(56, 189, 248, 0.18);
+    border-radius: var(--mf-radius-md, 12px);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    animation: mfPulseGlow 3s infinite ease-in-out;
+}
+
+@keyframes mfPulseGlow {
+    0%, 100% {
+        box-shadow: 0 8px 24px rgba(56, 189, 248, 0.18);
+    }
+    50% {
+        box-shadow: 0 8px 30px rgba(255, 122, 26, 0.28);
+    }
+}
+
+.mf-dl-alert-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mf-dl-spinning-icon {
+    font-size: 26px;
+    color: #38bdf8;
+    animation: mfSpin 2s linear infinite;
+}
+
+@keyframes mfSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.mf-dl-alert-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mf-dl-alert-text strong {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.mf-dl-alert-text span {
+    font-size: 12px;
+    color: #cbd5e1;
+}
+
+.mf-btn-watch-while-dl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    color: #ffffff !important;
+    border: none;
+    border-radius: var(--mf-radius-md, 10px);
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(56, 189, 248, 0.35);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.mf-btn-watch-while-dl:hover {
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+    transform: scale(1.04);
+    box-shadow: 0 8px 24px rgba(56, 189, 248, 0.5);
+}
+
+.mf-btn-hero-watch.mf-btn-watching-dl {
+    background: linear-gradient(135deg, #0284c7 0%, #ff7a1a 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 30px rgba(56, 189, 248, 0.4) !important;
+}
+
+.mf-btn-hero-watch.mf-btn-watching-dl:hover {
+    transform: scale(1.03) !important;
+    box-shadow: 0 12px 36px rgba(255, 122, 26, 0.5) !important;
+}
+
+.mf-btn-watch-dl {
+    transition: all 0.2s ease !important;
+}
+
+.mf-btn-watch-dl:hover {
+    transform: scale(1.05) !important;
+}
+

@@ -3,7 +3,7 @@
  * Design System unificado, layout cinematográfico imersivo, botão de voltar e filtros de fontes.
  */
 
-import { checkIsFavorite, searchTorrents, startDownload, toggleFavorite } from './api';
+import { checkIsFavorite, fetchDownloads, searchTorrents, startDownload, toggleFavorite } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
 import { escapeHtml, normalizeMovie, normalizeStream } from './utils';
 import toast from 'components/toast/toast';
@@ -180,21 +180,37 @@ export async function openStremioDetails(rawMovie) {
     }
 
     if (!movie.imdbId) {
-        renderStreams([], movie, modalEl);
+        renderStreams([], movie, modalEl, null, null);
         return;
     }
 
     try {
-        const data = await searchTorrents(movie.imdbId, movie.title);
+        const [data, dlRes] = await Promise.all([
+            searchTorrents(movie.imdbId, movie.title),
+            fetchDownloads().catch(() => ({ downloads: [] }))
+        ]);
         if (activeModal !== modalEl) return;
-        renderStreams((data.torrents || []).map(normalizeStream).filter(s => s.magnet), movie, modalEl, data.localFile);
+
+        // Identifica se este filme já está baixando ou se foi concluído
+        const activeDl = (dlRes.downloads || []).find(d =>
+            (movie.imdbId && d.imdbId === movie.imdbId)
+            || (d.title && movie.title && d.title.toLowerCase().includes(movie.title.toLowerCase()))
+        );
+
+        renderStreams(
+            (data.torrents || []).map(normalizeStream).filter(s => s.magnet),
+            movie,
+            modalEl,
+            data.localFile,
+            activeDl
+        );
     } catch {
         if (activeModal !== modalEl) return;
-        renderStreams([], movie, modalEl, null);
+        renderStreams([], movie, modalEl, null, null);
     }
 }
 
-function renderStreams(streams, movie, modalEl, localFile = null) {
+function renderStreams(streams, movie, modalEl, localFile = null, activeDl = null) {
     const listEl = modalEl.querySelector('.mf-stremio-streams-list');
     const countEl = modalEl.querySelector('.mf-streams-count');
     const heroBtn = modalEl.querySelector('.mf-btn-hero-watch');
@@ -202,8 +218,56 @@ function renderStreams(streams, movie, modalEl, localFile = null) {
     const localStatus = modalEl.querySelector('.mf-local-status-container');
     const filterChips = modalEl.querySelectorAll('.mf-filter-chip');
 
-    // Se o filme já existe salvo na pasta D:\filmes
-    if (localFile && localStatus) {
+    // Se o filme já está sendo baixado no momento para D:\filmes
+    if (activeDl && activeDl.status === 'downloading' && localStatus) {
+        localStatus.innerHTML = `
+            <div class="mf-downloading-alert-banner">
+                <div class="mf-dl-alert-left">
+                    <span class="material-icons mf-dl-spinning-icon">sync</span>
+                    <div class="mf-dl-alert-text">
+                        <strong>Baixando para D:\\filmes (${activeDl.progress || 0}%)</strong>
+                        <span>Você pode assistir em tempo real enquanto baixa, sem travar!</span>
+                    </div>
+                </div>
+                <button type="button" class="mf-btn-watch-while-dl">
+                    <span class="material-icons">play_circle_filled</span>
+                    <span>Assistir Agora Enquanto Baixa</span>
+                </button>
+            </div>
+        `;
+
+        localStatus.querySelector('.mf-btn-watch-while-dl')?.addEventListener('click', () => {
+            openCinemaPlayer({
+                streamUrl: activeDl.streamUrl,
+                title: movie.title,
+                subInfo: `${activeDl.quality || '1080p'} • Baixando em tempo real (${activeDl.progress || 0}%)`,
+                quality: activeDl.quality || '1080p',
+                isLocal: false,
+                infoHash: activeDl.id,
+                movieId: movie.imdbId || movie.id,
+                poster: movie.poster,
+                resumePosition: movie.resumePosition || 0
+            });
+        });
+
+        heroBtn.disabled = false;
+        heroBtn.className = 'mf-btn-hero-watch mf-btn-watching-dl';
+        heroText.textContent = `Assistir Enquanto Baixa (${activeDl.quality || '1080p'})`;
+        heroBtn.onclick = () => {
+            openCinemaPlayer({
+                streamUrl: activeDl.streamUrl,
+                title: movie.title,
+                subInfo: `${activeDl.quality || '1080p'} • Baixando em tempo real (${activeDl.progress || 0}%)`,
+                quality: activeDl.quality || '1080p',
+                isLocal: false,
+                infoHash: activeDl.id,
+                movieId: movie.imdbId || movie.id,
+                poster: movie.poster,
+                resumePosition: movie.resumePosition || 0
+            });
+        };
+    } else if (localFile && localStatus) {
+        // Se o filme já existe salvo na pasta D:\filmes
         localStatus.innerHTML = `
             <div class="mf-local-alert-banner">
                 <span class="material-icons mf-local-alert-icon">folder_special</span>
@@ -244,7 +308,7 @@ function renderStreams(streams, movie, modalEl, localFile = null) {
         return;
     }
 
-    if (!localFile) {
+    if (!localFile && !activeDl) {
         const best = streams.find(s => /1080p/i.test(s.quality) && s.seeders > 0)
             || streams.find(s => s.seeders > 0)
             || streams[0];
@@ -292,7 +356,7 @@ function renderStreams(streams, movie, modalEl, localFile = null) {
                     </button>
                 </div>
             `;
-            localItem.querySelector('.mf-btn-stream-play').addEventListener('click', () => {
+            localItem.addEventListener('click', () => {
                 openCinemaPlayer({
                     streamUrl: localFile.streamUrl,
                     title: movie.title,
@@ -348,8 +412,15 @@ function renderStreams(streams, movie, modalEl, localFile = null) {
                 </div>
             `;
 
+            // Clicar em qualquer lugar da linha do torrent inicia a reprodução imediata!
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.mf-btn-stream-dl')) return;
+                playStream(stream, movie);
+            });
+
             item.querySelector('.mf-btn-stream-play').addEventListener('click', () => playStream(stream, movie));
             item.querySelector('.mf-btn-stream-dl').addEventListener('click', async (e) => {
+                e.stopPropagation();
                 const btn = e.currentTarget;
                 btn.disabled = true;
                 try {
@@ -360,8 +431,42 @@ function renderStreams(streams, movie, modalEl, localFile = null) {
                         quality: stream.quality,
                         filename: stream.label
                     });
-                    btn.innerHTML = '<span class="material-icons" style="color: #4ade80;">check</span>';
-                    toast(`Baixando "${movie.title}" para D:\\filmes`);
+                    btn.innerHTML = '<span class="material-icons" style="color: #38bdf8;">sync</span>';
+                    btn.title = 'Assistir enquanto baixa';
+                    btn.disabled = false;
+                    btn.onclick = (ev) => {
+                        ev.stopPropagation();
+                        playStream(stream, movie);
+                    };
+
+                    // Atualiza o botão principal Hero e adiciona o banner interativo
+                    heroBtn.disabled = false;
+                    heroBtn.className = 'mf-btn-hero-watch mf-btn-watching-dl';
+                    heroText.textContent = `Assistir Enquanto Baixa (${stream.quality})`;
+                    heroBtn.onclick = () => playStream(stream, movie);
+
+                    if (localStatus) {
+                        localStatus.innerHTML = `
+                            <div class="mf-downloading-alert-banner">
+                                <div class="mf-dl-alert-left">
+                                    <span class="material-icons mf-dl-spinning-icon">sync</span>
+                                    <div class="mf-dl-alert-text">
+                                        <strong>Download iniciado para D:\\filmes!</strong>
+                                        <span>Você não precisa esperar terminar. Dê play agora mesmo!</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="mf-btn-watch-while-dl">
+                                    <span class="material-icons">play_circle_filled</span>
+                                    <span>Assistir Agora Enquanto Baixa</span>
+                                </button>
+                            </div>
+                        `;
+                        localStatus.querySelector('.mf-btn-watch-while-dl')?.addEventListener('click', () => {
+                            playStream(stream, movie);
+                        });
+                    }
+
+                    toast('Download iniciado para D:\\filmes! Você já pode assistir enquanto baixa.');
                 } catch (err) {
                     btn.disabled = false;
                     toast(`Falha no download: ${err.message}`);

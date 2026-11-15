@@ -139,6 +139,35 @@ function selectBestVideoFile(files) {
     return files[0];
 }
 
+/**
+ * Prioriza o download sequencial das peças do arquivo de vídeo
+ * para garantir que o usuário consiga assistir enquanto baixa (progressive streaming).
+ */
+function prioritizeVideoForStreaming(torrent, file) {
+    if (!torrent || !file) return;
+    try {
+        file.select();
+        const startPiece = file._startPiece || 0;
+        const endPiece = file._endPiece || (torrent.pieces ? torrent.pieces.length - 1 : 0);
+
+        // Marca as primeiras 16 peças como críticas (cabeçalho, metadados e primeiros minutos de filme)
+        const firstBatchEnd = Math.min(startPiece + 16, endPiece);
+        if (typeof torrent.critical === 'function' && firstBatchEnd >= startPiece) {
+            torrent.critical(startPiece, firstBatchEnd);
+        }
+
+        // Marca as últimas 8 peças como críticas (índice moov de MP4 / seek table)
+        const lastBatchStart = Math.max(startPiece, endPiece - 8);
+        if (typeof torrent.critical === 'function' && lastBatchStart <= endPiece) {
+            torrent.critical(lastBatchStart, endPiece);
+        }
+
+        console.log(`[TorrentService] ⚡ Peças priorizadas para streaming imediato: ${startPiece}..${firstBatchEnd} e ${lastBatchStart}..${endPiece}`);
+    } catch (e) {
+        console.warn('[TorrentService] prioritizeVideoForStreaming warning:', e.message);
+    }
+}
+
 function buildMagnet(infoHash, name, extraTrackers = []) {
     let magnet = `magnet:?xt=urn:btih:${infoHash}`;
     if (name) magnet += `&dn=${encodeURIComponent(name)}`;
@@ -862,6 +891,9 @@ const server = http.createServer(async (req, res) => {
                         numPeers: torrent.numPeers,
                         timeRemaining: formatTime(torrent.timeRemaining),
                         status: torrent.done ? 'completed' : 'downloading',
+                        canPlay: Boolean(torrent.ready),
+                        streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || torrent.magnetURI || '')}&title=${encodeURIComponent(meta.title)}`,
+                        magnet: meta.magnet || torrent.magnetURI || '',
                         createdAt: meta.createdAt
                     };
                 }
@@ -879,6 +911,9 @@ const server = http.createServer(async (req, res) => {
                     numPeers: 0,
                     timeRemaining: meta.status === 'completed' ? 'Concluído' : 'Pausado',
                     status: meta.status || 'downloading',
+                    canPlay: meta.status === 'completed',
+                    streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || '')}&title=${encodeURIComponent(meta.title)}`,
+                    magnet: meta.magnet || '',
                     createdAt: meta.createdAt
                 };
             });
@@ -976,11 +1011,7 @@ const server = http.createServer(async (req, res) => {
                 }
 
                 // Prioriza as primeiras e últimas peças para o cabeçalho/índice do vídeo (moov atom / seek index)
-                try {
-                    file.select();
-                } catch (e) {
-                    console.warn('[Streaming] file.select() warning:', e.message);
-                }
+                prioritizeVideoForStreaming(torrent, file);
 
                 const total = file.length;
                 let contentType = 'video/mp4';
@@ -1117,6 +1148,7 @@ const server = http.createServer(async (req, res) => {
                         imdbId: imdbId || '',
                         title: title || filename || 'Filme',
                         quality: quality || '1080p',
+                        magnet: magnet,
                         status: 'downloading',
                         createdAt: new Date().toISOString()
                     };
@@ -1125,6 +1157,10 @@ const server = http.createServer(async (req, res) => {
 
                     const torrent = client.add(magnet, { path: SAVE_PATH }, (t) => {
                         console.log(`[TorrentService] Torrent ready: "${t.name}" (${formatBytes(t.length)})`);
+                        const video = selectBestVideoFile(t.files);
+                        if (video) {
+                            prioritizeVideoForStreaming(t, video);
+                        }
                     });
 
                     torrent.on('warning', (w) => {
