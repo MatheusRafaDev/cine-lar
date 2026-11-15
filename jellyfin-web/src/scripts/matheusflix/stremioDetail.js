@@ -80,6 +80,8 @@ export async function openStremioDetails(rawMovie) {
                                     ${movie.rating ? `<span class="mf-badge-chip mf-badge-rating"><span class="material-icons" style="font-size: 14px; color: #f59e0b;">star</span> ${movie.rating}</span>` : ''}
                                     ${movie.year ? `<span class="mf-badge-chip mf-badge-year">${escapeHtml(movie.year)}</span>` : ''}
                                     ${movie.genres ? movie.genres.split(/[,/]/).slice(0, 3).map(g => `<span class="mf-badge-chip mf-badge-genre">${escapeHtml(g.trim())}</span>`).join('') : ''}
+                                    ${movie.franchise ? `<span class="mf-badge-chip mf-badge-franchise">${escapeHtml(movie.franchiseIcon || '🎬')} Coleção ${escapeHtml(movie.franchise)}</span>` : ''}
+                                    ${movie.isSeries ? '<span class="mf-badge-chip mf-badge-series">📺 Série</span>' : ''}
                                 </div>
                             </div>
                         </div>
@@ -425,11 +427,18 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
             item.querySelector('.mf-btn-stream-dl').addEventListener('click', async (e) => {
                 e.stopPropagation();
 
+                let dest = `D:\\filmes\\${movie.title}`;
+                if (movie.franchise) {
+                    dest = `D:\\filmes\\Franquias\\${movie.franchise}\\${movie.title}`;
+                } else if (movie.isSeries) {
+                    dest = `D:\\filmes\\Series\\${movie.seriesName || movie.title}\\Temporada ${String(movie.season || 1).padStart(2, '0')}`;
+                }
+
                 const confirmed = await confirmDownloadModal({
                     title: movie.title,
                     quality: stream.quality,
                     size: stream.size,
-                    destination: 'D:\\filmes'
+                    destination: dest
                 });
                 if (!confirmed) return;
 

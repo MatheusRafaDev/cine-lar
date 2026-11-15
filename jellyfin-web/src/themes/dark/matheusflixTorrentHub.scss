@@ -4135,4 +4135,153 @@ button[aria-label*="Grupo"] {
     box-shadow: 0 6px 24px rgba(239, 68, 68, 0.65);
 }
 
+/* ==========================================================================
+   ORGANIZAÇÃO DE PASTAS, CATEGORIAS E AGRUPAMENTO DE FRANQUIAS / SÉRIES
+   ========================================================================== */
+.mf-local-category-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0 24px 0;
+    flex-wrap: wrap;
+}
+
+.mf-category-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+}
+
+.mf-category-chip:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.mf-category-chip.active {
+    background: var(--mf-accent-gradient, linear-gradient(135deg, #ff6200 0%, #ff8c2b 100%));
+    border-color: transparent;
+    color: #080a0f !important;
+    font-weight: 700;
+    box-shadow: 0 4px 18px rgba(255, 122, 26, 0.45);
+}
+
+.mf-category-chip.active .mf-chip-count {
+    background: rgba(0, 0, 0, 0.28);
+    color: #ffffff;
+}
+
+.mf-chip-count {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #cbd5e1;
+}
+
+.mf-franchises-container,
+.mf-series-container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    margin-top: 10px;
+}
+
+.mf-franchise-block {
+    background: linear-gradient(180deg, rgba(20, 24, 35, 0.75) 0%, rgba(13, 16, 23, 0.95) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    transition: border-color 0.2s ease;
+}
+
+.mf-franchise-block:hover {
+    border-color: rgba(255, 122, 26, 0.35);
+}
+
+.mf-franchise-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.mf-franchise-block-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.mf-franchise-block-icon {
+    font-size: 28px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+}
+
+.mf-franchise-block-title {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #ffffff !important;
+    letter-spacing: -0.01em;
+}
+
+.mf-franchise-block-meta {
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.mf-badge-card-franchise {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(15, 18, 26, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 122, 26, 0.45);
+    color: #ff9d42 !important;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    z-index: 3;
+    pointer-events: none;
+    max-width: calc(100% - 16px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.mf-badge-chip.mf-badge-franchise {
+    background: rgba(255, 122, 26, 0.15) !important;
+    border-color: rgba(255, 122, 26, 0.45) !important;
+    color: #ff9d42 !important;
+    font-weight: 700 !important;
+}
+
+.mf-badge-chip.mf-badge-series {
+    background: rgba(59, 130, 246, 0.15) !important;
+    border-color: rgba(59, 130, 246, 0.45) !important;
+    color: #60a5fa !important;
+    font-weight: 700 !important;
+}
+
+
 

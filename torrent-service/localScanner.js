@@ -3,6 +3,7 @@ import path from 'path';
 import https from 'https';
 import http from 'http';
 import { upsertMovie, getDb, translateGenres } from './db.js';
+import { detectFranchise, detectSeries } from './organizer.js';
 
 let localCache = null;
 let lastScanTime = 0;
@@ -62,6 +63,59 @@ export function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0) {
+    let items = [];
+    if (currentDepth > maxDepth || !fs.existsSync(dir)) return items;
+    try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        const videoFiles = entries.filter(e => e.isFile() && /\.(mp4|mkv|avi|webm|ts)$/i.test(e.name));
+        const srtFiles = entries.filter(e => e.isFile() && /\.(srt|vtt)$/i.test(e.name));
+
+        if (videoFiles.length > 0 && currentDepth > 0) {
+            for (const vf of videoFiles) {
+                const fullVideo = path.join(dir, vf.name);
+                const base = vf.name.replace(/\.[^.]+$/, '');
+                const srt = srtFiles.find(s => s.name.startsWith(base)) || srtFiles[0];
+                let stat = null;
+                try {
+                    stat = fs.statSync(fullVideo);
+                } catch {}
+                if (stat) {
+                    items.push({
+                        videoFile: fullVideo,
+                        srtFile: srt ? path.join(dir, srt.name) : null,
+                        folderName: path.basename(dir),
+                        fileName: vf.name,
+                        stat
+                    });
+                }
+            }
+        } else {
+            for (const entry of entries) {
+                const full = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    items = items.concat(collectLocalVideos(full, maxDepth, currentDepth + 1));
+                } else if (entry.isFile() && /\.(mp4|mkv|avi|webm|ts)$/i.test(entry.name) && currentDepth === 0) {
+                    let stat = null;
+                    try {
+                        stat = fs.statSync(full);
+                    } catch {}
+                    if (stat) {
+                        items.push({
+                            videoFile: full,
+                            srtFile: null,
+                            folderName: '',
+                            fileName: entry.name,
+                            stat
+                        });
+                    }
+                }
+            }
+        }
+    } catch (e) {}
+    return items;
+}
+
 export async function getLocalLibrary(savePath = 'D:\\filmes', force = false) {
     const now = Date.now();
     if (!force && localCache && (now - lastScanTime < 60000)) {
@@ -74,39 +128,11 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false) {
 
     const db = getDb();
     const results = [];
-    const entries = fs.readdirSync(savePath, { withFileTypes: true });
+    const collected = collectLocalVideos(savePath);
 
-    for (const entry of entries) {
-        const fullItemPath = path.join(savePath, entry.name);
-        let videoFile = null;
-        let srtFile = null;
-        let stat = null;
-        let folderName = '';
-
-        if (entry.isDirectory()) {
-            folderName = entry.name;
-            try {
-                const sub = fs.readdirSync(fullItemPath, { withFileTypes: true });
-                const v = sub.find(f => f.isFile() && /\.(mp4|mkv|avi|webm|ts)$/i.test(f.name));
-                const s = sub.find(f => f.isFile() && /\.(srt|vtt)$/i.test(f.name));
-                if (v) {
-                    videoFile = path.join(fullItemPath, v.name);
-                    stat = fs.statSync(videoFile);
-                }
-                if (s) {
-                    srtFile = path.join(fullItemPath, s.name);
-                }
-            } catch (e) {}
-        } else if (entry.isFile() && /\.(mp4|mkv|avi|webm|ts)$/i.test(entry.name)) {
-            videoFile = fullItemPath;
-            try {
-                stat = fs.statSync(videoFile);
-            } catch (e) {}
-        }
-
-        if (!videoFile || !stat) continue;
-
-        const rawName = folderName || entry.name;
+    for (const item of collected) {
+        const { videoFile, srtFile, stat, folderName, fileName } = item;
+        const rawName = folderName || fileName;
         const { title: cleanName, year: detectedYear } = cleanMovieName(rawName);
         if (cleanName.length < 2) continue;
 
@@ -177,6 +203,10 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false) {
 
         const ext = path.extname(videoFile).replace('.', '').toUpperCase();
 
+        const fullRaw = `${cleanName} ${rawName} ${folderName}`;
+        const franchise = detectFranchise(fullRaw);
+        const seriesInfo = detectSeries(fullRaw);
+
         results.push({
             id: movieData?.imdb_id || `local_${encodeURIComponent(cleanName)}`,
             imdbId: movieData?.imdb_id || '',
@@ -199,7 +229,13 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false) {
             streamUrl: `/api/local/stream?file=${encodeURIComponent(videoFile)}`,
             hasSubtitle: !!srtFile,
             isLocal: true,
-            folderName
+            folderName,
+            franchise: franchise ? franchise.name : null,
+            franchiseIcon: franchise ? franchise.icon : null,
+            isSeries: seriesInfo.isSeries,
+            seriesName: seriesInfo.isSeries ? seriesInfo.seriesName : null,
+            season: seriesInfo.isSeries ? seriesInfo.season : null,
+            episode: seriesInfo.isSeries ? seriesInfo.episode : null
         });
     }
 

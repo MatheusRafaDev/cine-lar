@@ -9,6 +9,7 @@ import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites,
 import { seedCatalog, scanLocalMovies } from './seeder.js';
 import { askAiMovieRecommendations } from './aiSearch.js';
 import { getLocalLibrary, streamLocalVideo } from './localScanner.js';
+import { getOrganizedDownloadPath, groupMediaLibrary } from './organizer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -859,11 +860,16 @@ const server = http.createServer(async (req, res) => {
                 const force = urlObj.searchParams.get('force') === 'true';
                 const movies = await getLocalLibrary(SAVE_PATH, force);
                 const totalBytes = movies.reduce((acc, m) => acc + (m.sizeBytes || 0), 0);
+                const grouped = groupMediaLibrary(movies);
+
                 res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                 res.end(JSON.stringify({
                     movies,
                     count: movies.length,
                     totalSize: formatBytes(totalBytes),
+                    franchises: grouped.franchises,
+                    series: grouped.series,
+                    standaloneMovies: grouped.standaloneMovies,
                     savePath: SAVE_PATH
                 }));
             } catch (err) {
@@ -932,6 +938,9 @@ const server = http.createServer(async (req, res) => {
                         canPlay: Boolean(torrent.ready),
                         streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || torrent.magnetURI || '')}&title=${encodeURIComponent(meta.title)}`,
                         magnet: meta.magnet || torrent.magnetURI || '',
+                        destinationPath: meta.destinationPath || `D:\\filmes\\${meta.title}`,
+                        category: meta.category || 'movie',
+                        groupName: meta.groupName || null,
                         createdAt: meta.createdAt
                     };
                 }
@@ -952,6 +961,9 @@ const server = http.createServer(async (req, res) => {
                     canPlay: meta.status === 'completed',
                     streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || '')}&title=${encodeURIComponent(meta.title)}`,
                     magnet: meta.magnet || '',
+                    destinationPath: meta.destinationPath || `D:\\filmes\\${meta.title}`,
+                    category: meta.category || 'movie',
+                    groupName: meta.groupName || null,
                     createdAt: meta.createdAt
                 };
             });
@@ -1179,7 +1191,16 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-                    console.log(`[TorrentService] Starting download: "${title || filename}" into ${SAVE_PATH}`);
+                    const org = getOrganizedDownloadPath(SAVE_PATH, title, filename);
+                    try {
+                        if (!fs.existsSync(org.targetPath)) {
+                            fs.mkdirSync(org.targetPath, { recursive: true });
+                        }
+                    } catch (e) {
+                        console.warn('[TorrentService] Could not create target directory:', e.message);
+                    }
+
+                    console.log(`[TorrentService] Starting organized download: "${title || filename}" into ${org.targetPath} (${org.category}: ${org.groupName || 'filme'})`);
 
                     const metaItem = {
                         id: infoHash,
@@ -1187,13 +1208,17 @@ const server = http.createServer(async (req, res) => {
                         title: title || filename || 'Filme',
                         quality: quality || '1080p',
                         magnet: magnet,
+                        category: org.category,
+                        groupName: org.groupName,
+                        destinationPath: org.displayPath,
+                        savePath: org.targetPath,
                         status: 'downloading',
                         createdAt: new Date().toISOString()
                     };
                     downloadsRegistry.set(infoHash, metaItem);
                     persistDownloads();
 
-                    const torrent = client.add(magnet, { path: SAVE_PATH }, (t) => {
+                    const torrent = client.add(magnet, { path: org.targetPath }, (t) => {
                         console.log(`[TorrentService] Torrent ready: "${t.name}" (${formatBytes(t.length)})`);
                         const video = selectBestVideoFile(t.files);
                         if (video) {
