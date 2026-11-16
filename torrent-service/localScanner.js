@@ -67,7 +67,7 @@ export function getMediaInfo(filePath) {
             '-show_entries', 'format=duration',
             '-of', 'json',
             filePath
-        ], { timeout: 4000, encoding: 'utf8' });
+        ], { timeout: 4000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
 
         const data = JSON.parse(stdout);
         const dur = parseFloat(data.format?.duration);

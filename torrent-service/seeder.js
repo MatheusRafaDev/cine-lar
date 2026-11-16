@@ -2,8 +2,9 @@ import https from 'https';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
-import { upsertMovie, markLocalMovies, getDb } from './db.js';
+import { upsertMovie, syncLocalMoviesInDb, getDb } from './db.js';
 import { fetchPtBrMetadata } from './tmdbHelper.js';
+import { getLocalLibrary } from './localScanner.js';
 
 function fetchJson(url) {
     return new Promise((resolve, reject) => {
@@ -96,47 +97,13 @@ export async function seedCatalog(savePath = 'D:\\filmes') {
 
 export async function scanLocalMovies(savePath = 'D:\\filmes') {
     try {
-        if (!fs.existsSync(savePath)) return;
-        const entries = fs.readdirSync(savePath, { withFileTypes: true });
-
-        for (const entry of entries) {
-            const name = entry.name;
-
-            // Clean filename
-            const clean = name
-                .replace(/\.(mkv|mp4|avi|ts|mov)$/i, '')
-                .replace(/(\.|\_|\-)/g, ' ')
-                .replace(/\[[^\]]+\]/g, ' ')
-                .replace(/\b(1080p|720p|2160p|4k|bluray|bdrip|web-dl|webrip|dual|dublado|nacional|ac3|aac|x264|x265|hevc|h264|imax|open matte|fullhd|ch|edition|proper)\b.*/i, '')
-                .replace(/\b(19\d\d|20\d\d)\b.*/i, '')
-                .replace(/\(\d{4}\)/g, '')
-                .trim();
-
-            if (clean.length < 2) continue;
-
-            // Search Cinemeta for metadata
-            try {
-                const searchRes = await fetchJson(`https://v3-cinemeta.strem.io/catalog/movie/top/search=${encodeURIComponent(clean)}.json`);
-                if (searchRes?.metas && searchRes.metas.length > 0) {
-                    const topMatch = searchRes.metas[0];
-                    if (topMatch.imdb_id) {
-                        try {
-                            const pt = await fetchPtBrMetadata(topMatch.imdb_id);
-                            if (pt?.titleBr) {
-                                topMatch.title = pt.titleBr;
-                                topMatch.original_title = topMatch.name;
-                                if (pt.overviewBr) topMatch.description = pt.overviewBr;
-                            }
-                        } catch (e) {}
-                    }
-                    topMatch.is_local = 1;
-                    upsertMovie(topMatch);
-                    console.log(`[Seeder] [Local] Catalogado: "${clean}" -> "${topMatch.title || topMatch.name}" (${topMatch.imdb_id})`);
-                }
-            } catch (err) {}
-            await new Promise(r => setTimeout(r, 200));
-        }
+        console.log('[LocalScanner] Varrimento preciso da pasta local:', savePath);
+        const localMovies = await getLocalLibrary(savePath, true);
+        syncLocalMoviesInDb(localMovies);
+        console.log(`[LocalScanner] Biblioteca local sincronizada com sucesso: ${localMovies.length} títulos reais.`);
+        return localMovies;
     } catch (e) {
-        console.warn('[Seeder] Erro ao varrer pasta local:', e.message);
+        console.warn('[LocalScanner] Erro ao sincronizar biblioteca local:', e.message);
+        return [];
     }
 }

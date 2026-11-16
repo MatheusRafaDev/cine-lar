@@ -490,18 +490,33 @@ async function markLocalMoviesInList(movieList) {
     try {
         const localMovies = await getLocalLibrary(SAVE_PATH, false, getActiveDownloadingPaths());
         const localImdbSet = new Set(localMovies.map(m => m.imdbId).filter(Boolean));
-        const localTitlesSet = new Set(localMovies.map(m => (m.cleanName || m.title || '').toLowerCase().trim()).filter(Boolean));
+        const localTitlesSet = new Set(
+            localMovies.flatMap(m => [
+                (m.cleanName || '').toLowerCase().trim(),
+                (m.title || '').toLowerCase().trim(),
+                (m.originalTitle || m.original_title || '').toLowerCase().trim()
+            ]).filter(Boolean)
+        );
 
         movieList.forEach(m => {
             const id = m.imdb_id || m.imdbId || m.id;
-            const title = (m.title || m.name || m.original_title || '').toLowerCase().trim();
-            if ((id && localImdbSet.has(id)) || (title && localTitlesSet.has(title))) {
-                m.is_local = 1;
-                m.isLocal = true;
-            }
+            const title = (m.title || m.name || '').toLowerCase().trim();
+            const origTitle = (m.original_title || '').toLowerCase().trim();
+            const isLocal = Boolean(
+                (id && localImdbSet.has(id)) ||
+                (title && localTitlesSet.has(title)) ||
+                (origTitle && localTitlesSet.has(origTitle))
+            );
+            m.is_local = isLocal ? 1 : 0;
+            m.isLocal = isLocal;
         });
     } catch {
-        // Fallback silently
+        movieList.forEach(m => {
+            if (!m.isLocal) {
+                m.is_local = 0;
+                m.isLocal = false;
+            }
+        });
     }
 }
 
@@ -740,6 +755,7 @@ const server = http.createServer(async (req, res) => {
                     const result = await askAiMovieRecommendations(qText);
                     const movies = Array.isArray(result) ? result : (result.movies || []);
                     const reasoning = result.reasoning || '';
+                    await markLocalMoviesInList(movies);
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     res.end(JSON.stringify({ query: qText, movies, reasoning }));
                 } catch (err) {
@@ -931,6 +947,7 @@ const server = http.createServer(async (req, res) => {
                     if (cinemeta?.metas) {
                         cinemeta.metas.forEach(m => upsertMovie(m));
                         const fresh = searchCatalog({ q: query, limit: 40 });
+                        await markLocalMoviesInList(fresh.movies);
                         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                         res.end(JSON.stringify({ movies: fresh.movies }));
                         return;
@@ -938,6 +955,7 @@ const server = http.createServer(async (req, res) => {
                 } catch (err) {}
             }
 
+            await markLocalMoviesInList(results.movies);
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({ movies: results.movies }));
             return;

@@ -314,16 +314,27 @@ export function getGenresSummary() {
     return result;
 }
 
-export function markLocalMovies(movieTitles = []) {
+export function syncLocalMoviesInDb(localMovies = []) {
     const database = getDb();
-    const updateStmt = database.prepare('UPDATE movies SET is_local = 1 WHERE title LIKE ? OR original_title LIKE ?');
-    movieTitles.forEach(t => {
-        if (t && t.length > 2) {
+    // 1. Zera todas as marcas de local para eliminar falsos-positivos
+    database.exec('UPDATE movies SET is_local = 0');
+
+    // 2. Marca estritamente os filmes validados fisicamente no disco
+    const updateById = database.prepare('UPDATE movies SET is_local = 1 WHERE imdb_id = ?');
+    const updateByTitle = database.prepare('UPDATE movies SET is_local = 1 WHERE LOWER(title) = LOWER(?) OR LOWER(original_title) = LOWER(?)');
+
+    for (const m of localMovies) {
+        const id = m.imdbId || m.imdb_id;
+        if (id) {
             try {
-                updateStmt.run(`%${t}%`, `%${t}%`);
+                updateById.run(id);
+            } catch (e) {}
+        } else if (m.title && m.title.length > 2) {
+            try {
+                updateByTitle.run(m.title, m.originalTitle || m.title);
             } catch (e) {}
         }
-    });
+    }
 }
 
 // User Favorites & Watch History functions (Netflix Style)
