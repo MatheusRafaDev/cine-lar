@@ -107,6 +107,14 @@ export function renderMatheusFlixDefaultTabs(activeIdx = null) {
     headerTabsContainer.innerHTML = tabsHtml;
     window.CustomElements.upgradeSubtree(headerTabsContainer);
     tabsElem = headerTabsContainer.querySelector('[is="emby-tabs"]');
+
+    headerTabsContainer.querySelectorAll('.emby-tab-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (typeof window !== 'undefined' && window.MatheusFlix?.closeCinema) {
+                window.MatheusFlix.closeCinema();
+            }
+        });
+    });
 }
 
 if (typeof window !== 'undefined') {
@@ -227,6 +235,9 @@ export function setTabs(view, selectedIndex, getTabsFn, getTabContainersFn, onBe
 }
 
 export function selectedTabIndex(index) {
+    if (typeof window !== 'undefined' && window.MatheusFlix?.closeCinema) {
+        window.MatheusFlix.closeCinema();
+    }
     if (index != null) {
         tabsElem.selectedIndex(index);
     } else {

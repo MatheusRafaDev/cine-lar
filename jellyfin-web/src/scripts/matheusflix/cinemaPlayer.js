@@ -16,6 +16,67 @@ const noop = () => {
     // Intentionally empty no-op handler
 };
 
+export function stopAndDestroyVideo(video) {
+    if (!video) return;
+    try {
+        video.pause();
+        video.muted = true;
+        video.volume = 0;
+        try {
+            video.currentTime = 0;
+        } catch (_) {}
+        video.removeAttribute('src');
+        video.src = '';
+        while (video.firstChild) {
+            try {
+                video.removeChild(video.firstChild);
+            } catch (_) {}
+        }
+        if (video.srcObject) {
+            try {
+                const tracks = video.srcObject.getTracks?.() || [];
+                tracks.forEach(t => t.stop?.());
+            } catch (_) {}
+            video.srcObject = null;
+        }
+        if (video.textTracks) {
+            for (let i = 0; i < video.textTracks.length; i++) {
+                try {
+                    video.textTracks[i].mode = 'disabled';
+                } catch (_) {}
+            }
+        }
+        video.load();
+    } catch (_) {}
+}
+
+export function stopAllMedia() {
+    const allCinemaPlayers = document.querySelectorAll('.mf-cinema-player');
+    allCinemaPlayers.forEach(p => {
+        try {
+            if (p._cleanup) p._cleanup();
+        } catch (_) {}
+        p.querySelectorAll('video, audio').forEach(stopAndDestroyVideo);
+        p.remove();
+    });
+
+    document.querySelectorAll('video, audio').forEach(stopAndDestroyVideo);
+
+    try {
+        if (playbackManager && (playbackManager.isPlaying?.() || playbackManager.isPlayingVideo?.() || playbackManager.isPlayingAudio?.())) {
+            playbackManager.stop();
+        }
+    } catch (_) {}
+
+    document.body.style.overflow = '';
+}
+
+if (typeof window !== 'undefined') {
+    window.MatheusFlix = window.MatheusFlix || {};
+    window.MatheusFlix.closeCinema = closeCinemaPlayer;
+    window.MatheusFlix.stopAllMedia = stopAllMedia;
+}
+
 function formatSeconds(sec) {
     if (isNaN(sec) || sec === Infinity || sec < 0) return '00:00';
     const s = Math.floor(sec);
@@ -45,27 +106,8 @@ export function openCinemaPlayer({
         lastFocusedBeforePlayer = document.activeElement;
     }
 
-    // 1. Encerra qualquer reprodução cinema ativa para garantir apenas UM filme por vez
-    if (activePlayerInstance) {
-        closeCinemaPlayer();
-    }
-
-    // 2. Interrompe qualquer mídia nativa do Jellyfin para não rodar simultaneamente
-    try {
-        if (playbackManager && (playbackManager.isPlaying?.() || playbackManager.isPlayingVideo?.() || playbackManager.isPlayingAudio?.())) {
-            playbackManager.stop();
-        }
-    } catch (_) {}
-
-    // 3. Força interrupção e limpeza de quaisquer elementos de vídeo e áudio existentes na página
-    document.querySelectorAll('video, audio').forEach((media) => {
-        try {
-            media.pause();
-            media.removeAttribute('src');
-            media.src = '';
-            media.load();
-        } catch (_) {}
-    });
+    // 1. Encerra qualquer reprodução ativa globalmente para garantir apenas UM filme por vez
+    stopAllMedia();
 
     // Remove qualquer modal de detalhes ou tela anterior para ir direto para o filme
     document.querySelectorAll('.mf-movie-page, .mf-stremio-modal, .mf-stremio-modal-backdrop').forEach(el => el.remove());
@@ -201,34 +243,49 @@ export function openCinemaPlayer({
     let statusInterval = null;
     let controlsTimer = null;
     let hasFallbackTranscoded = false;
+    let isDestroyed = false;
+    let isExiting = false;
 
     // Força pré-carregamento imediato
     video.src = fullStreamUrl;
     video.preload = 'auto';
     video.load();
 
-    function forcePlay() {
-        const p = video.play();
-        if (p && typeof p.then === 'function') {
-            p.then(() => {
-                hideOverlay();
-            }).catch(() => {
-                // Tenta mutado se o navegador restringir reprodução automática com áudio
-                video.muted = true;
-                video.play().then(hideOverlay).catch(noop);
-            });
-        }
+    function safePlay() {
+        if (isDestroyed || !activePlayerInstance) return;
+        try {
+            const p = video.play();
+            if (p && typeof p.then === 'function') {
+                p.then(() => {
+                    if (isDestroyed) {
+                        stopAndDestroyVideo(video);
+                        return;
+                    }
+                    hideOverlay();
+                }).catch(() => {
+                    if (isDestroyed) return;
+                    video.muted = true;
+                    video.play().then(() => {
+                        if (isDestroyed) {
+                            stopAndDestroyVideo(video);
+                            return;
+                        }
+                        hideOverlay();
+                    }).catch(noop);
+                });
+            }
+        } catch (_) {}
     }
 
     // Tenta iniciar a reprodução imediatamente
-    forcePlay();
+    safePlay();
 
     const btnForcePlay = playerEl.querySelector('.mf-btn-force-play');
     if (btnForcePlay) {
         btnForcePlay.addEventListener('click', (e) => {
             e.stopPropagation();
             hideOverlay();
-            forcePlay();
+            safePlay();
         });
     }
 
@@ -272,8 +329,9 @@ export function openCinemaPlayer({
     });
 
     function togglePlay() {
+        if (isDestroyed) return;
         if (video.paused) {
-            video.play().catch(noop);
+            safePlay();
         } else {
             video.pause();
         }
@@ -308,6 +366,8 @@ export function openCinemaPlayer({
     });
 
     function handleExit() {
+        if (isExiting) return;
+        isExiting = true;
         closeCinemaPlayer();
         if (window.history.state?.mfCinemaPlayer) {
             window.history.back();
@@ -547,25 +607,25 @@ export function openCinemaPlayer({
     });
 
     video.addEventListener('loadeddata', () => {
+        if (isDestroyed) return;
         hideOverlay();
         updateDurationUI();
-        video.play().catch(() => {
-            // Se autoplay bloqueado pelo navegador, inicia mutado
-            video.muted = true;
-            video.play().then(() => {
-                toast('Vídeo pronto. Clique no player para ativar o som.');
-            }).catch(noop);
-        });
+        safePlay();
     });
 
     video.addEventListener('canplay', () => {
+        if (isDestroyed) return;
         hideOverlay();
         updateDurationUI();
         tryResumePlayback();
-        video.play().catch(noop);
+        safePlay();
     });
 
     video.addEventListener('play', () => {
+        if (isDestroyed) {
+            stopAndDestroyVideo(video);
+            return;
+        }
         btnPlay.querySelector('.material-icons').textContent = 'pause';
         hideOverlay();
         showControls();
@@ -573,6 +633,10 @@ export function openCinemaPlayer({
     });
 
     video.addEventListener('playing', () => {
+        if (isDestroyed) {
+            stopAndDestroyVideo(video);
+            return;
+        }
         btnPlay.querySelector('.material-icons').textContent = 'pause';
         hideOverlay();
         tryResumePlayback();
@@ -600,17 +664,19 @@ export function openCinemaPlayer({
     });
 
     video.addEventListener('loadedmetadata', () => {
+        if (isDestroyed) return;
         if (!totalDuration && video.duration && isFinite(video.duration) && video.duration > 180) {
             totalDuration = Math.round(video.duration);
         }
         updateDurationUI();
         tryResumePlayback();
         hideOverlay();
-        video.play().catch(noop);
+        safePlay();
     });
 
     // Tratamento de Erros e Auto-recuperação com Transcode
     video.addEventListener('error', () => {
+        if (isDestroyed) return;
         if (video.error && video.error.code === 1) return; // MEDIA_ERR_ABORTED
 
         console.warn('[CinemaPlayer] Erro de mídia detectado:', video.error);
@@ -626,10 +692,7 @@ export function openCinemaPlayer({
             fullStreamUrl = fallbackUrl;
             video.src = fallbackUrl;
             video.load();
-            video.play().then(hideOverlay).catch(() => {
-                video.muted = true;
-                video.play().then(hideOverlay).catch(noop);
-            });
+            safePlay();
             return;
         }
 
@@ -643,6 +706,7 @@ export function openCinemaPlayer({
     // Torrent streaming status polling
     if (!isLocal && currentHash) {
         statusInterval = setInterval(async () => {
+            if (isDestroyed) return;
             const data = await getStreamStatus(currentHash);
             if (!data) return;
 
@@ -665,15 +729,16 @@ export function openCinemaPlayer({
                 || (video.readyState >= 1);
 
             if (canStart) {
-                forcePlay();
+                safePlay();
             }
         }, 500);
     }
 
     // Watchdog: após 7s, se o vídeo já tem buffer ou pode tocar, força tentativa
     const watchdogTimer = setTimeout(() => {
+        if (isDestroyed) return;
         if (video.readyState >= 1) {
-            video.play().then(hideOverlay).catch(noop);
+            safePlay();
         }
     }, 7000);
 
@@ -734,6 +799,12 @@ export function openCinemaPlayer({
         closeCinemaPlayer();
     }
 
+    const onVisibilityChange = () => {
+        if (document.hidden && video && !video.paused) {
+            video.pause();
+        }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('popstate', handleNavAway);
     window.addEventListener('hashchange', handleNavAway);
@@ -741,9 +812,11 @@ export function openCinemaPlayer({
     window.addEventListener('beforeunload', handleNavAway);
     document.addEventListener('viewbeforehide', handleNavAway);
     document.addEventListener('viewshow', handleNavAway);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     Events.on(playbackManager, 'playbackstart', handleNavAway);
 
     playerEl._cleanup = () => {
+        isDestroyed = true;
         window.removeEventListener('keydown', handleKeyDown);
         window.removeEventListener('popstate', handleNavAway);
         window.removeEventListener('hashchange', handleNavAway);
@@ -751,20 +824,20 @@ export function openCinemaPlayer({
         window.removeEventListener('beforeunload', handleNavAway);
         document.removeEventListener('viewbeforehide', handleNavAway);
         document.removeEventListener('viewshow', handleNavAway);
+        document.removeEventListener('visibilitychange', onVisibilityChange);
         Events.off(playbackManager, 'playbackstart', handleNavAway);
 
         releaseWakeLock();
-        if (statusInterval) clearInterval(statusInterval);
+        if (statusInterval) {
+            clearInterval(statusInterval);
+            statusInterval = null;
+        }
         clearTimeout(controlsTimer);
         clearTimeout(watchdogTimer);
+        clearTimeout(seekDebounce);
         persistCurrentProgress();
 
-        try {
-            video.pause();
-            video.removeAttribute('src');
-            video.src = '';
-            video.load();
-        } catch (_) {}
+        stopAndDestroyVideo(video);
     };
 
     showControls();
@@ -781,8 +854,6 @@ export function openCinemaPlayer({
 }
 
 export function closeCinemaPlayer() {
-    if (!activePlayerInstance) return;
-
     const playerEl = activePlayerInstance;
     activePlayerInstance = null;
 
@@ -790,22 +861,14 @@ export function closeCinemaPlayer() {
         document.exitFullscreen?.().catch(noop);
     }
 
-    if (playerEl._cleanup) {
-        playerEl._cleanup();
-    }
-
-    const video = playerEl.querySelector('video');
-    if (video) {
+    if (playerEl && playerEl._cleanup) {
         try {
-            video.pause();
-            video.removeAttribute('src');
-            video.src = '';
-            video.load();
+            playerEl._cleanup();
         } catch (_) {}
     }
 
-    playerEl.remove();
-    document.body.style.overflow = '';
+    // Limpeza profunda garantida em todo o DOM e nos players
+    stopAllMedia();
 
     if (lastFocusedBeforePlayer && typeof lastFocusedBeforePlayer.focus === 'function' && lastFocusedBeforePlayer.isConnected) {
         const el = lastFocusedBeforePlayer;

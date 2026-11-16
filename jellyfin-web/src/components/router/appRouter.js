@@ -56,6 +56,9 @@ class AppRouter {
     }
 
     async back() {
+        if (typeof window !== 'undefined' && window.MatheusFlix?.closeCinema) {
+            window.MatheusFlix.closeCinema();
+        }
         if (this.promiseShow) await this.promiseShow;
 
         this.promiseShow = new Promise((resolve) => {
@@ -71,6 +74,11 @@ class AppRouter {
     }
 
     async show(path, options) {
+        if (path !== 'video' && path !== '/video') {
+            if (typeof window !== 'undefined' && window.MatheusFlix?.closeCinema) {
+                window.MatheusFlix.closeCinema();
+            }
+        }
         if (this.promiseShow) await this.promiseShow;
 
         // ensure the path does not start with '#' since the router adds this

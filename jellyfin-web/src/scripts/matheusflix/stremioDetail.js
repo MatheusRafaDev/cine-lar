@@ -16,6 +16,7 @@ let activePopHandler = null;
 let lastFocusedElement = null;
 
 function closeDetails(triggerBack = true) {
+    closeCinemaPlayer();
     if (activeModal) {
         activeModal.remove();
         activeModal = null;

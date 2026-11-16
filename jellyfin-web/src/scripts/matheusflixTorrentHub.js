@@ -10,6 +10,7 @@ let activeDownloadsCache = [];
 let pollInterval = null;
 
 export function navigateToTab(tabIndex) {
+    closeCinemaPlayer();
     const isHome = window.location.hash.startsWith('#/home') || window.location.hash === '' || window.location.hash === '#/';
     if (isHome) {
         import('components/maintabsmanager').then(m => {

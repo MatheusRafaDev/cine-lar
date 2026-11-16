@@ -79,6 +79,9 @@ function renderHeader() {
     if (pageTitleElem) {
         pageTitleElem.style.cursor = 'pointer';
         pageTitleElem.addEventListener('click', () => {
+            if (typeof window !== 'undefined' && window.MatheusFlix?.closeCinema) {
+                window.MatheusFlix.closeCinema();
+            }
             window.location.hash = '#/home?tab=0';
         });
     }
@@ -109,6 +112,9 @@ function lazyLoadViewMenuBarImages() {
 }
 
 function onBackClick() {
+    if (typeof window !== 'undefined' && window.MatheusFlix?.closeCinema) {
+        window.MatheusFlix.closeCinema();
+    }
     appRouter.back();
 }
 
