@@ -101,14 +101,25 @@ class ServerConnections extends ConnectionManager {
             ...options
         }).then(async (result) => {
             // MatheusFlix: Se o servidor exigir login (ServerSignIn), autentica automaticamente sem pedir tela
-            if (result && result.State === 2 && result.ApiClient) {
+            if (result && (result.State === 2 || result.State === 'ServerSignIn' || !result.AccessToken) && result.ApiClient) {
                 try {
-                    console.log('[MatheusFlix] Realizando auto-login transparente de rafae...');
-                    const authRes = await result.ApiClient.authenticateUserByName('rafae', '10092004');
+                    console.log('[MatheusFlix] Realizando auto-login transparente de usuario...');
+                    const authRes = await result.ApiClient.authenticateUserByName('usuario', '10092004');
                     if (authRes && authRes.User) {
                         result.State = 1; // SignedIn
                         result.User = authRes.User;
                         result.AccessToken = authRes.AccessToken;
+
+                        try {
+                            const creds = credentialProvider.credentials();
+                            if (creds && creds.Servers && creds.Servers.length > 0) {
+                                creds.Servers[0].AccessToken = authRes.AccessToken;
+                                creds.Servers[0].UserId = authRes.User.Id;
+                                credentialProvider.credentials(creds);
+                            }
+                        } catch (_) {}
+
+                        await this.onLocalUserSignedIn(authRes.User);
                     }
                 } catch (err) {
                     console.warn('[MatheusFlix] Falha no auto-login transparente:', err);

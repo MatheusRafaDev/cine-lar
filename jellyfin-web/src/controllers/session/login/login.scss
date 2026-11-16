@@ -3,6 +3,15 @@
     margin-top: 2em;
 }
 
+/* MatheusFlix: Ocultar completamente o formulário de login para entrada direta */
+#loginPage {
+    .manualLoginForm,
+    .visualLoginForm,
+    .readOnlyContent {
+        display: none !important;
+    }
+}
+
 .loginDisclaimer {
     margin: 0 auto;
 

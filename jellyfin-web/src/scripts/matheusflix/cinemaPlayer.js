@@ -364,9 +364,10 @@ export function openCinemaPlayer({
     let totalDuration = parseDuration({ duration });
 
     // Se a duração não foi passada pelo chamador, obtém via cabeçalho HEAD do servidor
-    if (!totalDuration || totalDuration <= 0) {
+    if (!totalDuration || totalDuration <= 30) {
         fetch(fullStreamUrl, { method: 'HEAD' }).then(res => {
-            const d = parseFloat(res.headers.get('x-media-duration'));
+            const raw = res.headers.get('x-media-duration') || res.headers.get('X-Media-Duration');
+            const d = parseFloat(raw);
             if (!isNaN(d) && d > 30) {
                 totalDuration = Math.round(d);
                 updateDurationUI();
@@ -379,9 +380,6 @@ export function openCinemaPlayer({
             return totalDuration;
         }
         if (video.duration && isFinite(video.duration) && video.duration > 180) {
-            return video.duration;
-        }
-        if (video.duration && isFinite(video.duration) && video.duration > 0) {
             return video.duration;
         }
         return 0;
@@ -634,6 +632,7 @@ export function openCinemaPlayer({
             console.log('[CinemaPlayer] Ativando conversao em tempo real (remux):', fallbackUrl);
             toast('Ajustando formato para compatibilidade com o navegador...');
 
+            fullStreamUrl = fallbackUrl;
             video.src = fallbackUrl;
             video.load();
             video.play().then(hideOverlay).catch(() => {

@@ -46,28 +46,56 @@ for (const p of FFPROBE_CANDIDATES) {
     }
 }
 
-const durationCache = new Map();
+const mediaInfoCache = new Map();
 
-export function getVideoDuration(filePath) {
-    if (durationCache.has(filePath)) {
-        return durationCache.get(filePath);
+export function getMediaInfo(filePath) {
+    if (mediaInfoCache.has(filePath)) {
+        return mediaInfoCache.get(filePath);
     }
-    if (!RESOLVED_FFPROBE || !fs.existsSync(filePath)) return 0;
+    const defaultInfo = {
+        duration: 0,
+        videoCodec: '',
+        audioCodec: '',
+        isDirectPlayable: filePath.toLowerCase().endsWith('.mp4')
+    };
+    if (!RESOLVED_FFPROBE || !fs.existsSync(filePath)) return defaultInfo;
 
     try {
         const stdout = execFileSync(RESOLVED_FFPROBE, [
             '-v', 'error',
+            '-show_entries', 'stream=index,codec_name,codec_type',
             '-show_entries', 'format=duration',
-            '-of', 'default=noprint_wrappers=1:nokey=1',
+            '-of', 'json',
             filePath
-        ], { timeout: 3000, encoding: 'utf8' });
-        const dur = parseFloat(stdout.trim());
-        const finalDur = (!isNaN(dur) && dur > 0) ? dur : 0;
-        durationCache.set(filePath, finalDur);
-        return finalDur;
+        ], { timeout: 4000, encoding: 'utf8' });
+
+        const data = JSON.parse(stdout);
+        const dur = parseFloat(data.format?.duration);
+        const duration = (!isNaN(dur) && dur > 0) ? Math.round(dur) : 0;
+
+        const vStream = (data.streams || []).find(s => s.codec_type === 'video');
+        const aStream = (data.streams || []).find(s => s.codec_type === 'audio');
+
+        const videoCodec = (vStream?.codec_name || '').toLowerCase();
+        const audioCodec = (aStream?.codec_name || '').toLowerCase();
+
+        const isMp4 = filePath.toLowerCase().endsWith('.mp4');
+        const isH264 = videoCodec === 'h264' || videoCodec === 'avc1';
+        const isAac = audioCodec === 'aac' || audioCodec === 'mp4a';
+
+        // Arquivo direto sem transcode apenas se for container MP4 com vídeo H264 e áudio AAC
+        const isDirectPlayable = isMp4 && isH264 && isAac;
+
+        const info = { duration, videoCodec, audioCodec, isDirectPlayable };
+        mediaInfoCache.set(filePath, info);
+        return info;
     } catch {
-        return 0;
+        return defaultInfo;
     }
+}
+
+export function getVideoDuration(filePath) {
+    return getMediaInfo(filePath).duration;
 }
 
 let localCache = null;
@@ -405,7 +433,8 @@ export function streamLocalVideo(filePath, req, res) {
 
     const stat = fs.statSync(targetFile);
     const total = stat.size;
-    const duration = Math.round(getVideoDuration(targetFile));
+    const mediaInfo = getMediaInfo(targetFile);
+    const duration = mediaInfo.duration;
 
     // Trata requisições HEAD (verificação de mime/range pelo navegador)
     if (req.method === 'HEAD') {
@@ -426,14 +455,11 @@ export function streamLocalVideo(filePath, req, res) {
     const startTimeParam = parseFloat(urlObj.searchParams.get('startTime') || urlObj.searchParams.get('t') || 0);
 
     const isMkvOrNonMp4 = /\.(mkv|avi|ts|mov|wmv|vob|flv)$/i.test(targetFile);
-    // Somente arquivos não-nativos (MKV/AVI) ou transcode explícito necessitam remux com FFmpeg
-    const needsFfmpegRemux = Boolean(RESOLVED_FFMPEG && !isDirect && (isMkvOrNonMp4 || isTranscode));
+    // Somente arquivos não-nativos (MKV/AVI), transcode explícito ou codecs incompatíveis com navegador necessitam remux com FFmpeg
+    const needsFfmpegRemux = Boolean(RESOLVED_FFMPEG && !isDirect && (isMkvOrNonMp4 || isTranscode || !mediaInfo.isDirectPlayable));
 
     if (needsFfmpegRemux) {
-        // Remux ultrarrápido com FFmpeg para Fragmented MP4 (fMP4):
-        // -c:v copy: 0% CPU, não reencoda o vídeo, inicia instantaneamente!
-        // -c:a aac: converte o áudio (EAC3/AC3/DTS) para AAC estéreo compatível com qualquer navegador
-        console.log(`[LocalStream] Remuxando vídeo com FFmpeg "${path.basename(targetFile)}" (start: ${startTimeParam}s)`);
+        console.log(`[LocalStream] Remuxando vídeo com FFmpeg "${path.basename(targetFile)}" (start: ${startTimeParam}s, video: ${mediaInfo.videoCodec || 'h264'}, audio: ${mediaInfo.audioCodec || 'aac'})`);
 
         const args = [
             '-hide_banner',
@@ -444,15 +470,18 @@ export function streamLocalVideo(filePath, req, res) {
             args.push('-ss', String(startTimeParam));
         }
 
+        const isH264 = mediaInfo.videoCodec === 'h264' || mediaInfo.videoCodec === 'avc1';
+        const isAac = mediaInfo.audioCodec === 'aac' || mediaInfo.audioCodec === 'mp4a';
+
         args.push(
             '-i', targetFile,
-            '-c:v', 'copy',
-            '-c:a', 'aac',
-            '-b:a', '192k',
-            '-ac', '2',
+            '-c:v', isH264 ? 'copy' : 'libx264',
+            ...(isH264 ? [] : ['-preset', 'ultrafast', '-crf', '22']),
+            '-c:a', isAac ? 'copy' : 'aac',
+            ...(isAac ? [] : ['-b:a', '192k', '-ac', '2']),
             '-sn',
             '-f', 'mp4',
-            '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+            '-movflags', 'frag_keyframe+default_base_moof',
             'pipe:1'
         );
 
