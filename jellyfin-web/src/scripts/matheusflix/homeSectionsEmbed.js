@@ -20,7 +20,6 @@
 import { fetchCatalog, fetchLocalMovies, fetchUserFavorites, fetchWatchHistory, deleteWatchHistory } from './api';
 import { openStremioDetails } from './stremioDetail';
 import { openCinemaPlayer } from './cinemaPlayer';
-import { confirmDropMovieModal } from './confirmModal';
 import { escapeHtml, normalizeMovie } from './utils';
 import toast from 'components/toast/toast';
 
@@ -632,22 +631,19 @@ function renderHistoryRow(container, { key, title, movies }) {
         if (btnDrop) {
             btnDrop.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const confirmed = await confirmDropMovieModal({ title: m.title });
-                if (confirmed) {
-                    try {
-                        await deleteWatchHistory(m.id || m.movieId);
-                        toast(`"${m.title}" removido de Continuar Assistindo.`);
-                        card.style.opacity = '0';
-                        card.style.transform = 'scale(0.85)';
-                        setTimeout(() => {
-                            card.remove();
-                            if (!scroller.querySelector('.mf-home-card')) {
-                                row.remove();
-                            }
-                        }, 200);
-                    } catch (err) {
-                        toast(`Erro ao remover: ${err.message}`);
-                    }
+                try {
+                    await deleteWatchHistory(m.id || m.movieId);
+                    toast(`"${m.title}" removido de Continuar Assistindo.`);
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.85)';
+                    setTimeout(() => {
+                        card.remove();
+                        if (!scroller.querySelector('.mf-home-card')) {
+                            row.remove();
+                        }
+                    }, 200);
+                } catch (err) {
+                    toast(`Erro ao remover: ${err.message}`);
                 }
             });
         }

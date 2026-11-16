@@ -5,7 +5,7 @@
 
 import { checkIsFavorite, fetchDownloads, fetchSeriesMeta, searchTorrents, startDownload, toggleFavorite, deleteLocalMovie, deleteWatchHistory } from './api';
 import { openCinemaPlayer, closeCinemaPlayer } from './cinemaPlayer';
-import { confirmDownloadModal, confirmDeleteFileModal, confirmDropMovieModal } from './confirmModal';
+import { confirmDownloadModal, confirmDeleteFileModal } from './confirmModal';
 import { escapeHtml, normalizeMovie, normalizeStream } from './utils';
 import toast from 'components/toast/toast';
 
@@ -262,24 +262,21 @@ export async function openStremioDetails(rawMovie) {
         });
     }
 
-    // Configurar botão de dropar filme (remover de Continuar Assistindo)
+    // Configurar botão de dropar filme (remover de Continuar Assistindo diretamente sem modal)
     const btnDropMovie = modalEl.querySelector('.mf-btn-drop-movie');
     if (btnDropMovie) {
         btnDropMovie.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const confirmed = await confirmDropMovieModal({ title: movie.title });
-            if (confirmed) {
-                btnDropMovie.disabled = true;
-                try {
-                    await deleteWatchHistory(movie.imdbId || movie.id);
-                    movie.resumePosition = 0;
-                    btnDropMovie.style.opacity = '0';
-                    setTimeout(() => btnDropMovie.remove(), 200);
-                    toast(`"${movie.title}" removido de Continuar Assistindo.`);
-                } catch (err) {
-                    btnDropMovie.disabled = false;
-                    toast(`Erro ao dropar filme: ${err.message}`);
-                }
+            btnDropMovie.disabled = true;
+            try {
+                await deleteWatchHistory(movie.imdbId || movie.id);
+                movie.resumePosition = 0;
+                btnDropMovie.style.opacity = '0';
+                setTimeout(() => btnDropMovie.remove(), 200);
+                toast(`"${movie.title}" removido de Continuar Assistindo.`);
+            } catch (err) {
+                btnDropMovie.disabled = false;
+                toast(`Erro ao remover: ${err.message}`);
             }
         });
     }
