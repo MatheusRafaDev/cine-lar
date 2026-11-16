@@ -464,7 +464,7 @@ export function openCinemaPlayer({
             hasFallbackTranscoded = true;
             const sep = fullStreamUrl.includes('?') ? '&' : '?';
             const fallbackUrl = `${fullStreamUrl}${sep}transcode=1`;
-            console.log('[CinemaPlayer] ⚡ Ativando conversão em tempo real (remux):', fallbackUrl);
+            console.log('[CinemaPlayer] Ativando conversao em tempo real (remux):', fallbackUrl);
             toast('Ajustando formato para compatibilidade com o navegador...');
 
             video.src = fallbackUrl;

@@ -335,13 +335,31 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
 }
 
 export function streamLocalVideo(filePath, req, res) {
-    if (!fs.existsSync(filePath)) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Local file not found' }));
-        return;
+    let targetFile = filePath;
+    if (!fs.existsSync(targetFile)) {
+        // Tenta encontrar caso o arquivo tenha sido movido para MatheusFlix ou vice-versa
+        const baseName = path.basename(targetFile);
+        const dirName = path.basename(path.dirname(targetFile));
+        const candidates = [
+            path.join('D:\\filmes', 'MatheusFlix', dirName, baseName),
+            path.join('D:\\filmes', dirName, baseName),
+            path.join('D:\\filmes', 'MatheusFlix', baseName),
+            path.join('D:\\filmes', baseName),
+            path.join('D:\\MatheusFlix', dirName, baseName),
+            path.join('D:\\MatheusFlix', baseName)
+        ];
+        const found = candidates.find(c => fs.existsSync(c));
+        if (found) {
+            targetFile = found;
+        } else {
+            console.warn(`[LocalStream] Arquivo não encontrado: "${filePath}"`);
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Local file not found' }));
+            return;
+        }
     }
 
-    const stat = fs.statSync(filePath);
+    const stat = fs.statSync(targetFile);
     const total = stat.size;
 
     // Trata requisições HEAD (verificação de mime/range pelo navegador)
@@ -360,14 +378,14 @@ export function streamLocalVideo(filePath, req, res) {
     const isDirect = urlObj.searchParams.get('direct') === '1';
     const startTimeParam = parseFloat(urlObj.searchParams.get('startTime') || urlObj.searchParams.get('t') || 0);
 
-    const isMkvOrNonMp4 = /\.(mkv|avi|ts|mov|wmv|vob|flv)$/i.test(filePath);
+    const isMkvOrNonMp4 = /\.(mkv|avi|ts|mov|wmv|vob|flv)$/i.test(targetFile);
     const needsFfmpegRemux = Boolean(RESOLVED_FFMPEG && !isDirect && (isMkvOrNonMp4 || isTranscode || startTimeParam > 0));
 
     if (needsFfmpegRemux) {
         // Remux ultrarrápido com FFmpeg para Fragmented MP4 (fMP4):
         // -c:v copy: 0% CPU, não reencoda o vídeo, inicia instantaneamente!
         // -c:a aac: converte o áudio (EAC3/AC3/DTS) para AAC estéreo compatível com qualquer navegador
-        console.log(`[LocalStream] ⚡ Remuxando vídeo com FFmpeg "${path.basename(filePath)}" (start: ${startTimeParam}s)`);
+        console.log(`[LocalStream] Remuxando vídeo com FFmpeg "${path.basename(targetFile)}" (start: ${startTimeParam}s)`);
 
         const args = [
             '-hide_banner',
@@ -379,7 +397,7 @@ export function streamLocalVideo(filePath, req, res) {
         }
 
         args.push(
-            '-i', filePath,
+            '-i', targetFile,
             '-c:v', 'copy',
             '-c:a', 'aac',
             '-b:a', '192k',
@@ -418,9 +436,9 @@ export function streamLocalVideo(filePath, req, res) {
 
     // Direct HTTP Range streaming (para MP4 nativo)
     let contentType = 'video/mp4';
-    if (filePath.endsWith('.webm')) contentType = 'video/webm';
-    else if (filePath.endsWith('.mkv')) contentType = 'video/x-matroska';
-    else if (filePath.endsWith('.avi')) contentType = 'video/x-msvideo';
+    if (targetFile.endsWith('.webm')) contentType = 'video/webm';
+    else if (targetFile.endsWith('.mkv')) contentType = 'video/x-matroska';
+    else if (targetFile.endsWith('.avi')) contentType = 'video/x-msvideo';
 
     const range = req.headers.range;
 
@@ -430,7 +448,7 @@ export function streamLocalVideo(filePath, req, res) {
             'Content-Type': contentType,
             'Accept-Ranges': 'bytes'
         });
-        fs.createReadStream(filePath).pipe(res);
+        fs.createReadStream(targetFile).pipe(res);
     } else {
         const parts = range.replace(/bytes=/, '').split('-');
         const start = parseInt(parts[0], 10);
@@ -443,7 +461,7 @@ export function streamLocalVideo(filePath, req, res) {
             'Content-Length': chunksize,
             'Content-Type': contentType
         });
-        fs.createReadStream(filePath, { start, end }).pipe(res);
+        fs.createReadStream(targetFile, { start, end }).pipe(res);
     }
 }
 
