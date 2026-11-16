@@ -4730,5 +4730,13 @@ div[role="button"]:focus-visible {
     }
 }
 
+/* Ocultar completamente botoes de Cast e Conectar a TV */
+.headerCastButton,
+.castButton,
+.mf-btn-cast-tv,
+.headerSelectedPlayer {
+    display: none !important;
+}
+
 
 

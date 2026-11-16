@@ -105,10 +105,6 @@ export function openCinemaPlayer({
                 </div>
             </div>
             <div class="mf-player-top-actions">
-                <button type="button" class="mf-btn-cast-tv focusable" title="Transmitir na TV">
-                    <span class="material-icons">cast</span>
-                    <span>TV</span>
-                </button>
                 <button type="button" class="mf-player-close-btn focusable" title="Fechar (Esc)">
                     <span class="material-icons">close</span>
                 </button>
@@ -330,27 +326,6 @@ export function openCinemaPlayer({
         e.stopPropagation();
         handleExit();
     });
-
-    const btnCastTv = playerEl.querySelector('.mf-btn-cast-tv');
-    if (btnCastTv) {
-        const canCast = Boolean(video.remote && typeof video.remote.prompt === 'function');
-        if (!canCast) {
-            btnCastTv.remove();
-        } else {
-            btnCastTv.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                try {
-                    await video.remote.prompt();
-                } catch (err) {
-                    if (err?.name === 'NotFoundError') {
-                        toast('Nenhuma TV encontrada. Ligue a TV/Chromecast na mesma rede Wi-Fi.');
-                    } else if (err?.name !== 'AbortError') {
-                        toast('Não foi possível transmitir este vídeo para a TV.');
-                    }
-                }
-            });
-        }
-    }
 
     // Volume controls
     volSlider.addEventListener('input', (e) => {

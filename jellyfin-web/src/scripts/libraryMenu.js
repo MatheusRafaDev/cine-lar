@@ -48,7 +48,7 @@ function renderHeader() {
     html += '<button is="paper-icon-button-light" class="headerSyncButton syncButton headerButton headerButtonRight hide"><span class="material-icons groups" aria-hidden="true"></span></button>';
     html += '<span class="headerSelectedPlayer"></span>';
     html += '<button is="paper-icon-button-light" class="headerAudioPlayerButton audioPlayerButton headerButton headerButtonRight hide"><span class="material-icons music_note" aria-hidden="true"></span></button>';
-    html += '<button is="paper-icon-button-light" class="headerCastButton castButton headerButton headerButtonRight"><span class="material-icons cast" aria-hidden="true"></span></button>';
+    html += '<button is="paper-icon-button-light" class="headerCastButton castButton headerButton headerButtonRight hide"><span class="material-icons cast" aria-hidden="true"></span></button>';
     html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton"><span class="material-icons search" aria-hidden="true"></span></button>';
     html += '<button is="paper-icon-button-light" class="headerButton headerButtonRight headerUserButton"><span class="material-icons person" aria-hidden="true"></span></button>';
     html += '<div class="currentTimeText hide"></div>';
@@ -180,8 +180,9 @@ function updateUserInHeader(user) {
             headerSearchButton.classList.remove('hide');
         }
 
-        if (!layoutManager.tv) {
-            headerCastButton.classList.remove('hide');
+        // MatheusFlix: Botão de Cast/Transmitir na TV desativado
+        if (headerCastButton) {
+            headerCastButton.classList.add('hide');
         }
 
         // MatheusFlix: Grupos (SyncPlay) desativados por simplificação da interface
