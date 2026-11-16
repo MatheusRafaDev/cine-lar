@@ -1,7 +1,5 @@
-import * as userSettings from '../scripts/settings/userSettings';
 import loading from '../components/loading/loading';
 import focusManager from '../components/focusManager';
-import homeSections from '../components/homesections/homesections';
 import { ServerConnections } from 'lib/jellyfin-apiclient';
 import { embedMatheusFlixHomeSections } from '../scripts/matheusflix/homeSectionsEmbed';
 
@@ -13,44 +11,31 @@ class HomeTab {
         this.params = params;
         this.apiClient = ServerConnections.currentApiClient();
         this.sectionsContainer = view.querySelector('.sections');
-        view.querySelector('.sections').addEventListener('settingschange', onHomeScreenSettingsChanged.bind(this));
+        view.querySelector('.sections')?.addEventListener('settingschange', onHomeScreenSettingsChanged.bind(this));
     }
-    onResume(options) {
+    onResume(options = {}) {
         if (this.sectionsRendered) {
-            const sectionsContainer = this.sectionsContainer;
-
-            if (sectionsContainer) {
-                embedMatheusFlixHomeSections(this.view);
-                return homeSections.resume(sectionsContainer, options);
-            }
-
+            embedMatheusFlixHomeSections(this.view);
             return Promise.resolve();
         }
 
         loading.show();
         const view = this.view;
-        const apiClient = this.apiClient;
         this.destroyHomeSections();
         this.sectionsRendered = true;
-        return apiClient.getCurrentUser()
-            .then(user => homeSections.loadSections(view.querySelector('.sections'), apiClient, user, userSettings))
+        return embedMatheusFlixHomeSections(view)
             .then(() => {
-                embedMatheusFlixHomeSections(view);
-                if (options.autoFocus) {
+                if (options?.autoFocus) {
                     focusManager.autoFocus(view);
                 }
             }).catch(err => {
-                console.error(err);
+                console.error('[HomeTab] Error rendering MatheusFlix sections:', err);
             }).finally(() => {
                 loading.hide();
             });
     }
     onPause() {
-        const sectionsContainer = this.sectionsContainer;
-
-        if (sectionsContainer) {
-            homeSections.pause(sectionsContainer);
-        }
+        // Nada para pausar
     }
     destroy() {
         this.view = null;
@@ -60,11 +45,7 @@ class HomeTab {
         this.sectionsContainer = null;
     }
     destroyHomeSections() {
-        const sectionsContainer = this.sectionsContainer;
-
-        if (sectionsContainer) {
-            homeSections.destroySections(sectionsContainer);
-        }
+        // Limpa seções se necessário
     }
 }
 

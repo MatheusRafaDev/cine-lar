@@ -32,6 +32,11 @@ export async function embedMatheusFlixHomeSections(view) {
     const sections = homeTab.querySelector('.sections');
     if (!sections) return;
 
+    // Remove imediatamente quaisquer seções legadas do Jellyfin (Minha mídia e Filmes recentes)
+    sections.querySelectorAll('.verticalSection:not(.mf-home-section):not(.mf-home-sections-wrap), [data-type="smalllibrarytiles"], [data-type="latestmedia"], [data-type="librarybuttons"]').forEach((el) => {
+        el.remove();
+    });
+
     inFlight.add(view);
     try {
         const [

@@ -2348,6 +2348,27 @@ button:has(.cloud_download),
     transform: scale(1.02) !important;
 }
 
+/* Ocultar seções legadas nativas do Jellyfin (Minha mídia e Filmes recentes) */
+#homeTab .sections > .verticalSection:not(.mf-home-section):not(.mf-home-sections-wrap),
+#homeTab .sections > [data-type="smalllibrarytiles"],
+#homeTab .sections > [data-type="latestmedia"],
+#homeTab .sections > [data-type="librarybuttons"],
+#homeTab .sections > [data-type="resume"],
+#homeTab .sections > [data-type="nextup"],
+#homeTab .sections > .section0,
+#homeTab .sections > .section1,
+#homeTab .sections > .section2,
+#homeTab .sections > .section3 {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
 /* Home Section Layout */
 .mf-home-section {
     margin-top: 32px;
