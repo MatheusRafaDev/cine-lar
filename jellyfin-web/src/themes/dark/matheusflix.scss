@@ -72,10 +72,10 @@ body,
    Header fixo de linha única permanente (68px) em todas as telas
    ========================================================================== */
 
-.skinHeader,
-.layout-tv .skinHeader,
-.layout-mobile .skinHeader,
-.layout-desktop .skinHeader {
+.skinHeader:not(.osdHeader),
+.layout-tv .skinHeader:not(.osdHeader),
+.layout-mobile .skinHeader:not(.osdHeader),
+.layout-desktop .skinHeader:not(.osdHeader) {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
@@ -99,10 +99,10 @@ body,
     contain: layout style paint !important;
 }
 
-.skinHeader.semiTransparent,
-.layout-tv .skinHeader.semiTransparent,
-.layout-mobile .skinHeader.semiTransparent,
-.layout-desktop .skinHeader.semiTransparent {
+.skinHeader.semiTransparent:not(.osdHeader),
+.layout-tv .skinHeader.semiTransparent:not(.osdHeader),
+.layout-mobile .skinHeader.semiTransparent:not(.osdHeader),
+.layout-desktop .skinHeader.semiTransparent:not(.osdHeader) {
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
     background: rgba(20, 20, 20, 0.98) !important;
@@ -110,8 +110,8 @@ body,
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75) !important;
 }
 
-.skinHeader.headroom--unpinned,
-.layout-tv .skinHeader.headroom--unpinned {
+.skinHeader.headroom--unpinned:not(.osdHeader),
+.layout-tv .skinHeader.headroom--unpinned:not(.osdHeader) {
     transform: none !important;
 }
 
