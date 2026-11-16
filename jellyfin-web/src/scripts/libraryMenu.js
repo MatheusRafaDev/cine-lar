@@ -157,10 +157,14 @@ function updateUserInHeader(user) {
             updateHeaderUserButton(url);
             hasImage = true;
         }
-        headerUserButton.title = user.name;
-        headerUserButton.classList.remove('hide');
+        if (headerUserButton) {
+            headerUserButton.title = user.name;
+            headerUserButton.classList.remove('hide');
+        }
     } else {
-        headerUserButton.classList.add('hide');
+        if (headerUserButton) {
+            headerUserButton.classList.add('hide');
+        }
     }
 
     if (!hasImage) {
@@ -193,9 +197,15 @@ function updateUserInHeader(user) {
             else el.remove();
         });
     } else {
-        headerHomeButton.classList.add('hide');
-        headerCastButton.classList.add('hide');
-        headerSyncButton.classList.add('hide');
+        if (headerHomeButton) {
+            headerHomeButton.classList.add('hide');
+        }
+        if (headerCastButton) {
+            headerCastButton.classList.add('hide');
+        }
+        if (headerSyncButton) {
+            headerSyncButton.classList.add('hide');
+        }
 
         if (headerSearchButton) {
             headerSearchButton.classList.add('hide');
@@ -206,6 +216,10 @@ function updateUserInHeader(user) {
 }
 
 function updateHeaderUserButton(src) {
+    if (!headerUserButton) {
+        return;
+    }
+
     if (src) {
         headerUserButton.classList.add('headerUserButtonRound');
         headerUserButton.innerHTML = '<div class="headerButton headerButtonRight paper-icon-button-light headerUserButtonRound" style="background-image:url(\'' + src + "');\"></div>";
@@ -216,6 +230,10 @@ function updateHeaderUserButton(src) {
 }
 
 function updateClock() {
+    if (!currentTimeText) {
+        return;
+    }
+
     if (layoutManager.tv) {
         currentTimeText.classList.remove('hide');
         setInterval(function() {
@@ -255,17 +273,27 @@ function bindMenuEvents() {
         headerSearchButton.addEventListener('click', showSearch);
     }
 
-    headerUserButton.addEventListener('click', onHeaderUserButtonClick);
-    headerHomeButton.addEventListener('click', onHeaderHomeButtonClick);
+    if (headerUserButton) {
+        headerUserButton.addEventListener('click', onHeaderUserButtonClick);
+    }
 
-    if (!layoutManager.tv) {
+    if (headerHomeButton) {
+        headerHomeButton.addEventListener('click', onHeaderHomeButtonClick);
+    }
+
+    if (!layoutManager.tv && headerCastButton) {
         headerCastButton.addEventListener('click', onCastButtonClicked);
     }
 
-    headerAudioPlayerButton.addEventListener('click', showAudioPlayer);
-    headerSyncButton.addEventListener('click', onSyncButtonClicked);
+    if (headerAudioPlayerButton) {
+        headerAudioPlayerButton.addEventListener('click', showAudioPlayer);
+    }
 
-    if (layoutManager.mobile) {
+    if (headerSyncButton) {
+        headerSyncButton.addEventListener('click', onSyncButtonClicked);
+    }
+
+    if (layoutManager.mobile && skinHeader) {
         initHeadRoom(skinHeader);
     }
     Events.on(playbackManager, 'playbackstart', onPlaybackStart);
@@ -273,6 +301,10 @@ function bindMenuEvents() {
 }
 
 function onPlaybackStart() {
+    if (!headerAudioPlayerButton) {
+        return;
+    }
+
     if (playbackManager.isPlayingAudio() && layoutManager.tv) {
         headerAudioPlayerButton.classList.remove('hide');
     } else {
@@ -281,6 +313,10 @@ function onPlaybackStart() {
 }
 
 function onPlaybackStop(e, stopInfo) {
+    if (!headerAudioPlayerButton) {
+        return;
+    }
+
     if (stopInfo.nextMediaType != 'Audio') {
         headerAudioPlayerButton.classList.add('hide');
     }
@@ -542,9 +578,15 @@ function onLogoutClick() {
 }
 
 function updateCastIcon() {
+    if (!headerCastButton) {
+        return;
+    }
     const context = document;
     const info = playbackManager.getPlayerInfo();
     const icon = headerCastButton.querySelector('.material-icons');
+    if (!icon) {
+        return;
+    }
 
     icon.classList.remove('cast_connected', 'cast');
 
