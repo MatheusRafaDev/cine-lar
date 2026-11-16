@@ -4778,5 +4778,278 @@ div[role="button"]:focus-visible {
     display: none !important;
 }
 
+/* ==========================================================================
+   MatheusFlix - Configurações & Preferências no Padrão Netflix
+   ========================================================================== */
+
+.userPreferencesPage {
+    background: #141414 !important;
+    min-height: 100vh !important;
+    color: #ffffff !important;
+}
+
+.mf-settings-container {
+    max-width: 860px !important;
+    margin: 0 auto !important;
+    padding: 24px 24px 64px 24px !important;
+    box-sizing: border-box !important;
+}
+
+.mf-settings-saved-notice {
+    background: rgba(70, 211, 105, 0.15) !important;
+    border: 1px solid rgba(70, 211, 105, 0.4) !important;
+    color: #46d369 !important;
+    padding: 12px 20px !important;
+    border-radius: 8px !important;
+    margin-bottom: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    animation: mfFadeIn 0.2s ease !important;
+}
+
+.mf-settings-card {
+    background: #181818 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
+    padding: 26px 30px !important;
+    margin-bottom: 24px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
+    transition: border-color 0.2s ease !important;
+}
+
+.mf-profile-card {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 18px !important;
+}
+
+.mf-profile-avatar {
+    width: 68px !important;
+    height: 68px !important;
+    border-radius: 8px !important;
+    background: linear-gradient(135deg, #e50914 0%, #b81d24 100%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 28px !important;
+    box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45) !important;
+    flex-shrink: 0 !important;
+}
+
+.mf-profile-name {
+    margin: 0 !important;
+    font-size: 24px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.3px !important;
+}
+
+.mf-profile-badge {
+    background: rgba(229, 9, 20, 0.15) !important;
+    color: #e50914 !important;
+    border: 1px solid rgba(229, 9, 20, 0.35) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    padding: 3px 10px !important;
+    border-radius: 9999px !important;
+    letter-spacing: 0.4px !important;
+    text-transform: uppercase !important;
+}
+
+.mf-profile-subtext {
+    margin: 4px 0 0 0 !important;
+    font-size: 13px !important;
+    color: #808080 !important;
+    font-weight: 500 !important;
+}
+
+.mf-btn-switch-profile {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    border-radius: 8px !important;
+    padding: 10px 22px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.mf-btn-switch-profile:hover,
+.mf-btn-switch-profile:focus-visible {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-color: #ffffff !important;
+    transform: scale(1.04) !important;
+    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3) !important;
+}
+
+.mf-settings-section-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    margin: 0 0 22px 0 !important;
+    letter-spacing: 0.3px !important;
+
+    &::before {
+        content: '' !important;
+        width: 4px !important;
+        height: 18px !important;
+        background: #e50914 !important;
+        border-radius: 2px !important;
+        display: inline-block !important;
+    }
+}
+
+.mf-settings-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    margin-bottom: 22px !important;
+}
+
+.mf-settings-group-title {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #e5e5e5 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.mf-pref-chip {
+    padding: 9px 18px !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: #242424 !important;
+    color: #b3b3b3 !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    user-select: none !important;
+    outline: none !important;
+}
+
+.mf-pref-chip:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    transform: scale(1.02) !important;
+}
+
+.mf-pref-chip.active {
+    background: #e50914 !important;
+    border-color: #e50914 !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 14px rgba(229, 9, 20, 0.45) !important;
+}
+
+.mf-pref-chip:focus,
+.mf-pref-chip:focus-visible {
+    outline: 3px solid #ffffff !important;
+    outline-offset: 2px !important;
+    transform: scale(1.06) !important;
+    z-index: 5 !important;
+}
+
+.mf-settings-status-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    padding: 4px 0 !important;
+}
+
+.mf-settings-badge-success {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #46d369 !important;
+    background: rgba(70, 211, 105, 0.12) !important;
+    border: 1px solid rgba(70, 211, 105, 0.3) !important;
+    padding: 4px 12px !important;
+    border-radius: 9999px !important;
+}
+
+.mf-settings-badge-info {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #38bdf8 !important;
+    background: rgba(56, 189, 248, 0.12) !important;
+    border: 1px solid rgba(56, 189, 248, 0.3) !important;
+    padding: 4px 12px !important;
+    border-radius: 9999px !important;
+}
+
+.mf-settings-divider {
+    height: 1px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    margin: 14px 0 !important;
+}
+
+.mf-btn-server-admin {
+    display: block !important;
+    background: #181818 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    text-decoration: none !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+.mf-btn-server-admin:hover,
+.mf-btn-server-admin:focus-visible {
+    background: #222222 !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5) !important;
+}
+
+.mf-btn-logout {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: transparent !important;
+    color: #e50914 !important;
+    border: 1px solid rgba(229, 9, 20, 0.4) !important;
+    border-radius: 8px !important;
+    padding: 14px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.mf-btn-logout:hover,
+.mf-btn-logout:focus-visible {
+    background: #e50914 !important;
+    color: #ffffff !important;
+    border-color: #e50914 !important;
+    box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45) !important;
+    transform: scale(1.01) !important;
+}
+
 
 

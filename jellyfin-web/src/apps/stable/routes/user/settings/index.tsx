@@ -10,22 +10,6 @@ import { useUsers } from 'hooks/useUsers';
 import globalize from 'lib/globalize';
 import Dashboard from 'utils/dashboard';
 
-const getChipStyle = (active: boolean) => ({
-    padding: '10px 18px',
-    borderRadius: 12,
-    fontSize: 13,
-    fontWeight: active ? 700 : 500,
-    cursor: 'pointer',
-    border: active ? '1px solid #ff7a1a' : '1px solid rgba(255, 255, 255, 0.12)',
-    background: active ? 'linear-gradient(135deg, rgba(255, 122, 26, 0.25), rgba(255, 122, 26, 0.12))' : 'rgba(255, 255, 255, 0.04)',
-    color: active ? '#ff9e42' : '#cbd5e1',
-    transition: 'all 0.2s ease',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    userSelect: 'none' as const
-});
-
 interface PrefChipProps {
     active: boolean;
     label: string;
@@ -49,7 +33,7 @@ const PrefChip: FC<PrefChipProps> = ({ active, label, value, icon, onSelect }) =
         <div
             role='button'
             tabIndex={0}
-            style={getChipStyle(active)}
+            className={`mf-pref-chip focusable ${active ? 'active' : ''}`}
             onClick={handleClick}
             onKeyDown={handleKeyDown}
         >
@@ -111,12 +95,8 @@ const UserSettingsPage: FC = () => {
 
     const onSwitchProfileClick = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
-        const mf = (window as unknown as { MatheusFlix?: { openProfileSelector?: () => void } }).MatheusFlix;
-        if (mf?.openProfileSelector) {
-            mf.openProfileSelector();
-        } else {
-            void import('scripts/matheusflix/profileSelector').then(m => m.openProfileSelector());
-        }
+        setSavedNotice('Perfil único ativo no MatheusFlix (Acesso direto sem login).');
+        window.setTimeout(() => setSavedNotice(null), 3000);
     }, []);
 
     const onLogoutClick = useCallback((e: React.MouseEvent) => {
@@ -135,86 +115,33 @@ const UserSettingsPage: FC = () => {
             title={globalize.translate('Settings')}
             shouldAutoFocus
         >
-            <div className='padded-left padded-right padded-bottom-page padded-top' style={{ maxWidth: 860, margin: '0 auto' }}>
+            <div className='mf-settings-container'>
                 {/* Notificação Flutuante de Salvo */}
                 {savedNotice && (
-                    <div
-                        style={{
-                            background: 'rgba(34, 197, 94, 0.2)',
-                            border: '1px solid rgba(34, 197, 94, 0.4)',
-                            color: '#4ade80',
-                            padding: '12px 20px',
-                            borderRadius: 12,
-                            marginBottom: 20,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            fontSize: 14,
-                            fontWeight: 600,
-                            animation: 'fadeIn 0.2s ease'
-                        }}
-                    >
+                    <div className='mf-settings-saved-notice'>
                         <span className='material-icons' style={{ fontSize: 20 }}>check_circle</span>
                         {savedNotice}
                     </div>
                 )}
 
-                {/* Card do Perfil Atual */}
-                <div
-                    style={{
-                        background: 'linear-gradient(135deg, rgba(25, 29, 41, 0.95), rgba(15, 18, 26, 0.98))',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: 16,
-                        padding: '24px 28px',
-                        marginBottom: 24,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: 16,
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
-                    }}
-                >
+                {/* Card do Perfil Atual Padrão Netflix */}
+                <div className='mf-settings-card mf-profile-card'>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                        <div
-                            style={{
-                                width: 64,
-                                height: 64,
-                                borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #ff7a1a, #ff9e42)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#fff',
-                                fontWeight: 800,
-                                fontSize: 26,
-                                boxShadow: '0 4px 16px rgba(255, 122, 26, 0.35)'
-                            }}
-                        >
+                        <div className='mf-profile-avatar'>
                             {(user.Name || 'U').charAt(0).toUpperCase()}
                         </div>
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#ffffff' }}>
+                                <h2 className='mf-profile-name'>
                                     {user.Name}
                                 </h2>
                                 {user.Policy?.IsAdministrator && (
-                                    <span
-                                        style={{
-                                            background: 'rgba(255, 122, 26, 0.2)',
-                                            color: '#ff9e42',
-                                            border: '1px solid rgba(255, 122, 26, 0.4)',
-                                            fontSize: 11,
-                                            fontWeight: 700,
-                                            padding: '2px 8px',
-                                            borderRadius: 99
-                                        }}
-                                    >
+                                    <span className='mf-profile-badge'>
                                         Administrador
                                     </span>
                                 )}
                             </div>
-                            <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#94a3b8' }}>
+                            <p className='mf-profile-subtext'>
                                 Perfil ativo no MatheusFlix • Sem exigência de senhas
                             </p>
                         </div>
@@ -224,48 +151,24 @@ const UserSettingsPage: FC = () => {
                         <button
                             type='button'
                             onClick={onSwitchProfileClick}
-                            style={{
-                                background: 'linear-gradient(135deg, rgba(255, 122, 26, 0.2), rgba(255, 122, 26, 0.1))',
-                                color: '#ff9e42',
-                                border: '1px solid rgba(255, 122, 26, 0.35)',
-                                borderRadius: 12,
-                                padding: '10px 20px',
-                                fontSize: 14,
-                                fontWeight: 700,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                            }}
+                            className='mf-btn-switch-profile focusable'
                         >
-                            <span className='material-icons' style={{ fontSize: 20 }}>switch_account</span>
+                            <span className='material-icons' style={{ fontSize: 18 }}>switch_account</span>
                             Trocar Perfil
                         </button>
                     </div>
                 </div>
 
-                {/* Preferências Essenciais Diretas em 1 Tela */}
-                <div
-                    style={{
-                        background: 'rgba(20, 24, 34, 0.85)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
-                        borderRadius: 16,
-                        padding: '24px 28px',
-                        marginBottom: 24,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 22
-                    }}
-                >
-                    <h3 style={{ fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ff9e42', margin: 0 }}>
-                        Preferências do Player & Áudio
+                {/* Preferências de Reprodução & Áudio Padrão Netflix */}
+                <div className='mf-settings-card'>
+                    <h3 className='mf-settings-section-title'>
+                        Preferências de Reprodução & Áudio
                     </h3>
 
                     {/* Áudio Padrão */}
-                    <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#ffffff', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#ff7a1a' }}>volume_up</span>
+                    <div className='mf-settings-group'>
+                        <div className='mf-settings-group-title'>
+                            <span className='material-icons' style={{ fontSize: 18, color: '#e50914' }}>volume_up</span>
                             Áudio Padrão dos Filmes & Séries
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -287,8 +190,8 @@ const UserSettingsPage: FC = () => {
                     </div>
 
                     {/* Legendas */}
-                    <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#ffffff', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className='mf-settings-group'>
+                        <div className='mf-settings-group-title'>
                             <span className='material-icons' style={{ fontSize: 18, color: '#38bdf8' }}>subtitles</span>
                             Legendas em Português
                         </div>
@@ -315,9 +218,9 @@ const UserSettingsPage: FC = () => {
                     </div>
 
                     {/* Tamanho da Legenda */}
-                    <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#ffffff', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#f59e0b' }}>format_size</span>
+                    <div className='mf-settings-group'>
+                        <div className='mf-settings-group-title'>
+                            <span className='material-icons' style={{ fontSize: 18, color: '#fbbf24' }}>format_size</span>
                             Tamanho da Legenda
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -343,9 +246,9 @@ const UserSettingsPage: FC = () => {
                     </div>
 
                     {/* Qualidade de Vídeo */}
-                    <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#ffffff', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#22c55e' }}>hd</span>
+                    <div className='mf-settings-group' style={{ marginBottom: 0 }}>
+                        <div className='mf-settings-group-title'>
+                            <span className='material-icons' style={{ fontSize: 18, color: '#46d369' }}>hd</span>
                             Qualidade de Reprodução
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -372,46 +275,35 @@ const UserSettingsPage: FC = () => {
                 </div>
 
                 {/* Armazenamento & Motor de Download */}
-                <div
-                    style={{
-                        background: 'rgba(20, 24, 34, 0.85)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
-                        borderRadius: 16,
-                        padding: '20px 24px',
-                        marginBottom: 24,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 14
-                    }}
-                >
-                    <h3 style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', margin: 0 }}>
+                <div className='mf-settings-card'>
+                    <h3 className='mf-settings-section-title'>
                         Armazenamento Local & Serviços
                     </h3>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <span className='material-icons' style={{ color: '#22c55e', fontSize: 24 }}>folder</span>
+                    <div className='mf-settings-status-row'>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <span className='material-icons' style={{ color: '#46d369', fontSize: 24 }}>folder</span>
                             <div>
-                                <div style={{ fontSize: 14, fontWeight: 600, color: '#ffffff' }}>Pasta de Filmes & Downloads</div>
-                                <div style={{ fontSize: 12, color: '#94a3b8' }}>D:\filmes (Organização em Franquias e Séries)</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>Pasta de Filmes & Downloads</div>
+                                <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>D:\filmes (Organização em Franquias e Séries)</div>
                             </div>
                         </div>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#22c55e', background: 'rgba(34, 197, 94, 0.15)', padding: '4px 12px', borderRadius: 99 }}>
+                        <span className='mf-settings-badge-success'>
                             Ativo no Disco D:
                         </span>
                     </div>
 
-                    <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.05)' }} />
+                    <div className='mf-settings-divider' />
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className='mf-settings-status-row'>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                             <span className='material-icons' style={{ color: '#38bdf8', fontSize: 24 }}>bolt</span>
                             <div>
-                                <div style={{ fontSize: 14, fontWeight: 600, color: '#ffffff' }}>Serviço de Torrent & Streaming</div>
-                                <div style={{ fontSize: 12, color: '#94a3b8' }}>Porta 8085 (Node.js + WebTorrent em tempo real)</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>Serviço de Torrent & Streaming</div>
+                                <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>Porta 8085 (Node.js + WebTorrent em tempo real)</div>
                             </div>
                         </div>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.15)', padding: '4px 12px', borderRadius: 99 }}>
+                        <span className='mf-settings-badge-info'>
                             Conectado
                         </span>
                     </div>
@@ -422,27 +314,29 @@ const UserSettingsPage: FC = () => {
                     <div style={{ marginBottom: 24 }}>
                         <LinkButton
                             href='#/dashboard'
-                            className='listItem-border'
+                            className='mf-btn-server-admin focusable'
                             style={{
                                 display: 'block',
                                 margin: 0,
                                 padding: 0,
-                                borderRadius: 14,
-                                background: 'rgba(20, 24, 34, 0.7)',
-                                border: '1px solid rgba(255, 255, 255, 0.06)'
+                                textDecoration: 'none'
                             }}
                         >
-                            <div className='listItem' style={{ padding: '14px 20px' }}>
-                                <span className='material-icons listItemIcon listItemIcon-transparent dashboard' style={{ color: '#ff7a1a', fontSize: 24 }} aria-hidden='true' />
-                                <div className='listItemBody'>
-                                    <div className='listItemBodyText' style={{ fontWeight: 600, color: '#fff' }}>
-                                        Painel do Servidor Jellyfin
-                                    </div>
-                                    <div className='listItemBodyText' style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                                        Gerenciar bibliotecas, usuários e plugins do servidor
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                                    <span className='material-icons' style={{ color: '#e50914', fontSize: 24 }} aria-hidden='true'>
+                                        dashboard
+                                    </span>
+                                    <div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>
+                                            Painel do Servidor Jellyfin
+                                        </div>
+                                        <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>
+                                            Gerenciar bibliotecas, usuários e plugins do servidor
+                                        </div>
                                     </div>
                                 </div>
-                                <span className='material-icons' style={{ color: '#475569' }}>chevron_right</span>
+                                <span className='material-icons' style={{ color: '#808080' }}>chevron_right</span>
                             </div>
                         </LinkButton>
                     </div>
@@ -450,27 +344,11 @@ const UserSettingsPage: FC = () => {
 
                 {/* Botão de Sair da Conta */}
                 {isLoggedInUser && (
-                    <div style={{ marginTop: 10 }}>
+                    <div style={{ marginTop: 8 }}>
                         <button
                             type='button'
                             onClick={onLogoutClick}
-                            style={{
-                                width: '100%',
-                                boxSizing: 'border-box',
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                color: '#f87171',
-                                border: '1px solid rgba(239, 68, 68, 0.25)',
-                                borderRadius: 12,
-                                padding: '14px',
-                                fontSize: 14,
-                                fontWeight: 700,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 8,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                            }}
+                            className='mf-btn-logout focusable'
                         >
                             <span className='material-icons' style={{ fontSize: 20 }}>exit_to_app</span>
                             {globalize.translate('ButtonSignOut')}
