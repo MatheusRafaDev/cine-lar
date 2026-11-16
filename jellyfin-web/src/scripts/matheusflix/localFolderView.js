@@ -18,22 +18,6 @@ export function renderLocalFolderView(container) {
 
     container.innerHTML = `
         <div class="mf-local">
-            <div class="mf-local-header-bar">
-                <div>
-                    <h3 class="mf-local-path">Na sua pasta</h3>
-                    <div class="mf-local-stats-text">Carregando…</div>
-                </div>
-                <div class="mf-local-actions">
-                    <div class="mf-local-search-wrap">
-                        <span class="material-icons" style="font-size: 18px; color: #8c93a4;">search</span>
-                        <input type="search" class="mf-local-search-input focusable" placeholder="Filtrar filmes da pasta" />
-                    </div>
-                    <button type="button" class="mf-btn-rescan-folder focusable" title="Procurar arquivos novos na pasta">
-                        <span class="material-icons">refresh</span><span>Atualizar</span>
-                    </button>
-                </div>
-            </div>
-
             <!-- Barra de Categorias e Agrupamentos (Todos, Franquias, Séries) -->
             <div class="mf-local-category-bar">
                 <button type="button" class="mf-category-chip focusable active" data-view="all">
@@ -71,7 +55,7 @@ export function renderLocalFolderView(container) {
     const countSeries = container.querySelector('.mf-count-series');
 
     const render = () => {
-        const q = searchInput.value.toLowerCase().trim();
+        const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
         if (currentView === 'franchises') {
             renderFranchisesView(contentArea, franchises, q);
@@ -103,32 +87,38 @@ export function renderLocalFolderView(container) {
             franchises = data.franchises || [];
             series = data.series || [];
 
-            countAll.textContent = String(movies.length);
-            countFranchises.textContent = String(franchises.length);
-            countSeries.textContent = String(series.length);
+            if (countAll) countAll.textContent = String(movies.length);
+            if (countFranchises) countFranchises.textContent = String(franchises.length);
+            if (countSeries) countSeries.textContent = String(series.length);
 
-            stats.textContent = `${data.count ?? movies.length} filmes • ${data.totalSize || ''} • ${franchises.length} franquias organizadas`;
+            if (stats) {
+                stats.textContent = `${data.count ?? movies.length} filmes • ${data.totalSize || ''} • ${franchises.length} franquias organizadas`;
+            }
             render();
         } catch (err) {
-            stats.textContent = '';
+            if (stats) stats.textContent = '';
             contentArea.innerHTML = `<p class="mf-error">Não foi possível ler a pasta (${escapeHtml(err.message)}). Verifique se o torrent-service está rodando.</p>`;
         }
     }
 
-    searchInput.addEventListener('input', render);
+    if (searchInput) {
+        searchInput.addEventListener('input', render);
+    }
 
-    btnRescan.addEventListener('click', async () => {
-        btnRescan.disabled = true;
-        try {
-            await rescanLocalMovies();
-            await load(true);
-            toast('Pasta atualizada e reorganizada.');
-        } catch (err) {
-            toast(`Erro ao atualizar a pasta: ${err.message}`);
-        } finally {
-            btnRescan.disabled = false;
-        }
-    });
+    if (btnRescan) {
+        btnRescan.addEventListener('click', async () => {
+            btnRescan.disabled = true;
+            try {
+                await rescanLocalMovies();
+                await load(true);
+                toast('Pasta atualizada e reorganizada.');
+            } catch (err) {
+                toast(`Erro ao atualizar a pasta: ${err.message}`);
+            } finally {
+                btnRescan.disabled = false;
+            }
+        });
+    }
 
     load(false);
     startDownloadsPolling(container, strip, () => load(true));
