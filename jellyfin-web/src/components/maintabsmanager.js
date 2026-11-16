@@ -75,18 +75,58 @@ function configureSwipeTabs(view, currentElement) {
     });
 }
 
+const MATHEUSFLIX_GLOBAL_TABS = [
+    { name: 'Início', href: '#/home?tab=0' },
+    { name: 'Torrents', href: '#/home?tab=1' },
+    { name: 'Pasta Local', href: '#/home?tab=2' },
+    { name: 'Downloads', href: '#/home?tab=3' }
+];
+
+export function renderMatheusFlixDefaultTabs(activeIdx = null) {
+    ensureElements();
+    if (!headerTabsContainer) return;
+
+    headerTabsContainer.classList.remove('hide');
+    document.body.classList.add('withSectionTabs');
+
+    const currentHash = window.location.hash || '';
+    if (activeIdx == null) {
+        if (currentHash.includes('tab=1')) activeIdx = 1;
+        else if (currentHash.includes('tab=2')) activeIdx = 2;
+        else if (currentHash.includes('tab=3')) activeIdx = 3;
+        else if (currentHash.includes('/home') || currentHash === '' || currentHash === '#/') activeIdx = 0;
+    }
+
+    const tabsItems = MATHEUSFLIX_GLOBAL_TABS.map((t, idx) => {
+        const isActive = Number(activeIdx) === idx;
+        const activeClass = isActive ? ' emby-tab-button-active' : '';
+        return `<a href="${t.href}" is="emby-linkbutton" class="emby-tab-button${activeClass}" data-index="${idx}"><div class="emby-button-foreground">${t.name}</div></a>`;
+    }).join('');
+    const tabsHtml = `<div is="emby-tabs" class="tabs-viewmenubar"><div class="emby-tabs-slider" style="white-space:nowrap;">${tabsItems}</div></div>`;
+
+    headerTabsContainer.innerHTML = tabsHtml;
+    window.CustomElements.upgradeSubtree(headerTabsContainer);
+    tabsElem = headerTabsContainer.querySelector('[is="emby-tabs"]');
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('hashchange', () => {
+        if (!tabOwnerView) {
+            renderMatheusFlixDefaultTabs();
+        }
+    });
+}
+
 export function setTabs(view, selectedIndex, getTabsFn, getTabContainersFn, onBeforeTabChange, onTabChange, setSelectedIndex) {
     ensureElements();
 
     if (!view) {
         if (tabOwnerView) {
-            document.body.classList.remove('withSectionTabs');
-
-            headerTabsContainer.innerHTML = '';
-            headerTabsContainer.classList.add('hide');
-
             tabOwnerView = null;
         }
+
+        renderMatheusFlixDefaultTabs();
+
         return {
             tabsContainer: headerTabsContainer,
             replaced: false

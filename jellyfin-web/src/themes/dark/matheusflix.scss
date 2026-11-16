@@ -67,6 +67,13 @@ body,
 
 .skinHeader,
 .layout-tv .skinHeader,
+/* ==========================================================================
+   1. CABEÇALHO UNIFICADO PERMANENTE MATHEUSFLIX (ESTILO NETFLIX)
+   Header fixo de linha única permanente (68px) em todas as telas
+   ========================================================================== */
+
+.skinHeader,
+.layout-tv .skinHeader,
 .layout-mobile .skinHeader,
 .layout-desktop .skinHeader {
     position: fixed !important;
@@ -74,14 +81,22 @@ body,
     left: 0 !important;
     right: 0 !important;
     width: 100% !important;
+    height: 68px !important;
+    min-height: 68px !important;
+    max-height: 68px !important;
     z-index: 1000 !important;
     transform: none !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 0 24px !important;
+    box-sizing: border-box !important;
     background: rgba(20, 20, 20, 0.95) !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
     border-bottom: 1px solid var(--line) !important;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
-    transition: background-color 0.3s ease !important;
+    contain: layout style paint !important;
 }
 
 .skinHeader.semiTransparent,
@@ -90,7 +105,7 @@ body,
 .layout-desktop .skinHeader.semiTransparent {
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
-    background: rgba(20, 20, 20, 0.97) !important;
+    background: rgba(20, 20, 20, 0.98) !important;
     border-bottom: 1px solid var(--line) !important;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75) !important;
 }
@@ -100,29 +115,147 @@ body,
     transform: none !important;
 }
 
-/* Logo personalizado MatheusFlix no topo (Branco + Vermelho Marca) */
+.headerTop {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.headerLeft {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex-shrink: 0 !important;
+}
+
+.headerLeft .mainDrawerButton {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: var(--text-1) !important;
+}
+
+/* Logo permanente MatheusFlix no topo (Branco + Vermelho Marca) */
+.pageTitle,
 .pageTitleWithDefaultLogo {
     background-image: none !important;
+    font-size: 0 !important;
     width: auto !important;
-    min-width: 140px;
-    font-size: 24px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.03em !important;
     display: inline-flex !important;
     align-items: center !important;
-    color: var(--text-1) !important;
-    text-decoration: none !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    user-select: none !important;
 }
 
+.pageTitle::before,
 .pageTitleWithDefaultLogo::before {
-    content: "Matheus";
-    color: var(--text-1);
+    content: "Matheus" !important;
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    color: var(--text-1) !important;
+    letter-spacing: -0.03em !important;
 }
 
+.pageTitle::after,
 .pageTitleWithDefaultLogo::after {
-    content: "Flix";
-    color: var(--brand);
-    margin-left: 2px;
+    content: "Flix" !important;
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    color: var(--brand) !important;
+    letter-spacing: -0.03em !important;
+    margin-left: 2px !important;
+}
+
+/* Abas de Navegação Centrais (Início, Torrents, Pasta Local, Downloads) */
+.headerTabs,
+.sectionTabs {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex: 1 1 auto !important;
+    height: 100% !important;
+    margin: 0 0 0 28px !important;
+    padding: 0 !important;
+    position: static !important;
+    width: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.headerTabs.hide {
+    display: flex !important;
+}
+
+.tabs-viewmenubar,
+[is="emby-tabs"] {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+.emby-tabs-slider {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+    gap: 16px !important;
+}
+
+/* Botões das abas com indicador ativo vermelho */
+.emby-tab-button {
+    height: 68px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 0 12px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: var(--text-2) !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 3px solid transparent !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    transition: color 0.2s ease, border-color 0.2s ease !important;
+
+    &:hover {
+        color: var(--text-1) !important;
+    }
+
+    &.emby-tab-button-active {
+        color: var(--text-1) !important;
+        font-weight: 700 !important;
+        border-bottom: 3px solid var(--brand) !important;
+    }
+
+    .emby-button-foreground {
+        border: none !important;
+        padding: 0 !important;
+    }
+}
+
+.headerRight {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+}
+
+.headerSearchButton,
+.headerUserButton,
+.headerCastButton {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* Botões do cabeçalho */
@@ -137,19 +270,16 @@ body,
     background: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Indicador de abas ativas */
-.emby-tab-button {
-    color: var(--text-2) !important;
-    font-weight: 400 !important;
+/* Espaçamento superior padronizado para header fixo de 68px */
+.libraryPage,
+.wizardPage,
+.standalonePage,
+.itemDetailPage {
+    padding-top: 68px !important;
 }
 
-.emby-tab-button.emby-tab-button-active {
-    color: var(--text-1) !important;
-    font-weight: 600 !important;
-}
-
-.emby-tab-button-active .emby-button-foreground {
-    border-bottom: 2px solid var(--brand) !important;
+.absolutePageTabContent {
+    top: 68px !important;
 }
 
 /* ==========================================================================

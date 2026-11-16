@@ -39,20 +39,20 @@ function renderHeader() {
     html += '<div class="headerLeft">';
     html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonLeft headerBackButton hide"><span class="material-icons ' + (browser.safari ? 'chevron_left' : 'arrow_back') + '" aria-hidden="true"></span></button>';
     html += '<button type="button" is="paper-icon-button-light" class="headerButton headerHomeButton hide barsMenuButton headerButtonLeft"><span class="material-icons home" aria-hidden="true"></span></button>';
-    html += '<button type="button" is="paper-icon-button-light" class="headerButton mainDrawerButton barsMenuButton headerButtonLeft hide"><span class="material-icons menu" aria-hidden="true"></span></button>';
-    html += '<h3 class="pageTitle" aria-hidden="true"></h3>';
+    html += '<button type="button" is="paper-icon-button-light" class="headerButton mainDrawerButton barsMenuButton headerButtonLeft"><span class="material-icons menu" aria-hidden="true"></span></button>';
+    html += '<h3 class="pageTitle pageTitleWithLogo pageTitleWithDefaultLogo" aria-hidden="true"></h3>';
+    html += '</div>';
+    html += '<div class="headerTabs sectionTabs">';
     html += '</div>';
     html += '<div class="headerRight">';
     html += '<button is="paper-icon-button-light" class="headerSyncButton syncButton headerButton headerButtonRight hide"><span class="material-icons groups" aria-hidden="true"></span></button>';
     html += '<span class="headerSelectedPlayer"></span>';
     html += '<button is="paper-icon-button-light" class="headerAudioPlayerButton audioPlayerButton headerButton headerButtonRight hide"><span class="material-icons music_note" aria-hidden="true"></span></button>';
-    html += '<button is="paper-icon-button-light" class="headerCastButton castButton headerButton headerButtonRight hide"><span class="material-icons cast" aria-hidden="true"></span></button>';
-    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton hide"><span class="material-icons search" aria-hidden="true"></span></button>';
-    html += '<button is="paper-icon-button-light" class="headerButton headerButtonRight headerUserButton hide"><span class="material-icons person" aria-hidden="true"></span></button>';
+    html += '<button is="paper-icon-button-light" class="headerCastButton castButton headerButton headerButtonRight"><span class="material-icons cast" aria-hidden="true"></span></button>';
+    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton"><span class="material-icons search" aria-hidden="true"></span></button>';
+    html += '<button is="paper-icon-button-light" class="headerButton headerButtonRight headerUserButton"><span class="material-icons person" aria-hidden="true"></span></button>';
     html += '<div class="currentTimeText hide"></div>';
     html += '</div>';
-    html += '</div>';
-    html += '<div class="headerTabs sectionTabs hide">';
     html += '</div>';
 
     skinHeader.classList.add('skinHeader-withBackground');
@@ -78,6 +78,18 @@ function renderHeader() {
     headerSearchButton = skinHeader.querySelector('.headerSearchButton');
     headerSyncButton = skinHeader.querySelector('.headerSyncButton');
     currentTimeText = skinHeader.querySelector('.currentTimeText');
+
+    const pageTitleElem = skinHeader.querySelector('.pageTitle');
+    if (pageTitleElem) {
+        pageTitleElem.style.cursor = 'pointer';
+        pageTitleElem.addEventListener('click', () => {
+            window.location.hash = '#/home?tab=0';
+        });
+    }
+
+    import('../components/maintabsmanager').then((mainTabsManager) => {
+        mainTabsManager.renderMatheusFlixDefaultTabs();
+    });
 
     retranslateUi();
     lazyLoadViewMenuBarImages();
@@ -617,25 +629,13 @@ function updateMenuForPageType(isDashboardPage, isLibraryPage) {
 
         if (isLibraryPage) {
             bodyClassList.add('libraryDocument');
-            bodyClassList.remove('hideMainDrawer');
-
-            if (navDrawerInstance) {
-                navDrawerInstance.setEdgeSwipeEnabled(true);
-            }
-        } else if (isDashboardPage) {
-            bodyClassList.remove('libraryDocument');
-            bodyClassList.remove('hideMainDrawer');
-
-            if (navDrawerInstance) {
-                navDrawerInstance.setEdgeSwipeEnabled(true);
-            }
         } else {
             bodyClassList.remove('libraryDocument');
-            bodyClassList.add('hideMainDrawer');
+        }
+        bodyClassList.remove('hideMainDrawer');
 
-            if (navDrawerInstance) {
-                navDrawerInstance.setEdgeSwipeEnabled(false);
-            }
+        if (navDrawerInstance) {
+            navDrawerInstance.setEdgeSwipeEnabled(true);
         }
     }
 
@@ -646,10 +646,9 @@ function updateMenuForPageType(isDashboardPage, isLibraryPage) {
 
 function updateTitle(page) {
     const title = page.getAttribute('data-title');
-
     if (title) {
         LibraryMenu.setTitle(title);
-    } else if (page.classList.contains('standalonePage')) {
+    } else {
         LibraryMenu.setDefaultTitle();
     }
 }
@@ -731,8 +730,6 @@ let headerSearchButton;
 let headerAudioPlayerButton;
 let headerSyncButton;
 let currentTimeText;
-const enableLibraryNavDrawer = layoutManager.desktop;
-const enableLibraryNavDrawerHome = !layoutManager.tv;
 const skinHeader = document.querySelector('.skinHeader');
 let requiresUserRefresh = true;
 
@@ -782,29 +779,18 @@ function setDefaultTitle () {
 }
 
 function setTitle (title) {
-    if (title == null) {
-        LibraryMenu.setDefaultTitle();
-        return;
-    }
-
-    if (title === '-') {
-        title = '';
-    }
-
-    const html = title;
-
     if (!pageTitleElement) {
         pageTitleElement = document.querySelector('.pageTitle');
     }
 
     if (pageTitleElement) {
-        pageTitleElement.classList.remove('pageTitleWithLogo');
-        pageTitleElement.classList.remove('pageTitleWithDefaultLogo');
+        pageTitleElement.classList.add('pageTitleWithLogo');
+        pageTitleElement.classList.add('pageTitleWithDefaultLogo');
         pageTitleElement.style.backgroundImage = null;
-        pageTitleElement.innerText = html || '';
+        pageTitleElement.innerHTML = '';
     }
 
-    document.title = title || documentTitle;
+    document.title = title ? `${title} - MatheusFlix` : documentTitle;
 }
 
 function setTransparentMenu (transparent) {
@@ -825,21 +811,14 @@ pageClassOn('pagebeforeshow', 'page', function () {
 pageClassOn('pageshow', 'page', function (e) {
     const page = this;
     const isDashboardPage = page.classList.contains('type-interior');
-    const isHomePage = page.classList.contains('homePage');
     const isLibraryPage = !isDashboardPage && page.classList.contains('libraryPage');
 
-    if (!isDashboardPage) {
-        if (mainDrawerButton) {
-            if (enableLibraryNavDrawer || (isHomePage && enableLibraryNavDrawerHome)) {
-                mainDrawerButton.classList.remove('hide');
-            } else {
-                mainDrawerButton.classList.add('hide');
-            }
-        }
+    if (mainDrawerButton) {
+        mainDrawerButton.classList.remove('hide');
+    }
 
-        if (currentDrawerType !== 'library') {
-            refreshLibraryDrawer();
-        }
+    if (!isDashboardPage && currentDrawerType !== 'library') {
+        refreshLibraryDrawer();
     }
 
     updateMenuForPageType(isDashboardPage, isLibraryPage);

@@ -25,13 +25,17 @@ class HomeView extends TabbedView {
 
     getTabs() {
         return [{
-            name: 'Início'
+            name: 'Início',
+            href: '#/home?tab=0'
         }, {
-            name: 'Torrents'
+            name: 'Torrents',
+            href: '#/home?tab=1'
         }, {
-            name: 'Pasta Local'
+            name: 'Pasta Local',
+            href: '#/home?tab=2'
         }, {
-            name: 'Downloads'
+            name: 'Downloads',
+            href: '#/home?tab=3'
         }];
     }
 
