@@ -289,7 +289,8 @@ function playLocal(m) {
         quality: m.quality || '',
         isLocal: true,
         movieId: m.imdbId || m.id,
-        poster: m.poster
+        poster: m.poster,
+        duration: m.duration || (m.runtime ? m.runtime * 60 : 0)
     });
 }
 

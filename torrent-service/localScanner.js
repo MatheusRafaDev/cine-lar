@@ -2,12 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import http from 'http';
-import { spawn } from 'child_process';
+import { spawn, execFileSync } from 'child_process';
 import { upsertMovie, getDb, translateGenres } from './db.js';
 import { detectFranchise, detectSeries } from './organizer.js';
 import { fetchPtBrMetadata, searchPtBrMovie } from './tmdbHelper.js';
 
-// Localizar ffmpeg para suporte a reprodução e conversão de áudio instantânea
+// Localizar ffmpeg e ffprobe para suporte a reprodução e detecção precisa de metadados
 const FFMPEG_CANDIDATES = [
     process.env.FFMPEG_PATH,
     'C:\\Program Files\\Jellyfin\\Server\\ffmpeg.exe',
@@ -24,6 +24,49 @@ for (const p of FFMPEG_CANDIDATES) {
     if (fs.existsSync(p)) {
         RESOLVED_FFMPEG = p;
         break;
+    }
+}
+
+const FFPROBE_CANDIDATES = [
+    process.env.FFPROBE_PATH,
+    'C:\\Program Files\\Jellyfin\\Server\\ffprobe.exe',
+    'C:\\ffmpeg\\bin\\ffprobe.exe',
+    'ffprobe'
+].filter(Boolean);
+
+let RESOLVED_FFPROBE = null;
+for (const p of FFPROBE_CANDIDATES) {
+    if (p === 'ffprobe') {
+        RESOLVED_FFPROBE = 'ffprobe';
+        break;
+    }
+    if (fs.existsSync(p)) {
+        RESOLVED_FFPROBE = p;
+        break;
+    }
+}
+
+const durationCache = new Map();
+
+export function getVideoDuration(filePath) {
+    if (durationCache.has(filePath)) {
+        return durationCache.get(filePath);
+    }
+    if (!RESOLVED_FFPROBE || !fs.existsSync(filePath)) return 0;
+
+    try {
+        const stdout = execFileSync(RESOLVED_FFPROBE, [
+            '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            filePath
+        ], { timeout: 3000, encoding: 'utf8' });
+        const dur = parseFloat(stdout.trim());
+        const finalDur = (!isNaN(dur) && dur > 0) ? dur : 0;
+        durationCache.set(filePath, finalDur);
+        return finalDur;
+    } catch {
+        return 0;
     }
 }
 
@@ -311,6 +354,7 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
             format: ext,
             sizeBytes: stat.size,
             sizeFormatted: formatBytes(stat.size),
+            duration: Math.round(getVideoDuration(videoFile)),
             videoPath: videoFile,
             srtPath: srtFile,
             streamUrl: `/api/local/stream?file=${encodeURIComponent(videoFile)}`,
@@ -361,13 +405,16 @@ export function streamLocalVideo(filePath, req, res) {
 
     const stat = fs.statSync(targetFile);
     const total = stat.size;
+    const duration = Math.round(getVideoDuration(targetFile));
 
     // Trata requisições HEAD (verificação de mime/range pelo navegador)
     if (req.method === 'HEAD') {
         res.writeHead(200, {
             'Content-Type': 'video/mp4',
             'Accept-Ranges': 'bytes',
-            'Content-Length': total
+            'Content-Length': total,
+            'X-Media-Duration': String(duration),
+            'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
         });
         res.end();
         return;
@@ -379,7 +426,8 @@ export function streamLocalVideo(filePath, req, res) {
     const startTimeParam = parseFloat(urlObj.searchParams.get('startTime') || urlObj.searchParams.get('t') || 0);
 
     const isMkvOrNonMp4 = /\.(mkv|avi|ts|mov|wmv|vob|flv)$/i.test(targetFile);
-    const needsFfmpegRemux = Boolean(RESOLVED_FFMPEG && !isDirect && (isMkvOrNonMp4 || isTranscode || startTimeParam > 0));
+    // Somente arquivos não-nativos (MKV/AVI) ou transcode explícito necessitam remux com FFmpeg
+    const needsFfmpegRemux = Boolean(RESOLVED_FFMPEG && !isDirect && (isMkvOrNonMp4 || isTranscode));
 
     if (needsFfmpegRemux) {
         // Remux ultrarrápido com FFmpeg para Fragmented MP4 (fMP4):
@@ -413,7 +461,9 @@ export function streamLocalVideo(filePath, req, res) {
         res.writeHead(200, {
             'Content-Type': 'video/mp4',
             'Accept-Ranges': 'none',
-            'Cache-Control': 'no-cache, no-store'
+            'Cache-Control': 'no-cache, no-store',
+            'X-Media-Duration': String(duration),
+            'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
         });
 
         ffmpegProc.stdout.pipe(res);
@@ -446,7 +496,9 @@ export function streamLocalVideo(filePath, req, res) {
         res.writeHead(200, {
             'Content-Length': total,
             'Content-Type': contentType,
-            'Accept-Ranges': 'bytes'
+            'Accept-Ranges': 'bytes',
+            'X-Media-Duration': String(duration),
+            'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
         });
         fs.createReadStream(targetFile).pipe(res);
     } else {
@@ -459,7 +511,9 @@ export function streamLocalVideo(filePath, req, res) {
             'Content-Range': `bytes ${start}-${end}/${total}`,
             'Accept-Ranges': 'bytes',
             'Content-Length': chunksize,
-            'Content-Type': contentType
+            'Content-Type': contentType,
+            'X-Media-Duration': String(duration),
+            'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
         });
         fs.createReadStream(targetFile, { start, end }).pipe(res);
     }

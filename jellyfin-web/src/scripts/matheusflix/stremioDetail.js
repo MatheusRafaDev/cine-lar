@@ -463,7 +463,8 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 infoHash: activeDl.id,
                 movieId: movie.imdbId || movie.id,
                 poster: movie.poster,
-                resumePosition: movie.resumePosition || 0
+                resumePosition: movie.resumePosition || 0,
+                duration: movie.duration || (movie.runtime ? movie.runtime * 60 : 0)
             });
         });
 
@@ -480,7 +481,8 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 infoHash: activeDl.id,
                 movieId: movie.imdbId || movie.id,
                 poster: movie.poster,
-                resumePosition: movie.resumePosition || 0
+                resumePosition: movie.resumePosition || 0,
+                duration: movie.duration || (movie.runtime ? movie.runtime * 60 : 0)
             });
         };
     } else if (localFile && localStatus) {
@@ -507,7 +509,8 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 isLocal: true,
                 movieId: movie.imdbId || movie.id,
                 poster: movie.poster,
-                resumePosition: movie.resumePosition || 0
+                resumePosition: movie.resumePosition || 0,
+                duration: (localFile && localFile.duration) || movie.duration || (movie.runtime ? movie.runtime * 60 : 0)
             });
         };
     }
@@ -619,7 +622,8 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                     isLocal: true,
                     movieId: movie.imdbId || movie.id,
                     poster: movie.poster,
-                    resumePosition: movie.resumePosition || 0
+                    resumePosition: movie.resumePosition || 0,
+                    duration: (localFile && localFile.duration) || movie.duration || (movie.runtime ? movie.runtime * 60 : 0)
                 });
             });
             listEl.appendChild(localItem);
@@ -807,6 +811,7 @@ function playStream(stream, movie, currentEp = null) {
         infoHash,
         movieId: movie.imdbId || movie.id,
         poster: movie.poster,
-        resumePosition: movie.resumePosition || 0
+        resumePosition: movie.resumePosition || 0,
+        duration: movie.duration || (movie.runtime ? movie.runtime * 60 : 0)
     });
 }

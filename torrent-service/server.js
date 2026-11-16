@@ -1092,7 +1092,8 @@ const server = http.createServer(async (req, res) => {
                             sizeFormatted: found.sizeFormatted,
                             streamUrl: found.streamUrl,
                             format: found.format,
-                            videoPath: found.videoPath
+                            videoPath: found.videoPath,
+                            duration: found.duration || 0
                         };
                     }
                 } catch {

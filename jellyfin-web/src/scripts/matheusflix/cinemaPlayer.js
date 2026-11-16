@@ -37,7 +37,8 @@ export function openCinemaPlayer({
     infoHash = null,
     movieId = null,
     poster = null,
-    resumePosition = 0
+    resumePosition = 0,
+    duration = 0
 }) {
     // 1. Encerra qualquer reprodução cinema ativa para garantir apenas UM filme por vez
     if (activePlayerInstance) {
@@ -351,11 +352,65 @@ export function openCinemaPlayer({
         }
     }
 
-    // Seek controls
+    let totalDuration = duration || 0;
+
+    // Se a duração não foi passada pelo chamador, obtém via cabeçalho HEAD do servidor
+    if (!totalDuration || totalDuration <= 0) {
+        fetch(fullStreamUrl, { method: 'HEAD' }).then(res => {
+            const d = parseFloat(res.headers.get('x-media-duration'));
+            if (!isNaN(d) && d > 30) {
+                totalDuration = Math.round(d);
+                updateDurationUI();
+            }
+        }).catch(noop);
+    }
+
+    function getEffectiveDuration() {
+        if (video.duration && isFinite(video.duration) && video.duration > 180) {
+            return video.duration;
+        }
+        if (totalDuration > 0) {
+            return totalDuration;
+        }
+        if (video.duration && isFinite(video.duration) && video.duration > 0) {
+            return video.duration;
+        }
+        return 0;
+    }
+
+    function updateDurationUI() {
+        const dur = getEffectiveDuration();
+        if (dur > 0) {
+            timeDur.textContent = formatSeconds(dur);
+        }
+    }
+
+    // Seek controls robustos com suporte a tempo total e transcoder
+    let seekDebounce = null;
     seekSlider.addEventListener('input', () => {
         const pct = parseFloat(seekSlider.value);
-        if (video.duration) {
-            video.currentTime = (pct / 100) * video.duration;
+        const dur = getEffectiveDuration();
+        if (dur > 0) {
+            const targetTime = (pct / 100) * dur;
+            progressFill.style.width = `${pct}%`;
+            timeCur.textContent = formatSeconds(targetTime);
+
+            if (video.duration && isFinite(video.duration) && video.duration > 180) {
+                video.currentTime = targetTime;
+            } else {
+                clearTimeout(seekDebounce);
+                seekDebounce = setTimeout(() => {
+                    try {
+                        const u = new URL(video.src, window.location.href);
+                        u.searchParams.set('startTime', String(Math.floor(targetTime)));
+                        video.src = u.toString();
+                        video.load();
+                        video.play().catch(noop);
+                    } catch {
+                        video.currentTime = targetTime;
+                    }
+                }, 200);
+            }
         }
     });
 
@@ -363,19 +418,21 @@ export function openCinemaPlayer({
     let hasResumed = false;
 
     function persistCurrentProgress() {
-        if (movieId && video.duration && video.currentTime > 5) {
+        const dur = getEffectiveDuration();
+        if (movieId && dur > 0 && video.currentTime > 5) {
             saveWatchProgress({
                 movieId,
                 title,
                 poster,
                 position: Math.floor(video.currentTime),
-                duration: Math.floor(video.duration)
+                duration: Math.floor(dur)
             }).catch(noop);
         }
     }
 
     function tryResumePlayback() {
-        if (!hasResumed && resumePosition > 10 && video.duration && resumePosition < (video.duration - 15)) {
+        const dur = getEffectiveDuration();
+        if (!hasResumed && resumePosition > 10 && (dur === 0 || resumePosition < (dur - 15))) {
             hasResumed = true;
             video.currentTime = resumePosition;
             toast(`Retomando de ${formatSeconds(resumePosition)}...`);
@@ -387,30 +444,34 @@ export function openCinemaPlayer({
             hideOverlay();
         }
 
-        if (video.duration) {
-            const pct = (video.currentTime / video.duration) * 100;
+        const dur = getEffectiveDuration();
+        if (dur > 0) {
+            const pct = (video.currentTime / dur) * 100;
             seekSlider.value = pct;
-            progressFill.style.width = `${pct}%`;
+            progressFill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
             timeCur.textContent = formatSeconds(video.currentTime);
-            timeDur.textContent = formatSeconds(video.duration);
+            timeDur.textContent = formatSeconds(dur);
 
             const now = Date.now();
             if (now - lastProgressSave > 5000) {
                 lastProgressSave = now;
                 persistCurrentProgress();
             }
+        } else {
+            timeCur.textContent = formatSeconds(video.currentTime);
         }
 
         // Buffer fill
-        if (video.buffered.length > 0 && video.duration) {
+        if (video.buffered.length > 0 && dur > 0) {
             const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-            const bPct = (bufferedEnd / video.duration) * 100;
-            bufferFill.style.width = `${bPct}%`;
+            const bPct = (bufferedEnd / dur) * 100;
+            bufferFill.style.width = `${Math.min(100, Math.max(0, bPct))}%`;
         }
     });
 
     video.addEventListener('loadeddata', () => {
         hideOverlay();
+        updateDurationUI();
         video.play().catch(() => {
             // Se autoplay bloqueado pelo navegador, inicia mutado
             video.muted = true;
@@ -422,6 +483,7 @@ export function openCinemaPlayer({
 
     video.addEventListener('canplay', () => {
         hideOverlay();
+        updateDurationUI();
         tryResumePlayback();
         video.play().catch(noop);
     });
@@ -446,12 +508,17 @@ export function openCinemaPlayer({
     });
 
     video.addEventListener('ended', () => {
+        const dur = getEffectiveDuration();
+        if (dur > 60 && video.currentTime < (dur - 15)) {
+            // Chunk intermediário de stream, não finaliza a reprodução
+            return;
+        }
         btnPlay.querySelector('.material-icons').textContent = 'replay';
         persistCurrentProgress();
     });
 
     video.addEventListener('loadedmetadata', () => {
-        timeDur.textContent = formatSeconds(video.duration);
+        updateDurationUI();
         tryResumePlayback();
         hideOverlay();
         video.play().catch(noop);
@@ -459,6 +526,8 @@ export function openCinemaPlayer({
 
     // Tratamento de Erros e Auto-recuperação com Transcode
     video.addEventListener('error', () => {
+        if (video.error && video.error.code === 1) return; // MEDIA_ERR_ABORTED
+
         console.warn('[CinemaPlayer] Erro de mídia detectado:', video.error);
 
         // Se o navegador falhou ao decodificar (ex: MKV ou áudio AC3) e ainda não tentamos o transcode

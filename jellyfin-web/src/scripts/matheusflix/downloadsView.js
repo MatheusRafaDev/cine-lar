@@ -142,7 +142,8 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                         subInfo: `${d.quality || '1080p'} • Baixando (${d.progress}%)`,
                         quality: d.quality || '1080p',
                         isLocal: false,
-                        infoHash: d.id
+                        infoHash: d.id,
+                        duration: d.duration || 0
                     });
                 }
             });
@@ -247,7 +248,8 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                         subInfo: `${d.quality || '1080p'} • Arquivo Salvo`,
                         quality: d.quality || '1080p',
                         isLocal: false,
-                        infoHash: d.id
+                        infoHash: d.id,
+                        duration: d.duration || 0
                     });
                 }
             });
