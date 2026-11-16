@@ -2352,6 +2352,20 @@ button:has(.cloud_download),
 .mf-home-section {
     margin-top: 32px;
     padding: 0 16px;
+    position: relative;
+}
+
+.mf-home-sections-wrap {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.mf-row-slider-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
 }
 
 .mf-home-section .sectionTitleContainer {
@@ -2387,28 +2401,100 @@ button:has(.cloud_download),
     transform: translateX(4px);
 }
 
-/* Horizontal Scroller */
+/* Horizontal Scroller (Sem barra de scroll nativa, navegação via botões estilo Netflix) */
 .mf-home-scroller {
     display: flex;
     gap: 16px;
-    overflow-x: auto;
+    overflow-x: scroll;
     overflow-y: hidden;
-    padding: 10px 4px 24px 4px;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding: 10px 4px 24px 4px;
+    width: 100%;
 }
 
 .mf-home-scroller::-webkit-scrollbar {
-    height: 6px;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
-.mf-home-scroller::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 99px;
+/* Botões do carrossel estilo Netflix para ir passando para o lado */
+.mf-slider-btn {
+    position: absolute;
+    top: 10px;
+    bottom: 24px;
+    width: 48px;
+    background: rgba(15, 18, 26, 0.78);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: opacity 0.25s ease, background 0.25s ease, transform 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
-.mf-home-scroller::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.35);
+.mf-slider-btn .material-icons {
+    font-size: 38px;
+    transition: transform 0.2s ease;
+}
+
+.mf-slider-btn:hover {
+    background: rgba(20, 20, 20, 0.95);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: var(--brand, #e50914);
+}
+
+.mf-slider-btn:hover .material-icons {
+    transform: scale(1.25);
+}
+
+.mf-slider-btn:focus,
+.mf-slider-btn:focus-visible {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    outline: 3px solid #ffffff !important;
+    outline-offset: -2px !important;
+    background: rgba(20, 20, 20, 0.95) !important;
+    color: var(--brand, #e50914) !important;
+    transform: scale(1.05);
+}
+
+.mf-slider-btn.mf-slider-prev {
+    left: 0;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-left: none;
+}
+
+.mf-slider-btn.mf-slider-next {
+    right: 0;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-right: none;
+}
+
+.mf-slider-btn.visible {
+    opacity: 0.85;
+    pointer-events: auto;
+}
+
+.mf-home-section:hover .mf-slider-btn.visible,
+.mf-row-slider-container:hover .mf-slider-btn.visible {
+    opacity: 1;
+}
+
+.layout-tv .mf-slider-btn.visible {
+    opacity: 0.9 !important;
+    pointer-events: auto !important;
 }
 
 .mf-scroller-loading {

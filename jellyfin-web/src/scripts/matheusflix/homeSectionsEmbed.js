@@ -1,6 +1,20 @@
 /**
- * MatheusFlix - Seções extras da tela Início.
- * Destaque no topo + duas fileiras: "Em alta" (catálogo) e "Na sua pasta" (D:\filmes).
+ * MatheusFlix - Fileiras e Categorias da Tela Inicial estilo Netflix.
+ * Inclui:
+ * 1. Hero em destaque no topo
+ * 2. Continuar Assistindo (histórico)
+ * 3. Minha Lista (favoritos)
+ * 4. Na sua pasta (D:\filmes)
+ * 5. ✨ Lançamentos
+ * 6. 🔥 Em Alta
+ * 7. 💥 Filmes de Ação
+ * 8. 🏰 Filmes de Aventura
+ * 9. 🤣 Comédias
+ * 10. 🚀 Ficção Científica
+ * 11. 🎨 Animação & Família
+ *
+ * Cada fileira possui botões laterais de navegação (< e >) estilo Netflix
+ * sem barra de scroll nativa, com suporte perfeito a controle remoto de TV.
  */
 
 import { fetchCatalog, fetchLocalMovies, fetchUserFavorites, fetchWatchHistory, deleteWatchHistory } from './api';
@@ -20,18 +34,50 @@ export async function embedMatheusFlixHomeSections(view) {
 
     inFlight.add(view);
     try {
-        const [catalog, local, historyRes, favsRes] = await Promise.allSettled([
-            fetchCatalog({ limit: 16, sort: 'trending' }),
+        const [
+            catalogRes,
+            newestRes,
+            actionRes,
+            adventureRes,
+            comedyRes,
+            scifiRes,
+            animRes,
+            localRes,
+            historyRes,
+            favsRes
+        ] = await Promise.allSettled([
+            fetchCatalog({ limit: 20, sort: 'trending' }),
+            fetchCatalog({ limit: 20, sort: 'newest' }),
+            fetchCatalog({ limit: 20, genre: 'Action' }),
+            fetchCatalog({ limit: 20, genre: 'Adventure' }),
+            fetchCatalog({ limit: 20, genre: 'Comedy' }),
+            fetchCatalog({ limit: 20, genre: 'Sci-Fi' }),
+            fetchCatalog({ limit: 20, genre: 'Animation' }),
             fetchLocalMovies(),
             fetchWatchHistory(),
             fetchUserFavorites()
         ]);
-        const trending = catalog.status === 'fulfilled' ? (catalog.value.movies || []).map(normalizeMovie) : [];
-        const localMovies = local.status === 'fulfilled' ? (local.value.movies || []).map(normalizeMovie) : [];
-        const historyList = historyRes.status === 'fulfilled' ? (historyRes.value.history || []) : [];
-        const favoritesList = favsRes.status === 'fulfilled' ? (favsRes.value.favorites || []) : [];
+
+        const trending = catalogRes.status === 'fulfilled' ? (catalogRes.value?.movies || []).map(normalizeMovie) : [];
+        const newest = newestRes.status === 'fulfilled' ? (newestRes.value?.movies || []).map(normalizeMovie) : [];
+        const action = actionRes.status === 'fulfilled' ? (actionRes.value?.movies || []).map(normalizeMovie) : [];
+        const adventure = adventureRes.status === 'fulfilled' ? (adventureRes.value?.movies || []).map(normalizeMovie) : [];
+        const comedy = comedyRes.status === 'fulfilled' ? (comedyRes.value?.movies || []).map(normalizeMovie) : [];
+        const scifi = scifiRes.status === 'fulfilled' ? (scifiRes.value?.movies || []).map(normalizeMovie) : [];
+        const anim = animRes.status === 'fulfilled' ? (animRes.value?.movies || []).map(normalizeMovie) : [];
+        const localMovies = localRes.status === 'fulfilled' ? (localRes.value?.movies || []).map(normalizeMovie) : [];
+        const historyList = historyRes.status === 'fulfilled' ? (historyRes.value?.history || []) : [];
+        const favoritesList = favsRes.status === 'fulfilled' ? (favsRes.value?.favorites || []) : [];
 
         renderHero(homeTab, sections, trending[0]);
+
+        // Container exclusivo das fileiras do MatheusFlix para preservar a sequência estilo Netflix
+        let wrap = sections.querySelector('.mf-home-sections-wrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.className = 'mf-home-sections-wrap';
+            sections.insertBefore(wrap, sections.firstElementChild);
+        }
 
         // 1. Continuar Assistindo (histórico entre 10s e 95%)
         const continueWatching = historyList
@@ -51,13 +97,13 @@ export async function embedMatheusFlixHomeSections(view) {
             })
             .filter(h => h.position > 10 && h.duration > 0 && h.position < (h.duration * 0.95));
 
-        renderHistoryRow(sections, {
+        renderHistoryRow(wrap, {
             key: 'history',
             title: 'Continuar Assistindo',
             movies: continueWatching
         });
 
-        // 2. Minha Lista (Favoritos do usuário)
+        // 2. Minha Lista (favoritos do usuário)
         const userFavs = favoritesList.map(f => ({
             id: f.movieId || f.id,
             imdbId: f.movieId || f.id,
@@ -66,8 +112,7 @@ export async function embedMatheusFlixHomeSections(view) {
             year: f.year || '',
             rating: f.rating || ''
         }));
-
-        renderRow(sections, {
+        renderRow(wrap, {
             key: 'favorites',
             title: 'Minha Lista',
             linkText: 'Ver catálogo',
@@ -76,23 +121,83 @@ export async function embedMatheusFlixHomeSections(view) {
             onClick: openStremioDetails
         });
 
-        // 3. Na sua pasta (arquivos baixados)
-        renderRow(sections, {
+        // 3. Na sua pasta (D:\filmes)
+        renderRow(wrap, {
             key: 'local',
-            title: 'Na sua pasta',
+            title: 'Na sua pasta (D:\\filmes)',
             linkText: 'Ver tudo',
             tabIndex: 2,
             movies: localMovies,
             onClick: playLocal
         });
 
-        // 4. Em alta (catálogo global)
-        renderRow(sections, {
+        // 4. ✨ Lançamentos
+        renderRow(wrap, {
+            key: 'newest',
+            title: '✨ Lançamentos',
+            linkText: 'Ver mais',
+            tabIndex: 1,
+            movies: newest,
+            onClick: openStremioDetails
+        });
+
+        // 5. 🔥 Em alta no MatheusFlix
+        renderRow(wrap, {
             key: 'trending',
-            title: 'Em alta',
-            linkText: 'Abrir catálogo',
+            title: '🔥 Em alta no MatheusFlix',
+            linkText: 'Ver mais',
             tabIndex: 1,
             movies: trending.slice(1),
+            onClick: openStremioDetails
+        });
+
+        // 6. 💥 Filmes de Ação
+        renderRow(wrap, {
+            key: 'action',
+            title: '💥 Filmes de Ação',
+            linkText: 'Ver mais',
+            tabIndex: 1,
+            movies: action,
+            onClick: openStremioDetails
+        });
+
+        // 7. 🏰 Filmes de Aventura
+        renderRow(wrap, {
+            key: 'adventure',
+            title: '🏰 Aventura & Fantasia',
+            linkText: 'Ver mais',
+            tabIndex: 1,
+            movies: adventure,
+            onClick: openStremioDetails
+        });
+
+        // 8. 🤣 Comédias
+        renderRow(wrap, {
+            key: 'comedy',
+            title: '🤣 Comédias',
+            linkText: 'Ver mais',
+            tabIndex: 1,
+            movies: comedy,
+            onClick: openStremioDetails
+        });
+
+        // 9. 🚀 Ficção Científica
+        renderRow(wrap, {
+            key: 'scifi',
+            title: '🚀 Ficção Científica',
+            linkText: 'Ver mais',
+            tabIndex: 1,
+            movies: scifi,
+            onClick: openStremioDetails
+        });
+
+        // 10. 🎨 Animação & Família
+        renderRow(wrap, {
+            key: 'anim',
+            title: '🎨 Animação & Família',
+            linkText: 'Ver mais',
+            tabIndex: 1,
+            movies: anim,
             onClick: openStremioDetails
         });
     } finally {
@@ -145,8 +250,42 @@ function renderHero(homeTab, sections, movie) {
     hero.querySelector('.mf-btn-hero-play').addEventListener('click', () => openStremioDetails(movie));
 }
 
-function renderRow(sections, { key, title, linkText, tabIndex, movies, onClick }) {
-    let row = sections.querySelector(`.mf-home-section[data-mf-row="${key}"]`);
+function setupRowSlider(row) {
+    const scroller = row.querySelector('.mf-home-scroller');
+    const prevBtn = row.querySelector('.mf-slider-prev');
+    const nextBtn = row.querySelector('.mf-slider-next');
+    if (!scroller || !prevBtn || !nextBtn) return;
+
+    const getScrollStep = () => {
+        const firstCard = scroller.querySelector('.mf-home-card');
+        const cardWidth = firstCard ? firstCard.getBoundingClientRect().width + 16 : 190;
+        return Math.max(cardWidth * 2, scroller.clientWidth * 0.75);
+    };
+
+    nextBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        scroller.scrollBy({ left: getScrollStep(), behavior: 'smooth' });
+    });
+
+    prevBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        scroller.scrollBy({ left: -getScrollStep(), behavior: 'smooth' });
+    });
+
+    const updateVisibility = () => {
+        const sl = scroller.scrollLeft;
+        const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+        prevBtn.classList.toggle('visible', sl > 12);
+        nextBtn.classList.toggle('visible', maxScroll - sl > 12);
+    };
+
+    scroller.addEventListener('scroll', updateVisibility, { passive: true });
+    setTimeout(updateVisibility, 200);
+    setTimeout(updateVisibility, 800);
+}
+
+function renderRow(container, { key, title, linkText, tabIndex, movies, onClick }) {
+    let row = container.querySelector(`.mf-home-section[data-mf-row="${key}"]`);
     if (!movies.length) {
         row?.remove();
         return;
@@ -155,7 +294,7 @@ function renderRow(sections, { key, title, linkText, tabIndex, movies, onClick }
         row = document.createElement('div');
         row.className = 'verticalSection mf-home-section';
         row.dataset.mfRow = key;
-        sections.insertBefore(row, sections.firstElementChild);
+        container.appendChild(row);
     }
 
     row.innerHTML = `
@@ -163,9 +302,20 @@ function renderRow(sections, { key, title, linkText, tabIndex, movies, onClick }
             <h2 class="sectionTitle">${escapeHtml(title)}</h2>
             <button type="button" class="mf-btn-see-all focusable">${escapeHtml(linkText)}</button>
         </div>
-        <div class="mf-home-scroller"></div>
+        <div class="mf-row-slider-container">
+            <button type="button" class="mf-slider-btn mf-slider-prev focusable" aria-label="Voltar" title="Voltar títulos">
+                <span class="material-icons">chevron_left</span>
+            </button>
+            <div class="mf-home-scroller"></div>
+            <button type="button" class="mf-slider-btn mf-slider-next focusable" aria-label="Avançar" title="Avançar títulos">
+                <span class="material-icons">chevron_right</span>
+            </button>
+        </div>
     `;
-    row.querySelector('.mf-btn-see-all').addEventListener('click', () => window.MatheusFlix?.navigateToTab?.(tabIndex));
+
+    row.querySelector('.mf-btn-see-all')?.addEventListener('click', () => {
+        window.location.hash = `#/home?tab=${tabIndex}`;
+    });
 
     const scroller = row.querySelector('.mf-home-scroller');
     movies.forEach(m => {
@@ -186,12 +336,17 @@ function renderRow(sections, { key, title, linkText, tabIndex, movies, onClick }
             </div>
         `;
         card.addEventListener('click', () => onClick(m));
+        card.addEventListener('focus', () => {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
         scroller.appendChild(card);
     });
+
+    setupRowSlider(row);
 }
 
-function renderHistoryRow(sections, { key, title, movies }) {
-    let row = sections.querySelector(`.mf-home-section[data-mf-row="${key}"]`);
+function renderHistoryRow(container, { key, title, movies }) {
+    let row = container.querySelector(`.mf-home-section[data-mf-row="${key}"]`);
     if (!movies.length) {
         row?.remove();
         return;
@@ -200,14 +355,22 @@ function renderHistoryRow(sections, { key, title, movies }) {
         row = document.createElement('div');
         row.className = 'verticalSection mf-home-section';
         row.dataset.mfRow = key;
-        sections.insertBefore(row, sections.firstElementChild);
+        container.appendChild(row);
     }
 
     row.innerHTML = `
         <div class="sectionTitleContainer sectionTitleContainer-cards">
             <h2 class="sectionTitle" style="color: #ffffff !important; font-weight: 600;">${escapeHtml(title)}</h2>
         </div>
-        <div class="mf-home-scroller"></div>
+        <div class="mf-row-slider-container">
+            <button type="button" class="mf-slider-btn mf-slider-prev focusable" aria-label="Voltar" title="Voltar títulos">
+                <span class="material-icons">chevron_left</span>
+            </button>
+            <div class="mf-home-scroller"></div>
+            <button type="button" class="mf-slider-btn mf-slider-next focusable" aria-label="Avançar" title="Avançar títulos">
+                <span class="material-icons">chevron_right</span>
+            </button>
+        </div>
     `;
 
     const scroller = row.querySelector('.mf-home-scroller');
@@ -258,6 +421,11 @@ function renderHistoryRow(sections, { key, title, movies }) {
         }
 
         card.addEventListener('click', () => openStremioDetails({ ...m, resumePosition: m.position }));
+        card.addEventListener('focus', () => {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
         scroller.appendChild(card);
     });
+
+    setupRowSlider(row);
 }
