@@ -2,6 +2,9 @@ import type { AxiosRequestConfig } from 'axios';
 import type { Api } from '@jellyfin/sdk';
 import { BaseItemKind } from '@jellyfin/sdk/lib/generated-client/models/base-item-kind';
 import { ItemSortBy } from '@jellyfin/sdk/lib/generated-client/models/item-sort-by';
+import { ItemFields } from '@jellyfin/sdk/lib/generated-client/models/item-fields';
+import { ImageType } from '@jellyfin/sdk/lib/generated-client/models/image-type';
+import { SortOrder } from '@jellyfin/sdk/lib/generated-client/models/sort-order';
 import { getItemsApi } from '@jellyfin/sdk/lib/utils/api/items-api';
 import { useQuery } from '@tanstack/react-query';
 
@@ -16,16 +19,18 @@ const fetchGetItems = async (
     const response = await getItemsApi(api).getItems(
         {
             userId,
-            sortBy: [ItemSortBy.IsFavoriteOrLiked, ItemSortBy.Random],
+            sortBy: [ItemSortBy.PlayCount, ItemSortBy.DateCreated, ItemSortBy.SortName, ItemSortBy.Random],
+            sortOrder: [SortOrder.Descending],
             includeItemTypes: [
                 BaseItemKind.Movie,
-                BaseItemKind.Series,
-                BaseItemKind.MusicArtist
+                BaseItemKind.Series
             ],
-            limit: 20,
+            limit: 24,
             recursive: true,
-            imageTypeLimit: 0,
-            enableImages: false,
+            imageTypeLimit: 1,
+            enableImages: true,
+            enableImageTypes: [ImageType.Primary, ImageType.Backdrop],
+            fields: [ItemFields.PrimaryImageAspectRatio, ItemFields.Overview],
             parentId,
             enableTotalRecordCount: false
         },

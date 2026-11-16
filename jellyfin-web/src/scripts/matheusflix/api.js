@@ -226,3 +226,16 @@ export async function deleteWatchHistory(movieId) {
     return res.json();
 }
 
+export async function fetchTrendingMovies() {
+    const res = await fetch(`${API_BASE}/movies/trending`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+export async function searchCatalogMovies(query) {
+    const res = await fetch(`${API_BASE}/movies/search?q=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+

@@ -1,7 +1,5 @@
 import React, { type ChangeEvent, type FC, useCallback, useRef } from 'react';
 import AlphaPicker from 'components/alphaPicker/AlphaPickerComponent';
-import Input from 'elements/emby-input/Input';
-import globalize from 'lib/globalize';
 import layoutManager from 'components/layoutManager';
 import browser from 'scripts/browser';
 import 'material-design-icons-iconfont';
@@ -9,8 +7,8 @@ import 'styles/flexstyles.scss';
 import './searchfields.scss';
 
 interface SearchFieldsProps {
-    query: string,
-    onSearch?: (query: string) => void
+    query: string;
+    onSearch?: (query: string) => void;
 }
 
 const SearchFields: FC<SearchFieldsProps> = ({
@@ -32,35 +30,48 @@ const SearchFields: FC<SearchFieldsProps> = ({
 
     const onChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
         onSearch(e.target.value);
-    }, [ onSearch ]);
+    }, [onSearch]);
+
+    const onClear = useCallback(() => {
+        onSearch('');
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [onSearch]);
 
     return (
         <div className='padded-left padded-right searchFields'>
-            <div className='searchFieldsInner flex align-items-center justify-content-center'>
+            <div className='searchFieldsInner'>
                 <span className='searchfields-icon material-icons search' aria-hidden='true' />
-                <div
-                    className='inputContainer flex-grow'
-                    style={{ marginBottom: 0 }}
-                >
-                    <Input
+                <div className='inputContainer flex-grow'>
+                    <input
                         ref={inputRef}
                         id='searchTextInput'
                         className='searchfields-txtSearch'
                         type='text'
-                        data-keyboard='true'
-                        placeholder={globalize.translate('Search')}
+                        placeholder='O que você quer assistir hoje? (Títulos, diretores, gêneros...)'
                         autoComplete='off'
-                        maxLength={40}
+                        maxLength={60}
                         // eslint-disable-next-line jsx-a11y/no-autofocus
                         autoFocus
                         value={query}
                         onChange={onChange}
                     />
                 </div>
+                {query ? (
+                    <button
+                        type='button'
+                        className='searchfields-clearBtn'
+                        title='Limpar busca'
+                        onClick={onClear}
+                    >
+                        <span className='material-icons close' aria-hidden='true'></span>
+                    </button>
+                ) : null}
             </div>
-            {layoutManager.tv && !browser.tv
-                && <AlphaPicker onAlphaPicked={onAlphaPicked} />
-            }
+            {layoutManager.tv && !browser.tv && (
+                <AlphaPicker onAlphaPicked={onAlphaPicked} />
+            )}
         </div>
     );
 };

@@ -1,11 +1,97 @@
+.searchFields {
+    padding-top: 36px;
+    padding-bottom: 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .searchFieldsInner {
-    max-width: 60em;
+    max-width: 760px;
     margin: 0 auto;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(255, 255, 255, 0.16);
+    border-radius: 9999px;
+    padding: 6px 20px 6px 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+
+    &:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.11);
+    }
+
+    &:focus-within {
+        border-color: #e50914;
+        background: rgba(255, 255, 255, 0.13);
+        box-shadow: 0 0 24px rgba(229, 9, 20, 0.35), 0 8px 32px rgba(0, 0, 0, 0.6);
+        transform: translateY(-1px);
+    }
 }
 
 .searchfields-icon {
-    margin-bottom: 0.1em;
-    margin-right: 0.25em;
-    font-size: 2em;
-    align-self: flex-end;
+    font-size: 26px !important;
+    color: #e50914;
+    margin-right: 14px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+    align-self: center !important;
+    margin-bottom: 0 !important;
+}
+
+.searchFieldsInner:focus-within .searchfields-icon {
+    transform: scale(1.1);
+}
+
+.searchFields .inputContainer {
+    flex-grow: 1;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.searchfields-txtSearch {
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
+    font-size: 17px !important;
+    font-weight: 500 !important;
+    padding: 8px 0 !important;
+    margin: 0 !important;
+    font-family: inherit !important;
+
+    &::placeholder {
+        color: rgba(255, 255, 255, 0.45) !important;
+        font-weight: 400 !important;
+    }
+}
+
+.searchfields-clearBtn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    margin-left: 8px;
+
+    .material-icons {
+        font-size: 20px;
+    }
+
+    &:hover {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.15);
+        transform: scale(1.1);
+    }
 }

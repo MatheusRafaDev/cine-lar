@@ -1,0 +1,226 @@
+/* ==========================================================================
+   MatheusFlix - Nova Tela de Busca e Sugestões (Padrão Netflix)
+   ========================================================================== */
+
+.mf-search-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px 60px 24px;
+    box-sizing: border-box;
+}
+
+/* Categorias e Filtros Rápidos em Pílulas */
+.mf-search-categories-section {
+    text-align: center;
+    margin-bottom: 36px;
+}
+
+.mf-search-categories-label {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 14px;
+}
+
+.mf-search-categories {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+.mf-category-chip {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e5e5e5;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.2, 0, 0, 1);
+    outline: none;
+    user-select: none;
+
+    &:hover {
+        background: #e50914;
+        border-color: #e50914;
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(229, 9, 20, 0.45);
+    }
+
+    &:active {
+        transform: translateY(0) scale(0.96);
+    }
+}
+
+/* Cabeçalho da Seção de Títulos */
+.mf-search-section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 28px 0 18px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+    .mf-search-section-title {
+        font-family: var(--font, "Netflix Sans", sans-serif);
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.02em;
+        margin: 0;
+    }
+
+    .mf-search-section-subtitle {
+        font-size: 13px;
+        color: #888888;
+        font-weight: 500;
+    }
+}
+
+/* Grade de Capas (Poster Grid) */
+.mf-search-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 18px;
+
+    @media (min-width: 768px) {
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 22px;
+    }
+
+    @media (min-width: 1200px) {
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 24px;
+    }
+}
+
+/* Card Individual de Filme / Série */
+.mf-search-card {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #181818;
+    cursor: pointer;
+    transition: all 0.26s cubic-bezier(0.2, 0, 0, 1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+
+    &:hover {
+        transform: scale(1.05);
+        z-index: 5;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.85), 0 0 18px rgba(229, 9, 20, 0.35);
+
+        .mf-search-card-glow {
+            opacity: 1;
+        }
+
+        .mf-search-card-overlay {
+            opacity: 1;
+        }
+    }
+
+    .mf-search-card-poster-wrap {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 2 / 3;
+        background: #1f1f1f;
+        overflow: hidden;
+    }
+
+    .mf-search-card-poster {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.3s ease;
+    }
+
+    .mf-search-card-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        z-index: 2;
+
+        .star {
+            color: #f5a623;
+            font-size: 12px;
+        }
+    }
+
+    .mf-search-card-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.95) 100%);
+        opacity: 0;
+        transition: opacity 0.22s ease;
+        display: flex;
+        align-items: flex-end;
+        padding: 12px;
+        box-sizing: border-box;
+
+        .mf-search-play-icon {
+            background: #e50914;
+            color: #ffffff;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(229, 9, 20, 0.5);
+            margin: 0 auto 8px auto;
+
+            .material-icons {
+                font-size: 22px;
+            }
+        }
+    }
+
+    .mf-search-card-details {
+        padding: 10px 12px 12px 12px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        background: #181818;
+    }
+
+    .mf-search-card-title {
+        font-family: var(--font, "Netflix Sans", sans-serif);
+        font-size: 14px;
+        font-weight: 600;
+        color: #ffffff;
+        margin: 0 0 4px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mf-search-card-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #999999;
+        font-weight: 500;
+    }
+}
