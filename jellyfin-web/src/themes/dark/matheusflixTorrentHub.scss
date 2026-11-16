@@ -1,70 +1,85 @@
 /* ==========================================================================
-   MATHEUSFLIX DESIGN SYSTEM & DESIGN TOKENS
-   Linguagem visual unificada, moderna e cinematográfica
+   MATHEUSFLIX DESIGN SYSTEM & DESIGN TOKENS (DESIGN.md)
+   Linguagem visual unificada, moderna e cinematográfica estilo Netflix
    ========================================================================== */
 
 :root {
-    /* 1. Cores de Superfície & Fundo (Deep Cinema Dark) */
-    --mf-bg-app: #080a0f;
-    --mf-bg-surface: #0d1017;
-    --mf-bg-card: #131722;
-    --mf-bg-card-hover: #181d2b;
-    --mf-bg-glass: rgba(13, 16, 23, 0.78);
-    --mf-bg-glass-strong: rgba(10, 13, 19, 0.95);
+    /* 1. Cores Base (DESIGN.md) */
+    --bg-0: #141414;
+    --bg-1: #1f1f1f;
+    --bg-2: #2a2a2a;
+    --line: #3a3a3a;
+    --text-1: #ffffff;
+    --text-2: #b3b3b3;
+    --text-3: #808080;
+    --brand: #e50914;
+    --brand-hover: #f6121d;
+    --brand-press: #b20710;
+    --success: #46d369;
+    --warning: #f5a623;
+    --danger: #ff4d4f;
+
+    /* 2. Tipografia & Raios (DESIGN.md) */
+    --font: "Netflix Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --r-btn: 4px;
+    --r-card: 6px;
+    --r-modal: 8px;
+    --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.6);
+
+    /* 3. Mapeamento de Compatibilidade para a Interface */
+    --mf-bg-app: var(--bg-0);
+    --mf-bg-surface: var(--bg-1);
+    --mf-bg-card: var(--bg-1);
+    --mf-bg-card-hover: var(--bg-2);
+    --mf-bg-glass: rgba(31, 31, 31, 0.85);
+    --mf-bg-glass-strong: rgba(20, 20, 20, 0.95);
     --mf-bg-glass-card: rgba(255, 255, 255, 0.04);
     --mf-bg-glass-card-hover: rgba(255, 255, 255, 0.08);
 
-    /* 2. Cores da Marca & Destaques (Vibrant Amber & Neon Accents) */
-    --mf-accent: #ff7a1a;
-    --mf-accent-light: #ff9447;
-    --mf-accent-hover: #ff8933;
-    --mf-accent-active: #e6660d;
-    --mf-accent-glow: rgba(255, 122, 26, 0.4);
-    --mf-accent-gradient: linear-gradient(135deg, #ff6200 0%, #ff8c2b 100%);
+    --mf-accent: var(--brand);
+    --mf-accent-light: var(--brand-hover);
+    --mf-accent-hover: var(--brand-hover);
+    --mf-accent-active: var(--brand-press);
+    --mf-accent-glow: rgba(229, 9, 20, 0.4);
+    --mf-accent-gradient: linear-gradient(135deg, #b20710 0%, #e50914 100%);
 
-    /* 3. Cores Semânticas de Status */
-    --mf-color-success: #22c55e;
-    --mf-color-success-light: #4ade80;
-    --mf-color-success-glow: rgba(34, 197, 94, 0.4);
-    --mf-color-success-gradient: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    --mf-color-success: var(--success);
+    --mf-color-success-light: #5de47e;
+    --mf-color-success-glow: rgba(70, 211, 105, 0.4);
+    --mf-color-success-gradient: linear-gradient(135deg, #2eb351 0%, #46d369 100%);
     --mf-color-info: #38bdf8;
-    --mf-color-warning: #f59e0b;
-    --mf-color-danger: #ef4444;
+    --mf-color-warning: var(--warning);
+    --mf-color-danger: var(--danger);
 
-    /* 4. Tipografia & Cores de Texto */
-    --mf-text-title: #ffffff;
-    --mf-text-primary: #f8fafc;
-    --mf-text-secondary: #cbd5e1;
-    --mf-text-muted: #94a3b8;
-    --mf-text-dim: #64748b;
+    --mf-text-title: var(--text-1);
+    --mf-text-primary: var(--text-1);
+    --mf-text-secondary: var(--text-2);
+    --mf-text-muted: var(--text-3);
+    --mf-text-dim: #666666;
 
-    /* 5. Bordas & Linhas Divisórias */
-    --mf-border-subtle: rgba(255, 255, 255, 0.08);
-    --mf-border-medium: rgba(255, 255, 255, 0.14);
-    --mf-border-strong: rgba(255, 255, 255, 0.22);
-    --mf-border-accent: rgba(255, 122, 26, 0.5);
-    --mf-border-success: rgba(34, 197, 94, 0.5);
+    --mf-border-subtle: var(--line);
+    --mf-border-medium: rgba(255, 255, 255, 0.15);
+    --mf-border-strong: rgba(255, 255, 255, 0.25);
+    --mf-border-accent: rgba(229, 9, 20, 0.6);
+    --mf-border-success: rgba(70, 211, 105, 0.5);
 
-    /* 6. Raios de Borda (Corner Radius) */
-    --mf-radius-xs: 6px;
-    --mf-radius-sm: 8px;
-    --mf-radius-md: 14px;
-    --mf-radius-lg: 18px;
-    --mf-radius-xl: 24px;
+    --mf-radius-xs: var(--r-btn);
+    --mf-radius-sm: var(--r-card);
+    --mf-radius-md: var(--r-modal);
+    --mf-radius-lg: 10px;
+    --mf-radius-xl: 12px;
     --mf-radius-pill: 9999px;
 
-    /* 7. Sombras Cinematográficas */
     --mf-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
     --mf-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
-    --mf-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.85);
-    --mf-shadow-poster: 0 20px 48px rgba(0, 0, 0, 0.9), 0 0 24px rgba(255, 122, 26, 0.15);
-    --mf-shadow-glow-accent: 0 0 28px rgba(255, 122, 26, 0.45);
-    --mf-shadow-glow-success: 0 0 28px rgba(34, 197, 94, 0.45);
+    --mf-shadow-lg: var(--shadow-float);
+    --mf-shadow-poster: var(--shadow-float);
+    --mf-shadow-glow-accent: 0 0 28px rgba(229, 9, 20, 0.45);
+    --mf-shadow-glow-success: 0 0 28px rgba(70, 211, 105, 0.45);
 
-    /* 8. Transições & Efeitos de Movimento */
     --mf-transition-fast: 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-    --mf-transition-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    --mf-transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    --mf-transition-normal: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    --mf-transition-smooth: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ==========================================================================
@@ -149,7 +164,7 @@ button:has(.cloud_download),
     margin: 0;
     font-size: 20px;
     font-weight: 800;
-    background: linear-gradient(90deg, #fff 40%, #ff7a1a 100%);
+    background: linear-gradient(90deg, #ffffff 50%, var(--brand, #e50914) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -304,11 +319,11 @@ button:has(.cloud_download),
 }
 
 .mf-genre-chip.active {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a);
-    color: #0a0b0e;
-    font-weight: 800;
-    border-color: var(--mf-accent);
-    box-shadow: 0 0 12px rgba(255, 122, 26, 0.4);
+    background: var(--brand, #e50914);
+    color: #ffffff;
+    font-weight: 700;
+    border-color: var(--brand, #e50914);
+    box-shadow: 0 0 12px rgba(229, 9, 20, 0.4);
 }
 
 .mf-genre-count {
@@ -620,33 +635,34 @@ button:has(.cloud_download),
 }
 
 .mf-btn-download {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a);
-    color: #0a0b0e;
+    background: var(--brand, #e50914);
+    color: #ffffff;
     border: none;
-    font-size: 12px;
-    font-weight: 800;
-    padding: 8px 14px;
-    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: var(--r-btn, 4px);
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 6px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .mf-btn-download:hover {
+    background: var(--brand-hover, #f6121d);
     transform: scale(1.03);
-    box-shadow: 0 4px 14px rgba(255, 122, 26, 0.4);
+    box-shadow: 0 4px 14px rgba(229, 9, 20, 0.4);
 }
 
 .mf-btn-qbittorrent {
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--line, #3a3a3a);
     color: #fff;
     font-size: 12px;
     font-weight: 600;
     padding: 8px 14px;
-    border-radius: 8px;
+    border-radius: var(--r-btn, 4px);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -666,9 +682,9 @@ button:has(.cloud_download),
 }
 
 .mf-download-card {
-    background: rgba(20, 24, 34, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-modal, 8px);
     padding: 16px 20px;
     display: flex;
     flex-direction: column;
@@ -677,15 +693,15 @@ button:has(.cloud_download),
 
 .mf-progress-bg {
     width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.08);
+    height: 6px;
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 99px;
     overflow: hidden;
 }
 
 .mf-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #ff7a1a, #ffb35c);
+    background: var(--brand, #e50914);
     border-radius: 99px;
     transition: width 0.3s ease;
 }
@@ -716,12 +732,12 @@ button:has(.cloud_download),
    ========================================================================== */
 
 .mf-ai-hero {
-    background: radial-gradient(circle at 10% 20%, rgba(255, 122, 26, 0.15), transparent 45%), linear-gradient(180deg, rgba(26, 30, 42, 0.8), rgba(16, 18, 26, 0.9));
-    border: 1px solid rgba(255, 122, 26, 0.3);
-    border-radius: 16px;
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-modal, 8px);
     padding: 24px;
     margin-bottom: 24px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 122, 26, 0.12);
+    box-shadow: var(--shadow-float);
 }
 
 .mf-ai-hero-header {
@@ -734,10 +750,8 @@ button:has(.cloud_download),
 .mf-ai-hero-header h3 {
     margin: 0;
     font-size: 18px;
-    font-weight: 800;
-    background: linear-gradient(90deg, #fff 40%, #ff7a1a 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+    color: #ffffff;
 }
 
 .mf-ai-prompt-box {
@@ -748,9 +762,9 @@ button:has(.cloud_download),
 
 .mf-ai-input {
     flex-grow: 1;
-    background: rgba(10, 12, 18, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
+    background: var(--bg-2, #2a2a2a);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-btn, 4px);
     padding: 12px 18px;
     color: #fff;
     font-size: 14px;
@@ -760,29 +774,29 @@ button:has(.cloud_download),
 }
 
 .mf-ai-input:focus {
-    border-color: var(--mf-accent);
-    box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.25);
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
 .mf-btn-ai-submit {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a);
-    color: #0a0b0e;
-    font-weight: 800;
+    background: var(--brand, #e50914);
+    color: #ffffff;
+    font-weight: 700;
     font-size: 14px;
     padding: 0 22px;
-    border-radius: 12px;
+    border-radius: var(--r-btn, 4px);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
     white-space: nowrap;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .mf-btn-ai-submit:hover {
-    transform: scale(1.03);
-    box-shadow: 0 0 20px rgba(255, 122, 26, 0.5);
+    background: var(--brand-hover, #f6121d);
+    transform: scale(1.02);
 }
 
 .mf-ai-suggestions {
@@ -806,24 +820,24 @@ button:has(.cloud_download),
 
 .mf-suggestion-pill:hover {
     color: #fff;
-    background: rgba(255, 122, 26, 0.2);
-    border-color: var(--mf-accent);
+    background: rgba(229, 9, 20, 0.2);
+    border-color: var(--brand, #e50914);
     transform: translateY(-2px);
 }
 
 .mf-ai-reason-bubble {
-    background: rgba(255, 122, 26, 0.12);
-    border-left: 3px solid var(--mf-accent);
+    background: rgba(229, 9, 20, 0.1);
+    border-left: 3px solid var(--brand, #e50914);
     padding: 8px 10px;
-    border-radius: 6px;
+    border-radius: var(--r-btn, 4px);
     font-size: 11px;
-    color: #e0e4ee;
+    color: #ffffff;
     line-height: 1.4;
     margin-bottom: 8px;
 }
 
 .mf-ai-reason-bubble strong {
-    color: var(--mf-accent);
+    color: var(--brand, #e50914);
     display: block;
     margin-bottom: 2px;
 }
@@ -853,10 +867,10 @@ button:has(.cloud_download),
     max-width: 1320px;
     height: 92vh;
     max-height: 900px;
-    background: #0f121a;
-    border: 1px solid rgba(255, 122, 26, 0.3);
-    border-radius: 20px;
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.9), 0 0 40px rgba(255, 122, 26, 0.18);
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-modal, 8px);
+    box-shadow: var(--shadow-float);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -941,25 +955,25 @@ button:has(.cloud_download),
 }
 
 .mf-btn-hero-watch {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a 60%, #ffb35c);
-    color: #0a0b0e;
+    background: var(--brand, #e50914);
+    color: #ffffff;
     font-size: 15px;
-    font-weight: 800;
-    padding: 14px 24px;
-    border-radius: 12px;
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: var(--r-btn, 4px);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    box-shadow: 0 8px 24px rgba(255, 122, 26, 0.4);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.4);
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .mf-btn-hero-watch:hover {
+    background: var(--brand-hover, #f6121d);
     transform: scale(1.02);
-    box-shadow: 0 10px 30px rgba(255, 122, 26, 0.6);
 }
 
 .mf-stremio-right {
@@ -1047,23 +1061,23 @@ button:has(.cloud_download),
 }
 
 .mf-btn-stream-play {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a);
-    color: #0a0b0e;
+    background: var(--brand, #e50914);
+    color: #ffffff;
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 700;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: var(--r-btn, 4px);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 6px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .mf-btn-stream-play:hover {
+    background: var(--brand-hover, #f6121d);
     transform: scale(1.05);
-    box-shadow: 0 4px 14px rgba(255, 122, 26, 0.45);
 }
 
 .mf-cinema-player {
@@ -1163,12 +1177,12 @@ button:has(.cloud_download),
    ========================================================================== */
 
 .mf-ai-hero {
-    background: radial-gradient(circle at 10% 20%, rgba(255, 122, 26, 0.15), transparent 45%), linear-gradient(180deg, rgba(26, 30, 42, 0.8), rgba(16, 18, 26, 0.9));
-    border: 1px solid rgba(255, 122, 26, 0.3);
-    border-radius: 16px;
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-modal, 8px);
     padding: 24px;
     margin-bottom: 24px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 122, 26, 0.12);
+    box-shadow: var(--shadow-float);
 }
 
 .mf-ai-hero-header {
@@ -1181,10 +1195,8 @@ button:has(.cloud_download),
 .mf-ai-hero-header h3 {
     margin: 0;
     font-size: 18px;
-    font-weight: 800;
-    background: linear-gradient(90deg, #fff 40%, #ff7a1a 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+    color: #ffffff;
 }
 
 .mf-ai-prompt-box {
@@ -1195,9 +1207,9 @@ button:has(.cloud_download),
 
 .mf-ai-input {
     flex-grow: 1;
-    background: rgba(10, 12, 18, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
+    background: var(--bg-2, #2a2a2a);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-btn, 4px);
     padding: 12px 18px;
     color: #fff;
     font-size: 14px;
@@ -1207,29 +1219,29 @@ button:has(.cloud_download),
 }
 
 .mf-ai-input:focus {
-    border-color: var(--mf-accent);
-    box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.25);
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
 .mf-btn-ai-submit {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a);
-    color: #0a0b0e;
-    font-weight: 800;
+    background: var(--brand, #e50914);
+    color: #ffffff;
+    font-weight: 700;
     font-size: 14px;
     padding: 0 22px;
-    border-radius: 12px;
+    border-radius: var(--r-btn, 4px);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
     white-space: nowrap;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .mf-btn-ai-submit:hover {
-    transform: scale(1.03);
-    box-shadow: 0 0 20px rgba(255, 122, 26, 0.5);
+    background: var(--brand-hover, #f6121d);
+    transform: scale(1.02);
 }
 
 .mf-ai-suggestions {
@@ -1253,24 +1265,24 @@ button:has(.cloud_download),
 
 .mf-suggestion-pill:hover {
     color: #fff;
-    background: rgba(255, 122, 26, 0.2);
-    border-color: var(--mf-accent);
+    background: rgba(229, 9, 20, 0.2);
+    border-color: var(--brand, #e50914);
     transform: translateY(-2px);
 }
 
 .mf-ai-reason-bubble {
-    background: rgba(255, 122, 26, 0.12);
-    border-left: 3px solid var(--mf-accent);
+    background: rgba(229, 9, 20, 0.1);
+    border-left: 3px solid var(--brand, #e50914);
     padding: 8px 10px;
-    border-radius: 6px;
+    border-radius: var(--r-btn, 4px);
     font-size: 11px;
-    color: #e0e4ee;
+    color: #ffffff;
     line-height: 1.4;
     margin-bottom: 8px;
 }
 
 .mf-ai-reason-bubble strong {
-    color: var(--mf-accent);
+    color: var(--brand, #e50914);
     display: block;
     margin-bottom: 2px;
 }
@@ -1300,10 +1312,10 @@ button:has(.cloud_download),
     max-width: 1320px;
     height: 92vh;
     max-height: 900px;
-    background: #0f121a;
-    border: 1px solid rgba(255, 122, 26, 0.3);
-    border-radius: 20px;
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.9), 0 0 40px rgba(255, 122, 26, 0.18);
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-modal, 8px);
+    box-shadow: var(--shadow-float);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1388,25 +1400,25 @@ button:has(.cloud_download),
 }
 
 .mf-btn-hero-watch {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a 60%, #ffb35c);
-    color: #0a0b0e;
+    background: var(--brand, #e50914);
+    color: #ffffff;
     font-size: 15px;
-    font-weight: 800;
-    padding: 14px 24px;
-    border-radius: 12px;
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: var(--r-btn, 4px);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    box-shadow: 0 8px 24px rgba(255, 122, 26, 0.4);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.4);
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .mf-btn-hero-watch:hover {
+    background: var(--brand-hover, #f6121d);
     transform: scale(1.02);
-    box-shadow: 0 10px 30px rgba(255, 122, 26, 0.6);
 }
 
 .mf-stremio-right {
@@ -1494,23 +1506,23 @@ button:has(.cloud_download),
 }
 
 .mf-btn-stream-play {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a);
-    color: #0a0b0e;
+    background: var(--brand, #e50914);
+    color: #ffffff;
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 700;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: var(--r-btn, 4px);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 6px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .mf-btn-stream-play:hover {
+    background: var(--brand-hover, #f6121d);
     transform: scale(1.05);
-    box-shadow: 0 4px 14px rgba(255, 122, 26, 0.45);
 }
 
 .mf-cinema-player {
@@ -1649,9 +1661,9 @@ button:has(.cloud_download),
 }
 
 .mf-nav-tab-btn.active {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a);
-    color: #0a0b0e;
-    box-shadow: 0 4px 16px rgba(255, 122, 26, 0.35);
+    background: var(--brand, #e50914);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(229, 9, 20, 0.35);
 }
 
 .mf-nav-tab-btn.btn-ai.active {
@@ -1836,35 +1848,35 @@ button:has(.cloud_download),
 }
 
 .mf-badge-local-size {
-    background: rgba(255, 122, 26, 0.9);
-    color: #0a0b0e;
+    background: var(--brand, #e50914);
+    color: #ffffff;
     font-size: 10px;
     font-weight: 800;
     padding: 3px 6px;
-    border-radius: 6px;
+    border-radius: var(--r-btn, 4px);
 }
 
 .mf-btn-play-local {
     margin-top: 8px;
     width: 100%;
-    background: linear-gradient(90deg, #ff6200, #ff7a1a);
-    color: #0a0b0e;
+    background: var(--brand, #e50914);
+    color: #ffffff;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--r-btn, 4px);
     padding: 8px 12px;
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .mf-btn-play-local:hover {
+    background: var(--brand-hover, #f6121d);
     transform: scale(1.02);
-    box-shadow: 0 4px 14px rgba(255, 122, 26, 0.45);
 }
 
 /* Streaming Hero Banner */
@@ -1942,42 +1954,43 @@ button:has(.cloud_download),
 }
 
 .mf-btn-hero-play {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a 60%, #ffb35c);
-    color: #0a0b0e;
-    font-size: 14px;
-    font-weight: 800;
+    background: #ffffff;
+    color: #141414;
+    font-size: 15px;
+    font-weight: 700;
     padding: 12px 24px;
-    border-radius: 10px;
+    border-radius: var(--r-btn, 4px);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 6px 20px rgba(255, 122, 26, 0.4);
-    transition: transform 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .mf-btn-hero-play:hover {
-    transform: scale(1.03);
+    background: #e6e6e6;
+    transform: scale(1.02);
 }
 
 .mf-btn-hero-info {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(109, 109, 110, 0.7);
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    font-size: 14px;
-    font-weight: 700;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
     padding: 12px 20px;
-    border-radius: 10px;
+    border-radius: var(--r-btn, 4px);
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: background 0.2s ease;
+    transition: opacity 0.2s ease;
 }
 
 .mf-btn-hero-info:hover {
-    background: rgba(255, 255, 255, 0.18);
+    opacity: 0.8;
 }
 
 .mf-streaming-controls {
@@ -2039,8 +2052,8 @@ button:has(.cloud_download),
     left: 0;
     height: 6px;
     border-radius: 4px;
-    background: linear-gradient(90deg, #ff6200, #ff7a1a);
-    box-shadow: 0 0 10px rgba(255, 122, 26, 0.5);
+    background: var(--brand, #e50914);
+    box-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
     z-index: 2;
     width: 0%;
 }
@@ -2245,17 +2258,18 @@ button:has(.cloud_download),
 }
 
 .mf-home-hero .mf-hero-tag {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 800;
-    color: var(--mf-accent, #ff7a1a);
+    color: var(--brand, #e50914);
     letter-spacing: 0.08em;
     margin-bottom: 8px;
+    text-transform: uppercase;
 }
 
 .mf-home-hero .mf-hero-title {
     margin: 0 0 10px 0;
     font-size: 40px;
-    font-weight: 900;
+    font-weight: 800;
     color: #fff;
     line-height: 1.1;
     text-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
@@ -2266,15 +2280,15 @@ button:has(.cloud_download),
     align-items: center;
     gap: 12px;
     font-size: 13px;
-    font-weight: 700;
-    color: #ccd2e0;
+    font-weight: 600;
+    color: var(--text-2, #b3b3b3);
     margin-bottom: 12px;
 }
 
 .mf-home-hero .mf-hero-desc {
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.5;
-    color: #c4c8d0;
+    color: var(--text-2, #b3b3b3);
     margin: 0 0 20px 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -2290,43 +2304,48 @@ button:has(.cloud_download),
 }
 
 .mf-home-hero .mf-btn-hero-play {
-    background: linear-gradient(90deg, #ff6200, #ff7a1a 55%, #ffb35c);
-    border: none;
-    color: #140a02;
-    font-size: 15px;
-    font-weight: 800;
-    padding: 13px 26px;
-    border-radius: 12px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 8px 24px -6px rgba(255, 122, 26, 0.6);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: #ffffff !important;
+    border: none !important;
+    color: #141414 !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    height: 44px !important;
+    padding: 0 24px !important;
+    border-radius: var(--r-btn, 4px) !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+    transition: background 0.2s ease, transform 0.2s ease !important;
 }
 
 .mf-home-hero .mf-btn-hero-play:hover {
-    transform: scale(1.04);
-    box-shadow: 0 12px 28px -4px rgba(255, 122, 26, 0.8);
+    background: #e6e6e6 !important;
+    transform: scale(1.02) !important;
 }
 
 .mf-home-hero .mf-btn-hero-info {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    color: #f2f3f5;
-    font-size: 15px;
-    font-weight: 700;
-    padding: 13px 22px;
-    border-radius: 12px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    transition: background 0.2s ease;
+    background: rgba(109, 109, 110, 0.7) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    height: 44px !important;
+    padding: 0 24px !important;
+    border-radius: var(--r-btn, 4px) !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    transition: opacity 0.2s ease, transform 0.2s ease !important;
 }
 
 .mf-home-hero .mf-btn-hero-info:hover {
-    background: rgba(255, 255, 255, 0.16);
+    opacity: 0.8 !important;
+    transform: scale(1.02) !important;
 }
 
 /* Home Section Layout */
@@ -2356,15 +2375,15 @@ button:has(.cloud_download),
 .mf-btn-see-all {
     background: transparent;
     border: none;
-    color: var(--mf-accent, #ff7a1a);
+    color: var(--text-2, #b3b3b3);
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .mf-btn-see-all:hover {
-    color: #fff;
+    color: #ffffff;
     transform: translateX(4px);
 }
 
@@ -2384,17 +2403,17 @@ button:has(.cloud_download),
 }
 
 .mf-home-scroller::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 99px;
 }
 
 .mf-home-scroller::-webkit-scrollbar-thumb:hover {
-    background: var(--mf-accent, #ff7a1a);
+    background: rgba(255, 255, 255, 0.35);
 }
 
 .mf-scroller-loading {
     padding: 30px 20px;
-    color: #8c93a4;
+    color: var(--text-3, #808080);
     font-size: 14px;
 }
 
@@ -2402,11 +2421,11 @@ button:has(.cloud_download),
 .mf-home-card {
     flex: 0 0 175px;
     width: 175px;
-    border-radius: 14px;
+    border-radius: var(--r-card, 6px);
     overflow: hidden;
-    background: #14161f;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
     cursor: pointer;
     position: relative;
     display: flex;
@@ -2414,16 +2433,16 @@ button:has(.cloud_download),
 }
 
 .mf-home-card:hover {
-    transform: translateY(-6px) scale(1.03);
-    border-color: rgba(255, 122, 26, 0.55);
-    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(255, 122, 26, 0.25);
+    transform: translateY(-6px) scale(1.04);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: var(--shadow-float);
 }
 
 .mf-home-card-poster-wrap {
     position: relative;
     width: 100%;
     height: 250px;
-    background: #0d0f16;
+    background: var(--bg-0, #141414);
     overflow: hidden;
 }
 
@@ -2447,11 +2466,11 @@ button:has(.cloud_download),
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #ff6200, #ffb35c);
+    background: var(--brand, #e50914);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 24px rgba(255, 122, 26, 0.5);
+    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.5);
     opacity: 0;
     transition: opacity 0.2s ease, transform 0.2s ease;
     pointer-events: none;
@@ -2562,10 +2581,10 @@ button:has(.cloud_download),
     gap: 6px;
     height: 44px;
     padding: 0 18px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 122, 26, 0.5);
-    background: rgba(255, 122, 26, 0.15);
-    color: #ff7a1a;
+    border-radius: var(--r-btn, 4px);
+    border: 1px solid var(--line, #3a3a3a);
+    background: var(--bg-2, #2a2a2a);
+    color: #ffffff;
     font-weight: 700;
     font-size: 14px;
     cursor: pointer;
@@ -2573,16 +2592,17 @@ button:has(.cloud_download),
 }
 
 .mf-catalog-toolbar .mf-btn-ai:hover {
-    background: #ff7a1a;
-    color: #0a0b0e;
+    background: var(--brand, #e50914);
+    border-color: var(--brand, #e50914);
+    color: #ffffff;
 }
 
 .mf-catalog-toolbar .mf-sort-select {
     height: 44px;
     padding: 0 14px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: #141824;
+    border-radius: var(--r-btn, 4px);
+    border: 1px solid var(--line, #3a3a3a);
+    background: var(--bg-2, #2a2a2a);
     color: #fff;
     font-size: 14px;
     outline: none;
@@ -2591,21 +2611,21 @@ button:has(.cloud_download),
 
 .mf-catalog-status {
     font-size: 14px;
-    color: #8c93a4;
+    color: var(--text-2, #b3b3b3);
 }
 
 .mf-catalog-status .mf-muted {
-    color: #8c93a4;
+    color: var(--text-3, #808080);
     margin: 0;
 }
 
 .mf-catalog-status .mf-error {
-    color: #ef4444;
+    color: var(--danger, #ff4d4f);
     margin: 0;
 }
 
 .mf-catalog-status .mf-link-clear {
-    color: #ff7a1a;
+    color: var(--brand, #e50914);
     text-decoration: underline;
     margin-left: 8px;
     cursor: pointer;
@@ -2618,11 +2638,11 @@ button:has(.cloud_download),
 }
 
 .mf-btn-more {
-    height: 42px;
+    height: 44px;
     padding: 0 28px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--r-btn, 4px);
+    border: 1px solid var(--line, #3a3a3a);
+    background: var(--bg-2, #2a2a2a);
     color: #fff;
     font-weight: 700;
     cursor: pointer;
@@ -2631,12 +2651,13 @@ button:has(.cloud_download),
 
 .mf-btn-more:hover {
     background: rgba(255, 255, 255, 0.18);
+    border-color: #ffffff;
 }
 
 .mf-downloads-strip {
-    background: rgba(255, 122, 26, 0.08);
-    border: 1px solid rgba(255, 122, 26, 0.3);
-    border-radius: 14px;
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-modal, 8px);
     padding: 14px 18px;
     display: flex;
     flex-direction: column;
@@ -2648,13 +2669,13 @@ button:has(.cloud_download),
     margin: 0;
     font-size: 14px;
     font-weight: 800;
-    color: #ff7a1a;
+    color: var(--brand, #e50914);
 }
 
 .mf-dl-row {
-    background: rgba(10, 12, 18, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
+    background: var(--bg-2, #2a2a2a);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-btn, 4px);
     padding: 10px 14px;
     display: flex;
     flex-direction: column;
@@ -2680,13 +2701,13 @@ button:has(.cloud_download),
 
 .mf-dl-row-info {
     font-size: 12px;
-    color: #8c93a4;
+    color: var(--text-2, #b3b3b3);
 }
 
 .mf-dl-row-cancel {
     background: transparent;
     border: none;
-    color: #8c93a4;
+    color: var(--text-3, #808080);
     cursor: pointer;
     padding: 2px;
     display: flex;
@@ -2694,7 +2715,7 @@ button:has(.cloud_download),
 }
 
 .mf-dl-row-cancel:hover {
-    color: #ef4444;
+    color: var(--danger, #ff4d4f);
 }
 
 .mf-dl-row-bar {
@@ -2706,7 +2727,7 @@ button:has(.cloud_download),
 
 .mf-dl-row-bar div {
     height: 100%;
-    background: linear-gradient(90deg, #ff6200, #ff7a1a);
+    background: var(--brand, #e50914);
     border-radius: 99px;
 }
 
@@ -2789,7 +2810,7 @@ button:has(.cloud_download),
 .mf-profile-avatar {
     width: 120px;
     height: 120px;
-    border-radius: 16px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2809,30 +2830,30 @@ button:has(.cloud_download),
 .mf-profile-badge-current {
     position: absolute;
     bottom: -10px;
-    background: #22c55e;
+    background: var(--success, #46d369);
     color: #fff;
     font-size: 10px;
     font-weight: 800;
     padding: 2px 8px;
     border-radius: 99px;
     letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.5);
+    box-shadow: 0 2px 8px rgba(70, 211, 105, 0.5);
 }
 
 .mf-profile-name {
     font-size: 18px;
     font-weight: 700;
-    color: #cbd5e1;
+    color: var(--text-2, #b3b3b3);
     transition: color 0.2s ease;
 }
 
 .mf-profile-card:hover .mf-profile-name {
-    color: #fff;
+    color: #ffffff;
 }
 
 .mf-profile-role {
     font-size: 12px;
-    color: #64748b;
+    color: var(--text-3, #808080);
     margin-top: -6px;
 }
 
@@ -2849,9 +2870,9 @@ button:has(.cloud_download),
 .mf-profile-name-input {
     width: 100%;
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
+    background: var(--bg-2, #2a2a2a);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: 4px;
     color: #fff;
     font-size: 15px;
     outline: none;
@@ -2859,7 +2880,8 @@ button:has(.cloud_download),
 }
 
 .mf-profile-name-input:focus {
-    border-color: #ff7a1a;
+    border-color: #ffffff;
+    outline: 2px solid #ffffff;
 }
 
 .mf-profile-form-actions {
@@ -2871,9 +2893,9 @@ button:has(.cloud_download),
 .mf-btn-profile-save {
     flex: 1;
     padding: 10px;
-    background: #ff7a1a;
+    background: var(--brand, #e50914);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--r-btn, 4px);
     color: #fff;
     font-weight: 700;
     cursor: pointer;
@@ -2881,10 +2903,10 @@ button:has(.cloud_download),
 
 .mf-btn-profile-cancel {
     padding: 10px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    border-radius: 8px;
-    color: #94a3b8;
+    background: var(--bg-2, #2a2a2a);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-btn, 4px);
+    color: var(--text-2, #b3b3b3);
     cursor: pointer;
 }
 
@@ -2928,7 +2950,7 @@ button:has(.cloud_download),
     color: #94a3b8;
 }
 
-/* Barra de progresso para Continuar Assistindo estilo Netflix */
+/* Barra de progresso para Continuar Assistindo estilo Netflix (DESIGN.md Section 6.1) */
 .mf-home-card-history {
     position: relative;
 }
@@ -2938,15 +2960,14 @@ button:has(.cloud_download),
     bottom: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: rgba(0, 0, 0, 0.7);
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
     z-index: 2;
 }
 
 .mf-history-bar-fill {
     height: 100%;
-    background: #e50914;
-    box-shadow: 0 0 6px rgba(229, 9, 20, 0.8);
+    background: var(--brand, #e50914);
 }
 
 /* ==========================================================================
@@ -3039,11 +3060,11 @@ button:has(.cloud_download),
 
 .mf-movie-page-back-btn:hover,
 .mf-stremio-close-btn:hover {
-    background: var(--mf-accent, #ff7a1a) !important;
-    border-color: var(--mf-accent, #ff7a1a) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: #ffffff !important;
     color: #ffffff !important;
     transform: translateX(-4px) !important;
-    box-shadow: var(--mf-shadow-glow-accent) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
 }
 
 .mf-movie-page-top-title {
@@ -3295,11 +3316,11 @@ button:has(.cloud_download),
 .mf-streams-count {
     font-size: 13px !important;
     font-weight: 700 !important;
-    color: var(--mf-accent, #ff7a1a) !important;
-    background: rgba(255, 122, 26, 0.12) !important;
+    color: var(--brand, #e50914) !important;
+    background: rgba(229, 9, 20, 0.12) !important;
     padding: 3px 10px !important;
     border-radius: var(--mf-radius-pill, 9999px) !important;
-    border: 1px solid rgba(255, 122, 26, 0.25) !important;
+    border: 1px solid rgba(229, 9, 20, 0.25) !important;
 }
 
 /* Filtros interativos de fontes (Chips) */
@@ -3328,10 +3349,10 @@ button:has(.cloud_download),
 }
 
 .mf-filter-chip.active {
-    background: var(--mf-accent, #ff7a1a) !important;
-    border-color: var(--mf-accent, #ff7a1a) !important;
+    background: var(--brand, #e50914) !important;
+    border-color: var(--brand, #e50914) !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 12px rgba(255, 122, 26, 0.4) !important;
+    box-shadow: 0 2px 12px rgba(229, 9, 20, 0.4) !important;
 }
 
 /* Lista de fontes */
@@ -3346,9 +3367,9 @@ button:has(.cloud_download),
 
 /* Item de Fonte Individual */
 .mf-stream-item {
-    background: var(--mf-bg-card, #131722) !important;
-    border: 1px solid var(--mf-border-subtle, rgba(255, 255, 255, 0.08)) !important;
-    border-radius: var(--mf-radius-md, 14px) !important;
+    background: var(--bg-1, #1f1f1f) !important;
+    border: 1px solid var(--line, #3a3a3a) !important;
+    border-radius: var(--r-btn, 4px) !important;
     padding: 14px 18px !important;
     display: flex !important;
     align-items: center !important;
@@ -3358,10 +3379,10 @@ button:has(.cloud_download),
 }
 
 .mf-stream-item:hover {
-    background: var(--mf-bg-card-hover, #181d2b) !important;
-    border-color: rgba(255, 122, 26, 0.35) !important;
+    background: var(--bg-2, #2a2a2a) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
     transform: translateX(4px) !important;
-    box-shadow: var(--mf-shadow-md) !important;
+    box-shadow: var(--shadow-float) !important;
 }
 
 .mf-stream-meta {
@@ -3494,20 +3515,20 @@ button:has(.cloud_download),
     height: 38px !important;
     border-radius: 50% !important;
     border: none !important;
-    background: var(--mf-accent, #ff7a1a) !important;
+    background: var(--brand, #e50914) !important;
     color: #ffffff !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
     transition: var(--mf-transition-fast) !important;
-    box-shadow: 0 4px 12px rgba(255, 122, 26, 0.35) !important;
+    box-shadow: 0 4px 12px rgba(229, 9, 20, 0.35) !important;
 }
 
 .mf-btn-stream-play:hover {
     transform: scale(1.1) !important;
-    background: #ff9238 !important;
-    box-shadow: 0 6px 18px rgba(255, 122, 26, 0.55) !important;
+    background: var(--brand-hover, #f6121d) !important;
+    box-shadow: 0 6px 18px rgba(229, 9, 20, 0.55) !important;
 }
 
 .mf-btn-stream-dl {
@@ -3539,9 +3560,9 @@ button:has(.cloud_download),
 /* 2. Títulos Claros, Nítidos e Brancos (Eliminando Títulos Escuros) */
 .mf-movie-card,
 button.mf-movie-card {
-    background: rgba(20, 24, 35, 0.85) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 14px !important;
+    background: var(--bg-1, #1f1f1f) !important;
+    border: 1px solid var(--line, #3a3a3a) !important;
+    border-radius: var(--r-card, 6px) !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
@@ -3550,14 +3571,14 @@ button.mf-movie-card {
     color: #ffffff !important;
     padding: 0 !important;
     outline: none !important;
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+    transition: transform 0.2s ease-out, border-color 0.2s ease-out, box-shadow 0.2s ease-out !important;
 }
 
 .mf-movie-card:hover,
 button.mf-movie-card:hover {
-    transform: translateY(-6px) scale(1.02) !important;
-    border-color: #ff7a1a !important;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 16px rgba(255, 122, 26, 0.25) !important;
+    transform: translateY(-6px) scale(1.04) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    box-shadow: var(--shadow-float) !important;
 }
 
 .mf-movie-info,
@@ -3569,7 +3590,7 @@ button.mf-movie-card:hover {
     gap: 4px !important;
     width: 100% !important;
     box-sizing: border-box !important;
-    background: rgba(15, 18, 26, 0.95) !important;
+    background: var(--bg-1, #1f1f1f) !important;
 }
 
 .mf-movie-title,
@@ -3589,7 +3610,7 @@ button.mf-movie-card:hover {
 
 .mf-movie-card:hover .mf-movie-title,
 button.mf-movie-card:hover .mf-movie-title {
-    color: #ff7a1a !important;
+    color: #ffffff !important;
 }
 
 .mf-movie-meta-row,
@@ -3598,18 +3619,18 @@ button.mf-movie-card:hover .mf-movie-title {
     align-items: center !important;
     justify-content: space-between !important;
     font-size: 12px !important;
-    color: #94a3b8 !important;
+    color: var(--text-2, #b3b3b3) !important;
     width: 100% !important;
 }
 
 .mf-meta-year {
-    color: #cbd5e1 !important;
+    color: var(--text-2, #b3b3b3) !important;
     font-size: 12px !important;
     font-weight: 500 !important;
 }
 
 .mf-meta-genre {
-    color: #ff7a1a !important;
+    color: var(--text-2, #b3b3b3) !important;
     font-size: 12px !important;
     font-weight: 600 !important;
 }
@@ -3879,14 +3900,14 @@ button[aria-label*="Grupo"] {
 }
 
 .mf-btn-hero-watch.mf-btn-watching-dl {
-    background: linear-gradient(135deg, #0284c7 0%, #ff7a1a 100%) !important;
+    background: linear-gradient(135deg, #0284c7 0%, var(--brand, #e50914) 100%) !important;
     color: #ffffff !important;
     box-shadow: 0 10px 30px rgba(56, 189, 248, 0.4) !important;
 }
 
 .mf-btn-hero-watch.mf-btn-watching-dl:hover {
     transform: scale(1.03) !important;
-    box-shadow: 0 12px 36px rgba(255, 122, 26, 0.5) !important;
+    box-shadow: 0 12px 36px rgba(229, 9, 20, 0.5) !important;
 }
 
 .mf-btn-watch-dl {
@@ -4084,13 +4105,13 @@ button[aria-label*="Grupo"] {
 }
 
 .mf-confirm-btn-cancel {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #cbd5e1;
+    background: var(--bg-2, #2a2a2a);
+    border: 1px solid var(--line, #3a3a3a);
+    color: var(--text-2, #b3b3b3);
     font-weight: 600;
     font-size: 14px;
     padding: 10px 18px;
-    border-radius: 10px;
+    border-radius: var(--r-btn, 4px);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -4098,40 +4119,40 @@ button[aria-label*="Grupo"] {
 .mf-confirm-btn-cancel:hover {
     background: rgba(255, 255, 255, 0.12);
     color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: #ffffff;
 }
 
 .mf-confirm-btn-action {
     border: none;
-    font-weight: 800;
+    font-weight: 700;
     font-size: 14px;
     padding: 10px 22px;
-    border-radius: 10px;
+    border-radius: var(--r-btn, 4px);
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .mf-confirm-btn-primary {
-    background: var(--mf-accent-gradient, linear-gradient(135deg, #ff6200 0%, #ff8c2b 100%));
-    color: #080a0f;
-    box-shadow: 0 4px 18px rgba(255, 122, 26, 0.45);
+    background: var(--brand, #e50914);
+    color: #ffffff;
+    box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45);
 }
 
 .mf-confirm-btn-primary:hover {
-    transform: scale(1.03);
-    box-shadow: 0 6px 24px rgba(255, 122, 26, 0.65);
+    background: var(--brand-hover, #f6121d);
+    transform: scale(1.02);
 }
 
 .mf-confirm-btn-danger {
-    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    background: var(--danger, #ff4d4f);
     color: #ffffff;
-    box-shadow: 0 4px 18px rgba(239, 68, 68, 0.45);
+    box-shadow: 0 4px 18px rgba(255, 77, 79, 0.45);
 }
 
 .mf-confirm-btn-danger:hover {
-    transform: scale(1.03);
-    box-shadow: 0 6px 24px rgba(239, 68, 68, 0.65);
+    transform: scale(1.02);
+    box-shadow: 0 6px 24px rgba(255, 77, 79, 0.65);
 }
 
 /* ==========================================================================
@@ -4149,31 +4170,31 @@ button[aria-label*="Grupo"] {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 9999px;
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-btn, 4px);
     padding: 8px 18px;
     font-size: 14px;
     font-weight: 600;
-    color: #cbd5e1;
+    color: var(--text-2, #b3b3b3);
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
 }
 
 .mf-category-chip:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-2, #2a2a2a);
     color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-1px);
 }
 
 .mf-category-chip.active {
-    background: var(--mf-accent-gradient, linear-gradient(135deg, #ff6200 0%, #ff8c2b 100%));
-    border-color: transparent;
-    color: #080a0f !important;
+    background: var(--brand, #e50914);
+    border-color: var(--brand, #e50914);
+    color: #ffffff !important;
     font-weight: 700;
-    box-shadow: 0 4px 18px rgba(255, 122, 26, 0.45);
+    box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45);
 }
 
 .mf-category-chip.active .mf-chip-count {
@@ -4199,16 +4220,16 @@ button[aria-label*="Grupo"] {
 }
 
 .mf-franchise-block {
-    background: linear-gradient(180deg, rgba(20, 24, 35, 0.75) 0%, rgba(13, 16, 23, 0.95) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 18px;
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-modal, 8px);
     padding: 24px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    box-shadow: var(--shadow-float);
     transition: border-color 0.2s ease;
 }
 
 .mf-franchise-block:hover {
-    border-color: rgba(255, 122, 26, 0.35);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .mf-franchise-block-header {
@@ -4217,7 +4238,7 @@ button[aria-label*="Grupo"] {
     justify-content: space-between;
     margin-bottom: 20px;
     padding-bottom: 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid var(--line, #3a3a3a);
 }
 
 .mf-franchise-block-left {
@@ -4250,15 +4271,15 @@ button[aria-label*="Grupo"] {
     position: absolute;
     bottom: 8px;
     left: 8px;
-    background: rgba(15, 18, 26, 0.9);
+    background: rgba(20, 20, 20, 0.95);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 122, 26, 0.45);
-    color: #ff9d42 !important;
+    border: 1px solid var(--line, #3a3a3a);
+    color: #ffffff !important;
     font-size: 10px;
     font-weight: 700;
     padding: 3px 8px;
-    border-radius: 6px;
+    border-radius: var(--r-btn, 4px);
     z-index: 3;
     pointer-events: none;
     max-width: calc(100% - 16px);
@@ -4269,9 +4290,9 @@ button[aria-label*="Grupo"] {
 }
 
 .mf-badge-chip.mf-badge-franchise {
-    background: rgba(255, 122, 26, 0.15) !important;
-    border-color: rgba(255, 122, 26, 0.45) !important;
-    color: #ff9d42 !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--line, #3a3a3a) !important;
+    color: #ffffff !important;
     font-weight: 700 !important;
 }
 
@@ -4296,30 +4317,30 @@ button[aria-label*="Grupo"] {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 9999px;
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-btn, 4px);
     padding: 10px 22px;
     font-size: 15px;
     font-weight: 700;
-    color: #cbd5e1;
+    color: var(--text-2, #b3b3b3);
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
 }
 
 .mf-type-chip:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-2, #2a2a2a);
     color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-1px);
 }
 
 .mf-type-chip.active {
-    background: var(--mf-accent-gradient, linear-gradient(135deg, #ff6200 0%, #ff8c2b 100%));
-    border-color: transparent;
-    color: #080a0f !important;
-    box-shadow: 0 4px 18px rgba(255, 122, 26, 0.45);
+    background: var(--brand, #e50914);
+    border-color: var(--brand, #e50914);
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45);
 }
 
 .mf-type-chip-icon {
@@ -4346,9 +4367,9 @@ button[aria-label*="Grupo"] {
 
 /* Seção de Temporadas e Episódios em Séries */
 .mf-series-episodes-section {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
+    background: var(--bg-1, #1f1f1f);
+    border: 1px solid var(--line, #3a3a3a);
+    border-radius: var(--r-modal, 8px);
     padding: 16px 20px;
     margin-bottom: 24px;
 }
@@ -4367,19 +4388,20 @@ button[aria-label*="Grupo"] {
 }
 
 .mf-series-season-select {
-    background: rgba(15, 18, 26, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--bg-2, #2a2a2a);
+    border: 1px solid var(--line, #3a3a3a);
     color: #ffffff;
     font-size: 14px;
     font-weight: 600;
     padding: 6px 14px;
-    border-radius: 8px;
+    border-radius: var(--r-btn, 4px);
     cursor: pointer;
     outline: none;
 }
 
 .mf-series-season-select:focus {
-    border-color: #ff7a1a;
+    border-color: #ffffff;
+    outline: 2px solid #ffffff;
 }
 
 .mf-series-episodes-list {
@@ -4475,11 +4497,11 @@ button.mf-home-card:focus-visible,
 .mf-player-close-btn:focus-visible,
 div[role="button"]:focus,
 div[role="button"]:focus-visible {
-    outline: 3px solid #ff7a1a !important;
-    outline-offset: 3px !important;
-    transform: scale(1.08) translateY(-4px) !important;
-    border-color: #ff7a1a !important;
-    box-shadow: 0 0 32px rgba(255, 122, 26, 0.7), 0 16px 36px rgba(0, 0, 0, 0.95) !important;
+    outline: 3px solid #ffffff !important;
+    outline-offset: 2px !important;
+    transform: scale(1.08) !important;
+    border-color: transparent !important;
+    box-shadow: var(--shadow-float) !important;
     z-index: 100 !important;
     transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, outline 0.15s ease !important;
 }
@@ -4493,15 +4515,15 @@ div[role="button"]:focus-visible {
 .mf-home-card:focus-visible .mf-home-card-play-overlay {
     opacity: 1 !important;
     transform: scale(1) !important;
-    background: rgba(255, 122, 26, 0.9) !important;
+    background: var(--brand, #e50914) !important;
 }
 
 .mf-movie-card:focus .mf-movie-title,
 .mf-movie-card:focus-visible .mf-movie-title,
 .mf-home-card:focus .mf-home-card-title,
 .mf-home-card:focus-visible .mf-home-card-title {
-    color: #ff9e42 !important;
-    text-shadow: 0 0 12px rgba(255, 122, 26, 0.5) !important;
+    color: #ffffff !important;
+    text-shadow: none !important;
 }
 
 /* Tamanhos ampliados para legibilidade a 3 metros (Sofá / TV) */
@@ -4515,24 +4537,32 @@ div[role="button"]:focus-visible {
 .mf-movie-meta-row,
 .mf-home-card-meta {
     font-size: 13px !important;
-    color: #cbd5e1 !important;
+    color: var(--text-2, #b3b3b3) !important;
 }
 
 /* Botão principal de ação em destaque para TV */
 .mf-btn-hero-watch {
-    height: 56px !important;
-    padding: 0 36px !important;
-    font-size: 18px !important;
-    font-weight: 800 !important;
-    border-radius: 14px !important;
-    letter-spacing: 0.3px !important;
+    height: 48px !important;
+    padding: 0 28px !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    border-radius: var(--r-btn, 4px) !important;
+    letter-spacing: 0.2px !important;
+    background: var(--brand, #e50914) !important;
+    color: #ffffff !important;
     cursor: pointer !important;
+    transition: background 0.2s ease, transform 0.2s ease !important;
+}
+
+.mf-btn-hero-watch:hover {
+    background: var(--brand-hover, #f6121d) !important;
+    transform: scale(1.02) !important;
 }
 
 /* Stream item com espaçamento e clique confortável para TV */
 .mf-stream-item {
-    padding: 18px 24px !important;
-    border-radius: 14px !important;
+    padding: 16px 20px !important;
+    border-radius: var(--r-btn, 4px) !important;
     margin-bottom: 12px !important;
     cursor: pointer !important;
     user-select: none !important;
@@ -4551,12 +4581,12 @@ div[role="button"]:focus-visible {
 
 /* Botão de voltar grande e visível na TV */
 .mf-movie-page-back-btn {
-    padding: 12px 22px !important;
+    padding: 10px 20px !important;
     font-size: 15px !important;
     font-weight: 700 !important;
-    border-radius: 12px !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: var(--r-btn, 4px) !important;
+    background: var(--bg-2, #2a2a2a) !important;
+    border: 1px solid var(--line, #3a3a3a) !important;
     color: #ffffff !important;
 }
 
@@ -4604,10 +4634,10 @@ div[role="button"]:focus-visible {
 .mf-btn-see-all:focus-visible,
 .focusable:focus,
 .focusable:focus-visible {
-    outline: 3px solid #ff7a1a !important;
+    outline: 3px solid #ffffff !important;
     outline-offset: 2px !important;
     transform: scale(1.05) !important;
-    box-shadow: 0 0 20px rgba(255, 122, 26, 0.6) !important;
+    box-shadow: var(--shadow-float) !important;
     z-index: 50 !important;
 }
 
@@ -4625,11 +4655,11 @@ div[role="button"]:focus-visible {
     width: 100% !important;
     z-index: 1000 !important;
     transform: none !important;
-    background: rgba(10, 12, 18, 0.94) !important;
-    backdrop-filter: blur(24px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.7) !important;
+    background: rgba(20, 20, 20, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid var(--line, #3a3a3a) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
     transition: background-color 0.3s ease !important;
 }
 
@@ -4637,11 +4667,11 @@ div[role="button"]:focus-visible {
 .layout-tv .skinHeader.semiTransparent,
 .layout-mobile .skinHeader.semiTransparent,
 .layout-desktop .skinHeader.semiTransparent {
-    backdrop-filter: blur(24px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-    background: rgba(10, 12, 18, 0.95) !important;
-    border-bottom: 1px solid rgba(255, 122, 26, 0.25) !important;
-    box-shadow: 0 6px 32px rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    background: rgba(20, 20, 20, 0.98) !important;
+    border-bottom: 1px solid var(--line, #3a3a3a) !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75) !important;
 }
 
 .skinHeader.headroom--unpinned,

@@ -1,30 +1,64 @@
 /* ==========================================================================
-   MatheusFlix - Design System & Modern UI Theme
-   Inspirado no design customizado: fundo escuro imersivo, accent âmbar (#ff7a1a)
-   e glassmorphism refinado.
+   MatheusFlix - Design System Visual (Streaming estilo Netflix)
+   Conforme especificação estrita em DESIGN.md
    ========================================================================== */
 
 :root {
-    --mf-bg-deep: #0a0b0e;
-    --mf-bg-surface: #111318;
-    --mf-accent: #ff7a1a;
-    --mf-accent-hover: #ff8c38;
-    --mf-accent-gradient: linear-gradient(90deg, #ff6200, #ff7a1a 55%, #ffb35c);
-    --mf-accent-glow: 0 0 16px rgba(255, 122, 26, 0.35);
-    --mf-card-radius: 14px;
-    --mf-border-subtle: rgba(255, 255, 255, 0.08);
-    --mf-text-main: #f2f3f5;
-    --mf-text-muted: #9ba1ad;
+    /* 1. Cores Base (DESIGN.md) */
+    --bg-0: #141414;
+    --bg-1: #1f1f1f;
+    --bg-2: #2a2a2a;
+    --line: #3a3a3a;
+    --text-1: #ffffff;
+    --text-2: #b3b3b3;
+    --text-3: #808080;
+    --brand: #e50914;
+    --brand-hover: #f6121d;
+    --brand-press: #b20710;
+    --success: #46d369;
+    --warning: #f5a623;
+    --danger: #ff4d4f;
+
+    /* 2. Tipografia (DESIGN.md) */
+    --font: "Netflix Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+    /* 3. Espaçamento (Base 4px) */
+    --s1: 4px;
+    --s2: 8px;
+    --s3: 12px;
+    --s4: 16px;
+    --s5: 24px;
+    --s6: 32px;
+    --s7: 48px;
+    --s8: 64px;
+
+    /* 4. Raios e Sombras (DESIGN.md) */
+    --r-btn: 4px;
+    --r-card: 6px;
+    --r-modal: 8px;
+    --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.6);
+
+    /* Aliases de compatibilidade */
+    --mf-bg-deep: var(--bg-0);
+    --mf-bg-surface: var(--bg-1);
+    --mf-accent: var(--brand);
+    --mf-accent-hover: var(--brand-hover);
+    --mf-accent-gradient: linear-gradient(90deg, #b20710, #e50914 55%, #f6121d);
+    --mf-accent-glow: 0 0 16px rgba(229, 9, 20, 0.4);
+    --mf-card-radius: var(--r-card);
+    --mf-border-subtle: var(--line);
+    --mf-text-main: var(--text-1);
+    --mf-text-muted: var(--text-2);
 }
 
-/* Tipografia global e fundo */
+/* Tipografia global e fundo da página (DESIGN.md) */
 html,
 body,
 .backgroundContainer {
-    font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    background: radial-gradient(900px 520px at 92% -6%, rgba(255, 122, 26, 0.10), transparent 60%), linear-gradient(180deg, #111318, #0a0b0e) !important;
-    background-color: var(--mf-bg-deep) !important;
-    color: var(--mf-text-main) !important;
+    font-family: var(--font) !important;
+    background-color: var(--bg-0) !important;
+    background: var(--bg-0) !important;
+    color: var(--text-1) !important;
 }
 
 /* ==========================================================================
@@ -42,11 +76,11 @@ body,
     width: 100% !important;
     z-index: 1000 !important;
     transform: none !important;
-    background: rgba(10, 12, 18, 0.94) !important;
-    backdrop-filter: blur(24px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.7) !important;
+    background: rgba(20, 20, 20, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid var(--line) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
     transition: background-color 0.3s ease !important;
 }
 
@@ -54,11 +88,11 @@ body,
 .layout-tv .skinHeader.semiTransparent,
 .layout-mobile .skinHeader.semiTransparent,
 .layout-desktop .skinHeader.semiTransparent {
-    backdrop-filter: blur(24px) saturate(160%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-    background: rgba(10, 12, 18, 0.95) !important;
-    border-bottom: 1px solid rgba(255, 122, 26, 0.25) !important;
-    box-shadow: 0 6px 32px rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    background: rgba(20, 20, 20, 0.97) !important;
+    border-bottom: 1px solid var(--line) !important;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75) !important;
 }
 
 .skinHeader.headroom--unpinned,
@@ -66,50 +100,56 @@ body,
     transform: none !important;
 }
 
-/* Logo personalizado MatheusFlix no topo */
+/* Logo personalizado MatheusFlix no topo (Branco + Vermelho Marca) */
 .pageTitleWithDefaultLogo {
     background-image: none !important;
     width: auto !important;
     min-width: 140px;
-    font-size: 22px !important;
+    font-size: 24px !important;
     font-weight: 800 !important;
     letter-spacing: -0.03em !important;
     display: inline-flex !important;
     align-items: center !important;
-    color: #f2f3f5 !important;
+    color: var(--text-1) !important;
     text-decoration: none !important;
 }
 
 .pageTitleWithDefaultLogo::before {
     content: "Matheus";
-    color: #f2f3f5;
+    color: var(--text-1);
 }
 
 .pageTitleWithDefaultLogo::after {
     content: "Flix";
-    color: var(--mf-accent);
-    margin-left: 1px;
+    color: var(--brand);
+    margin-left: 2px;
 }
 
 /* Botões do cabeçalho */
 .headerButton {
-    color: var(--mf-text-muted) !important;
-    border-radius: 10px !important;
+    color: var(--text-2) !important;
+    border-radius: var(--r-btn) !important;
     transition: all 0.2s ease !important;
 }
 
 .headerButton:hover {
-    color: #fff !important;
-    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-1) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Indicador de abas ativas */
+.emby-tab-button {
+    color: var(--text-2) !important;
+    font-weight: 400 !important;
+}
+
 .emby-tab-button.emby-tab-button-active {
-    color: var(--mf-accent) !important;
+    color: var(--text-1) !important;
+    font-weight: 600 !important;
 }
 
 .emby-tab-button-active .emby-button-foreground {
-    border-bottom: 2px solid var(--mf-accent) !important;
+    border-bottom: 2px solid var(--brand) !important;
 }
 
 /* ==========================================================================
@@ -117,9 +157,9 @@ body,
    ========================================================================== */
 
 .mainDrawer {
-    background: linear-gradient(180deg, #111318 0%, #0a0b0e 100%) !important;
-    border-right: 1px solid var(--mf-border-subtle) !important;
-    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.5) !important;
+    background: var(--bg-0) !important;
+    border-right: 1px solid var(--line) !important;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.6) !important;
 }
 
 .mainDrawer-scrollContainer {
@@ -128,24 +168,24 @@ body,
 
 .navMenuOption {
     position: relative;
-    border-radius: 12px !important;
+    border-radius: var(--r-btn) !important;
     margin: 4px 14px !important;
     padding: 12px 16px !important;
-    color: var(--mf-text-muted) !important;
-    font-weight: 600 !important;
+    color: var(--text-2) !important;
+    font-weight: 500 !important;
     font-size: 15px !important;
     transition: all 0.2s ease !important;
 }
 
 .navMenuOption:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
-    color: #fff !important;
+    background: var(--bg-2) !important;
+    color: var(--text-1) !important;
 }
 
 .navMenuOption-selected {
-    background: rgba(255, 122, 26, 0.12) !important;
-    color: var(--mf-accent) !important;
-    font-weight: 700 !important;
+    background: rgba(229, 9, 20, 0.15) !important;
+    color: var(--brand) !important;
+    font-weight: 600 !important;
 }
 
 .navMenuOption-selected::before {
@@ -156,44 +196,46 @@ body,
     bottom: 20%;
     width: 3px;
     border-radius: 0 3px 3px 0;
-    background: var(--mf-accent-gradient);
+    background: var(--brand);
 }
 
 /* ==========================================================================
-   3. CARDS, PÔSTERES & ANIMAÇÃO DE HOVER
+   3. CARDS, PÔSTERES & ANIMAÇÃO DE HOVER (DESIGN.md)
    ========================================================================== */
 
 .cardBox {
-    border-radius: var(--mf-card-radius) !important;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+    border-radius: var(--r-card) !important;
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease !important;
 }
 
 .cardScalable {
-    border-radius: var(--mf-card-radius) !important;
+    border-radius: var(--r-card) !important;
     overflow: hidden !important;
-    border: 1px solid var(--mf-border-subtle) !important;
+    border: 1px solid var(--line) !important;
+    background-color: var(--bg-1) !important;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease-out, border-color 200ms ease !important;
 }
 
 .cardImageContainer,
 .cardPadder {
-    border-radius: var(--mf-card-radius) !important;
+    border-radius: var(--r-card) !important;
 }
 
-/* Efeito de zoom e brilho suave ao passar o mouse */
+/* Efeito de zoom e foco em cards (DESIGN.md Section 6.2 & 13) */
 .card:hover .cardScalable,
-.card:focus .cardScalable {
-    transform: scale(1.04) !important;
-    border-color: rgba(255, 122, 26, 0.45) !important;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55), 0 0 36px -6px rgba(255, 122, 26, 0.35) !important;
+.card:focus .cardScalable,
+.card.show-focus:focus .cardScalable {
+    transform: scale(1.08) !important;
+    border-color: #ffffff !important;
+    box-shadow: var(--shadow-float) !important;
     z-index: 10 !important;
 }
 
 .cardOverlayFab-primary {
-    background: var(--mf-accent-gradient) !important;
-    color: #140a02 !important;
-    box-shadow: 0 8px 24px rgba(255, 122, 26, 0.35) !important;
+    background: var(--brand) !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.4) !important;
     border: none !important;
 }
 
@@ -203,38 +245,36 @@ body,
 }
 
 .cardText-first {
-    font-weight: 700 !important;
-    font-size: 15px !important;
-    color: #f2f3f5 !important;
-    margin-top: 10px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    color: var(--text-1) !important;
+    margin-top: 8px !important;
 }
 
 .cardText-secondary {
     font-size: 13px !important;
-    color: var(--mf-text-muted) !important;
+    color: var(--text-2) !important;
 }
 
 /* ==========================================================================
-   4. BARRAS DE PROGRESSO ("CONTINUAR ASSISTINDO")
+   4. BARRAS DE PROGRESSO ("CONTINUAR ASSISTINDO" - DESIGN.md Section 6.1)
    ========================================================================== */
 
 .itemProgressBar {
-    height: 4px !important;
+    height: 3px !important;
     border-radius: 99px !important;
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.3) !important;
     overflow: hidden !important;
-    backdrop-filter: blur(4px);
 }
 
 .itemProgressBarForeground {
     height: 100% !important;
     border-radius: 99px !important;
-    background: var(--mf-accent-gradient) !important;
-    box-shadow: var(--mf-accent-glow) !important;
+    background: var(--brand) !important;
 }
 
 /* ==========================================================================
-   5. BOTÕES, DESTAQUES E INTERAÇÕES
+   5. BOTÕES, DESTAQUES E INTERAÇÕES (DESIGN.md Section 5)
    ========================================================================== */
 
 /* Botões primários (Play, Assistir, Enviar) */
@@ -242,77 +282,91 @@ body,
 .btnPlay,
 .raised.emby-button,
 .emby-button.detailFloatingButton {
-    background: var(--mf-accent-gradient) !important;
-    color: #140a02 !important;
-    border-radius: 12px !important;
-    font-weight: 800 !important;
+    background: var(--brand) !important;
+    color: #ffffff !important;
+    border-radius: var(--r-btn) !important;
+    font-weight: 600 !important;
     border: none !important;
-    box-shadow: 0 8px 24px -6px rgba(255, 122, 26, 0.55) !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    height: 44px !important;
+    box-shadow: 0 4px 16px rgba(229, 9, 20, 0.4) !important;
+    transition: background 0.2s ease, transform 0.2s ease !important;
 }
 
 .button-submit:hover,
 .btnPlay:hover,
 .raised.emby-button:hover,
 .emby-button.detailFloatingButton:hover {
-    transform: scale(1.04) !important;
-    box-shadow: 0 10px 28px -4px rgba(255, 122, 26, 0.75) !important;
+    background: var(--brand-hover) !important;
+    transform: scale(1.02) !important;
+}
+
+.button-submit:active,
+.btnPlay:active,
+.raised.emby-button:active,
+.emby-button.detailFloatingButton:active {
+    background: var(--brand-press) !important;
 }
 
 /* Botões planos e secundários */
 .button-flat {
-    border-radius: 10px !important;
+    border-radius: var(--r-btn) !important;
     transition: all 0.2s ease !important;
 }
 
 .button-flat:hover {
-    color: var(--mf-accent) !important;
-    background: rgba(255, 122, 26, 0.1) !important;
+    color: var(--text-1) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Ícones de ação com foco/hover */
 .paper-icon-button-light:hover:not(:disabled),
 .paper-icon-button-light:active:not(:disabled) {
-    color: var(--mf-accent) !important;
-    background-color: rgba(255, 122, 26, 0.15) !important;
+    color: var(--text-1) !important;
+    background-color: var(--bg-2) !important;
 }
 
 /* Links e textos em destaque */
 .button-link {
-    color: var(--mf-accent) !important;
+    color: var(--text-2) !important;
+    text-decoration: none !important;
+}
+
+.button-link:hover {
+    color: var(--text-1) !important;
+    text-decoration: underline !important;
 }
 
 /* Badges e tags */
 .cardIndicators,
 .countIndicator {
-    background: var(--mf-accent) !important;
-    color: #140a02 !important;
-    font-weight: 800 !important;
-    border-radius: 8px !important;
+    background: var(--brand) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border-radius: 4px !important;
 }
 
 .playedIndicator {
-    background: var(--mf-accent) !important;
-    color: #140a02 !important;
+    background: var(--brand) !important;
+    color: #ffffff !important;
 }
 
 /* ==========================================================================
-   6. SEÇÕES DA HOME & TIPOGRAFIA CINEMATOGRÁFICA
+   6. SEÇÕES DA HOME & TIPOGRAFIA (DESIGN.md Section 3 & 7.1)
    ========================================================================== */
 
 .sectionTitle,
 .sectionTitleTextButton {
     font-size: 24px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.02em !important;
-    color: var(--mf-text-main) !important;
-    margin-bottom: 14px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+    color: var(--text-1) !important;
+    margin-bottom: 12px !important;
     display: inline-flex !important;
     align-items: center !important;
 }
 
 .sectionTitleTextButton:hover {
-    color: var(--mf-accent) !important;
+    color: var(--text-1) !important;
 }
 
 .sectionTitleContainer {
@@ -321,38 +375,39 @@ body,
 }
 
 /* ==========================================================================
-   7. MODAIS, CAIXAS DE DIÁLOGO E CAMPOS DE ENTRADA
+   7. MODAIS, CAIXAS DE DIÁLOGO E CAMPOS (DESIGN.md Section 7.3 & 9)
    ========================================================================== */
 
 .dialog,
 .paperList {
-    background-color: #111318 !important;
-    border-radius: 16px !important;
-    border: 1px solid var(--mf-border-subtle) !important;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6) !important;
+    background-color: var(--bg-1) !important;
+    border-radius: var(--r-modal) !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: var(--shadow-float) !important;
 }
 
 .emby-input,
 .emby-textarea,
 .emby-select {
-    border-radius: 10px !important;
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid var(--mf-border-subtle) !important;
-    color: #fff !important;
+    border-radius: 4px !important;
+    background-color: var(--bg-2) !important;
+    border: 1px solid var(--line) !important;
+    color: var(--text-1) !important;
     transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 .emby-input:focus,
 .emby-textarea:focus,
 .emby-select:focus {
-    border-color: var(--mf-accent) !important;
-    box-shadow: 0 0 0 2px rgba(255, 122, 26, 0.25) !important;
+    border-color: #ffffff !important;
+    outline: 2px solid #ffffff !important;
+    outline-offset: 1px !important;
 }
 
 .inputLabelFocused,
 .selectLabelFocused,
 .textareaLabelFocused {
-    color: var(--mf-accent) !important;
+    color: var(--text-1) !important;
 }
 
 /* Scrollbars customizadas e discretas */
@@ -366,11 +421,11 @@ body,
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--mf-accent);
+    background: rgba(255, 255, 255, 0.35);
 }
 

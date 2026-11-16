@@ -329,8 +329,8 @@ function refreshLibraryInfoInDrawer(user) {
     let html = '';
     html += '<div style="height:.5em;"></div>';
     html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavHome" href="#/home?tab=0"><span class="material-icons navMenuOptionIcon home" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('Home')}</span></a>`;
-    html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavStremio" href="#/home?tab=1" style="color: var(--mf-accent, #ff7a1a);"><span class="material-icons navMenuOptionIcon movie" aria-hidden="true" style="color: var(--mf-accent, #ff7a1a);"></span><span class="navMenuOptionText" style="font-weight: 700;">Torrents</span></a>';
-    html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavLocal" href="#/home?tab=2" style="color: #22c55e;"><span class="material-icons navMenuOptionIcon folder" aria-hidden="true" style="color: #22c55e;"></span><span class="navMenuOptionText" style="font-weight: 700;">Pasta Local</span></a>';
+    html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavStremio" href="#/home?tab=1" style="color: var(--brand, #e50914);"><span class="material-icons navMenuOptionIcon movie" aria-hidden="true" style="color: var(--brand, #e50914);"></span><span class="navMenuOptionText" style="font-weight: 700;">Torrents</span></a>';
+    html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavLocal" href="#/home?tab=2" style="color: #46d369;"><span class="material-icons navMenuOptionIcon folder" aria-hidden="true" style="color: #46d369;"></span><span class="navMenuOptionText" style="font-weight: 700;">Pasta Local</span></a>';
     html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkNavDownloads" href="#/home?tab=3" style="color: #38bdf8;"><span class="material-icons navMenuOptionIcon download" aria-hidden="true" style="color: #38bdf8;"></span><span class="navMenuOptionText" style="font-weight: 700;">Downloads</span></a>';
 
     // placeholder for custom menu links
@@ -344,8 +344,8 @@ function refreshLibraryInfoInDrawer(user) {
         html += '<h3 class="sidebarHeader">';
         html += globalize.translate('HeaderAdmin');
         html += '</h3>';
-        html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder lnkManageServer" data-itemid="dashboard" href="#/dashboard"><span class="material-icons navMenuOptionIcon dashboard" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('TabDashboard')}</span></a>`;
-        html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder editorViewMenu" data-itemid="editor" href="#/metadata"><span class="material-icons navMenuOptionIcon mode_edit" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('MetadataManager')}</span></a>`;
+        html += `<a is="emby-linkbutton" class="navMenuOption lnkManageServer" data-itemid="dashboard" href="#/dashboard"><span class="material-icons navMenuOptionIcon dashboard" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('TabDashboard')}</span></a>`;
+        html += `<a is="emby-linkbutton" class="navMenuOption editorViewMenu" data-itemid="editor" href="#/metadata"><span class="material-icons navMenuOptionIcon mode_edit" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('MetadataManager')}</span></a>`;
         html += '</div>';
     }
 
@@ -355,7 +355,7 @@ function refreshLibraryInfoInDrawer(user) {
         html += globalize.translate('HeaderUser');
         html += '</h3>';
 
-        html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSwitchProfile" data-itemid="switchprofile" href="#" style="color: #ff7a1a;"><span class="material-icons navMenuOptionIcon switch_account" aria-hidden="true" style="color: #ff7a1a;"></span><span class="navMenuOptionText" style="font-weight: 700;">Trocar Perfil</span></a>';
+        html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSwitchProfile" data-itemid="switchprofile" href="#" style="color: var(--brand, #e50914);"><span class="material-icons navMenuOptionIcon switch_account" aria-hidden="true" style="color: var(--brand, #e50914);"></span><span class="navMenuOptionText" style="font-weight: 700;">Trocar Perfil</span></a>';
         html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSettings" data-itemid="settings" href="#"><span class="material-icons navMenuOptionIcon settings" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('Settings')}</span></a>`;
         html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnLogout" data-itemid="logout" href="#"><span class="material-icons navMenuOptionIcon exit_to_app" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('ButtonSignOut')}</span></a>`;
 

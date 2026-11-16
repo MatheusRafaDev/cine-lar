@@ -205,7 +205,7 @@ function renderHistoryRow(sections, { key, title, movies }) {
 
     row.innerHTML = `
         <div class="sectionTitleContainer sectionTitleContainer-cards">
-            <h2 class="sectionTitle" style="color: #ff7a1a !important; font-weight: 800;">${escapeHtml(title)}</h2>
+            <h2 class="sectionTitle" style="color: #ffffff !important; font-weight: 600;">${escapeHtml(title)}</h2>
         </div>
         <div class="mf-home-scroller"></div>
     `;

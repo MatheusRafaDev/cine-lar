@@ -121,12 +121,12 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                     </div>
                 </div>
 
-                <div style="background: rgba(255,255,255,0.06); height: 8px; border-radius: 99px; overflow: hidden; margin-top: 14px;">
-                    <div style="background: linear-gradient(90deg, #ff7a1a, #22c55e); height: 100%; width: ${Math.min(100, parseFloat(d.progress) || 0)}%; transition: width 0.3s ease;"></div>
+                <div style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 99px; overflow: hidden; margin-top: 14px;">
+                    <div style="background: var(--brand, #e50914); height: 100%; width: ${Math.min(100, parseFloat(d.progress) || 0)}%; transition: width 0.3s ease;"></div>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-top: 6px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2, #b3b3b3); margin-top: 6px;">
                     <span>Salvando em D:\\filmes</span>
-                    <span style="font-weight: 700; color: #ff9e42;">${escapeHtml(d.progress || 0)}%</span>
+                    <span style="font-weight: 700; color: #ffffff;">${escapeHtml(d.progress || 0)}%</span>
                 </div>
             </div>
         `).join('');
