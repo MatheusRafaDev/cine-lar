@@ -4611,3 +4611,42 @@ div[role="button"]:focus-visible {
     z-index: 50 !important;
 }
 
+/* ==========================================================================
+   Header Fixo Permanente MatheusFlix (Fixo em todas as telas e modos de layout)
+   ========================================================================== */
+.skinHeader,
+.layout-tv .skinHeader,
+.layout-mobile .skinHeader,
+.layout-desktop .skinHeader {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 1000 !important;
+    transform: none !important;
+    background: rgba(10, 12, 18, 0.94) !important;
+    backdrop-filter: blur(24px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.7) !important;
+    transition: background-color 0.3s ease !important;
+}
+
+.skinHeader.semiTransparent,
+.layout-tv .skinHeader.semiTransparent,
+.layout-mobile .skinHeader.semiTransparent,
+.layout-desktop .skinHeader.semiTransparent {
+    backdrop-filter: blur(24px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+    background: rgba(10, 12, 18, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 122, 26, 0.25) !important;
+    box-shadow: 0 6px 32px rgba(0, 0, 0, 0.8) !important;
+}
+
+.skinHeader.headroom--unpinned,
+.layout-tv .skinHeader.headroom--unpinned {
+    transform: none !important;
+}
+
+
