@@ -84,9 +84,18 @@ export function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0) {
+function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPaths = []) {
     let items = [];
     if (currentDepth > maxDepth || !fs.existsSync(dir)) return items;
+    const resolvedDir = path.resolve(dir).toLowerCase();
+
+    // Se este diretório for de um download ativo ainda em andamento, não lista na pasta local
+    if (downloadingPaths && downloadingPaths.length > 0) {
+        if (downloadingPaths.some(dp => resolvedDir.startsWith(dp) || dp.startsWith(resolvedDir))) {
+            return items;
+        }
+    }
+
     try {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
         const videoFiles = entries.filter(e => e.isFile() && /\.(mp4|mkv|avi|webm|ts)$/i.test(e.name));
@@ -95,6 +104,10 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0) {
         if (videoFiles.length > 0 && currentDepth > 0) {
             for (const vf of videoFiles) {
                 const fullVideo = path.join(dir, vf.name);
+                const resolvedVideo = path.resolve(fullVideo).toLowerCase();
+                if (downloadingPaths && downloadingPaths.some(dp => resolvedVideo.startsWith(dp))) {
+                    continue;
+                }
                 const base = vf.name.replace(/\.[^.]+$/, '');
                 const srt = srtFiles.find(s => s.name.startsWith(base)) || srtFiles[0];
                 let stat = null;
@@ -114,8 +127,12 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0) {
         } else {
             for (const entry of entries) {
                 const full = path.join(dir, entry.name);
+                const resolvedFull = path.resolve(full).toLowerCase();
+                if (downloadingPaths && downloadingPaths.some(dp => resolvedFull.startsWith(dp))) {
+                    continue;
+                }
                 if (entry.isDirectory()) {
-                    items = items.concat(collectLocalVideos(full, maxDepth, currentDepth + 1));
+                    items = items.concat(collectLocalVideos(full, maxDepth, currentDepth + 1, downloadingPaths));
                 } else if (entry.isFile() && /\.(mp4|mkv|avi|webm|ts)$/i.test(entry.name) && currentDepth === 0) {
                     let stat = null;
                     try {
@@ -137,7 +154,7 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0) {
     return items;
 }
 
-export async function getLocalLibrary(savePath = 'D:\\filmes', force = false) {
+export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, downloadingPaths = []) {
     const now = Date.now();
     if (!force && localCache && (now - lastScanTime < 60000)) {
         return localCache;
@@ -149,7 +166,7 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false) {
 
     const db = getDb();
     const results = [];
-    const collected = collectLocalVideos(savePath);
+    const collected = collectLocalVideos(savePath, 4, 0, downloadingPaths);
 
     for (const item of collected) {
         const { videoFile, srtFile, stat, folderName, fileName } = item;

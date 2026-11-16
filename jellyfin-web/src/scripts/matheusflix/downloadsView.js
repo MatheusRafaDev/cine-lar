@@ -3,7 +3,7 @@
  * Suporte a streaming progressivo: assista enquanto o filme baixa para D:\filmes!
  */
 
-import { cancelDownload, fetchDownloads } from './api';
+import { cancelDownload, fetchDownloads, rescanLocalMovies } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
 import { confirmDeleteModal } from './confirmModal';
 import { escapeHtml } from './utils';
@@ -164,8 +164,11 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                 btn.disabled = true;
                 try {
                     await cancelDownload(id);
-                    toast(`Download de "${title}" cancelado.`);
+                    toast(`Download de "${title}" cancelado e removido da pasta.`);
                     card.remove();
+                    rescanLocalMovies().catch((err) => {
+                        console.debug('[DownloadsView] rescan local movies:', err);
+                    });
                 } catch (err) {
                     btn.disabled = false;
                     toast(`Erro ao cancelar: ${err.message}`);
@@ -223,6 +226,9 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                     await cancelDownload(id);
                     toast(`Registro de "${title}" removido do histórico.`);
                     card.remove();
+                    rescanLocalMovies().catch((err) => {
+                        console.debug('[DownloadsView] rescan local movies:', err);
+                    });
                 } catch (err) {
                     btn.disabled = false;
                     toast(`Erro ao remover: ${err.message}`);

@@ -312,7 +312,7 @@ function createMovieCard(m) {
 }
 
 /** Mostra os downloads ativos no topo da pasta; para sozinho quando a tela sai do DOM. */
-function startDownloadsPolling(container, strip, onCompleted) {
+function startDownloadsPolling(container, strip, onRefresh) {
     const completedSeen = new Set();
     let firstRun = true;
 
@@ -322,13 +322,13 @@ function startDownloadsPolling(container, strip, onCompleted) {
             if (container.offsetParent !== null) {
                 const data = await fetchDownloads();
                 const downloads = data.downloads || [];
-                renderDownloads(strip, downloads);
+                renderDownloads(strip, downloads, onRefresh);
 
                 const newlyDone = downloads.filter(d => isDone(d) && !completedSeen.has(d.id));
                 newlyDone.forEach(d => {
                     completedSeen.add(d.id);
                 });
-                if (newlyDone.length && !firstRun) onCompleted();
+                if (newlyDone.length && !firstRun && onRefresh) onRefresh();
                 firstRun = false;
             }
         } catch {
@@ -343,7 +343,7 @@ function isDone(d) {
     return d.status === 'completed' || parseFloat(d.progress) >= 100;
 }
 
-function renderDownloads(strip, downloads) {
+function renderDownloads(strip, downloads, onRefresh) {
     const active = downloads.filter(d => !isDone(d));
     if (!active.length) {
         strip.classList.add('hide');
@@ -378,8 +378,9 @@ function renderDownloads(strip, downloads) {
             btn.disabled = true;
             try {
                 await cancelDownload(id);
-                toast(`Download de "${title}" cancelado.`);
+                toast(`Download de "${title}" cancelado e removido da pasta.`);
                 row.remove();
+                if (onRefresh) onRefresh();
             } catch (err) {
                 btn.disabled = false;
                 toast(`Erro ao cancelar: ${err.message}`);
