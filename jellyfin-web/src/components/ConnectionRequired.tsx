@@ -206,6 +206,20 @@ const ConnectionRequired: FunctionComponent<ConnectionRequiredProps> = ({
             ServerConnections.firstConnection = true;
 
             if (ERROR_STATES.includes(firstConnection?.State)) {
+                if (firstConnection?.State === ConnectionState.ServerMismatch) {
+                    console.warn('[ConnectionRequired] ServerMismatch detectado, conectando automaticamente');
+                    try {
+                        const server = ServerConnections.getLastUsedServer();
+                        ServerConnections.updateSavedServerId(server).then(() => {
+                            window.location.reload();
+                        }).catch(() => {
+                            window.location.reload();
+                        });
+                        return;
+                    } catch (e) {
+                        console.error('[ConnectionRequired] Erro ao atualizar serverId em ServerMismatch', e);
+                    }
+                }
                 setErrorState(firstConnection.State);
             } else if (level === AccessLevel.Wizard) {
                 handleWizard(firstConnection)

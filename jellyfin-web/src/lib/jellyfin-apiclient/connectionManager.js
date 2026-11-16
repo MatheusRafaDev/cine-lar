@@ -550,11 +550,17 @@ export default class ConnectionManager {
                             });
                         } else if (server.Id && result.Id !== server.Id) {
                             console.warn(
-                                '[ConnectionManager] http request succeeded, but found a different server Id than what was expected'
+                                '[ConnectionManager] Server Id alterado no mesmo endereco, atualizando automaticamente e conectando'
                             );
-                            resolve({
-                                State: ConnectionState.ServerMismatch
-                            });
+                            server.Id = result.Id;
+                            try {
+                                const creds = credentialProvider.credentials();
+                                credentialProvider.addOrUpdateServer(creds.Servers, server);
+                                credentialProvider.credentials(creds);
+                            } catch (e) {
+                                console.warn('[ConnectionManager] Erro ao salvar novo server.Id', e);
+                            }
+                            onSuccessfulConnection(server, result, connectionMode, serverUrl, true, resolve, options);
                         } else {
                             onSuccessfulConnection(server, result, connectionMode, serverUrl, true, resolve, options);
                         }

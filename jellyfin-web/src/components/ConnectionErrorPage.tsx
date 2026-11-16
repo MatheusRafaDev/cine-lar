@@ -36,6 +36,13 @@ const ConnectionErrorPage: FC<ConnectionErrorPageProps> = ({
     }, []);
 
     useEffect(() => {
+        if (state === ConnectionState.ServerMismatch && !isConnectDisabled) {
+            console.warn('[ConnectionErrorPage] Incompatibilidade de servidor: conectando automaticamente');
+            onForceConnect();
+        }
+    }, [ state, isConnectDisabled, onForceConnect ]);
+
+    useEffect(() => {
         switch (state) {
             case ConnectionState.ServerMismatch:
                 setTitle(globalize.translate('HeaderServerMismatch'));
