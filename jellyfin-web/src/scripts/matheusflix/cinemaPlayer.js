@@ -118,7 +118,7 @@ export function openCinemaPlayer({
         <div class="mf-player-video-wrap">
             <video class="mf-player-video" playsinline preload="auto" controlslist="nodownload"></video>
 
-            <div class="mf-player-buffer-overlay" style="${isLocal ? 'display: none;' : ''}">
+            <div class="mf-player-buffer-overlay ${isLocal ? 'hide is-hidden' : ''}" style="${isLocal ? 'display: none !important;' : ''}">
                 <div class="mf-player-spinner">
                     <span class="material-icons">sync</span>
                 </div>
@@ -237,8 +237,24 @@ export function openCinemaPlayer({
     }
 
     function hideOverlay() {
-        if (overlay && overlay.style.display !== 'none') {
-            overlay.style.display = 'none';
+        if (overlay) {
+            overlay.classList.add('hide');
+            overlay.classList.add('is-hidden');
+            overlay.style.setProperty('display', 'none', 'important');
+            overlay.style.setProperty('opacity', '0', 'important');
+            overlay.style.setProperty('visibility', 'hidden', 'important');
+            overlay.style.setProperty('pointer-events', 'none', 'important');
+        }
+    }
+
+    function showOverlay() {
+        if (overlay) {
+            overlay.classList.remove('hide');
+            overlay.classList.remove('is-hidden');
+            overlay.style.removeProperty('display');
+            overlay.style.removeProperty('opacity');
+            overlay.style.removeProperty('visibility');
+            overlay.style.removeProperty('pointer-events');
         }
     }
 
