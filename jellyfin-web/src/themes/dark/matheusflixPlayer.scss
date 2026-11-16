@@ -576,7 +576,7 @@ video::cue {
 
 /* --------------------------------------------------------------------------
    11. Player Cinema MatheusFlix (.mf-cinema-player)
-   Garante visibilidade instantânea acima de qualquer modal
+   Conforme especificações visuais de DESIGN.md (Cores, Tipografia e Player 10-foot)
    -------------------------------------------------------------------------- */
 .mf-cinema-player {
     position: fixed !important;
@@ -590,23 +590,49 @@ video::cue {
     z-index: 200000 !important;
     display: flex !important;
     flex-direction: column !important;
+    overflow: hidden !important;
+    user-select: none !important;
+    font-family: var(--font, "Netflix Sans", sans-serif) !important;
+    animation: mfFadeIn 0.25s ease-out !important;
 
+    .mf-player-video-wrap {
+        flex: 1 !important;
+        position: relative !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: #000000 !important;
+        overflow: hidden !important;
+    }
+
+    .mf-player-video {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100vh !important;
+        object-fit: contain !important;
+        outline: none !important;
+        background: #000000 !important;
+    }
+
+    /* Topbar com gradiente suave estilo streaming */
     .mf-player-topbar {
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
         right: 0 !important;
-        height: 76px !important;
+        height: 84px !important;
         background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 60%, transparent 100%) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
-        padding: 0 28px !important;
+        padding: 0 clamp(20px, 4vw, 56px) !important;
         z-index: 100 !important;
         color: #ffffff !important;
         opacity: 0 !important;
         pointer-events: none !important;
-        transition: opacity 0.3s ease !important;
+        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
 
     &:hover .mf-player-topbar,
@@ -618,31 +644,54 @@ video::cue {
     .mf-player-meta {
         display: flex !important;
         align-items: center !important;
-        gap: 16px !important;
+        gap: 20px !important;
+        min-width: 0 !important;
+        flex-grow: 1 !important;
     }
 
+    /* Botão Voltar moderno e elegante em pílula translúcida */
     .mf-player-back-nav-btn {
-        background: rgba(255, 255, 255, 0.12) !important;
-        border: 1px solid rgba(255, 255, 255, 0.22) !important;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        outline: none !important;
+        border: none !important;
+        background: rgba(20, 20, 20, 0.65) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
         color: #ffffff !important;
-        padding: 8px 18px !important;
+        height: 42px !important;
+        padding: 0 20px !important;
         border-radius: 999px !important;
-        font-weight: 700 !important;
-        font-size: 14px !important;
+        font-family: var(--font, "Netflix Sans", sans-serif) !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
         cursor: pointer !important;
         display: inline-flex !important;
         align-items: center !important;
         gap: 8px !important;
         backdrop-filter: blur(16px) !important;
         -webkit-backdrop-filter: blur(16px) !important;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        transition: all 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
 
-        &:hover,
-        &:focus-visible {
-            background: #e50914 !important;
-            border-color: #e50914 !important;
+        .material-icons {
+            font-size: 20px !important;
+            color: #ffffff !important;
+        }
+
+        &:hover {
+            background: var(--brand, #e50914) !important;
+            border-color: var(--brand, #e50914) !important;
+            color: #ffffff !important;
             transform: scale(1.05) !important;
-            box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45) !important;
+            box-shadow: 0 4px 20px rgba(229, 9, 20, 0.5) !important;
+        }
+
+        &:focus-visible {
+            background: var(--brand, #e50914) !important;
+            border-color: var(--brand, #e50914) !important;
+            outline: 3px solid #ffffff !important;
+            outline-offset: 2px !important;
+            transform: scale(1.08) !important;
         }
     }
 
@@ -650,44 +699,438 @@ video::cue {
         display: flex !important;
         flex-direction: column !important;
         gap: 2px !important;
+        min-width: 0 !important;
     }
 
     .mf-player-title {
         margin: 0 !important;
-        font-size: 18px !important;
+        font-size: clamp(1.15rem, 1.8vw, 1.45rem) !important;
         font-weight: 700 !important;
         color: #ffffff !important;
-        letter-spacing: -0.2px !important;
+        letter-spacing: -0.02em !important;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9) !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
 
     .mf-player-sub {
-        font-size: 12px !important;
-        color: #a0a6b5 !important;
+        font-size: 0.85rem !important;
+        color: var(--text-2, #b3b3b3) !important;
         font-weight: 500 !important;
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8) !important;
     }
 
-    .mf-player-close-btn {
-        background: rgba(255, 255, 255, 0.12) !important;
-        border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    .mf-player-top-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Botão TV / Cast de acordo com a paleta do sistema (sem verde) */
+    .mf-btn-cast-tv {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        outline: none !important;
+        border: none !important;
+        height: 42px !important;
+        padding: 0 18px !important;
+        border-radius: 999px !important;
+        background: rgba(20, 20, 20, 0.65) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
         color: #ffffff !important;
-        width: 38px !important;
-        height: 38px !important;
-        border-radius: 50% !important;
-        font-size: 16px !important;
+        font-family: var(--font, "Netflix Sans", sans-serif) !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
         cursor: pointer !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        transition: all 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
+
+        .material-icons {
+            font-size: 18px !important;
+            color: #ffffff !important;
+        }
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border-color: #ffffff !important;
+            transform: scale(1.05) !important;
+        }
+
+        &:focus-visible {
+            background: rgba(255, 255, 255, 0.25) !important;
+            border-color: #ffffff !important;
+            outline: 3px solid #ffffff !important;
+            outline-offset: 2px !important;
+            transform: scale(1.08) !important;
+        }
+    }
+
+    /* Botão Fechar circular elegante com ícone centralizado */
+    .mf-player-close-btn {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        outline: none !important;
+        border: none !important;
+        width: 42px !important;
+        height: 42px !important;
+        border-radius: 50% !important;
+        background: rgba(20, 20, 20, 0.65) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        color: #ffffff !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        backdrop-filter: blur(16px) !important;
-        -webkit-backdrop-filter: blur(16px) !important;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        cursor: pointer !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        transition: all 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
+
+        .material-icons {
+            font-size: 20px !important;
+            color: #ffffff !important;
+        }
+
+        &:hover {
+            background: var(--brand, #e50914) !important;
+            border-color: var(--brand, #e50914) !important;
+            transform: scale(1.1) !important;
+            box-shadow: 0 4px 20px rgba(229, 9, 20, 0.5) !important;
+        }
+
+        &:focus-visible {
+            background: var(--brand, #e50914) !important;
+            border-color: var(--brand, #e50914) !important;
+            outline: 3px solid #ffffff !important;
+            outline-offset: 2px !important;
+            transform: scale(1.12) !important;
+        }
+    }
+
+    /* Barra Inferior com controles OSD */
+    .mf-player-bottom-bar {
+        position: absolute !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: linear-gradient(0deg, rgba(0, 0, 0, 0.96) 0%, rgba(0, 0, 0, 0.75) 40%, rgba(0, 0, 0, 0.25) 80%, transparent 100%) !important;
+        padding: 60px clamp(20px, 4vw, 56px) 28px clamp(20px, 4vw, 56px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 14px !important;
+        z-index: 100 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    &:hover .mf-player-bottom-bar,
+    &.controls-visible .mf-player-bottom-bar {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+
+    /* Linha de Progresso / Timeline estilo Netflix */
+    .mf-player-timeline {
+        position: relative !important;
+        height: 6px !important;
+        border-radius: 999px !important;
+        background: rgba(255, 255, 255, 0.25) !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        transition: height 0.15s ease !important;
+
+        &:hover,
+        &:focus-within {
+            height: 8px !important;
+        }
+    }
+
+    .mf-player-seek {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        opacity: 0 !important;
+        cursor: pointer !important;
+        z-index: 5 !important;
+        margin: 0 !important;
+    }
+
+    .mf-player-buffer-fill {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100% !important;
+        border-radius: 999px !important;
+        background: rgba(255, 255, 255, 0.45) !important;
+        z-index: 1 !important;
+        pointer-events: none !important;
+        transition: width 0.2s ease !important;
+    }
+
+    .mf-player-progress-fill {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100% !important;
+        border-radius: 999px !important;
+        background: var(--brand, #e50914) !important;
+        z-index: 2 !important;
+        pointer-events: none !important;
+        box-shadow: 0 0 12px rgba(229, 9, 20, 0.6) !important;
+    }
+
+    /* Linha de botões de controle */
+    .mf-player-controls-row {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    .mf-player-controls-left,
+    .mf-player-controls-right {
+        display: flex !important;
+        align-items: center !important;
+        gap: 14px !important;
+    }
+
+    /* Botões OSD circulares e com foco 10-foot visível */
+    .mf-ctrl-btn {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        outline: none !important;
+        border: none !important;
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 50% !important;
+        background: transparent !important;
+        color: #ffffff !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        transition: all 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
+
+        .material-icons {
+            font-size: 28px !important;
+            color: #ffffff !important;
+        }
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+            transform: scale(1.12) !important;
+        }
+
+        &:focus-visible {
+            background: rgba(255, 255, 255, 0.25) !important;
+            outline: 3px solid #ffffff !important;
+            outline-offset: 2px !important;
+            transform: scale(1.15) !important;
+        }
+    }
+
+    .mf-player-time {
+        font-family: var(--font, "Netflix Sans", sans-serif) !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        font-variant-numeric: tabular-nums !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        margin-left: 8px !important;
+
+        .mf-time-cur {
+            color: #ffffff !important;
+        }
+
+        .mf-time-sep {
+            color: var(--text-3, #808080) !important;
+        }
+
+        .mf-time-dur {
+            color: var(--text-2, #b3b3b3) !important;
+        }
+    }
+
+    /* Controle de Volume */
+    .mf-player-vol-wrap {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }
+
+    .mf-player-vol-slider {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        width: 88px !important;
+        height: 4px !important;
+        border-radius: 999px !important;
+        background: rgba(255, 255, 255, 0.3) !important;
+        outline: none !important;
+        cursor: pointer !important;
+        transition: height 0.15s ease !important;
+
+        &::-webkit-slider-thumb {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            width: 14px !important;
+            height: 14px !important;
+            border-radius: 50% !important;
+            background: #ffffff !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+            cursor: pointer !important;
+            transition: transform 0.15s ease !important;
+        }
+
+        &::-moz-range-thumb {
+            width: 14px !important;
+            height: 14px !important;
+            border-radius: 50% !important;
+            background: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+            cursor: pointer !important;
+        }
 
         &:hover,
         &:focus-visible {
-            background: #e50914 !important;
-            border-color: #e50914 !important;
-            transform: scale(1.08) !important;
-            box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45) !important;
+            height: 6px !important;
+
+            &::-webkit-slider-thumb {
+                transform: scale(1.2) !important;
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid #ffffff !important;
+            outline-offset: 3px !important;
+        }
+    }
+
+    /* Tag de Qualidade (DESIGN.md) */
+    .mf-player-quality-tag {
+        font-family: var(--font, "Netflix Sans", sans-serif) !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        color: var(--text-2, #b3b3b3) !important;
+        background: var(--bg-2, #2a2a2a) !important;
+        border: 1px solid var(--line, #3a3a3a) !important;
+        border-radius: var(--r-btn, 4px) !important;
+        padding: 4px 10px !important;
+        letter-spacing: 0.5px !important;
+        text-transform: uppercase !important;
+    }
+
+    /* Overlay de Buffering / Carregamento */
+    .mf-player-buffer-overlay {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: rgba(14, 14, 14, 0.92) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        z-index: 20 !important;
+        color: #ffffff !important;
+        text-align: center !important;
+        padding: 24px !important;
+    }
+
+    .mf-player-spinner {
+        font-size: 44px !important;
+        margin-bottom: 16px !important;
+
+        .material-icons {
+            font-size: 44px !important;
+            color: var(--brand, #e50914) !important;
+            animation: spin 1.2s linear infinite !important;
+        }
+    }
+
+    .mf-buf-title {
+        margin: 0 0 8px 0 !important;
+        font-size: 22px !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+    }
+
+    .mf-buf-msg {
+        margin: 0 0 20px 0 !important;
+        color: var(--text-2, #b3b3b3) !important;
+        font-size: 14px !important;
+        max-width: 520px !important;
+        line-height: 1.5 !important;
+    }
+
+    .mf-buffer-stats {
+        display: flex !important;
+        gap: 12px !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        margin-bottom: 8px !important;
+    }
+
+    .mf-buffer-pill {
+        background: var(--bg-2, #2a2a2a) !important;
+        border: 1px solid var(--line, #3a3a3a) !important;
+        color: var(--text-1, #ffffff) !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        padding: 6px 16px !important;
+        border-radius: 999px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+
+        .material-icons {
+            font-size: 15px !important;
+            color: var(--text-2, #b3b3b3) !important;
+        }
+    }
+
+    .mf-btn-force-play {
+        background: var(--brand, #e50914) !important;
+        color: #ffffff !important;
+        border: none !important;
+        padding: 12px 28px !important;
+        border-radius: var(--r-btn, 4px) !important;
+        font-weight: 700 !important;
+        font-size: 14px !important;
+        cursor: pointer !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        box-shadow: 0 4px 16px rgba(229, 9, 20, 0.45) !important;
+        transition: all 0.2s ease !important;
+        margin-top: 18px !important;
+
+        &:hover {
+            background: var(--brand-hover, #f6121d) !important;
+            transform: scale(1.03) !important;
+            box-shadow: 0 4px 22px rgba(229, 9, 20, 0.6) !important;
+        }
+
+        &:focus-visible {
+            outline: 3px solid #ffffff !important;
+            outline-offset: 2px !important;
+            transform: scale(1.05) !important;
         }
     }
 }

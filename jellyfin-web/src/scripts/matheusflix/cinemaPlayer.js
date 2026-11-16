@@ -90,7 +90,7 @@ export function openCinemaPlayer({
         <div class="mf-player-topbar">
             <div class="mf-player-meta">
                 <button type="button" class="mf-player-back-nav-btn focusable" title="Voltar (Esc)">
-                    <span class="material-icons" style="font-size: 20px;">arrow_back</span>
+                    <span class="material-icons">arrow_back</span>
                     <span>Voltar</span>
                 </button>
                 <div class="mf-player-title-box">
@@ -100,10 +100,12 @@ export function openCinemaPlayer({
             </div>
             <div class="mf-player-top-actions">
                 <button type="button" class="mf-btn-cast-tv focusable" title="Transmitir na TV">
-                    <span class="material-icons" style="font-size: 18px;">cast</span>
+                    <span class="material-icons">cast</span>
                     <span>TV</span>
                 </button>
-                <button type="button" class="mf-player-close-btn focusable" title="Fechar (Esc)">✕</button>
+                <button type="button" class="mf-player-close-btn focusable" title="Fechar (Esc)">
+                    <span class="material-icons">close</span>
+                </button>
             </div>
         </div>
 
@@ -112,19 +114,19 @@ export function openCinemaPlayer({
 
             <div class="mf-player-buffer-overlay" style="${isLocal ? 'display: none;' : ''}">
                 <div class="mf-player-spinner">
-                    <span class="material-icons" style="font-size: 40px; color: #e50914; animation: spin 1.2s linear infinite;">sync</span>
+                    <span class="material-icons">sync</span>
                 </div>
-                <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 800;">Conectando e Carregando Filme...</h2>
-                <p class="mf-buf-msg" style="margin: 0 0 16px 0; color: #a0a6b5; font-size: 14px; max-width: 520px; line-height: 1.5;">
+                <h2 class="mf-buf-title">Conectando e Carregando Filme...</h2>
+                <p class="mf-buf-msg">
                     O MatheusFlix está preparando o filme para você começar a assistir imediatamente!
                 </p>
                 <div class="mf-buffer-stats">
-                    <span class="mf-buffer-pill mf-buf-speed"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">speed</span> Velocidade: ...</span>
-                    <span class="mf-buffer-pill mf-buf-peers"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">group</span> Peers: ...</span>
-                    <span class="mf-buffer-pill mf-buf-progress"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">cloud_sync</span> Buffer: 0%</span>
+                    <span class="mf-buffer-pill mf-buf-speed"><span class="material-icons">speed</span> Velocidade: ...</span>
+                    <span class="mf-buffer-pill mf-buf-peers"><span class="material-icons">group</span> Peers: ...</span>
+                    <span class="mf-buffer-pill mf-buf-progress"><span class="material-icons">cloud_sync</span> Buffer: 0%</span>
                 </div>
-                <button type="button" class="mf-btn-force-play" style="margin-top: 16px; background: #e50914; color: #ffffff; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(229, 9, 20, 0.45); transition: transform 0.15s ease;">
-                    <span class="material-icons" style="font-size: 18px;">play_arrow</span>
+                <button type="button" class="mf-btn-force-play focusable">
+                    <span class="material-icons">play_arrow</span>
                     <span>Forçar Reprodução</span>
                 </button>
             </div>
@@ -132,39 +134,39 @@ export function openCinemaPlayer({
 
         <div class="mf-player-bottom-bar">
             <div class="mf-player-timeline">
-                <input type="range" class="mf-player-seek" min="0" max="100" value="0" step="0.1" />
-                <div class="mf-player-progress-fill"></div>
+                <input type="range" class="mf-player-seek focusable" min="0" max="100" value="0" step="0.1" title="Posição do Vídeo" />
                 <div class="mf-player-buffer-fill"></div>
+                <div class="mf-player-progress-fill"></div>
             </div>
 
             <div class="mf-player-controls-row">
                 <div class="mf-player-controls-left">
-                    <button type="button" class="mf-ctrl-btn mf-btn-play" title="Play/Pause (Espaço)">
+                    <button type="button" class="mf-ctrl-btn mf-btn-play focusable" title="Play/Pause (Espaço)">
                         <span class="material-icons">play_arrow</span>
                     </button>
-                    <button type="button" class="mf-ctrl-btn mf-btn-rw" title="Voltar 10s (←)">
+                    <button type="button" class="mf-ctrl-btn mf-btn-rw focusable" title="Voltar 10s (←)">
                         <span class="material-icons">replay_10</span>
                     </button>
-                    <button type="button" class="mf-ctrl-btn mf-btn-ff" title="Avançar 10s (→)">
+                    <button type="button" class="mf-ctrl-btn mf-btn-ff focusable" title="Avançar 10s (→)">
                         <span class="material-icons">forward_10</span>
                     </button>
 
                     <div class="mf-player-time">
-                        <span class="mf-time-cur">00:00</span> / <span class="mf-time-dur">00:00</span>
+                        <span class="mf-time-cur">00:00</span> <span class="mf-time-sep">/</span> <span class="mf-time-dur">00:00</span>
                     </div>
                 </div>
 
                 <div class="mf-player-controls-right">
                     <div class="mf-player-vol-wrap">
-                        <button type="button" class="mf-ctrl-btn mf-btn-vol" title="Mudo (M)">
+                        <button type="button" class="mf-ctrl-btn mf-btn-vol focusable" title="Mudo (M)">
                             <span class="material-icons">volume_up</span>
                         </button>
-                        <input type="range" class="mf-player-vol-slider" min="0" max="1" step="0.05" value="1" />
+                        <input type="range" class="mf-player-vol-slider focusable" min="0" max="1" step="0.05" value="1" title="Volume" />
                     </div>
 
-                    <span class="mf-player-quality-tag">${quality}</span>
+                    <span class="mf-player-quality-tag">${escapeHtml(quality)}</span>
 
-                    <button type="button" class="mf-ctrl-btn mf-btn-fullscreen" title="Tela Cheia (F)">
+                    <button type="button" class="mf-ctrl-btn mf-btn-fullscreen focusable" title="Tela Cheia (F)">
                         <span class="material-icons">fullscreen</span>
                     </button>
                 </div>
@@ -523,6 +525,7 @@ export function openCinemaPlayer({
     // Keyboard Shortcuts
     function handleKeyDown(e) {
         if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+        showControls();
 
         if (e.key === ' ' || e.key === 'k' || e.key === 'MediaPlayPause') {
             e.preventDefault();

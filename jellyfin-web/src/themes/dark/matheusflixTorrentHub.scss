@@ -136,9 +136,9 @@ button:has(.cloud_download),
     height: 90vh;
     max-height: 880px;
     background: linear-gradient(180deg, #161922 0%, #0d0e14 100%);
-    border: 1px solid rgba(255, 122, 26, 0.25);
+    border: 1px solid rgba(229, 9, 20, 0.25);
     border-radius: 20px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8), 0 0 32px rgba(255, 122, 26, 0.15);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8), 0 0 32px rgba(229, 9, 20, 0.15);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -242,7 +242,7 @@ button:has(.cloud_download),
     color: #0a0b0e;
     font-weight: 700;
     border-color: var(--mf-accent);
-    box-shadow: 0 0 16px rgba(255, 122, 26, 0.4);
+    box-shadow: 0 0 16px rgba(229, 9, 20, 0.4);
 }
 
 .mf-search-box {
@@ -266,7 +266,7 @@ button:has(.cloud_download),
 
 .mf-search-input:focus {
     border-color: var(--mf-accent);
-    box-shadow: 0 0 0 2px rgba(255, 122, 26, 0.25);
+    box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.25);
 }
 
 .mf-search-icon {
@@ -401,7 +401,7 @@ button:has(.cloud_download),
 .mf-movie-card:hover {
     transform: translateY(-6px) scale(1.02);
     border-color: var(--mf-accent);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 0 16px rgba(255, 122, 26, 0.25);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 0 16px rgba(229, 9, 20, 0.25);
 }
 
 .mf-poster-wrap {
@@ -485,7 +485,7 @@ button:has(.cloud_download),
 
 .mf-btn-torrents {
     margin-top: auto;
-    background: rgba(255, 122, 26, 0.15);
+    background: rgba(229, 9, 20, 0.15);
     border: 1px solid var(--mf-accent);
     color: var(--mf-accent);
     font-size: 12px;
@@ -521,7 +521,7 @@ button:has(.cloud_download),
     max-width: 92vw;
     height: 100vh;
     background: #11141c;
-    border-left: 1px solid rgba(255, 122, 26, 0.3);
+    border-left: 1px solid rgba(229, 9, 20, 0.3);
     box-shadow: -16px 0 48px rgba(0, 0, 0, 0.85);
     display: flex;
     flex-direction: column;
@@ -578,7 +578,7 @@ button:has(.cloud_download),
 }
 
 .mf-torrent-row:hover {
-    border-color: rgba(255, 122, 26, 0.5);
+    border-color: rgba(229, 9, 20, 0.5);
     background: rgba(26, 31, 46, 0.9);
 }
 
@@ -598,9 +598,9 @@ button:has(.cloud_download),
 }
 
 .mf-pill-quality {
-    background: rgba(255, 122, 26, 0.2);
+    background: rgba(229, 9, 20, 0.2);
     color: var(--mf-accent);
-    border: 1px solid rgba(255, 122, 26, 0.4);
+    border: 1px solid rgba(229, 9, 20, 0.4);
 }
 
 .mf-pill-pt {
@@ -1080,98 +1080,6 @@ button:has(.cloud_download),
     transform: scale(1.05);
 }
 
-.mf-cinema-player {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    background: #000 !important;
-    z-index: 200000 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    animation: mfFadeIn 0.2s ease;
-}
-
-.mf-player-topbar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 70px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    z-index: 10;
-    color: #fff;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.mf-cinema-player:hover .mf-player-topbar,
-.mf-cinema-player.controls-visible .mf-player-topbar {
-    opacity: 1;
-}
-
-.mf-player-video-wrap {
-    flex-grow: 1;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #000;
-}
-
-.mf-player-video {
-    width: 100%;
-    height: 100%;
-    max-height: 100vh;
-    outline: none;
-}
-
-.mf-player-buffer-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(10, 11, 16, 0.88);
-    backdrop-filter: blur(12px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 5;
-    color: #fff;
-    text-align: center;
-    padding: 20px;
-}
-
-.mf-player-spinner {
-    font-size: 52px;
-    margin-bottom: 16px;
-    animation: spin 1.5s linear infinite;
-}
-
-.mf-buffer-stats {
-    font-size: 13px;
-    color: #9ba1ad;
-    margin-top: 8px;
-    display: flex;
-    gap: 16px;
-}
-
-.mf-buffer-pill {
-    background: rgba(255, 122, 26, 0.15);
-    border: 1px solid var(--mf-accent);
-    color: var(--mf-accent);
-    padding: 4px 12px;
-    border-radius: 99px;
-    font-weight: 700;
-}
-
 /* ==========================================================================
    AI Movie Search & Recommendation Styles
    ========================================================================== */
@@ -1525,98 +1433,6 @@ button:has(.cloud_download),
     transform: scale(1.05);
 }
 
-.mf-cinema-player {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    background: #000 !important;
-    z-index: 200000 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    animation: mfFadeIn 0.2s ease;
-}
-
-.mf-player-topbar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 70px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    z-index: 10;
-    color: #fff;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.mf-cinema-player:hover .mf-player-topbar,
-.mf-cinema-player.controls-visible .mf-player-topbar {
-    opacity: 1;
-}
-
-.mf-player-video-wrap {
-    flex-grow: 1;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #000;
-}
-
-.mf-player-video {
-    width: 100%;
-    height: 100%;
-    max-height: 100vh;
-    outline: none;
-}
-
-.mf-player-buffer-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(10, 11, 16, 0.88);
-    backdrop-filter: blur(12px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 5;
-    color: #fff;
-    text-align: center;
-    padding: 20px;
-}
-
-.mf-player-spinner {
-    font-size: 52px;
-    margin-bottom: 16px;
-    animation: spin 1.5s linear infinite;
-}
-
-.mf-buffer-stats {
-    font-size: 13px;
-    color: #9ba1ad;
-    margin-top: 8px;
-    display: flex;
-    gap: 16px;
-}
-
-.mf-buffer-pill {
-    background: rgba(255, 122, 26, 0.15);
-    border: 1px solid var(--mf-accent);
-    color: var(--mf-accent);
-    padding: 4px 12px;
-    border-radius: 99px;
-    font-weight: 700;
-}
-
 /* ==========================================================================
    MatheusFlix - Overhaul: Telas, Separação Pasta vs Streaming & Cinema Player
    ========================================================================== */
@@ -1787,7 +1603,7 @@ button:has(.cloud_download),
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 122, 26, 0.15);
+    background: rgba(229, 9, 20, 0.15);
     border: 1px solid var(--mf-accent);
     color: var(--mf-accent);
     padding: 8px 16px;
@@ -1822,7 +1638,7 @@ button:has(.cloud_download),
 .mf-local-card:hover {
     transform: translateY(-6px);
     border-color: var(--mf-accent);
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 122, 26, 0.25);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(229, 9, 20, 0.25);
 }
 
 .mf-local-overlay-badges {
@@ -2009,182 +1825,6 @@ button:has(.cloud_download),
     padding: 16px 24px 32px 24px;
 }
 
-/* Cinema Player Bottom Bar Controls */
-.mf-player-bottom-bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 24px 32px 28px 32px;
-    background: linear-gradient(0deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.mf-cinema-player:hover .mf-player-bottom-bar,
-.mf-cinema-player.controls-visible .mf-player-bottom-bar {
-    opacity: 1;
-}
-
-.mf-player-timeline {
-    position: relative;
-    height: 8px;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-}
-
-.mf-player-seek {
-    width: 100%;
-    position: absolute;
-    height: 8px;
-    opacity: 0;
-    z-index: 3;
-    cursor: pointer;
-}
-
-.mf-player-progress-fill {
-    position: absolute;
-    left: 0;
-    height: 6px;
-    border-radius: 4px;
-    background: var(--brand, #e50914);
-    box-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
-    z-index: 2;
-    width: 0%;
-}
-
-.mf-player-buffer-fill {
-    position: absolute;
-    left: 0;
-    width: 100%;
-    height: 6px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.18);
-    z-index: 1;
-}
-
-.mf-player-controls-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.mf-player-controls-left,
-.mf-player-controls-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.mf-ctrl-btn {
-    background: transparent;
-    border: none;
-    color: #fff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.15s ease, color 0.15s ease;
-}
-
-.mf-ctrl-btn:hover {
-    color: var(--mf-accent);
-    transform: scale(1.1);
-}
-
-.mf-player-time {
-    font-size: 13px;
-    font-weight: 700;
-    color: #ccd2e0;
-    font-variant-numeric: tabular-nums;
-}
-
-.mf-player-vol-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.mf-player-vol-slider {
-    width: 80px;
-    accent-color: var(--mf-accent);
-    cursor: pointer;
-}
-
-.mf-player-quality-tag {
-    font-size: 11px;
-    font-weight: 800;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #fff;
-    padding: 3px 8px;
-    border-radius: 6px;
-}
-
-.mf-player-badge.badge-local {
-    background: rgba(34, 197, 94, 0.18);
-    border: 1px solid #22c55e;
-    color: #4ade80;
-}
-
-.mf-player-badge.badge-stream {
-    background: rgba(255, 122, 26, 0.18);
-    border: 1px solid var(--mf-accent);
-    color: var(--mf-accent);
-}
-
-.mf-spin {
-    animation: spin 1s linear infinite;
-}
-
-/* TV Casting & Direct Play on TV */
-.mf-btn-cast-tv {
-    background: rgba(34, 197, 94, 0.15);
-    border: 1px solid #22c55e;
-    color: #4ade80;
-    font-size: 13px;
-    font-weight: 700;
-    padding: 6px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s ease;
-}
-
-.mf-btn-cast-tv:hover {
-    background: #22c55e;
-    color: #0a0b0e;
-    transform: scale(1.05);
-}
-
-.mf-btn-hero-tv {
-    background: rgba(34, 197, 94, 0.15);
-    border: 1px solid #22c55e;
-    color: #4ade80;
-    font-size: 14px;
-    font-weight: 800;
-    padding: 14px 20px;
-    border-radius: 12px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s ease;
-}
-
-.mf-btn-hero-tv:hover {
-    background: #22c55e;
-    color: #0a0b0e;
-    transform: scale(1.04);
-}
-
 .mf-local-card-btn-row {
     margin-top: 8px;
     display: flex;
@@ -2240,7 +1880,7 @@ button:has(.cloud_download),
     border-radius: 20px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 32px rgba(255, 122, 26, 0.12);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 32px rgba(229, 9, 20, 0.12);
     background: #0b0d12;
 }
 
@@ -3406,8 +3046,8 @@ button:has(.cloud_download),
 }
 
 .mf-badge-genre {
-    background: rgba(255, 122, 26, 0.12) !important;
-    border-color: rgba(255, 122, 26, 0.3) !important;
+    background: rgba(229, 9, 20, 0.12) !important;
+    border-color: rgba(229, 9, 20, 0.3) !important;
     color: #ff9e42 !important;
 }
 
@@ -3465,7 +3105,7 @@ button:has(.cloud_download),
 
 .mf-btn-hero-watch:hover:not(:disabled) {
     transform: translateY(-3px) scale(1.02) !important;
-    box-shadow: 0 0 36px rgba(255, 122, 26, 0.6), var(--mf-shadow-lg) !important;
+    box-shadow: 0 0 36px rgba(229, 9, 20, 0.6), var(--mf-shadow-lg) !important;
     filter: brightness(1.1) !important;
 }
 
@@ -3631,9 +3271,9 @@ button:has(.cloud_download),
 }
 
 .mf-stream-audio-dub {
-    background: linear-gradient(135deg, rgba(255, 122, 26, 0.25) 0%, rgba(245, 158, 11, 0.25) 100%) !important;
+    background: linear-gradient(135deg, rgba(229, 9, 20, 0.25) 0%, rgba(245, 158, 11, 0.25) 100%) !important;
     color: #ff9e42 !important;
-    border: 1px solid rgba(255, 122, 26, 0.5) !important;
+    border: 1px solid rgba(229, 9, 20, 0.5) !important;
     font-size: 11px !important;
     font-weight: 800 !important;
     padding: 2px 8px !important;
@@ -3641,7 +3281,7 @@ button:has(.cloud_download),
     display: inline-flex !important;
     align-items: center !important;
     gap: 4px !important;
-    box-shadow: 0 0 10px rgba(255, 122, 26, 0.2) !important;
+    box-shadow: 0 0 10px rgba(229, 9, 20, 0.2) !important;
 }
 
 .mf-stream-audio-pt {
@@ -4008,7 +3648,7 @@ button[aria-label*="Grupo"] {
 
 .mf-stream-item:hover {
     background: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(255, 122, 26, 0.45) !important;
+    border-color: rgba(229, 9, 20, 0.45) !important;
     transform: translateX(4px) !important;
 }
 
@@ -4017,7 +3657,7 @@ button[aria-label*="Grupo"] {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(255, 122, 26, 0.14) 100%);
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(229, 9, 20, 0.14) 100%);
     border: 1px solid rgba(56, 189, 248, 0.45);
     box-shadow: 0 8px 24px rgba(56, 189, 248, 0.18);
     border-radius: var(--mf-radius-md, 12px);
@@ -4031,7 +3671,7 @@ button[aria-label*="Grupo"] {
         box-shadow: 0 8px 24px rgba(56, 189, 248, 0.18);
     }
     50% {
-        box-shadow: 0 8px 30px rgba(255, 122, 26, 0.28);
+        box-shadow: 0 8px 30px rgba(229, 9, 20, 0.28);
     }
 }
 
@@ -4141,7 +3781,7 @@ button[aria-label*="Grupo"] {
 .mf-confirm-modal {
     background: linear-gradient(180deg, #131722 0%, #0a0d14 100%);
     border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 36px rgba(255, 122, 26, 0.16);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 36px rgba(229, 9, 20, 0.16);
     border-radius: 18px;
     width: 100%;
     max-width: 480px;
@@ -4267,9 +3907,9 @@ button[aria-label*="Grupo"] {
 }
 
 .mf-confirm-badge.mf-badge-quality {
-    background: rgba(255, 122, 26, 0.2);
+    background: rgba(229, 9, 20, 0.2);
     color: #ff9e42;
-    border: 1px solid rgba(255, 122, 26, 0.4);
+    border: 1px solid rgba(229, 9, 20, 0.4);
 }
 
 .mf-confirm-badge.mf-badge-size {
