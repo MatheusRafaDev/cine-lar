@@ -89,13 +89,13 @@ body,
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    padding: 0 24px !important;
+    padding: 0 44px !important;
     box-sizing: border-box !important;
     background: rgba(20, 20, 20, 0.95) !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
-    border-bottom: 1px solid var(--line) !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+    border-bottom: none !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
     contain: layout style paint !important;
 }
 
@@ -106,7 +106,7 @@ body,
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
     background: rgba(20, 20, 20, 0.98) !important;
-    border-bottom: 1px solid var(--line) !important;
+    border-bottom: none !important;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75) !important;
 }
 
@@ -129,18 +129,45 @@ body,
 .headerLeft {
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
+    gap: 8px !important;
     flex-shrink: 0 !important;
 }
 
-.headerLeft .mainDrawerButton {
-    display: inline-flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    color: var(--text-1) !important;
+/* Ocultar icones redundantes do Jellyfin (hamburguer e casinha) */
+.headerHomeButton,
+.mainDrawerButton {
+    display: none !important;
 }
 
-/* Logo permanente MatheusFlix no topo (Branco + Vermelho Marca) */
+/* Botao voltar do cabecalho limpo e elegante estilo Netflix */
+.headerBackButton {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-right: 8px !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border-color: #ffffff !important;
+        transform: scale(1.08) !important;
+    }
+}
+
+.headerBackButton.hide {
+    display: none !important;
+}
+
+/* Logo permanente MatheusFlix no topo (Padrão Netflix) */
 .pageTitle,
 .pageTitleWithDefaultLogo {
     background-image: none !important;
@@ -151,25 +178,34 @@ body,
     margin: 0 !important;
     cursor: pointer !important;
     user-select: none !important;
+    text-decoration: none !important;
+    transition: transform 0.2s ease, filter 0.2s ease !important;
+
+    &:hover {
+        transform: scale(1.02) !important;
+        filter: brightness(1.1) !important;
+    }
 }
 
 .pageTitle::before,
 .pageTitleWithDefaultLogo::before {
-    content: "Matheus" !important;
-    font-size: 22px !important;
-    font-weight: 800 !important;
-    color: var(--text-1) !important;
-    letter-spacing: -0.03em !important;
+    content: "MATHEUS" !important;
+    font-size: 24px !important;
+    font-weight: 900 !important;
+    color: #ffffff !important;
+    letter-spacing: -0.5px !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
 }
 
 .pageTitle::after,
 .pageTitleWithDefaultLogo::after {
-    content: "Flix" !important;
-    font-size: 22px !important;
-    font-weight: 800 !important;
-    color: var(--brand) !important;
-    letter-spacing: -0.03em !important;
+    content: "FLIX" !important;
+    font-size: 24px !important;
+    font-weight: 900 !important;
+    color: #e50914 !important;
+    letter-spacing: -0.5px !important;
     margin-left: 2px !important;
+    text-shadow: 0 2px 8px rgba(229, 9, 20, 0.4) !important;
 }
 
 /* Abas de Navegação Centrais (Início, Torrents, Pasta Local, Downloads) */
@@ -180,7 +216,7 @@ body,
     justify-content: flex-start !important;
     flex: 1 1 auto !important;
     height: 100% !important;
-    margin: 0 0 0 28px !important;
+    margin: 0 0 0 36px !important;
     padding: 0 !important;
     position: static !important;
     width: auto !important;
@@ -207,7 +243,7 @@ body,
     display: flex !important;
     align-items: center !important;
     height: 100% !important;
-    gap: 16px !important;
+    gap: 24px !important;
 }
 
 /* Botões das abas com indicador ativo vermelho */
@@ -215,26 +251,37 @@ body,
     height: 68px !important;
     display: inline-flex !important;
     align-items: center !important;
-    padding: 0 12px !important;
+    padding: 0 4px !important;
     font-size: 14px !important;
     font-weight: 500 !important;
-    color: var(--text-2) !important;
+    color: #b3b3b3 !important;
     background: transparent !important;
     border: none !important;
-    border-bottom: 3px solid transparent !important;
     text-decoration: none !important;
     cursor: pointer !important;
     box-sizing: border-box !important;
-    transition: color 0.2s ease, border-color 0.2s ease !important;
+    position: relative !important;
+    transition: color 0.25s ease !important;
 
     &:hover {
-        color: var(--text-1) !important;
+        color: #ffffff !important;
     }
 
     &.emby-tab-button-active {
-        color: var(--text-1) !important;
-        font-weight: 700 !important;
-        border-bottom: 3px solid var(--brand) !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+
+        &::after {
+            content: '' !important;
+            position: absolute !important;
+            bottom: 12px !important;
+            left: 0 !important;
+            right: 0 !important;
+            height: 3px !important;
+            background: #e50914 !important;
+            border-radius: 9999px !important;
+            box-shadow: 0 2px 8px rgba(229, 9, 20, 0.6) !important;
+        }
     }
 
     .emby-button-foreground {
@@ -246,27 +293,82 @@ body,
 .headerRight {
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 16px !important;
     flex-shrink: 0 !important;
 }
 
-.headerSearchButton,
-.headerUserButton,
-.headerCastButton {
+/* Botão de Pesquisa Padrão Netflix */
+.headerSearchButton {
     display: inline-flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    color: #ffffff !important;
+    border-radius: 50% !important;
+    transition: all 0.2s ease !important;
+
+    .material-icons {
+        font-size: 22px !important;
+        color: #ffffff !important;
+    }
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+        background: rgba(255, 255, 255, 0.12) !important;
+        color: #ffffff !important;
+        transform: scale(1.1) !important;
+    }
+}
+
+/* Botão de Usuário / Avatar Padrão Netflix */
+.headerUserButton {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 4px !important;
+    background: linear-gradient(135deg, #e50914 0%, #b81d24 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(229, 9, 20, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
+    .material-icons {
+        font-size: 20px !important;
+        color: #ffffff !important;
+    }
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+        transform: scale(1.1) !important;
+        box-shadow: 0 0 16px rgba(229, 9, 20, 0.7) !important;
+        border-color: #ffffff !important;
+    }
+}
+
+/* Ocultar definitivamente botoes desnecessarios */
+.headerCastButton,
+.headerSyncButton,
+.headerAudioPlayerButton,
+.currentTimeText {
+    display: none !important;
 }
 
 /* Botões do cabeçalho */
 .headerButton {
-    color: var(--text-2) !important;
-    border-radius: var(--r-btn) !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
     transition: all 0.2s ease !important;
 }
 
 .headerButton:hover {
-    color: var(--text-1) !important;
+    color: #ffffff !important;
     background: rgba(255, 255, 255, 0.1) !important;
 }
 
