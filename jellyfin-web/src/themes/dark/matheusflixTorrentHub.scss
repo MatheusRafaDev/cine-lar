@@ -1081,15 +1081,15 @@ button:has(.cloud_download),
 }
 
 .mf-cinema-player {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: #000;
-    z-index: 20000;
-    display: flex;
-    flex-direction: column;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: #000 !important;
+    z-index: 200000 !important;
+    display: flex !important;
+    flex-direction: column !important;
     animation: mfFadeIn 0.2s ease;
 }
 
@@ -1526,15 +1526,15 @@ button:has(.cloud_download),
 }
 
 .mf-cinema-player {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: #000;
-    z-index: 20000;
-    display: flex;
-    flex-direction: column;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: #000 !important;
+    z-index: 200000 !important;
+    display: flex !important;
+    flex-direction: column !important;
     animation: mfFadeIn 0.2s ease;
 }
 

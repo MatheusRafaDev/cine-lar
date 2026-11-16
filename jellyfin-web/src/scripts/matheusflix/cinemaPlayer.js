@@ -41,6 +41,10 @@ export function openCinemaPlayer({
         closeCinemaPlayer();
     }
 
+    // Remove qualquer modal de detalhes ou tela anterior para ir direto para o filme
+    document.querySelectorAll('.mf-movie-page, .mf-stremio-modal, .mf-stremio-modal-backdrop').forEach(el => el.remove());
+    document.body.style.overflow = 'hidden';
+
     // Auto-recupera infoHash se não foi fornecido explicitamente
     let currentHash = infoHash;
     if (!currentHash && streamUrl) {
@@ -84,6 +88,10 @@ export function openCinemaPlayer({
                     <span class="mf-buffer-pill mf-buf-peers">👥 Peers: ...</span>
                     <span class="mf-buffer-pill mf-buf-progress">📊 Buffer: 0%</span>
                 </div>
+                <button type="button" class="mf-btn-force-play" style="margin-top: 16px; background: #e50914; color: #ffffff; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(229, 9, 20, 0.45); transition: transform 0.15s ease;">
+                    <span class="material-icons" style="font-size: 18px;">play_arrow</span>
+                    <span>Forçar Reprodução</span>
+                </button>
             </div>
         </div>
 
@@ -151,9 +159,35 @@ export function openCinemaPlayer({
     let controlsTimer = null;
     let hasFallbackTranscoded = false;
 
-    // Configura a fonte direta no elemento video
+    // Força pré-carregamento imediato
     video.src = fullStreamUrl;
+    video.preload = 'auto';
     video.load();
+
+    function forcePlay() {
+        const p = video.play();
+        if (p && typeof p.then === 'function') {
+            p.then(() => {
+                hideOverlay();
+            }).catch(() => {
+                // Tenta mutado se o navegador restringir reprodução automática com áudio
+                video.muted = true;
+                video.play().then(hideOverlay).catch(noop);
+            });
+        }
+    }
+
+    // Tenta iniciar a reprodução imediatamente
+    forcePlay();
+
+    const btnForcePlay = playerEl.querySelector('.mf-btn-force-play');
+    if (btnForcePlay) {
+        btnForcePlay.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideOverlay();
+            forcePlay();
+        });
+    }
 
     function hideOverlay() {
         if (overlay && overlay.style.display !== 'none') {
@@ -421,17 +455,12 @@ export function openCinemaPlayer({
             const canStart = data.canPlay
                 || data.ready
                 || parseFloat(data.progress) > 0.05
-                || (video.readyState >= 2);
+                || (video.readyState >= 1);
 
             if (canStart) {
-                video.play().then(() => {
-                    hideOverlay();
-                }).catch(() => {
-                    video.muted = true;
-                    video.play().then(hideOverlay).catch(noop);
-                });
+                forcePlay();
             }
-        }, 1200);
+        }, 500);
     }
 
     // Watchdog: após 7s, se o vídeo já tem buffer ou pode tocar, força tentativa
@@ -516,5 +545,6 @@ export function closeCinemaPlayer() {
         }
         activePlayerInstance.remove();
         activePlayerInstance = null;
+        document.body.style.overflow = '';
     }
 }

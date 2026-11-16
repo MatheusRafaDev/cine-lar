@@ -34,6 +34,11 @@ function closeDetails(triggerBack = true) {
     }
 }
 
+function launchPlayer(config) {
+    closeDetails(false);
+    openCinemaPlayer(config);
+}
+
 export async function openStremioDetails(rawMovie) {
     closeDetails(false);
     const movie = normalizeMovie(rawMovie);
@@ -451,7 +456,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
         `;
 
         localStatus.querySelector('.mf-btn-watch-while-dl')?.addEventListener('click', () => {
-            openCinemaPlayer({
+            launchPlayer({
                 streamUrl: activeDl.streamUrl,
                 title: movie.title,
                 subInfo: `${activeDl.quality || '1080p'} • Baixando em tempo real (${activeDl.progress || 0}%)`,
@@ -468,7 +473,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
         heroBtn.className = 'mf-btn-hero-watch mf-btn-watching-dl';
         heroText.textContent = `Assistir Enquanto Baixa (${activeDl.quality || '1080p'})`;
         heroBtn.onclick = () => {
-            openCinemaPlayer({
+            launchPlayer({
                 streamUrl: activeDl.streamUrl,
                 title: movie.title,
                 subInfo: `${activeDl.quality || '1080p'} • Baixando em tempo real (${activeDl.progress || 0}%)`,
@@ -496,7 +501,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
         heroBtn.className = 'mf-btn-hero-watch mf-btn-play-local';
         heroText.textContent = movie.resumePosition > 10 ? `Continuar da Pasta Local (${localFile.quality})` : `Assistir da Pasta Local (${localFile.quality})`;
         heroBtn.onclick = () => {
-            openCinemaPlayer({
+            launchPlayer({
                 streamUrl: localFile.streamUrl,
                 title: movie.title,
                 subInfo: [localFile.quality, localFile.sizeFormatted].filter(Boolean).join(' • '),
@@ -608,7 +613,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
             }
 
             localItem.addEventListener('click', () => {
-                openCinemaPlayer({
+                launchPlayer({
                     streamUrl: localFile.streamUrl,
                     title: movie.title,
                     subInfo: [localFile.quality, localFile.sizeFormatted].filter(Boolean).join(' • '),
@@ -788,7 +793,7 @@ function playStream(stream, movie, currentEp = null) {
         `${movie.title} - T${currentEp.season}E${currentEp.number || currentEp.episode}: ${currentEp.name || 'Episódio'}` :
         movie.title;
 
-    openCinemaPlayer({
+    launchPlayer({
         streamUrl: `/api/stream/${infoHash}?magnet=${encodeURIComponent(stream.magnet)}&title=${encodeURIComponent(titleDisplay)}`,
         title: titleDisplay,
         subInfo: [stream.quality, stream.size, stream.isPortuguese ? 'PT-BR' : ''].filter(Boolean).join(' • '),
