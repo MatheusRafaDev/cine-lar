@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 8085;
 const SAVE_PATH = process.env.SAVE_PATH || 'D:\\filmes';
 const JELLYFIN_URL = process.env.JELLYFIN_URL || 'http://localhost:8096';
-const JELLYFIN_USER = process.env.JELLYFIN_USER || 'rafae';
+const JELLYFIN_USER = process.env.JELLYFIN_USER || 'usuario';
 const JELLYFIN_PW = process.env.JELLYFIN_PW || '10092004';
 
 // Initialize SQLite database

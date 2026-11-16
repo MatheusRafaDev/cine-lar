@@ -231,8 +231,8 @@ export default function (view, params) {
             if (id === 'manual') {
                 context.querySelector('#txtManualName').value = '';
                 showManualForm(context, true);
-            } else if (haspw == 'false' || name === 'rafae') {
-                authenticateUserByName(context, getApiClient(), getTargetUrl(), name, name === 'rafae' ? '10092004' : '');
+            } else if (haspw == 'false' || name === 'usuario' || name === 'rafae') {
+                authenticateUserByName(context, getApiClient(), getTargetUrl(), name, '10092004');
             } else {
                 authenticateUserByName(context, getApiClient(), getTargetUrl(), name, '');
             }
@@ -266,15 +266,13 @@ export default function (view, params) {
 
         const apiClient = getApiClient();
 
-        if (appSettings.enableAutoLogin()) {
-            // MatheusFlix: Acesso Livre - auto-login automático sem tela de login
-            view.querySelector('.visualLoginForm')?.classList.add('hide');
-            view.querySelector('.manualLoginForm')?.classList.add('hide');
-            view.querySelector('.readOnlyContent')?.classList.add('hide');
+        // MatheusFlix: Perfil único 'usuario' sempre logado automaticamente
+        view.querySelector('.visualLoginForm')?.classList.add('hide');
+        view.querySelector('.manualLoginForm')?.classList.add('hide');
+        view.querySelector('.readOnlyContent')?.classList.add('hide');
 
-            authenticateUserByName(view, apiClient, getTargetUrl(), 'rafae', '10092004');
-            return;
-        }
+        authenticateUserByName(view, apiClient, getTargetUrl(), 'usuario', '10092004');
+        return;
 
         apiClient.getQuickConnect('Enabled')
             .then(enabled => {

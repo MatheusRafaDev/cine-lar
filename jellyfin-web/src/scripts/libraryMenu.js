@@ -367,9 +367,7 @@ function refreshLibraryInfoInDrawer(user) {
         html += globalize.translate('HeaderUser');
         html += '</h3>';
 
-        html += '<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSwitchProfile" data-itemid="switchprofile" href="#" style="color: var(--brand, #e50914);"><span class="material-icons navMenuOptionIcon switch_account" aria-hidden="true" style="color: var(--brand, #e50914);"></span><span class="navMenuOptionText" style="font-weight: 700;">Trocar Perfil</span></a>';
         html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnSettings" data-itemid="settings" href="#"><span class="material-icons navMenuOptionIcon settings" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('Settings')}</span></a>`;
-        html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder btnLogout" data-itemid="logout" href="#"><span class="material-icons navMenuOptionIcon exit_to_app" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('ButtonSignOut')}</span></a>`;
 
         if (appHost.supports(AppFeature.ExitMenu)) {
             html += `<a is="emby-linkbutton" class="navMenuOption lnkMediaFolder exitApp" data-itemid="exitapp" href="#"><span class="material-icons navMenuOptionIcon close" aria-hidden="true"></span><span class="navMenuOptionText">${globalize.translate('ButtonExitApp')}</span></a>`;
@@ -404,15 +402,6 @@ function refreshLibraryInfoInDrawer(user) {
         btnSelectServer.addEventListener('click', onSelectServerClick);
     }
 
-    const btnSwitchProfile = navDrawerScrollContainer.querySelector('.btnSwitchProfile');
-    if (btnSwitchProfile) {
-        btnSwitchProfile.addEventListener('click', (e) => {
-            e.preventDefault();
-            closeMainDrawer();
-            import('./matheusflix/profileSelector').then(m => m.openProfileSelector());
-        });
-    }
-
     const btnSettings = navDrawerScrollContainer.querySelector('.btnSettings');
     if (btnSettings) {
         btnSettings.addEventListener('click', onSettingsClick);
@@ -421,11 +410,6 @@ function refreshLibraryInfoInDrawer(user) {
     const btnExit = navDrawerScrollContainer.querySelector('.exitApp');
     if (btnExit) {
         btnExit.addEventListener('click', onExitAppClick);
-    }
-
-    const btnLogout = navDrawerScrollContainer.querySelector('.btnLogout');
-    if (btnLogout) {
-        btnLogout.addEventListener('click', onLogoutClick);
     }
 }
 
