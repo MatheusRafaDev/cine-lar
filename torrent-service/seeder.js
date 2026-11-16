@@ -3,6 +3,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { upsertMovie, markLocalMovies, getDb } from './db.js';
+import { fetchPtBrMetadata } from './tmdbHelper.js';
 
 function fetchJson(url) {
     return new Promise((resolve, reject) => {
@@ -118,9 +119,19 @@ export async function scanLocalMovies(savePath = 'D:\\filmes') {
                 const searchRes = await fetchJson(`https://v3-cinemeta.strem.io/catalog/movie/top/search=${encodeURIComponent(clean)}.json`);
                 if (searchRes?.metas && searchRes.metas.length > 0) {
                     const topMatch = searchRes.metas[0];
+                    if (topMatch.imdb_id) {
+                        try {
+                            const pt = await fetchPtBrMetadata(topMatch.imdb_id);
+                            if (pt?.titleBr) {
+                                topMatch.title = pt.titleBr;
+                                topMatch.original_title = topMatch.name;
+                                if (pt.overviewBr) topMatch.description = pt.overviewBr;
+                            }
+                        } catch (e) {}
+                    }
                     topMatch.is_local = 1;
                     upsertMovie(topMatch);
-                    console.log(`[Seeder] ✅ Local catalogado: "${clean}" -> "${topMatch.name}" (${topMatch.imdb_id})`);
+                    console.log(`[Seeder] ✅ Local catalogado: "${clean}" -> "${topMatch.title || topMatch.name}" (${topMatch.imdb_id})`);
                 }
             } catch (err) {}
             await new Promise(r => setTimeout(r, 200));

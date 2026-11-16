@@ -150,8 +150,8 @@ export function upsertMovie(movie) {
     const database = getDb();
     const now = new Date().toISOString();
 
-    const title = movie.name || movie.title || '';
-    const originalTitle = movie.original_title || '';
+    const title = movie.title || movie.name || '';
+    const originalTitle = movie.original_title || movie.original_name || movie.name || '';
     const year = parseInt(movie.releaseInfo || movie.year, 10) || null;
     const releaseDate = movie.release_date || (year ? `${year}-01-01` : null);
     const genres = translateGenres(movie.genres);
@@ -172,8 +172,15 @@ export function upsertMovie(movie) {
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
         ON CONFLICT(imdb_id) DO UPDATE SET
-            title = excluded.title,
-            original_title = COALESCE(excluded.original_title, movies.original_title),
+            title = CASE 
+                WHEN excluded.title != '' AND excluded.title != excluded.original_title THEN excluded.title
+                WHEN movies.title != '' AND movies.title != movies.original_title THEN movies.title
+                ELSE excluded.title
+            END,
+            original_title = CASE 
+                WHEN excluded.original_title != '' THEN excluded.original_title 
+                ELSE movies.original_title 
+            END,
             year = COALESCE(excluded.year, movies.year),
             release_date = COALESCE(excluded.release_date, movies.release_date),
             genres = CASE WHEN excluded.genres != '' THEN excluded.genres ELSE movies.genres END,

@@ -5,6 +5,7 @@ import http from 'http';
 import { spawn } from 'child_process';
 import { upsertMovie, getDb, translateGenres } from './db.js';
 import { detectFranchise, detectSeries } from './organizer.js';
+import { fetchPtBrMetadata, searchPtBrMovie } from './tmdbHelper.js';
 
 // Localizar ffmpeg para suporte a reprodução e conversão de áudio instantânea
 const FFMPEG_CANDIDATES = [
@@ -62,6 +63,8 @@ export function cleanMovieName(raw) {
     const year = yearMatch ? parseInt(yearMatch[1], 10) : null;
 
     let name = raw.replace(/\.(mkv|mp4|avi|ts|mov)$/i, '');
+    name = name.replace(/\(?www\.[^\)]+\)?/gi, '');
+    name = name.replace(/\b(thepiratefilmes|bludv|wolverdonfilmes|totti9|andretpf|comandotorrents)\b/gi, '');
     name = name.replace(/\[ACESSE\.\.\.[^\]]+\]/gi, '');
     name = name.replace(/\((19\d\d|20\d\d)\)/g, '');
     name = name.replace(/\b(19\d\d|20\d\d)\b.*/, '');
@@ -69,6 +72,7 @@ export function cleanMovieName(raw) {
     name = name.replace(/\[[^\]]+\]/g, ' ');
     name = name.replace(/\b(1080p|720p|2160p|4k|bluray|bdrip|web-dl|webrip|dual|dublado|nacional|ac3|aac|x264|x265|hevc|h264|imax|open matte|fullhd|ch|edition|proper|remux|dts-hd|ma|5\.1|7\.1)\b.*/i, '');
     name = name.replace(/[\(\)\[\]\-]/g, ' ');
+    name = name.replace(/\b(com|net|org|br)\b/gi, '');
     // Remove trailing "1" if like "Carros 1", "Toy Story 1"
     name = name.replace(/\b([A-Za-z]+)\s+1\b/i, '$1');
     name = name.replace(/\s+/g, ' ').trim();
@@ -190,19 +194,44 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                     if (yearMatch) match = yearMatch;
                 }
 
+                let titleBr = '';
+                let descBr = '';
+                if (match.imdb_id) {
+                    try {
+                        const existingRow = db.prepare('SELECT title, description FROM movies WHERE imdb_id = ?').get(match.imdb_id);
+                        if (existingRow && existingRow.title) {
+                            titleBr = existingRow.title;
+                            descBr = existingRow.description;
+                        }
+                    } catch (e) {}
+                }
+                if (!titleBr && match.imdb_id) {
+                    try {
+                        const tmdb = await fetchPtBrMetadata(match.imdb_id);
+                        if (tmdb?.titleBr) {
+                            titleBr = tmdb.titleBr;
+                            descBr = tmdb.overviewBr;
+                        }
+                    } catch (e) {}
+                }
+
+                const finalTitle = titleBr || cleanName || match.name;
+                match.title = finalTitle;
+                match.original_title = match.name;
                 match.is_local = 1;
+                if (descBr) match.description = descBr;
                 upsertMovie(match);
 
                 movieData = {
                     imdb_id: match.imdb_id,
-                    title: cleanName.length > 3 ? cleanName : match.name,
+                    title: finalTitle,
                     original_title: match.name,
                     year: parseInt(match.releaseInfo || match.year, 10) || detectedYear,
                     genres: translateGenres(match.genres),
                     rating: parseFloat(match.imdbRating) || 8.0,
                     poster: match.poster || '',
                     backdrop: match.background || match.backdrop || '',
-                    description: match.description || 'Filme salvo na sua biblioteca local D:\\filmes.'
+                    description: descBr || match.description || 'Filme salvo na sua biblioteca local.'
                 };
             }
         } catch (err) {}
@@ -219,14 +248,34 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                 if (row) {
                     movieData = {
                         imdb_id: row.imdb_id,
-                        title: cleanName,
-                        original_title: row.original_title,
+                        title: row.title || cleanName,
+                        original_title: row.original_title || row.title,
                         year: row.year || detectedYear,
                         genres: row.genres,
                         rating: row.rating,
                         poster: row.poster,
                         backdrop: row.backdrop,
                         description: row.description
+                    };
+                }
+            } catch (e) {}
+        }
+
+        // Fallback 2: Busca direta no TMDB por nome em Português do Brasil
+        if (!movieData) {
+            try {
+                const tmdbSearch = await searchPtBrMovie(cleanName, detectedYear);
+                if (tmdbSearch) {
+                    movieData = {
+                        imdb_id: null,
+                        title: tmdbSearch.titleBr,
+                        original_title: tmdbSearch.originalTitle,
+                        year: tmdbSearch.year || detectedYear,
+                        genres: 'Cinema',
+                        rating: tmdbSearch.rating || 8.0,
+                        poster: tmdbSearch.poster,
+                        backdrop: tmdbSearch.backdrop,
+                        description: tmdbSearch.overviewBr || 'Filme salvo na sua pasta local.'
                     };
                 }
             } catch (e) {}
@@ -255,7 +304,7 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
             year: movieData?.year || detectedYear || '',
             poster: movieData?.poster || '',
             backdrop: movieData?.backdrop || '',
-            description: movieData?.description || 'Filme salvo na sua pasta local D:\\filmes.',
+            description: movieData?.description || 'Filme salvo na sua pasta local.',
             genres: movieData?.genres || 'Cinema',
             rating: movieData?.rating ? Number(movieData.rating).toFixed(1) : '8.0',
             quality,
