@@ -44,7 +44,7 @@ export function showConfirmModal({
                         <h3 id="mfConfirmTitle" class="mf-confirm-title">${escapeHtml(title)}</h3>
                         ${subtitle ? `<p class="mf-confirm-subtitle">${escapeHtml(subtitle)}</p>` : ''}
                     </div>
-                    <button type="button" class="mf-confirm-close-btn" title="Fechar (Esc)">✕</button>
+                    <button type="button" class="mf-confirm-close-btn" title="Fechar (Esc)"><span class="material-icons" style="font-size: 18px;">close</span></button>
                 </div>
 
                 <div class="mf-confirm-body">

@@ -91,7 +91,7 @@ export async function seedCatalog(savePath = 'D:\\filmes') {
     await scanLocalMovies(savePath);
 
     const finalCount = db.prepare('SELECT COUNT(*) as count FROM movies').get()?.count || 0;
-    console.log(`[Seeder] 🎉 Catálogo do MatheusFlix atualizado! Total: ${finalCount} filmes indexados.`);
+    console.log(`[Seeder] Catalogo do MatheusFlix atualizado! Total: ${finalCount} filmes indexados.`);
 }
 
 export async function scanLocalMovies(savePath = 'D:\\filmes') {
@@ -131,7 +131,7 @@ export async function scanLocalMovies(savePath = 'D:\\filmes') {
                     }
                     topMatch.is_local = 1;
                     upsertMovie(topMatch);
-                    console.log(`[Seeder] ✅ Local catalogado: "${clean}" -> "${topMatch.title || topMatch.name}" (${topMatch.imdb_id})`);
+                    console.log(`[Seeder] [Local] Catalogado: "${clean}" -> "${topMatch.title || topMatch.name}" (${topMatch.imdb_id})`);
                 }
             } catch (err) {}
             await new Promise(r => setTimeout(r, 200));

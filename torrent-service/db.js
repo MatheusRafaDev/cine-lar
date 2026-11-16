@@ -32,20 +32,20 @@ export const GENRE_MAP = {
 };
 
 export const GENRE_LIST = [
-    { id: 'all', name: 'Todos', icon: '🔥' },
-    { id: 'Action', name: 'Ação', icon: '💥' },
-    { id: 'Sci-Fi', name: 'Ficção Científica', icon: '🚀' },
-    { id: 'Animation', name: 'Animação', icon: '🎨' },
-    { id: 'Comedy', name: 'Comédia', icon: '🤣' },
-    { id: 'Horror', name: 'Terror', icon: '👻' },
-    { id: 'Adventure', name: 'Aventura', icon: '🏰' },
-    { id: 'Thriller', name: 'Suspense', icon: '🕵️' },
-    { id: 'Drama', name: 'Drama', icon: '🎭' },
-    { id: 'Romance', name: 'Romance', icon: '❤️' },
-    { id: 'Crime', name: 'Crime', icon: '🔎' },
-    { id: 'Fantasy', name: 'Fantasia', icon: '🧙' },
-    { id: 'Family', name: 'Família', icon: '👨‍👩‍👧' },
-    { id: 'Western', name: 'Faroeste', icon: '🤠' }
+    { id: 'all', name: 'Todos', icon: '' },
+    { id: 'Action', name: 'Ação', icon: '' },
+    { id: 'Sci-Fi', name: 'Ficção Científica', icon: '' },
+    { id: 'Animation', name: 'Animação', icon: '' },
+    { id: 'Comedy', name: 'Comédia', icon: '' },
+    { id: 'Horror', name: 'Terror', icon: '' },
+    { id: 'Adventure', name: 'Aventura', icon: '' },
+    { id: 'Thriller', name: 'Suspense', icon: '' },
+    { id: 'Drama', name: 'Drama', icon: '' },
+    { id: 'Romance', name: 'Romance', icon: '' },
+    { id: 'Crime', name: 'Crime', icon: '' },
+    { id: 'Fantasy', name: 'Fantasia', icon: '' },
+    { id: 'Family', name: 'Família', icon: '' },
+    { id: 'Western', name: 'Faroeste', icon: '' }
 ];
 
 export function getDb() {

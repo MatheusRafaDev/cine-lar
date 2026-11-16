@@ -85,7 +85,7 @@ export function show(button) {
             playbackManager.trySetActivePlayer(preferredTv.playerName, preferredTv);
             localStorage.setItem('lastTvTargetId', preferredTv.id);
             enable(true);
-            toast(`📺 Conectado diretamente à TV: ${preferredTv.name || preferredTv.appName || 'Smart TV'}`);
+            toast(`Conectado diretamente à TV: ${preferredTv.name || preferredTv.appName || 'Smart TV'}`);
             return;
         }
 
@@ -120,7 +120,7 @@ export function show(button) {
             loading.hide();
 
             const menuOptions = {
-                title: '📺 Conectar à TV (Reproduzir em...)',
+                title: 'Conectar à TV (Reproduzir em...)',
                 items: menuItems,
                 positionTo: button,
                 resolveOnClick: true,
@@ -153,7 +153,7 @@ export function show(button) {
                     if (!target.isLocalPlayer) {
                         localStorage.setItem('lastTvTargetId', target.id);
                         enable(true);
-                        toast(`📺 Conectado diretamente à TV: ${target.name || 'Smart TV'}`);
+                        toast(`Conectado diretamente à TV: ${target.name || 'Smart TV'}`);
                     }
                 }
             }).catch(() => {

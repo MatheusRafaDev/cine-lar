@@ -43,12 +43,12 @@ export function renderLocalFolderView(container) {
                 </button>
                 <button type="button" class="mf-category-chip focusable" data-view="franchises">
                     <span class="material-icons" style="font-size: 16px;">movie_filter</span>
-                    <span>🎬 Franquias & Coleções</span>
+                    <span>Franquias & Coleções</span>
                     <span class="mf-chip-count mf-count-franchises">0</span>
                 </button>
                 <button type="button" class="mf-category-chip focusable" data-view="series">
                     <span class="material-icons" style="font-size: 16px;">tv</span>
-                    <span>📺 Séries</span>
+                    <span>Séries</span>
                     <span class="mf-chip-count mf-count-series">0</span>
                 </button>
             </div>
@@ -177,7 +177,7 @@ function renderFranchisesView(container, franchises, query) {
         block.innerHTML = `
             <div class="mf-franchise-block-header">
                 <div class="mf-franchise-block-left">
-                    <span class="mf-franchise-block-icon">${f.icon || '🎬'}</span>
+                    <span class="material-icons mf-franchise-block-icon" style="font-size: 24px; vertical-align: middle;">collections_bookmark</span>
                     <div>
                         <h3 class="mf-franchise-block-title">Coleção ${escapeHtml(f.name)}</h3>
                         <span class="mf-franchise-block-meta">${f.movies.length} ${f.movies.length === 1 ? 'filme salvo' : 'filmes salvos em ordem cronológica'}</span>
@@ -223,7 +223,7 @@ function renderSeriesView(container, series, query) {
         block.innerHTML = `
             <div class="mf-franchise-block-header">
                 <div class="mf-franchise-block-left">
-                    <span class="mf-franchise-block-icon">📺</span>
+                    <span class="material-icons mf-franchise-block-icon" style="font-size: 24px; vertical-align: middle;">tv</span>
                     <div>
                         <h3 class="mf-franchise-block-title">Série: ${escapeHtml(s.name)}</h3>
                         <span class="mf-franchise-block-meta">${s.episodes.length} episódios</span>
@@ -254,7 +254,7 @@ function createMovieCard(m) {
     card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
 
     const franchiseTag = m.franchise ?
-        `<span class="mf-badge-card-franchise" title="Franquia ${escapeHtml(m.franchise)}">${escapeHtml(m.franchiseIcon || '🎬')} ${escapeHtml(m.franchise)}</span>` :
+        `<span class="mf-badge-card-franchise" title="Franquia ${escapeHtml(m.franchise)}"><span class="material-icons" style="font-size: 12px; vertical-align: middle; margin-right: 2px;">collections_bookmark</span>${escapeHtml(m.franchise)}</span>` :
         '';
 
     card.innerHTML = `

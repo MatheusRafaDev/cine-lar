@@ -150,7 +150,7 @@ const SearchSuggestions: FC<SearchSuggestionsProps> = ({ parentId, onSelectCateg
 
                                     {ratingNum && (
                                         <div className='mf-search-card-badge'>
-                                            <span className='star'>★</span>
+                                            <span className='material-icons' style={{ fontSize: 12, color: '#f5a623', marginRight: 2 }}>star</span>
                                             <span>{ratingNum}</span>
                                         </div>
                                     )}
@@ -207,7 +207,7 @@ const SearchSuggestions: FC<SearchSuggestionsProps> = ({ parentId, onSelectCateg
 
                                     {item.CommunityRating && (
                                         <div className='mf-search-card-badge'>
-                                            <span className='star'>★</span>
+                                            <span className='material-icons' style={{ fontSize: 12, color: '#f5a623', marginRight: 2 }}>star</span>
                                             <span>{item.CommunityRating.toFixed(1)}</span>
                                         </div>
                                     )}

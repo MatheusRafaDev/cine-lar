@@ -16,10 +16,10 @@ export function renderStreamingView(container) {
         <div class="mf-catalog">
             <div class="mf-torrent-type-bar">
                 <button type="button" class="mf-type-chip focusable active" data-type="movie">
-                    <span class="mf-type-chip-icon">🎬</span> Filmes
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">movie</span>Filmes
                 </button>
                 <button type="button" class="mf-type-chip focusable" data-type="series">
-                    <span class="mf-type-chip-icon">📺</span> Séries
+                    <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">tv</span>Séries
                 </button>
             </div>
             <div class="mf-catalog-toolbar">
@@ -166,7 +166,7 @@ async function renderGenres(genreBar, state, load) {
         // sem gêneros: a barra fica só com "Todos"
     }
 
-    const all = [{ id: 'all', name: 'Todos' }, { id: 'favorites', name: '❤️ Minha Lista' }, ...genres];
+    const all = [{ id: 'all', name: 'Todos' }, { id: 'favorites', name: 'Minha Lista' }, ...genres];
     genreBar.innerHTML = all.map(g => `
         <button type="button" class="mf-genre-chip focusable ${g.id === state.genre ? 'active' : ''}" data-genre="${escapeHtml(g.id)}">${escapeHtml(g.name)}</button>
     `).join('');
@@ -201,13 +201,13 @@ function appendCards(grid, movies) {
         card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
 
         const seriesBadge = m.isSeries || m.type === 'series' ?
-            '<span class="mf-badge-card-series" title="Série de TV">📺 Série</span>' :
+            '<span class="mf-badge-card-series" title="Série de TV"><span class="material-icons" style="font-size: 12px; vertical-align: middle; margin-right: 2px;">tv</span>Série</span>' :
             '';
 
         card.innerHTML = `
             <div class="mf-poster-wrap">
                 <img src="${escapeHtml(m.poster)}" alt="" loading="lazy" class="mf-poster-img" />
-                ${m.rating ? `<span class="mf-badge-rating">⭐ ${m.rating}</span>` : ''}
+                ${m.rating ? `<span class="mf-badge-rating"><span class="material-icons" style="font-size: 12px; vertical-align: middle; margin-right: 2px; color: #f59e0b;">star</span>${m.rating}</span>` : ''}
                 ${m.isLocal ? '<span class="mf-badge-on-disk"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta</span>' : ''}
                 ${seriesBadge}
             </div>

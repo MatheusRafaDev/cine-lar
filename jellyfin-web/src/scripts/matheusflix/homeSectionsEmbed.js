@@ -5,13 +5,13 @@
  * 2. Continuar Assistindo (histórico)
  * 3. Minha Lista (favoritos)
  * 4. Na sua pasta (D:\filmes)
- * 5. ✨ Lançamentos
- * 6. 🔥 Em Alta
- * 7. 💥 Filmes de Ação
- * 8. 🏰 Filmes de Aventura
- * 9. 🤣 Comédias
- * 10. 🚀 Ficção Científica
- * 11. 🎨 Animação & Família
+ * 5. Lançamentos
+ * 6. Em Alta
+ * 7. Filmes de Ação
+ * 8. Filmes de Aventura
+ * 9. Comédias
+ * 10. Ficção Científica
+ * 11. Animação & Família
  *
  * Cada fileira possui botões laterais de navegação (< e >) estilo Netflix
  * sem barra de scroll nativa, com suporte perfeito a controle remoto de TV.
@@ -200,77 +200,77 @@ export async function embedMatheusFlixHomeSections(view) {
             onClick: playLocal
         });
 
-        // 4. ✨ Lançamentos (filtrados sem repetição)
+        // 4. Lançamentos (filtrados sem repetição)
         const uniqueNewest = filterUniqueCategoryMovies(newest, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'newest',
-            title: '✨ Lançamentos',
+            title: 'Lançamentos',
             linkText: 'Ver mais',
             tabIndex: 1,
             movies: uniqueNewest,
             onClick: openStremioDetails
         });
 
-        // 5. 🔥 Em alta no MatheusFlix (filtrados sem repetição)
+        // 5. Em alta no MatheusFlix (filtrados sem repetição)
         const uniqueTrending = filterUniqueCategoryMovies(trending, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'trending',
-            title: '🔥 Em alta no MatheusFlix',
+            title: 'Em alta no MatheusFlix',
             linkText: 'Ver mais',
             tabIndex: 1,
             movies: uniqueTrending,
             onClick: openStremioDetails
         });
 
-        // 6. 💥 Filmes de Ação (filtrados sem repetição)
+        // 6. Filmes de Ação (filtrados sem repetição)
         const uniqueAction = filterUniqueCategoryMovies(action, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'action',
-            title: '💥 Filmes de Ação',
+            title: 'Filmes de Ação',
             linkText: 'Ver mais',
             tabIndex: 1,
             movies: uniqueAction,
             onClick: openStremioDetails
         });
 
-        // 7. 🏰 Filmes de Aventura (filtrados sem repetição)
+        // 7. Filmes de Aventura (filtrados sem repetição)
         const uniqueAdventure = filterUniqueCategoryMovies(adventure, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'adventure',
-            title: '🏰 Aventura & Fantasia',
+            title: 'Aventura & Fantasia',
             linkText: 'Ver mais',
             tabIndex: 1,
             movies: uniqueAdventure,
             onClick: openStremioDetails
         });
 
-        // 8. 🤣 Comédias (filtrados sem repetição)
+        // 8. Comédias (filtrados sem repetição)
         const uniqueComedy = filterUniqueCategoryMovies(comedy, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'comedy',
-            title: '🤣 Comédias',
+            title: 'Comédias',
             linkText: 'Ver mais',
             tabIndex: 1,
             movies: uniqueComedy,
             onClick: openStremioDetails
         });
 
-        // 9. 🚀 Ficção Científica (filtrados sem repetição)
+        // 9. Ficção Científica (filtrados sem repetição)
         const uniqueScifi = filterUniqueCategoryMovies(scifi, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'scifi',
-            title: '🚀 Ficção Científica',
+            title: 'Ficção Científica',
             linkText: 'Ver mais',
             tabIndex: 1,
             movies: uniqueScifi,
             onClick: openStremioDetails
         });
 
-        // 10. 🎨 Animação & Família (filtrados sem repetição)
+        // 10. Animação & Família (filtrados sem repetição)
         const uniqueAnim = filterUniqueCategoryMovies(anim, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'anim',
-            title: '🎨 Animação & Família',
+            title: 'Animação & Família',
             linkText: 'Ver mais',
             tabIndex: 1,
             movies: uniqueAnim,
@@ -564,7 +564,7 @@ function renderRow(container, { key, title, linkText, tabIndex, movies, onClick 
             </div>
             <div class="mf-home-card-info" style="padding: 10px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
                 <h4 class="mf-home-card-title" style="color: #ffffff !important; font-size: 13px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(m.title)}</h4>
-                <div class="mf-home-card-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1 !important; text-align: left;"><span>${escapeHtml(m.year)}</span>${m.rating ? `<span>★ ${m.rating}</span>` : ''}</div>
+                <div class="mf-home-card-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1 !important; text-align: left;"><span>${escapeHtml(m.year)}</span>${m.rating ? `<span><span class="material-icons" style="font-size: 11px; vertical-align: middle; color: #f59e0b; margin-right: 2px;">star</span>${m.rating}</span>` : ''}</div>
             </div>
         `;
         card.addEventListener('click', () => onClick(m));

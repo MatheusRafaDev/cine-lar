@@ -101,10 +101,10 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                     <div>
                         <h4 style="margin: 0 0 6px 0; font-size: 17px; font-weight: 700; color: #ffffff;">${escapeHtml(d.title || d.name || 'Download')}</h4>
                         <div style="font-size: 13px; color: #94a3b8; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;">
-                            <span style="color: #cbd5e1;">💾 ${escapeHtml(d.downloaded || '0 MB')} / ${escapeHtml(d.total || '0 MB')}</span>
-                            <span style="color: #38bdf8; font-weight: 600;">⚡ ${escapeHtml(d.downloadSpeed || '0 B/s')}</span>
-                            <span style="color: #4ade80;">👥 ${d.numPeers || 0} peers</span>
-                            <span>⏱️ ${escapeHtml(d.timeRemaining || 'Calculando...')}</span>
+                            <span style="color: #cbd5e1;"><span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">save</span>${escapeHtml(d.downloaded || '0 MB')} / ${escapeHtml(d.total || '0 MB')}</span>
+                            <span style="color: #38bdf8; font-weight: 600;"><span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">speed</span>${escapeHtml(d.downloadSpeed || '0 B/s')}</span>
+                            <span style="color: #4ade80;"><span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">group</span>${d.numPeers || 0} peers</span>
+                            <span><span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">schedule</span>${escapeHtml(d.timeRemaining || 'Calculando...')}</span>
                         </div>
                     </div>
 

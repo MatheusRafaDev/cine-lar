@@ -159,7 +159,7 @@ const SearchResults: FC<SearchResultsProps> = ({
 
                                         {ratingNum && (
                                             <div className='mf-search-card-badge'>
-                                                <span className='star'>★</span>
+                                                <span className='material-icons' style={{ fontSize: 12, color: '#f5a623', marginRight: 2 }}>star</span>
                                                 <span>{ratingNum}</span>
                                             </div>
                                         )}

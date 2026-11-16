@@ -15,39 +15,39 @@ export function escapeHtml(value) {
 }
 
 export const KNOWN_FRANCHISES = [
-    { id: 'toy-story', name: 'Toy Story', icon: '🧸', keywords: ['toy story'] },
-    { id: 'carros', name: 'Carros', icon: '🏎️', keywords: ['carros', 'cars'] },
-    { id: 'homem-aranha', name: 'Homem-Aranha', icon: '🕷️', keywords: ['homem-aranha', 'homem aranha', 'spider-man', 'spider man'] },
-    { id: 'guardioes-da-galaxia', name: 'Guardiões da Galáxia', icon: '🚀', keywords: ['guardioes da galaxia', 'guardiões da galáxia', 'guardians of the galaxy'] },
-    { id: 'jogos-vorazes', name: 'Jogos Vorazes', icon: '🏹', keywords: ['jogos vorazes', 'hunger games'] },
-    { id: 'batman', name: 'Batman', icon: '🦇', keywords: ['batman', 'dark knight'] },
-    { id: 'anjos-da-lei', name: 'Anjos da Lei', icon: '👮', keywords: ['anjos da lei', '21 jump street', '22 jump street'] },
-    { id: 'shrek', name: 'Shrek', icon: '🧅', keywords: ['shrek', 'gato de botas', 'puss in boots'] },
-    { id: 'resident-evil', name: 'Resident Evil', icon: '☣️', keywords: ['resident evil'] },
-    { id: 'patrulha-canina', name: 'Patrulha Canina', icon: '🐾', keywords: ['patrulha canina', 'paw patrol'] },
-    { id: 'vingadores-marvel', name: 'Universo Marvel', icon: '🛡️', keywords: ['vingadores', 'avengers', 'iron man', 'homem de ferro', 'capitao america', 'capitão américa', 'captain america', 'thor', 'pantera negra', 'black panther', 'doutor estranho', 'doctor strange'] },
-    { id: 'harry-potter', name: 'Harry Potter', icon: '⚡', keywords: ['harry potter', 'animais fantasticos', 'fantastic beasts'] },
-    { id: 'senhor-dos-aneis', name: 'O Senhor dos Anéis', icon: '💍', keywords: ['senhor dos aneis', 'senhor dos anéis', 'lord of the rings', 'hobbit'] },
-    { id: 'star-wars', name: 'Star Wars', icon: '⚔️', keywords: ['star wars'] },
-    { id: 'velozes-e-furiosos', name: 'Velozes e Furiosos', icon: '🏎️💨', keywords: ['velozes e furiosos', 'fast and furious', 'fast & furious'] },
-    { id: 'john-wick', name: 'John Wick', icon: '🎯', keywords: ['john wick'] },
-    { id: 'missao-impossivel', name: 'Missão Impossível', icon: '🕶️', keywords: ['missao impossivel', 'missão impossível', 'mission impossible'] },
-    { id: 'piratas-do-caribe', name: 'Piratas do Caribe', icon: '🏴‍☠️', keywords: ['piratas do caribe', 'pirates of the caribbean'] },
-    { id: 'transformers', name: 'Transformers', icon: '🤖', keywords: ['transformers'] },
-    { id: 'jurassic-park', name: 'Jurassic Park', icon: '🦖', keywords: ['jurassic park', 'jurassic world'] },
-    { id: 'matrix', name: 'Matrix', icon: '🕶️', keywords: ['matrix'] },
-    { id: 'planeta-dos-macacos', name: 'Planeta dos Macacos', icon: '🦧', keywords: ['planeta dos macacos', 'planet of the apes'] },
-    { id: 'mad-max', name: 'Mad Max', icon: '🔥', keywords: ['mad max'] },
-    { id: 'avatar', name: 'Avatar', icon: '🌊', keywords: ['avatar'] },
-    { id: 'duna', name: 'Duna', icon: '🏜️', keywords: ['duna', 'dune'] },
-    { id: 'invocacao-do-mal', name: 'Universo Invocação do Mal', icon: '🕯️', keywords: ['invocacao do mal', 'invocação do mal', 'conjuring', 'annabelle', 'a freira', 'the nun'] },
-    { id: 'meu-malvado-favorito', name: 'Meu Malvado Favorito & Minions', icon: '🍌', keywords: ['meu malvado favorito', 'despicable me', 'minions'] },
-    { id: 'como-treinar-o-seu-dragao', name: 'Como Treinar o Seu Dragão', icon: '🐉', keywords: ['como treinar o seu dragao', 'como treinar o seu dragão', 'how to train your dragon'] },
-    { id: 'kung-fu-panda', name: 'Kung Fu Panda', icon: '🐼', keywords: ['kung fu panda'] },
-    { id: 'era-do-gelo', name: 'A Era do Gelo', icon: '❄️', keywords: ['era do gelo', 'ice age'] },
-    { id: 'os-incriveis', name: 'Os Incríveis', icon: '⚡', keywords: ['os incriveis', 'os incríveis', 'incredibles'] },
-    { id: 'deadpool', name: 'Deadpool', icon: '⚔️', keywords: ['deadpool'] },
-    { id: 'indiana-jones', name: 'Indiana Jones', icon: '🤠', keywords: ['indiana jones'] }
+    { id: 'toy-story', name: 'Toy Story', icon: '', keywords: ['toy story'] },
+    { id: 'carros', name: 'Carros', icon: '', keywords: ['carros', 'cars'] },
+    { id: 'homem-aranha', name: 'Homem-Aranha', icon: '', keywords: ['homem-aranha', 'homem aranha', 'spider-man', 'spider man'] },
+    { id: 'guardioes-da-galaxia', name: 'Guardiões da Galáxia', icon: '', keywords: ['guardioes da galaxia', 'guardiões da galáxia', 'guardians of the galaxy'] },
+    { id: 'jogos-vorazes', name: 'Jogos Vorazes', icon: '', keywords: ['jogos vorazes', 'hunger games'] },
+    { id: 'batman', name: 'Batman', icon: '', keywords: ['batman', 'dark knight'] },
+    { id: 'anjos-da-lei', name: 'Anjos da Lei', icon: '', keywords: ['anjos da lei', '21 jump street', '22 jump street'] },
+    { id: 'shrek', name: 'Shrek', icon: '', keywords: ['shrek', 'gato de botas', 'puss in boots'] },
+    { id: 'resident-evil', name: 'Resident Evil', icon: '', keywords: ['resident evil'] },
+    { id: 'patrulha-canina', name: 'Patrulha Canina', icon: '', keywords: ['patrulha canina', 'paw patrol'] },
+    { id: 'vingadores-marvel', name: 'Universo Marvel', icon: '', keywords: ['vingadores', 'avengers', 'iron man', 'homem de ferro', 'capitao america', 'capitão américa', 'captain america', 'thor', 'pantera negra', 'black panther', 'doutor estranho', 'doctor strange'] },
+    { id: 'harry-potter', name: 'Harry Potter', icon: '', keywords: ['harry potter', 'animais fantasticos', 'fantastic beasts'] },
+    { id: 'senhor-dos-aneis', name: 'O Senhor dos Anéis', icon: '', keywords: ['senhor dos aneis', 'senhor dos anéis', 'lord of the rings', 'hobbit'] },
+    { id: 'star-wars', name: 'Star Wars', icon: '', keywords: ['star wars'] },
+    { id: 'velozes-e-furiosos', name: 'Velozes e Furiosos', icon: '', keywords: ['velozes e furiosos', 'fast and furious', 'fast & furious'] },
+    { id: 'john-wick', name: 'John Wick', icon: '', keywords: ['john wick'] },
+    { id: 'missao-impossivel', name: 'Missão Impossível', icon: '', keywords: ['missao impossivel', 'missão impossível', 'mission impossible'] },
+    { id: 'piratas-do-caribe', name: 'Piratas do Caribe', icon: '', keywords: ['piratas do caribe', 'pirates of the caribbean'] },
+    { id: 'transformers', name: 'Transformers', icon: '', keywords: ['transformers'] },
+    { id: 'jurassic-park', name: 'Jurassic Park', icon: '', keywords: ['jurassic park', 'jurassic world'] },
+    { id: 'matrix', name: 'Matrix', icon: '', keywords: ['matrix'] },
+    { id: 'planeta-dos-macacos', name: 'Planeta dos Macacos', icon: '', keywords: ['planeta dos macacos', 'planet of the apes'] },
+    { id: 'mad-max', name: 'Mad Max', icon: '', keywords: ['mad max'] },
+    { id: 'avatar', name: 'Avatar', icon: '', keywords: ['avatar'] },
+    { id: 'duna', name: 'Duna', icon: '', keywords: ['duna', 'dune'] },
+    { id: 'invocacao-do-mal', name: 'Universo Invocação do Mal', icon: '', keywords: ['invocacao do mal', 'invocação do mal', 'conjuring', 'annabelle', 'a freira', 'the nun'] },
+    { id: 'meu-malvado-favorito', name: 'Meu Malvado Favorito & Minions', icon: '', keywords: ['meu malvado favorito', 'despicable me', 'minions'] },
+    { id: 'como-treinar-o-seu-dragao', name: 'Como Treinar o Seu Dragão', icon: '', keywords: ['como treinar o seu dragao', 'como treinar o seu dragão', 'how to train your dragon'] },
+    { id: 'kung-fu-panda', name: 'Kung Fu Panda', icon: '', keywords: ['kung fu panda'] },
+    { id: 'era-do-gelo', name: 'A Era do Gelo', icon: '', keywords: ['era do gelo', 'ice age'] },
+    { id: 'os-incriveis', name: 'Os Incríveis', icon: '', keywords: ['os incriveis', 'os incríveis', 'incredibles'] },
+    { id: 'deadpool', name: 'Deadpool', icon: '', keywords: ['deadpool'] },
+    { id: 'indiana-jones', name: 'Indiana Jones', icon: '', keywords: ['indiana jones'] }
 ];
 
 export function detectFranchise(raw) {
@@ -104,7 +104,7 @@ export function normalizeMovie(m = {}) {
     const rating = Number(m.rating);
     const title = m.title || m.name || m.original_title || 'Sem título';
     const rawCheck = `${title} ${m.rawName || ''} ${m.folderName || ''}`;
-    const franchise = m.franchise ? { name: m.franchise, icon: m.franchiseIcon || '🎬' } : detectFranchise(rawCheck);
+    const franchise = m.franchise ? { name: m.franchise, icon: m.franchiseIcon || '' } : detectFranchise(rawCheck);
     const seriesInfo = detectSeries(rawCheck);
 
     return {

@@ -170,7 +170,7 @@ export function groupMediaLibrary(movies = []) {
             if (!seriesMap.has(name)) {
                 seriesMap.set(name, {
                     name,
-                    icon: '📺',
+                    icon: '',
                     count: 0,
                     episodes: []
                 });
@@ -181,12 +181,12 @@ export function groupMediaLibrary(movies = []) {
             continue;
         }
 
-        const franchise = m.franchise ? { name: m.franchise, icon: m.franchiseIcon || '🎬' } : detectFranchise(raw);
+        const franchise = m.franchise ? { name: m.franchise, icon: m.franchiseIcon || '' } : detectFranchise(raw);
         if (franchise) {
             if (!franchisesMap.has(franchise.name)) {
                 franchisesMap.set(franchise.name, {
                     name: franchise.name,
-                    icon: franchise.icon || '🎬',
+                    icon: franchise.icon || '',
                     count: 0,
                     movies: []
                 });

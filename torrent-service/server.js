@@ -261,7 +261,7 @@ function prioritizeVideoForStreaming(torrent, file) {
             torrent.critical(lastBatchStart, endPiece);
         }
 
-        console.log(`[TorrentService] ⚡ Peças priorizadas para streaming imediato: ${startPiece}..${firstBatchEnd} e ${lastBatchStart}..${endPiece}`);
+        console.log(`[TorrentService] Pecas priorizadas para streaming imediato: ${startPiece}..${firstBatchEnd} e ${lastBatchStart}..${endPiece}`);
     } catch (e) {
         console.warn('[TorrentService] prioritizeVideoForStreaming warning:', e.message);
     }
@@ -972,9 +972,9 @@ const server = http.createServer(async (req, res) => {
                     const filename = s.behaviorHints?.filename || '';
                     const full = `${name} ${title} ${filename}`;
 
-                    // Rastreadores ou tags brasileiras inequívocas
-                    const isBrTracker = /⚙️\s*(Comando|BluDV|Lapumia|Vizer|MegaFilmes|BaixarFilme|ThePirateFilmes|StarckFilmes)/i.test(full);
-                    const hasPtFlag = /🇧🇷|🇵🇹/.test(full);
+                    // Rastreadores ou tags brasileiras inequivocas
+                    const isBrTracker = /(?:\u2699\uFE0F|\u2699)?\s*(Comando|BluDV|Lapumia|Vizer|MegaFilmes|BaixarFilme|ThePirateFilmes|StarckFilmes)/i.test(full);
+                    const hasPtFlag = /(?:\uD83C\uDDE7\uD83C\uDDF7|\uD83C\uDDF5\uD83C\uDDF9)/.test(full);
                     const hasPtWord = /dublado|áudio dublado|audio dublado|nacional|portuguese|português|portugues|brazilian|brasil|\bpt-br\b|\bptbr\b|\bpt-pt\b|\blegenda\b|\blegendado\b/i.test(full);
 
                     // Se tiver 'dual' ou 'dual audio', só vale se tiver indicação de português (bandeira ou palavra PT) ou tracker BR
@@ -1014,13 +1014,13 @@ const server = http.createServer(async (req, res) => {
                         if (!isPt) continue;
 
                         const fullText = `${s.name || ''} ${s.title || ''}`;
-                        const seedsMatch = s.title?.match(/👤\s*(\d+)/);
+                        const seedsMatch = s.title?.match(/(?:\uD83D\uDC64|[^\x00-\x7F])\s*(\d+)/);
                         const seeders = seedsMatch ? parseInt(seedsMatch[1], 10) : 0;
 
-                        const sizeMatch = s.title?.match(/💾\s*([\d\.]+\s*[GMK]B)/i);
+                        const sizeMatch = s.title?.match(/(?:\uD83D\uDCBE|[^\x00-\x7F])\s*([\d\.]+\s*[GMK]B)/i);
                         const size = sizeMatch ? sizeMatch[1] : '';
 
-                        const providerMatch = s.title?.match(/⚙️\s*([^\n\r]+)/);
+                        const providerMatch = s.title?.match(/(?:\u2699\uFE0F|\u2699|[^\x00-\x7F])\s*([^\n\r]+)/);
                         const provider = providerMatch ? providerMatch[1].trim() : 'Torrentio';
 
                         const firstLine = (s.title || '').split('\n')[0].trim();
@@ -1031,7 +1031,7 @@ const server = http.createServer(async (req, res) => {
                         else if (/1080p/i.test(fullText)) quality = '1080p Full HD';
                         else if (/720p/i.test(fullText)) quality = '720p HD';
 
-                        const audio = isDubbed ? '🇧🇷 Dublado / Dual Áudio' : '🇧🇷 Legenda PT-BR';
+                        const audio = isDubbed ? 'Dublado / Dual Áudio' : 'Legenda PT-BR';
 
                         // Extrair trackers fornecidos pelo Torrentio nas fontes (se existirem)
                         const streamTrackers = [];
@@ -1339,7 +1339,7 @@ const server = http.createServer(async (req, res) => {
                 });
 
                 torrent.on('done', () => {
-                    console.log(`[Streaming] 🎉 Stream completely downloaded: "${torrent.name}"!`);
+                    console.log(`[Streaming] Stream completely downloaded: "${torrent.name}"!`);
                     metaItem.status = 'completed';
                     metaItem.progress = 100;
                     metaItem.downloaded = formatBytes(torrent.length);
@@ -1528,7 +1528,7 @@ const server = http.createServer(async (req, res) => {
                     });
 
                     torrent.on('done', () => {
-                        console.log(`[TorrentService] 🎉 Download COMPLETED: "${torrent.name}"!`);
+                        console.log(`[TorrentService] Download COMPLETED: "${torrent.name}"!`);
                         const item = downloadsRegistry.get(infoHash);
                         if (item) {
                             item.status = 'completed';
@@ -1634,10 +1634,10 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
     console.log(`=======================================================`);
-    console.log(`🚀 MatheusFlix Torrent & Discovery Service iniciado!`);
-    console.log(`📡 Porta: http://localhost:${PORT}`);
-    console.log(`📁 Pasta de Destino: ${SAVE_PATH}`);
-    console.log(`🍿 Jellyfin Server: ${JELLYFIN_URL}`);
+    console.log(`MatheusFlix Torrent & Discovery Service iniciado!`);
+    console.log(`Porta: http://localhost:${PORT}`);
+    console.log(`Pasta de Destino: ${SAVE_PATH}`);
+    console.log(`Jellyfin Server: ${JELLYFIN_URL}`);
     console.log(`=======================================================`);
 
     // Start background catalog seeding
