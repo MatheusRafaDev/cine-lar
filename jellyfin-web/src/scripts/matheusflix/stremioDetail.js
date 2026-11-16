@@ -683,9 +683,11 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
             });
 
             item.querySelector('.mf-btn-stream-play').addEventListener('click', () => playStream(stream, movie, currentEp));
-            item.querySelector('.mf-btn-stream-dl').addEventListener('click', async (e) => {
+            const dlBtn = item.querySelector('.mf-btn-stream-dl');
+            dlBtn?.addEventListener('click', async (e) => {
                 e.stopPropagation();
 
+                const btn = dlBtn;
                 let dest = `D:\\filmes\\${movie.title}`;
                 if (currentEp) {
                     const sStr = String(currentEp.season || 1).padStart(2, '0');
@@ -705,8 +707,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 });
                 if (!confirmed) return;
 
-                const btn = e.currentTarget;
-                btn.disabled = true;
+                if (btn) btn.disabled = true;
                 try {
                     await startDownload({
                         magnet: stream.magnet,
@@ -715,19 +716,25 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                         quality: stream.quality,
                         filename: stream.label
                     });
-                    btn.innerHTML = '<span class="material-icons" style="color: #38bdf8;">sync</span>';
-                    btn.title = 'Assistir enquanto baixa';
-                    btn.disabled = false;
-                    btn.onclick = (ev) => {
-                        ev.stopPropagation();
-                        playStream(stream, movie, currentEp);
-                    };
+                    if (btn) {
+                        btn.innerHTML = '<span class="material-icons" style="color: #38bdf8;">sync</span>';
+                        btn.title = 'Assistir enquanto baixa';
+                        btn.disabled = false;
+                        btn.onclick = (ev) => {
+                            ev.stopPropagation();
+                            playStream(stream, movie, currentEp);
+                        };
+                    }
 
                     // Atualiza o botão principal Hero e adiciona o banner interativo
-                    heroBtn.disabled = false;
-                    heroBtn.className = 'mf-btn-hero-watch mf-btn-watching-dl';
-                    heroText.textContent = `Assistir Enquanto Baixa (${stream.quality})`;
-                    heroBtn.onclick = () => playStream(stream, movie, currentEp);
+                    if (heroBtn) {
+                        heroBtn.disabled = false;
+                        heroBtn.className = 'mf-btn-hero-watch mf-btn-watching-dl';
+                        heroBtn.onclick = () => playStream(stream, movie, currentEp);
+                    }
+                    if (heroText) {
+                        heroText.textContent = `Assistir Enquanto Baixa (${stream.quality})`;
+                    }
 
                     if (localStatus) {
                         localStatus.innerHTML = `
@@ -752,7 +759,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
 
                     toast('Download iniciado na sua pasta! Você já pode assistir enquanto baixa.');
                 } catch (err) {
-                    btn.disabled = false;
+                    if (btn) btn.disabled = false;
                     toast(`Falha no download: ${err.message}`);
                 }
             });
