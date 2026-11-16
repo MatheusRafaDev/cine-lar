@@ -88,7 +88,7 @@ export function openCinemaPlayer({
         }
     }
 
-    const fullStreamUrl = streamUrl.startsWith('http') ? streamUrl : `${API_BASE.replace('/api', '')}${streamUrl}`;
+    let fullStreamUrl = streamUrl.startsWith('http') ? streamUrl : `${API_BASE.replace('/api', '')}${streamUrl}`;
 
     const playerEl = document.createElement('div');
     playerEl.className = 'mf-cinema-player';
