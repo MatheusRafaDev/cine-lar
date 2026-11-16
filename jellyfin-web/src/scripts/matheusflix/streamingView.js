@@ -240,8 +240,8 @@ function appendCards(grid, movies) {
                 ${m.isLocal ? '<span class="mf-badge-on-disk"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta</span>' : ''}
                 ${seriesBadge}
             </div>
-            <div class="mf-movie-info" style="padding: 10px 12px 14px 12px; text-align: left; background: var(--bg-1, #1f1f1f); width: 100%; box-sizing: border-box;">
-                <h4 class="mf-movie-title" style="color: #ffffff !important; font-size: 14px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${escapeHtml(m.title)}</h4>
+            <div class="mf-movie-info" style="padding: 8px 2px 4px 2px; text-align: left; background: transparent; width: 100%; box-sizing: border-box;">
+                <h4 class="mf-movie-title" style="color: #ffffff !important; font-size: 13px; font-weight: 600; margin: 0 0 2px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(m.title)}</h4>
                 <div class="mf-movie-meta-row" style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-2, #b3b3b3); width: 100%;">
                     <span class="mf-meta-year" style="color: var(--text-2, #b3b3b3) !important; font-weight: 500;">${escapeHtml(m.year)}</span>
                     <span class="mf-meta-genre" style="color: var(--text-2, #b3b3b3) !important; font-weight: 500;">${escapeHtml(String(m.genres).split(',')[0])}</span>

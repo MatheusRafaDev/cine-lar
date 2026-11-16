@@ -568,7 +568,7 @@ function renderRow(container, { key, title, linkText, tabIndex, targetHash, movi
                 <div class="mf-home-card-play-overlay"><span class="material-icons" style="font-size: 26px; color: #140a02;">play_arrow</span></div>
                 ${m.isLocal ? '<span class="mf-badge-on-disk"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta</span>' : ''}
             </div>
-            <div class="mf-home-card-info" style="padding: 10px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
+            <div class="mf-home-card-info" style="padding: 8px 2px 4px 2px; text-align: left; background: transparent; width: 100%; box-sizing: border-box;">
                 <h4 class="mf-home-card-title" style="color: #ffffff !important; font-size: 13px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(m.title)}</h4>
                 <div class="mf-home-card-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1 !important; text-align: left;"><span>${escapeHtml(m.year)}</span>${m.rating ? `<span><span class="material-icons" style="font-size: 11px; vertical-align: middle; color: #f59e0b; margin-right: 2px;">star</span>${m.rating}</span>` : ''}</div>
             </div>
@@ -594,7 +594,7 @@ function renderRow(container, { key, title, linkText, tabIndex, targetHash, movi
                 </div>
                 <span class="mf-see-more-badge">Expandir</span>
             </div>
-            <div class="mf-home-card-info" style="padding: 10px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
+            <div class="mf-home-card-info" style="padding: 8px 2px 4px 2px; text-align: left; background: transparent; width: 100%; box-sizing: border-box;">
                 <h4 class="mf-home-card-title" style="color: #ffffff !important; font-size: 13px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(linkText || 'Ver mais')}</h4>
                 <div class="mf-home-card-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1 !important; text-align: left;">
                     <span>${escapeHtml(title)}</span>
@@ -659,7 +659,7 @@ function renderHistoryRow(container, { key, title, movies }) {
                 <div class="mf-home-card-play-overlay"><span class="material-icons" style="font-size: 26px; color: #140a02;">play_arrow</span></div>
                 <div class="mf-history-bar"><div class="mf-history-bar-fill" style="width: ${m.progressPct}%;"></div></div>
             </div>
-            <div class="mf-home-card-info" style="padding: 10px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
+            <div class="mf-home-card-info" style="padding: 8px 2px 4px 2px; text-align: left; background: transparent; width: 100%; box-sizing: border-box;">
                 <h4 class="mf-home-card-title" style="color: #ffffff !important; font-size: 13px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(m.title)}</h4>
                 <div class="mf-home-card-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1 !important; text-align: left;"><span style="color: #ef4444 !important; font-weight: 700;">${m.progressPct}%</span> • <span>Faltam ${remainingMin}m</span></div>
             </div>
@@ -707,7 +707,7 @@ function renderHistoryRow(container, { key, title, movies }) {
                 </div>
                 <span class="mf-see-more-badge">Expandir</span>
             </div>
-            <div class="mf-home-card-info" style="padding: 10px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
+            <div class="mf-home-card-info" style="padding: 8px 2px 4px 2px; text-align: left; background: transparent; width: 100%; box-sizing: border-box;">
                 <h4 class="mf-home-card-title" style="color: #ffffff !important; font-size: 13px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(linkText || 'Ver mais')}</h4>
                 <div class="mf-home-card-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1 !important; text-align: left;">
                     <span>${escapeHtml(title)}</span>

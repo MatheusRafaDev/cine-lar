@@ -44,7 +44,7 @@
     --mf-accent: var(--brand);
     --mf-accent-hover: var(--brand-hover);
     --mf-accent-gradient: linear-gradient(90deg, #b20710, #e50914 55%, #f6121d);
-    --mf-accent-glow: 0 0 16px rgba(229, 9, 20, 0.4);
+    --mf-accent-glow: none;
     --mf-card-radius: var(--r-card);
     --mf-border-subtle: var(--line);
     --mf-text-main: var(--text-1);
@@ -217,7 +217,7 @@ button[aria-label*="Menu"],
     color: #e50914 !important;
     letter-spacing: -0.5px !important;
     margin-left: 2px !important;
-    text-shadow: 0 2px 8px rgba(229, 9, 20, 0.4) !important;
+    text-shadow: none !important;
 }
 
 /* Abas de Navegação Centrais (Início, Torrents, Pasta Local, Downloads) */
@@ -292,7 +292,7 @@ button[aria-label*="Menu"],
             height: 3px !important;
             background: #e50914 !important;
             border-radius: 9999px !important;
-            box-shadow: 0 2px 8px rgba(229, 9, 20, 0.6) !important;
+            box-shadow: none !important;
         }
     }
 
@@ -342,10 +342,10 @@ button[aria-label*="Menu"],
     width: 34px !important;
     height: 34px !important;
     border-radius: 4px !important;
-    background: linear-gradient(135deg, #e50914 0%, #b81d24 100%) !important;
+    background: #e50914 !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 10px rgba(229, 9, 20, 0.45) !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    box-shadow: none !important;
+    border: none !important;
     padding: 0 !important;
     overflow: hidden !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
@@ -358,9 +358,9 @@ button[aria-label*="Menu"],
     &:hover,
     &:focus,
     &:focus-visible {
-        transform: scale(1.1) !important;
-        box-shadow: 0 0 16px rgba(229, 9, 20, 0.7) !important;
-        border-color: #ffffff !important;
+        transform: scale(1.05) !important;
+        box-shadow: none !important;
+        border: none !important;
     }
 }
 
@@ -453,33 +453,33 @@ button[aria-label*="Menu"],
 }
 
 .cardScalable {
-    border-radius: var(--r-card) !important;
+    border-radius: var(--r-card, 4px) !important;
     overflow: hidden !important;
-    border: 1px solid var(--line) !important;
-    background-color: var(--bg-1) !important;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
-    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease-out, border-color 200ms ease !important;
+    border: none !important;
+    background-color: var(--bg-1, #1f1f1f) !important;
+    box-shadow: none !important;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease-out !important;
 }
 
 .cardImageContainer,
 .cardPadder {
-    border-radius: var(--r-card) !important;
+    border-radius: var(--r-card, 4px) !important;
 }
 
 /* Efeito de zoom e foco em cards (DESIGN.md Section 6.2 & 13) */
 .card:hover .cardScalable,
 .card:focus .cardScalable,
 .card.show-focus:focus .cardScalable {
-    transform: scale(1.08) !important;
-    border-color: #ffffff !important;
-    box-shadow: var(--shadow-float) !important;
+    transform: scale(1.05) !important;
+    border: none !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
     z-index: 10 !important;
 }
 
 .cardOverlayFab-primary {
     background: var(--brand) !important;
     color: #ffffff !important;
-    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.4) !important;
+    box-shadow: none !important;
     border: none !important;
 }
 
@@ -532,7 +532,7 @@ button[aria-label*="Menu"],
     font-weight: 600 !important;
     border: none !important;
     height: 44px !important;
-    box-shadow: 0 4px 16px rgba(229, 9, 20, 0.4) !important;
+    box-shadow: none !important;
     transition: background 0.2s ease, transform 0.2s ease !important;
 }
 
@@ -542,6 +542,7 @@ button[aria-label*="Menu"],
 .emby-button.detailFloatingButton:hover {
     background: var(--brand-hover) !important;
     transform: scale(1.02) !important;
+    box-shadow: none !important;
 }
 
 .button-submit:active,
