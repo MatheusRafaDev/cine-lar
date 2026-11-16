@@ -2575,26 +2575,9 @@ button:has(.cloud_download),
     margin-left: 8px;
 }
 
-.mf-catalog-toolbar .mf-btn-ai {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 44px;
-    padding: 0 18px;
-    border-radius: var(--r-btn, 4px);
-    border: 1px solid var(--line, #3a3a3a);
-    background: var(--bg-2, #2a2a2a);
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.mf-catalog-toolbar .mf-btn-ai:hover {
-    background: var(--brand, #e50914);
-    border-color: var(--brand, #e50914);
-    color: #ffffff;
+.mf-catalog-toolbar .mf-btn-ai,
+.mf-btn-ai {
+    display: none !important;
 }
 
 .mf-catalog-toolbar .mf-sort-select {

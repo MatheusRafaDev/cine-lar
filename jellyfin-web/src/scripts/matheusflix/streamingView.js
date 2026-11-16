@@ -3,7 +3,7 @@
  * Uma barra só: busca + "Perguntar à IA" + ordenação, gêneros em chips e a grade de filmes.
  */
 
-import { askAi, fetchCatalog, fetchGenres, fetchUserFavorites } from './api';
+import { fetchCatalog, fetchGenres, fetchUserFavorites } from './api';
 import { openStremioDetails } from './stremioDetail';
 import { escapeHtml, normalizeMovie } from './utils';
 
@@ -25,11 +25,8 @@ export function renderStreamingView(container) {
             <div class="mf-catalog-toolbar">
                 <div class="mf-search-box">
                     <span class="material-icons mf-search-icon">search</span>
-                    <input type="search" class="mf-search-input focusable" placeholder="Buscar filmes em torrent (PT-BR)… ou descreva o que quer ver e clique em IA" />
+                    <input type="search" class="mf-search-input focusable" placeholder="Buscar filmes em torrent (PT-BR)…" />
                 </div>
-                <button type="button" class="mf-btn-ai focusable" title="Recomendação por IA a partir do texto digitado">
-                    <span class="material-icons">auto_awesome</span><span>IA</span>
-                </button>
                 <select class="mf-select mf-sort-select focusable" title="Ordenar">
                     <option value="trending">Em alta</option>
                     <option value="newest">Lançamentos</option>
@@ -51,7 +48,6 @@ export function renderStreamingView(container) {
     const genreBar = container.querySelector('.mf-genre-bar');
     const searchInput = container.querySelector('.mf-search-input');
     const sortSelect = container.querySelector('.mf-sort-select');
-    const aiBtn = container.querySelector('.mf-btn-ai');
     const moreWrap = container.querySelector('.mf-catalog-more');
     const moreBtn = container.querySelector('.mf-btn-more');
     const typeChips = container.querySelectorAll('.mf-type-chip');
@@ -113,40 +109,6 @@ export function renderStreamingView(container) {
         }
     }
 
-    async function runAi() {
-        const prompt = searchInput.value.trim();
-        if (!prompt) {
-            searchInput.focus();
-            setStatus('<p class="mf-muted">Digite o que você quer assistir (ex.: “suspense com final surpreendente”) e clique em IA.</p>');
-            return;
-        }
-        const requestId = ++state.requestId;
-        aiBtn.disabled = true;
-        moreWrap.classList.add('hide');
-        grid.innerHTML = '';
-        setStatus('<p class="mf-muted">A IA está escolhendo filmes… (pode levar alguns segundos)</p>');
-        try {
-            const data = await askAi(prompt);
-            if (requestId !== state.requestId) return;
-            const movies = (data.movies || []).map(normalizeMovie);
-            appendCards(grid, movies);
-            setStatus(movies.length ?
-                `<p class="mf-muted">Sugestões da IA para “${escapeHtml(prompt)}”. <a href="#" class="mf-link-clear">Voltar ao catálogo</a></p>` :
-                '<p class="mf-muted">A IA não encontrou sugestões. Tente descrever de outro jeito.</p>');
-            status.querySelector('.mf-link-clear')?.addEventListener('click', (e) => {
-                e.preventDefault();
-                searchInput.value = '';
-                state.q = '';
-                load();
-            });
-        } catch (err) {
-            if (requestId !== state.requestId) return;
-            setStatus(`<p class="mf-error">Falha na pesquisa com IA: ${escapeHtml(err.message)}</p>`);
-        } finally {
-            aiBtn.disabled = false;
-        }
-    }
-
     let searchTimer = null;
     searchInput.addEventListener('input', () => {
         clearTimeout(searchTimer);
@@ -166,7 +128,6 @@ export function renderStreamingView(container) {
         state.sort = sortSelect.value;
         load();
     });
-    aiBtn.addEventListener('click', runAi);
     moreBtn.addEventListener('click', () => load(true));
 
     typeChips.forEach((chip) => {
@@ -186,7 +147,7 @@ export function renderStreamingView(container) {
                 searchInput.placeholder = 'Buscar séries em torrent (PT-BR)…';
                 genreBar.style.display = 'none';
             } else {
-                searchInput.placeholder = 'Buscar filmes em torrent (PT-BR)… ou descreva o que quer ver e clique em IA';
+                searchInput.placeholder = 'Buscar filmes em torrent (PT-BR)…';
                 genreBar.style.display = '';
             }
             load();
