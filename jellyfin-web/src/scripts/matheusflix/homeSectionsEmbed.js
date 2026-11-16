@@ -186,7 +186,7 @@ export async function embedMatheusFlixHomeSections(view) {
             onClick: openStremioDetails
         });
 
-        // 3. Na sua pasta (D:\filmes)
+        // 3. Na sua pasta
         localMovies.forEach(m => {
             const k = getMovieKey(m);
             if (k) seenMovieKeys.add(k);
@@ -194,7 +194,7 @@ export async function embedMatheusFlixHomeSections(view) {
 
         renderRow(wrap, {
             key: 'local',
-            title: 'Na sua pasta (D:\\filmes)',
+            title: 'Na sua pasta',
             linkText: 'Ver tudo',
             tabIndex: 2,
             movies: localMovies,

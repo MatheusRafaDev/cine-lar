@@ -39,7 +39,7 @@ export function renderDownloadsView(container) {
             <div class="mf-section-completed-dl">
                 <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; color: #ffffff;">
                     <span class="material-icons" style="color: #22c55e; font-size: 22px;">check_circle</span>
-                    Downloads Concluídos (D:\\filmes)
+                    Downloads Concluídos
                 </h3>
                 <div class="mf-completed-list" style="display: flex; flex-direction: column; gap: 14px;"></div>
             </div>
@@ -125,7 +125,7 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                     <div style="background: var(--brand, #e50914); height: 100%; width: ${Math.min(100, parseFloat(d.progress) || 0)}%; transition: width 0.3s ease;"></div>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2, #b3b3b3); margin-top: 6px;">
-                    <span>Salvando em D:\\filmes</span>
+                    <span>Salvando na sua pasta</span>
                     <span style="font-weight: 700; color: #ffffff;">${escapeHtml(d.progress || 0)}%</span>
                 </div>
             </div>
@@ -193,7 +193,7 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                             <span class="material-icons" style="font-size: 15px;">check_circle</span> Concluído
                         </span>
                         <span style="color: #94a3b8;">Tamanho: ${escapeHtml(d.total || d.downloaded || '')}</span>
-                        <span style="color: #64748b;">Pasta: D:\\filmes</span>
+                        <span style="color: #64748b;">Salvo na sua pasta</span>
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px;">

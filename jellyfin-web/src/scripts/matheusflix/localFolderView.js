@@ -20,7 +20,7 @@ export function renderLocalFolderView(container) {
         <div class="mf-local">
             <div class="mf-local-header-bar">
                 <div>
-                    <h3 class="mf-local-path">D:\\filmes</h3>
+                    <h3 class="mf-local-path">Na sua pasta</h3>
                     <div class="mf-local-stats-text">Carregando…</div>
                 </div>
                 <div class="mf-local-actions">
@@ -136,7 +136,7 @@ export function renderLocalFolderView(container) {
 
 function renderAllGrid(container, movies, query) {
     if (!movies.length) {
-        container.innerHTML = `<p class="mf-muted" style="padding: 40px 20px; text-align: center;">${query ? 'Nenhum filme corresponde ao filtro digitado.' : 'Nenhum filme na pasta D:\\filmes ainda.'}</p>`;
+        container.innerHTML = `<p class="mf-muted" style="padding: 40px 20px; text-align: center;">${query ? 'Nenhum filme corresponde ao filtro digitado.' : 'Nenhum filme na sua pasta ainda.'}</p>`;
         return;
     }
 
@@ -180,7 +180,7 @@ function renderFranchisesView(container, franchises, query) {
                     <span class="mf-franchise-block-icon">${f.icon || '🎬'}</span>
                     <div>
                         <h3 class="mf-franchise-block-title">Coleção ${escapeHtml(f.name)}</h3>
-                        <span class="mf-franchise-block-meta">${f.movies.length} ${f.movies.length === 1 ? 'filme salvo' : 'filmes salvos em ordem cronológica'} • D:\\filmes\\Franquias\\${escapeHtml(f.name)}</span>
+                        <span class="mf-franchise-block-meta">${f.movies.length} ${f.movies.length === 1 ? 'filme salvo' : 'filmes salvos em ordem cronológica'}</span>
                     </div>
                 </div>
             </div>
@@ -210,7 +210,7 @@ function renderSeriesView(container, series, query) {
     }
 
     if (!filtered.length) {
-        container.innerHTML = '<p class="mf-muted" style="padding: 40px 20px; text-align: center;">Nenhuma série identificada na pasta. As séries baixadas pelo MatheusFlix são salvas em D:\\filmes\\Series e agrupadas aqui automaticamente.</p>';
+        container.innerHTML = '<p class="mf-muted" style="padding: 40px 20px; text-align: center;">Nenhuma série identificada na sua pasta ainda.</p>';
         return;
     }
 
@@ -226,7 +226,7 @@ function renderSeriesView(container, series, query) {
                     <span class="mf-franchise-block-icon">📺</span>
                     <div>
                         <h3 class="mf-franchise-block-title">Série: ${escapeHtml(s.name)}</h3>
-                        <span class="mf-franchise-block-meta">${s.episodes.length} episódios • D:\\filmes\\Series\\${escapeHtml(s.name)}</span>
+                        <span class="mf-franchise-block-meta">${s.episodes.length} episódios</span>
                     </div>
                 </div>
             </div>

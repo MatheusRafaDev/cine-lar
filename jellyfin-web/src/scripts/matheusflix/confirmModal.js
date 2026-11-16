@@ -107,17 +107,17 @@ export function showConfirmModal({
 /**
  * Modal de Confirmação para Início de Download
  */
-export async function confirmDownloadModal({ title, quality, size, destination = 'D:\\filmes' }) {
+export async function confirmDownloadModal({ title, quality, size }) {
     const htmlBody = `
         <div class="mf-confirm-info-box">
             <h4 class="mf-confirm-movie-name">${escapeHtml(title)}</h4>
             <div class="mf-confirm-meta-row">
                 <span class="mf-confirm-badge mf-badge-quality">${escapeHtml(quality || '1080p')}</span>
                 ${size ? `<span class="mf-confirm-badge mf-badge-size">${escapeHtml(size)}</span>` : ''}
-                <span class="mf-confirm-badge mf-badge-dest">Destino: ${escapeHtml(destination)}</span>
+                <span class="mf-confirm-badge mf-badge-dest">Destino: Na sua pasta</span>
             </div>
             <p class="mf-confirm-desc">
-                O arquivo será salvo em <strong>${escapeHtml(destination)}</strong>.
+                O arquivo será salvo <strong>na sua pasta</strong>.
                 Você já pode <strong>assistir enquanto baixa</strong> em tempo real, sem esperar terminar!
             </p>
         </div>
@@ -125,7 +125,7 @@ export async function confirmDownloadModal({ title, quality, size, destination =
 
     return showConfirmModal({
         title: 'Confirmar Download',
-        subtitle: 'Salvar filme na pasta local (D:\\filmes)',
+        subtitle: 'Salvar filme na sua pasta local',
         icon: 'download',
         iconColor: 'var(--brand, #e50914)',
         htmlBody,
@@ -178,14 +178,14 @@ export async function confirmDeleteFileModal({ title }) {
         <div class="mf-confirm-info-box mf-confirm-danger-box">
             <h4 class="mf-confirm-movie-name">${escapeHtml(title)}</h4>
             <p class="mf-confirm-desc" style="color: #cbd5e1; margin-bottom: 0;">
-                O arquivo deste filme e suas legendas serão <strong>apagados definitivamente da pasta D:\\filmes</strong>, liberando espaço no disco.
+                O arquivo deste filme e suas legendas serão <strong>apagados definitivamente da sua pasta</strong>, liberando espaço no disco.
             </p>
         </div>
     `;
 
     return showConfirmModal({
         title: 'Excluir Arquivo do Computador',
-        subtitle: 'Liberar espaço em disco (D:\\filmes)',
+        subtitle: 'Liberar espaço em disco',
         icon: 'delete_forever',
         iconColor: '#ef4444',
         htmlBody,

@@ -486,7 +486,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
             <div class="mf-local-alert-banner">
                 <span class="material-icons mf-local-alert-icon">folder_special</span>
                 <div class="mf-local-alert-text">
-                    <strong>Disponível na sua pasta local (D:\\filmes)</strong>
+                    <strong>Disponível na sua pasta local</strong>
                     <span>Reprodução imediata sem download • ${escapeHtml(localFile.quality)} • ${escapeHtml(localFile.sizeFormatted)} • Sem gastar internet</span>
                 </div>
             </div>
@@ -575,13 +575,13 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                         <span class="mf-stream-quality q-local">${escapeHtml(localFile.quality)}</span>
                         <span class="mf-stream-size">${escapeHtml(localFile.sizeFormatted)}</span>
                     </div>
-                    <div class="mf-stream-title" style="color: #4ade80; font-weight: 700;">Reproduzir arquivo salvo no computador (D:\\filmes)</div>
+                    <div class="mf-stream-title" style="color: #4ade80; font-weight: 700;">Reproduzir arquivo salvo no computador</div>
                 </div>
                 <div class="mf-stream-actions">
                     <button type="button" class="mf-btn-stream-play mf-btn-stream-play-local focusable" title="Assistir agora da pasta local">
                         <span class="material-icons">play_arrow</span>
                     </button>
-                    <button type="button" class="mf-btn-stream-delete-local focusable" title="Excluir arquivo permanentemente do computador (D:\\filmes)">
+                    <button type="button" class="mf-btn-stream-delete-local focusable" title="Excluir arquivo da sua pasta">
                         <span class="material-icons" style="font-size: 18px;">delete_outline</span>
                     </button>
                 </div>
@@ -665,7 +665,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                     <button type="button" class="mf-btn-stream-play" title="Assistir agora">
                         <span class="material-icons">play_arrow</span>
                     </button>
-                    <button type="button" class="mf-btn-stream-dl" title="Baixar para D:\\filmes">
+                    <button type="button" class="mf-btn-stream-dl" title="Baixar para sua pasta">
                         <span class="material-icons">download</span>
                     </button>
                 </div>
@@ -730,7 +730,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                                 <div class="mf-dl-alert-left">
                                     <span class="material-icons mf-dl-spinning-icon">sync</span>
                                     <div class="mf-dl-alert-text">
-                                        <strong>Download iniciado para D:\\filmes!</strong>
+                                        <strong>Download iniciado na sua pasta!</strong>
                                         <span>Você não precisa esperar terminar. Dê play agora mesmo!</span>
                                     </div>
                                 </div>
@@ -745,7 +745,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                         });
                     }
 
-                    toast('Download iniciado para D:\\filmes! Você já pode assistir enquanto baixa.');
+                    toast('Download iniciado na sua pasta! Você já pode assistir enquanto baixa.');
                 } catch (err) {
                     btn.disabled = false;
                     toast(`Falha no download: ${err.message}`);
