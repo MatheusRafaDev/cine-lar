@@ -2931,109 +2931,127 @@ button:has(.cloud_download),
     color: var(--mf-text-primary, #f8fafc) !important;
 }
 
-/* Barra superior da página de detalhes com botão Voltar */
+/* Barra superior da página de detalhes flutuante transparente padrão Netflix */
 .mf-movie-page-topbar {
-    height: 64px !important;
-    background: var(--mf-bg-glass-strong, rgba(8, 10, 15, 0.95)) !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
-    border-bottom: 1px solid var(--mf-border-subtle, rgba(255, 255, 255, 0.08)) !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 76px !important;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 60%, transparent 100%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom: none !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    padding: 0 36px !important;
+    padding: 0 40px !important;
     flex-shrink: 0 !important;
-    z-index: 100 !important;
+    z-index: 1000 !important;
     box-sizing: border-box !important;
+    pointer-events: none !important;
 }
 
-.mf-movie-page-back-btn,
-.mf-stremio-close-btn {
-    position: static !important;
+.mf-movie-page-back-btn {
+    pointer-events: auto !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 8px !important;
-    background: var(--mf-bg-glass-card, rgba(255, 255, 255, 0.06)) !important;
-    border: 1px solid var(--mf-border-medium, rgba(255, 255, 255, 0.14)) !important;
-    color: var(--mf-text-title, #ffffff) !important;
-    padding: 8px 20px !important;
-    border-radius: var(--mf-radius-pill, 9999px) !important;
+    background: rgba(20, 20, 20, 0.75) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    padding: 0 20px 0 12px !important;
+    height: 42px !important;
+    border-radius: 9999px !important;
     cursor: pointer !important;
     font-size: 14px !important;
     font-weight: 700 !important;
     letter-spacing: 0.2px !important;
-    transition: var(--mf-transition-normal) !important;
-    box-shadow: var(--mf-shadow-sm) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
     width: auto !important;
-    height: auto !important;
 }
 
 .mf-movie-page-back-btn:hover,
-.mf-stremio-close-btn:hover {
-    background: rgba(255, 255, 255, 0.15) !important;
+.mf-movie-page-back-btn:focus-visible {
+    background: #ffffff !important;
     border-color: #ffffff !important;
-    color: #ffffff !important;
-    transform: translateX(-4px) !important;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+    color: #000000 !important;
+    transform: scale(1.06) !important;
+    box-shadow: 0 6px 24px rgba(255, 255, 255, 0.4) !important;
 }
 
-.mf-movie-page-top-title {
-    font-size: 16px !important;
-    font-weight: 700 !important;
-    color: var(--mf-text-muted, #94a3b8) !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    max-width: 50vw !important;
+.mf-movie-page-back-btn .material-icons {
+    font-size: 20px !important;
+    transition: transform 0.2s ease !important;
+}
+
+.mf-movie-page-back-btn:hover .material-icons,
+.mf-movie-page-back-btn:focus-visible .material-icons {
+    transform: translateX(-3px) !important;
 }
 
 .mf-topbar-actions {
     display: flex !important;
     align-items: center !important;
     gap: 12px !important;
+    pointer-events: auto !important;
 }
 
-.mf-btn-topbar-fav {
-    background: var(--mf-bg-glass-card, rgba(255, 255, 255, 0.06)) !important;
-    border: 1px solid var(--mf-border-medium, rgba(255, 255, 255, 0.14)) !important;
-    color: #ffffff !important;
-    width: 40px !important;
-    height: 40px !important;
+.mf-btn-topbar-close {
+    pointer-events: auto !important;
+    width: 42px !important;
+    height: 42px !important;
     border-radius: 50% !important;
-    display: flex !important;
+    background: rgba(20, 20, 20, 0.75) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    transition: var(--mf-transition-normal) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
 }
 
-.mf-btn-topbar-fav:hover {
-    background: rgba(239, 68, 68, 0.2) !important;
-    border-color: #ef4444 !important;
-    color: #ef4444 !important;
+.mf-btn-topbar-close:hover,
+.mf-btn-topbar-close:focus-visible {
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+    color: #000000 !important;
     transform: scale(1.08) !important;
+    box-shadow: 0 6px 24px rgba(255, 255, 255, 0.4) !important;
+}
+
+.mf-btn-topbar-close .material-icons {
+    font-size: 22px !important;
 }
 
 /* Corpo principal da página em 2 colunas */
 .mf-stremio-content {
     display: flex !important;
-    height: calc(100vh - 64px) !important;
+    height: 100vh !important;
     width: 100% !important;
     overflow: hidden !important;
 }
 
-/* Coluna Esquerda: Hero & Detalhes do Filme */
+/* Coluna Esquerda: Hero & Detalhes do Filme no padrão Netflix */
 .mf-stremio-left {
     width: 52% !important;
     max-width: 880px !important;
-    padding: 44px 52px !important;
+    padding: 92px 48px 44px 52px !important;
     display: flex !important;
     flex-direction: column !important;
     overflow-y: auto !important;
-    border-right: 1px solid var(--mf-border-subtle, rgba(255, 255, 255, 0.08)) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
     background-size: cover !important;
     background-position: center top !important;
+    background-color: #141414 !important;
     box-sizing: border-box !important;
     position: relative !important;
 }
@@ -3041,7 +3059,7 @@ button:has(.cloud_download),
 .mf-hero-details-container {
     display: flex !important;
     flex-direction: column !important;
-    gap: 24px !important;
+    gap: 20px !important;
     position: relative !important;
     z-index: 2 !important;
     max-width: 780px !important;
@@ -3049,7 +3067,7 @@ button:has(.cloud_download),
 
 .mf-stremio-poster-wrap {
     display: flex !important;
-    gap: 32px !important;
+    gap: 28px !important;
     align-items: flex-start !important;
 }
 
@@ -3059,12 +3077,12 @@ button:has(.cloud_download),
 }
 
 .mf-stremio-poster {
-    width: 195px !important;
-    min-width: 195px !important;
-    height: 290px !important;
-    border-radius: var(--mf-radius-lg, 18px) !important;
+    width: 175px !important;
+    min-width: 175px !important;
+    height: 260px !important;
+    border-radius: 12px !important;
     object-fit: cover !important;
-    box-shadow: var(--mf-shadow-poster) !important;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.85) !important;
     border: 1px solid rgba(255, 255, 255, 0.15) !important;
     display: block !important;
 }
@@ -3080,49 +3098,51 @@ button:has(.cloud_download),
     margin: 0 !important;
     font-size: 38px !important;
     font-weight: 800 !important;
-    color: var(--mf-text-title, #ffffff) !important;
+    color: #ffffff !important;
     line-height: 1.15 !important;
     letter-spacing: -0.6px !important;
     text-shadow: 0 4px 16px rgba(0, 0, 0, 0.8) !important;
 }
 
-/* Badges e Tags do Filme (Chips) */
+/* Badges e Tags do Filme Padrão Netflix */
 .mf-stremio-subinfo {
     display: flex !important;
     flex-wrap: wrap !important;
-    gap: 8px !important;
+    gap: 12px !important;
     align-items: center !important;
 }
 
-.mf-badge-chip {
+.mf-netflix-match {
+    color: #46d369 !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.2px !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 4px !important;
-    padding: 4px 12px !important;
-    border-radius: var(--mf-radius-pill, 9999px) !important;
-    font-size: 13px !important;
+}
+
+.mf-netflix-year {
+    color: #a3a3a3 !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+}
+
+.mf-netflix-badge-hd {
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    border-radius: 3px !important;
+    padding: 1px 6px !important;
+    font-size: 11px !important;
     font-weight: 700 !important;
-    letter-spacing: 0.3px !important;
-    border: 1px solid var(--mf-border-subtle, rgba(255, 255, 255, 0.1)) !important;
-    background: var(--mf-bg-glass-card, rgba(255, 255, 255, 0.05)) !important;
-    backdrop-filter: blur(12px) !important;
-    color: var(--mf-text-secondary, #cbd5e1) !important;
+    color: #e5e5e5 !important;
+    line-height: 1.4 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
 }
 
-.mf-badge-rating {
-    background: rgba(245, 158, 11, 0.15) !important;
-    border-color: rgba(245, 158, 11, 0.4) !important;
-    color: #fbbf24 !important;
-}
-
-.mf-badge-year {
-    color: #94a3b8 !important;
-}
-
-.mf-badge-genre {
-    background: rgba(229, 9, 20, 0.12) !important;
-    border-color: rgba(229, 9, 20, 0.3) !important;
-    color: #ff9e42 !important;
+.mf-netflix-genres {
+    color: #e5e5e5 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
 }
 
 /* Sinopse */
@@ -3132,71 +3152,97 @@ button:has(.cloud_download),
     gap: 8px !important;
 }
 
-.mf-section-heading {
-    margin: 0 !important;
-    font-size: 13px !important;
-    font-weight: 800 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.1em !important;
-    color: var(--mf-text-muted, #94a3b8) !important;
-}
-
 .mf-stremio-synopsis {
     font-size: 15px !important;
-    line-height: 1.7 !important;
-    color: var(--mf-text-secondary, #cbd5e1) !important;
+    line-height: 1.65 !important;
+    color: #d2d2d2 !important;
     margin: 0 !important;
-    text-align: justify !important;
     max-width: 720px !important;
 }
 
-/* Botão Monumental de Play */
+/* Ações Principais Padrão Netflix (Play Branco + Minha Lista) */
 .mf-stremio-hero-action {
     display: flex !important;
     align-items: center !important;
-    gap: 16px !important;
-    margin-top: 10px !important;
+    gap: 14px !important;
+    margin-top: 8px !important;
 }
 
 .mf-btn-hero-watch {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 10px !important;
-    background: var(--mf-accent-gradient) !important;
-    color: #ffffff !important;
+    gap: 8px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     border: none !important;
-    border-radius: var(--mf-radius-md, 14px) !important;
-    padding: 16px 36px !important;
+    border-radius: 6px !important;
+    padding: 13px 32px !important;
     font-size: 16px !important;
     font-weight: 800 !important;
-    letter-spacing: 0.3px !important;
+    letter-spacing: 0.2px !important;
     cursor: pointer !important;
-    box-shadow: var(--mf-shadow-glow-accent), var(--mf-shadow-md) !important;
-    transition: var(--mf-transition-normal) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
     outline: none !important;
 }
 
-.mf-btn-hero-watch:hover:not(:disabled) {
-    transform: translateY(-3px) scale(1.02) !important;
-    box-shadow: 0 0 36px rgba(229, 9, 20, 0.6), var(--mf-shadow-lg) !important;
-    filter: brightness(1.1) !important;
+.mf-btn-hero-watch .mf-hero-play-icon {
+    font-size: 28px !important;
+    color: #000000 !important;
+}
+
+.mf-btn-hero-watch:hover:not(:disabled),
+.mf-btn-hero-watch:focus-visible:not(:disabled) {
+    background: rgba(255, 255, 255, 0.85) !important;
+    color: #000000 !important;
+    transform: scale(1.04) !important;
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.6) !important;
 }
 
 .mf-btn-hero-watch:disabled {
-    opacity: 0.6 !important;
+    background: rgba(255, 255, 255, 0.4) !important;
+    color: rgba(0, 0, 0, 0.5) !important;
     cursor: wait !important;
     box-shadow: none !important;
+}
+
+.mf-btn-hero-fav {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 50% !important;
+    background: rgba(42, 42, 42, 0.75) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 2px solid rgba(255, 255, 255, 0.45) !important;
+    color: #ffffff !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.mf-btn-hero-fav:hover,
+.mf-btn-hero-fav:focus-visible {
+    border-color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    transform: scale(1.1) !important;
+}
+
+.mf-btn-hero-fav .mf-fav-icon {
+    font-size: 22px !important;
 }
 
 /* Coluna Direita: Fontes, Filtros & Downloads */
 .mf-stremio-right {
     width: 48% !important;
     flex: 1 !important;
-    padding: 38px 44px !important;
+    padding: 92px 40px 40px 40px !important;
     display: flex !important;
     flex-direction: column !important;
-    background: var(--mf-bg-surface, #0d1017) !important;
+    background: #141414 !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
 }
@@ -4474,23 +4520,27 @@ div[role="button"]:focus-visible {
     color: var(--text-2, #b3b3b3) !important;
 }
 
-/* Botão principal de ação em destaque para TV */
+/* Botão principal de ação em destaque padrão Netflix */
 .mf-btn-hero-watch {
     height: 48px !important;
-    padding: 0 28px !important;
+    padding: 0 32px !important;
     font-size: 16px !important;
-    font-weight: 700 !important;
-    border-radius: var(--r-btn, 4px) !important;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
     letter-spacing: 0.2px !important;
-    background: var(--brand, #e50914) !important;
-    color: #ffffff !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
     cursor: pointer !important;
-    transition: background 0.2s ease, transform 0.2s ease !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.mf-btn-hero-watch:hover {
-    background: var(--brand-hover, #f6121d) !important;
-    transform: scale(1.02) !important;
+.mf-btn-hero-watch:hover:not(:disabled),
+.mf-btn-hero-watch:focus-visible:not(:disabled) {
+    background: rgba(255, 255, 255, 0.85) !important;
+    color: #000000 !important;
+    transform: scale(1.04) !important;
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.6) !important;
 }
 
 /* Stream item com espaçamento e clique confortável para TV */
@@ -4513,16 +4563,6 @@ div[role="button"]:focus-visible {
     margin-bottom: 8px !important;
 }
 
-/* Botão de voltar grande e visível na TV */
-.mf-movie-page-back-btn {
-    padding: 10px 20px !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    border-radius: var(--r-btn, 4px) !important;
-    background: var(--bg-2, #2a2a2a) !important;
-    border: 1px solid var(--line, #3a3a3a) !important;
-    color: #ffffff !important;
-}
 
 /* Navegação suave em carrosséis de TV */
 .mf-home-scroller {

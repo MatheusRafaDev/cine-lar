@@ -71,16 +71,15 @@ export async function openStremioDetails(rawMovie) {
     modalEl.className = 'mf-movie-page mf-stremio-modal mf-stremio-modal-backdrop';
     modalEl.innerHTML = `
         <div class="mf-movie-page-window mf-stremio-window mf-stremio-card">
-            <!-- Topbar fixa de vidro fosco -->
+            <!-- Topbar transparente flutuante padrão Netflix -->
             <header class="mf-movie-page-topbar">
-                <button type="button" class="mf-movie-page-back-btn mf-stremio-close-btn focusable" title="Voltar (Esc)">
-                    <span class="material-icons" style="font-size: 20px;">arrow_back</span>
+                <button type="button" class="mf-movie-page-back-btn mf-stremio-close-btn focusable" title="Voltar (Esc)" aria-label="Voltar">
+                    <span class="material-icons">arrow_back</span>
                     <span>Voltar</span>
                 </button>
-                <div class="mf-movie-page-top-title">${escapeHtml(movie.title)}</div>
                 <div class="mf-topbar-actions">
-                    <button type="button" class="mf-btn-topbar-fav mf-btn-fav-toggle focusable" title="Favoritar filme">
-                        <span class="material-icons mf-fav-icon">favorite_border</span>
+                    <button type="button" class="mf-btn-topbar-close mf-stremio-close-btn focusable" title="Fechar (Esc)" aria-label="Fechar">
+                        <span class="material-icons">close</span>
                     </button>
                 </div>
             </header>
@@ -88,7 +87,7 @@ export async function openStremioDetails(rawMovie) {
             <!-- Conteúdo da Página Completa -->
             <div class="mf-movie-page-body mf-stremio-content">
                 <!-- Coluna Esquerda: Hero Cinematográfico -->
-                <div class="mf-stremio-left" style="background-image: linear-gradient(180deg, rgba(8,10,15,0.7) 0%, rgba(8,10,15,0.96) 65%, #080a0f 100%), url('${escapeHtml(movie.backdrop)}');">
+                <div class="mf-stremio-left" style="background-image: linear-gradient(to right, rgba(20,20,20,0.96) 0%, rgba(20,20,20,0.82) 55%, #141414 100%), linear-gradient(to top, #141414 0%, rgba(20,20,20,0.4) 50%, transparent 100%), url('${escapeHtml(movie.backdrop || movie.poster)}');">
                     <div class="mf-hero-details-container">
                         <div class="mf-stremio-poster-wrap">
                             <div class="mf-poster-glow-container">
@@ -97,9 +96,10 @@ export async function openStremioDetails(rawMovie) {
                             <div class="mf-stremio-header-info">
                                 <h1 class="mf-stremio-title">${escapeHtml(movie.title)}</h1>
                                 <div class="mf-stremio-subinfo">
-                                    ${movie.rating ? `<span class="mf-badge-chip mf-badge-rating"><span class="material-icons" style="font-size: 14px; color: #f59e0b;">star</span> ${movie.rating}</span>` : ''}
-                                    ${movie.year ? `<span class="mf-badge-chip mf-badge-year">${escapeHtml(movie.year)}</span>` : ''}
-                                    ${movie.genres ? movie.genres.split(/[,/]/).slice(0, 3).map(g => `<span class="mf-badge-chip mf-badge-genre">${escapeHtml(g.trim())}</span>`).join('') : ''}
+                                    ${movie.rating ? `<span class="mf-netflix-match"><span class="material-icons" style="font-size: 15px; vertical-align: middle; margin-right: 3px;">star</span>${movie.rating}</span>` : '<span class="mf-netflix-match">98% Relevante</span>'}
+                                    ${movie.year ? `<span class="mf-netflix-year">${escapeHtml(movie.year)}</span>` : ''}
+                                    <span class="mf-netflix-badge-hd">1080p</span>
+                                    ${movie.genres ? `<span class="mf-netflix-genres">${escapeHtml(movie.genres.split(/[,/]/).slice(0, 3).map(g => g.trim()).join(' • '))}</span>` : ''}
                                     ${movie.franchise ? `<span class="mf-badge-chip mf-badge-franchise"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">collections_bookmark</span> Coleção ${escapeHtml(movie.franchise)}</span>` : ''}
                                     ${movie.isSeries ? '<span class="mf-badge-chip mf-badge-series"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">tv</span> Série</span>' : ''}
                                 </div>
@@ -108,23 +108,25 @@ export async function openStremioDetails(rawMovie) {
 
                         <!-- Sinopse -->
                         <div class="mf-synopsis-wrap">
-                            <h3 class="mf-section-heading">Sinopse</h3>
                             <p class="mf-stremio-synopsis">${escapeHtml(movie.description || 'Sinopse não disponível para este título.')}</p>
                         </div>
 
                         <!-- Alerta se o filme estiver salvo no disco local -->
                         <div class="mf-local-status-container"></div>
 
-                        <!-- Ações Principais -->
+                        <!-- Ações Principais Padrão Netflix (Assistir + Minha Lista) -->
                         <div class="mf-stremio-hero-action">
                             <button type="button" class="mf-btn-hero-watch focusable" disabled>
-                                <span class="material-icons" style="font-size: 26px;">play_circle_filled</span>
+                                <span class="material-icons mf-hero-play-icon">play_arrow</span>
                                 <span class="mf-hero-watch-text">Buscando fontes disponíveis...</span>
                             </button>
+                            <button type="button" class="mf-btn-hero-fav mf-btn-fav-toggle focusable" title="Minha Lista (Favoritos)" aria-label="Minha Lista">
+                                <span class="material-icons mf-fav-icon">favorite_border</span>
+                            </button>
                             ${movie.resumePosition ? `
-                            <button type="button" class="mf-btn-drop-movie focusable" title="Dropar filme (Remover de Continuar Assistindo)">
-                                <span class="material-icons" style="font-size: 20px;">playlist_remove</span>
-                                <span>Dropar Filme</span>
+                            <button type="button" class="mf-btn-drop-movie focusable" title="Remover de Continuar Assistindo">
+                                <span class="material-icons" style="font-size: 20px;">delete_outline</span>
+                                <span>Remover</span>
                             </button>` : ''}
                         </div>
                     </div>
@@ -143,7 +145,7 @@ export async function openStremioDetails(rawMovie) {
 
                     <div class="mf-stremio-streams-header">
                         <div class="mf-streams-header-title">
-                            <h3>Fontes de Streaming & Download</h3>
+                            <h3>Fontes de Transmissão</h3>
                             <span class="mf-streams-count"></span>
                         </div>
                         <div class="mf-streams-filter-chips">
@@ -178,7 +180,9 @@ export async function openStremioDetails(rawMovie) {
         }
     }, 80);
 
-    modalEl.querySelector('.mf-movie-page-back-btn').addEventListener('click', () => closeDetails(true));
+    modalEl.querySelectorAll('.mf-stremio-close-btn').forEach((btn) => {
+        btn.addEventListener('click', () => closeDetails(true));
+    });
     activeKeyHandler = (e) => {
         if (['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(e.key) && !document.querySelector('.mf-cinema-player') && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
             closeDetails(true);
@@ -188,6 +192,7 @@ export async function openStremioDetails(rawMovie) {
         const active = document.activeElement;
         const hero = modalEl.querySelector('.mf-btn-hero-watch');
         const backBtn = modalEl.querySelector('.mf-movie-page-back-btn');
+        const closeBtn = modalEl.querySelector('.mf-btn-topbar-close');
         const favBtn = modalEl.querySelector('.mf-btn-fav-toggle');
         const firstStream = modalEl.querySelector('.mf-stream-item, .mf-episode-chip');
 
@@ -195,7 +200,7 @@ export async function openStremioDetails(rawMovie) {
             if (active === hero || active === favBtn) {
                 e.preventDefault();
                 firstStream?.focus?.();
-            } else if (active === backBtn) {
+            } else if (active === backBtn || active === closeBtn) {
                 e.preventDefault();
                 hero?.focus?.();
             } else if (active?.classList.contains('mf-stream-item')) {
@@ -209,7 +214,7 @@ export async function openStremioDetails(rawMovie) {
             if (active === firstStream) {
                 e.preventDefault();
                 hero?.focus?.();
-            } else if (active === hero) {
+            } else if (active === hero || active === favBtn) {
                 e.preventDefault();
                 backBtn?.focus?.();
             } else if (active?.classList.contains('mf-stream-item')) {
@@ -225,17 +230,24 @@ export async function openStremioDetails(rawMovie) {
         } else if (e.key === 'ArrowRight') {
             if (active === backBtn) {
                 e.preventDefault();
-                hero?.focus?.();
+                if (closeBtn) closeBtn.focus();
+                else hero?.focus?.();
             } else if (active === hero) {
                 e.preventDefault();
-                if (firstStream) {
-                    firstStream.focus();
-                } else if (favBtn) {
-                    favBtn.focus();
-                }
+                if (favBtn) favBtn.focus();
+                else firstStream?.focus?.();
+            } else if (active === favBtn) {
+                e.preventDefault();
+                firstStream?.focus?.();
             }
         } else if (e.key === 'ArrowLeft') {
-            if (active === favBtn || active?.classList?.contains('mf-stream-item') || active?.classList?.contains('mf-episode-chip')) {
+            if (active === closeBtn) {
+                e.preventDefault();
+                backBtn?.focus?.();
+            } else if (active === favBtn) {
+                e.preventDefault();
+                hero?.focus?.();
+            } else if (active?.classList?.contains('mf-stream-item') || active?.classList?.contains('mf-episode-chip')) {
                 e.preventDefault();
                 hero?.focus?.();
             } else if (active === hero) {
