@@ -181,6 +181,7 @@ export async function embedMatheusFlixHomeSections(view) {
             title: 'Minha Lista',
             linkText: 'Ver catálogo',
             tabIndex: 1,
+            targetHash: '#/home?tab=1&genre=favorites',
             movies: userFavs,
             onClick: openStremioDetails
         });
@@ -196,6 +197,7 @@ export async function embedMatheusFlixHomeSections(view) {
             title: 'Na sua pasta',
             linkText: 'Ver tudo',
             tabIndex: 2,
+            targetHash: '#/home?tab=2',
             movies: localMovies,
             onClick: playLocal
         });
@@ -207,6 +209,7 @@ export async function embedMatheusFlixHomeSections(view) {
             title: 'Lançamentos',
             linkText: 'Ver mais',
             tabIndex: 1,
+            targetHash: '#/home?tab=1&sort=newest',
             movies: uniqueNewest,
             onClick: openStremioDetails
         });
@@ -218,6 +221,7 @@ export async function embedMatheusFlixHomeSections(view) {
             title: 'Em alta no MatheusFlix',
             linkText: 'Ver mais',
             tabIndex: 1,
+            targetHash: '#/home?tab=1&sort=trending',
             movies: uniqueTrending,
             onClick: openStremioDetails
         });
@@ -229,6 +233,7 @@ export async function embedMatheusFlixHomeSections(view) {
             title: 'Filmes de Ação',
             linkText: 'Ver mais',
             tabIndex: 1,
+            targetHash: '#/home?tab=1&genre=Action',
             movies: uniqueAction,
             onClick: openStremioDetails
         });
@@ -240,6 +245,7 @@ export async function embedMatheusFlixHomeSections(view) {
             title: 'Aventura & Fantasia',
             linkText: 'Ver mais',
             tabIndex: 1,
+            targetHash: '#/home?tab=1&genre=Adventure',
             movies: uniqueAdventure,
             onClick: openStremioDetails
         });
@@ -251,6 +257,7 @@ export async function embedMatheusFlixHomeSections(view) {
             title: 'Comédias',
             linkText: 'Ver mais',
             tabIndex: 1,
+            targetHash: '#/home?tab=1&genre=Comedy',
             movies: uniqueComedy,
             onClick: openStremioDetails
         });
@@ -262,6 +269,7 @@ export async function embedMatheusFlixHomeSections(view) {
             title: 'Ficção Científica',
             linkText: 'Ver mais',
             tabIndex: 1,
+            targetHash: '#/home?tab=1&genre=Sci-Fi',
             movies: uniqueScifi,
             onClick: openStremioDetails
         });
@@ -273,6 +281,7 @@ export async function embedMatheusFlixHomeSections(view) {
             title: 'Animação & Família',
             linkText: 'Ver mais',
             tabIndex: 1,
+            targetHash: '#/home?tab=1&genre=Animation',
             movies: uniqueAnim,
             onClick: openStremioDetails
         });
@@ -511,7 +520,7 @@ function setupRowSlider(row) {
     setTimeout(updateVisibility, 800);
 }
 
-function renderRow(container, { key, title, linkText, tabIndex, movies, onClick }) {
+function renderRow(container, { key, title, linkText, tabIndex, targetHash, movies, onClick }) {
     let row = container.querySelector(`.mf-home-section[data-mf-row="${key}"]`);
     if (!movies.length) {
         row?.remove();
@@ -523,6 +532,8 @@ function renderRow(container, { key, title, linkText, tabIndex, movies, onClick 
         row.dataset.mfRow = key;
         container.appendChild(row);
     }
+
+    const finalHash = targetHash || `#/home?tab=${tabIndex}`;
 
     row.innerHTML = `
         <div class="sectionTitleContainer sectionTitleContainer-cards">
@@ -541,7 +552,7 @@ function renderRow(container, { key, title, linkText, tabIndex, movies, onClick 
     `;
 
     row.querySelector('.mf-btn-see-all')?.addEventListener('click', () => {
-        window.location.hash = `#/home?tab=${tabIndex}`;
+        window.location.hash = finalHash;
     });
 
     const scroller = row.querySelector('.mf-home-scroller');
@@ -592,7 +603,7 @@ function renderRow(container, { key, title, linkText, tabIndex, movies, onClick 
             </div>
         `;
         seeMoreCard.addEventListener('click', () => {
-            window.location.hash = `#/home?tab=${tabIndex}`;
+            window.location.hash = finalHash;
         });
         seeMoreCard.addEventListener('focus', () => {
             seeMoreCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });

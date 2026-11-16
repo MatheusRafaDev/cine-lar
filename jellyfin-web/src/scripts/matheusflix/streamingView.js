@@ -9,16 +9,40 @@ import { escapeHtml, normalizeMovie } from './utils';
 
 const PAGE_SIZE = 48;
 
-export function renderStreamingView(container) {
-    const state = { type: 'movie', q: '', genre: 'all', sort: 'trending', offset: 0, requestId: 0 };
+export function renderStreamingView(container, initialFilters = {}) {
+    let hashGenre = initialFilters.genre;
+    let hashSort = initialFilters.sort;
+    let hashType = initialFilters.type;
+
+    if (!hashGenre || !hashSort || !hashType) {
+        try {
+            const h = window.location.hash || '';
+            const qIdx = h.indexOf('?');
+            if (qIdx !== -1) {
+                const sp = new URLSearchParams(h.substring(qIdx));
+                if (!hashGenre && sp.has('genre')) hashGenre = sp.get('genre');
+                if (!hashSort && sp.has('sort')) hashSort = sp.get('sort');
+                if (!hashType && sp.has('type')) hashType = sp.get('type');
+            }
+        } catch {}
+    }
+
+    const state = {
+        type: hashType || 'movie',
+        q: '',
+        genre: hashGenre || 'all',
+        sort: hashSort || 'trending',
+        offset: 0,
+        requestId: 0
+    };
 
     container.innerHTML = `
         <div class="mf-catalog">
             <div class="mf-torrent-type-bar">
-                <button type="button" class="mf-type-chip focusable active" data-type="movie">
+                <button type="button" class="mf-type-chip focusable ${state.type === 'movie' ? 'active' : ''}" data-type="movie">
                     <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">movie</span>Filmes
                 </button>
-                <button type="button" class="mf-type-chip focusable" data-type="series">
+                <button type="button" class="mf-type-chip focusable ${state.type === 'series' ? 'active' : ''}" data-type="series">
                     <span class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">tv</span>Séries
                 </button>
             </div>
@@ -28,10 +52,10 @@ export function renderStreamingView(container) {
                     <input type="search" class="mf-search-input focusable" placeholder="Buscar filmes em torrent (PT-BR)…" />
                 </div>
                 <select class="mf-select mf-sort-select focusable" title="Ordenar">
-                    <option value="trending">Em alta</option>
-                    <option value="newest">Lançamentos</option>
-                    <option value="rating">Melhor avaliados</option>
-                    <option value="alpha">A–Z</option>
+                    <option value="trending"${state.sort === 'trending' ? ' selected' : ''}>Em alta</option>
+                    <option value="newest"${state.sort === 'newest' ? ' selected' : ''}>Lançamentos</option>
+                    <option value="rating"${state.sort === 'rating' ? ' selected' : ''}>Melhor avaliados</option>
+                    <option value="alpha"${state.sort === 'alpha' ? ' selected' : ''}>A–Z</option>
                 </select>
             </div>
             <div class="mf-genre-bar"></div>
@@ -170,6 +194,11 @@ async function renderGenres(genreBar, state, load) {
     genreBar.innerHTML = all.map(g => `
         <button type="button" class="mf-genre-chip focusable ${g.id === state.genre ? 'active' : ''}" data-genre="${escapeHtml(g.id)}">${escapeHtml(g.name)}</button>
     `).join('');
+
+    const activeChip = genreBar.querySelector('.mf-genre-chip.active');
+    if (activeChip) {
+        setTimeout(() => activeChip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 120);
+    }
 
     genreBar.addEventListener('click', (e) => {
         const chip = e.target.closest('.mf-genre-chip');

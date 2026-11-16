@@ -11,11 +11,22 @@ class StremioTab {
         this.params = params;
         this.container = view.querySelector('.mf-embedded-tab-content');
         this.rendered = false;
+        this.lastHash = '';
+
+        this.onHashChange = () => {
+            const h = window.location.hash || '';
+            if (h.includes('tab=1') && this.lastHash !== h) {
+                this.onResume({ refresh: true });
+            }
+        };
+        window.addEventListener('hashchange', this.onHashChange);
     }
 
     onResume(options = {}) {
         const container = this.view?.querySelector('.mf-embedded-tab-content') || this.container || this.view;
-        if (container && (!this.rendered || options.refresh)) {
+        const currentHash = window.location.hash || '';
+        if (container && (!this.rendered || options.refresh || this.lastHash !== currentHash)) {
+            this.lastHash = currentHash;
             renderStreamingView(container);
             this.rendered = true;
             this.container = container;
@@ -28,6 +39,9 @@ class StremioTab {
     }
 
     destroy() {
+        if (this.onHashChange) {
+            window.removeEventListener('hashchange', this.onHashChange);
+        }
         this.view = null;
         this.container = null;
         this.rendered = false;
