@@ -2958,17 +2958,15 @@ button:has(.cloud_download),
     align-items: center !important;
     justify-content: center !important;
     gap: 8px !important;
-    background: rgba(20, 20, 20, 0.75) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: #181818 !important;
+    border: none !important;
     color: #ffffff !important;
-    padding: 0 18px 0 12px !important;
-    height: 40px !important;
+    padding: 0 16px 0 12px !important;
+    height: 38px !important;
     border-radius: 9999px !important;
     cursor: pointer !important;
     font-size: 13px !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     letter-spacing: 0.2px !important;
     transition: background 0.2s ease, color 0.2s ease !important;
     box-shadow: none !important;
@@ -2977,9 +2975,8 @@ button:has(.cloud_download),
 
 .mf-movie-page-back-btn:hover,
 .mf-movie-page-back-btn:focus-visible {
-    background: #ffffff !important;
-    border-color: #ffffff !important;
-    color: #000000 !important;
+    background: #282828 !important;
+    color: #ffffff !important;
     transform: none !important;
     box-shadow: none !important;
 }
@@ -2997,13 +2994,11 @@ button:has(.cloud_download),
 
 .mf-btn-topbar-close {
     pointer-events: auto !important;
-    width: 40px !important;
-    height: 40px !important;
+    width: 38px !important;
+    height: 38px !important;
     border-radius: 50% !important;
-    background: rgba(20, 20, 20, 0.75) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: #181818 !important;
+    border: none !important;
     color: #ffffff !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -3015,9 +3010,8 @@ button:has(.cloud_download),
 
 .mf-btn-topbar-close:hover,
 .mf-btn-topbar-close:focus-visible {
-    background: #ffffff !important;
-    border-color: #ffffff !important;
-    color: #000000 !important;
+    background: #282828 !important;
+    color: #ffffff !important;
     transform: none !important;
     box-shadow: none !important;
 }
