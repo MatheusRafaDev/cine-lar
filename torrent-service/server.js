@@ -16,6 +16,7 @@ const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 8085;
 const SAVE_PATH = process.env.SAVE_PATH || 'D:\\filmes';
+const PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'MatheusFlix');
 const JELLYFIN_URL = process.env.JELLYFIN_URL || 'http://localhost:8096';
 const JELLYFIN_USER = process.env.JELLYFIN_USER || 'usuario';
 const JELLYFIN_PW = process.env.JELLYFIN_PW || '10092004';
@@ -23,10 +24,13 @@ const JELLYFIN_PW = process.env.JELLYFIN_PW || '10092004';
 // Initialize SQLite database
 initDb();
 
-// Ensure save path directory exists
+// Ensure save path directories exist
 try {
     if (!fs.existsSync(SAVE_PATH)) {
         fs.mkdirSync(SAVE_PATH, { recursive: true });
+    }
+    if (!fs.existsSync(PLATFORM_DOWNLOAD_PATH)) {
+        fs.mkdirSync(PLATFORM_DOWNLOAD_PATH, { recursive: true });
     }
 } catch (e) {
     console.warn(`[TorrentService] Could not verify save path "${SAVE_PATH}":`, e.message);
@@ -1230,7 +1234,7 @@ const server = http.createServer(async (req, res) => {
                         canPlay: Boolean(torrent.ready),
                         streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || torrent.magnetURI || '')}&title=${encodeURIComponent(meta.title)}`,
                         magnet: meta.magnet || torrent.magnetURI || '',
-                        destinationPath: meta.destinationPath || `D:\\filmes\\${meta.title}`,
+                        destinationPath: meta.destinationPath || `MatheusFlix\\${meta.title}`,
                         category: meta.category || 'movie',
                         groupName: meta.groupName || null,
                         createdAt: meta.createdAt
@@ -1253,7 +1257,7 @@ const server = http.createServer(async (req, res) => {
                     canPlay: meta.status === 'completed',
                     streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || '')}&title=${encodeURIComponent(meta.title)}`,
                     magnet: meta.magnet || '',
-                    destinationPath: meta.destinationPath || `D:\\filmes\\${meta.title}`,
+                    destinationPath: meta.destinationPath || `MatheusFlix\\${meta.title}`,
                     category: meta.category || 'movie',
                     groupName: meta.groupName || null,
                     createdAt: meta.createdAt
@@ -1321,7 +1325,7 @@ const server = http.createServer(async (req, res) => {
                 downloadsRegistry.set(infoHash, metaItem);
                 persistDownloads();
 
-                torrent = client.add(magnet, { path: SAVE_PATH });
+                torrent = client.add(magnet, { path: PLATFORM_DOWNLOAD_PATH });
 
                 torrent.on('wire', () => {
                     // Log silencioso ou debug
@@ -1483,7 +1487,7 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-                    const org = getOrganizedDownloadPath(SAVE_PATH, title, filename);
+                    const org = getOrganizedDownloadPath(PLATFORM_DOWNLOAD_PATH, title, filename);
                     try {
                         if (!fs.existsSync(org.targetPath)) {
                             fs.mkdirSync(org.targetPath, { recursive: true });

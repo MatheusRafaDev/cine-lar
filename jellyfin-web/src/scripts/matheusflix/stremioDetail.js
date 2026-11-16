@@ -445,7 +445,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 <div class="mf-dl-alert-left">
                     <span class="material-icons mf-dl-spinning-icon">sync</span>
                     <div class="mf-dl-alert-text">
-                        <strong>Baixando para D:\\filmes (${activeDl.progress || 0}%)</strong>
+                        <strong>Baixando para a pasta MatheusFlix (${activeDl.progress || 0}%)</strong>
                         <span>Você pode assistir em tempo real enquanto baixa, sem travar!</span>
                     </div>
                 </div>
@@ -689,15 +689,15 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 e.stopPropagation();
 
                 const btn = dlBtn;
-                let dest = `D:\\filmes\\${movie.title}`;
+                let dest = `MatheusFlix\\${movie.title}`;
                 if (currentEp) {
                     const sStr = String(currentEp.season || 1).padStart(2, '0');
                     const eStr = String(currentEp.number || currentEp.episode || 1).padStart(2, '0');
-                    dest = `D:\\filmes\\Series\\${movie.seriesName || movie.title}\\Temporada ${sStr}\\${movie.title} S${sStr}E${eStr}`;
+                    dest = `MatheusFlix\\Series\\${movie.seriesName || movie.title}\\Temporada ${sStr}\\${movie.title} S${sStr}E${eStr}`;
                 } else if (movie.franchise) {
-                    dest = `D:\\filmes\\Franquias\\${movie.franchise}\\${movie.title}`;
+                    dest = `MatheusFlix\\Franquias\\${movie.franchise}\\${movie.title}`;
                 } else if (movie.isSeries) {
-                    dest = `D:\\filmes\\Series\\${movie.seriesName || movie.title}\\Temporada ${String(movie.season || 1).padStart(2, '0')}`;
+                    dest = `MatheusFlix\\Series\\${movie.seriesName || movie.title}\\Temporada ${String(movie.season || 1).padStart(2, '0')}`;
                 }
 
                 const confirmed = await confirmDownloadModal({

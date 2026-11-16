@@ -1,39 +1,39 @@
 import path from 'path';
 
 export const KNOWN_FRANCHISES = [
-    { id: 'toy-story', name: 'Toy Story', icon: '🧸', regex: /toy[\s\-\.]*story/i },
-    { id: 'carros', name: 'Carros', icon: '🏎️', regex: /\b(carros|cars)\b/i },
-    { id: 'homem-aranha', name: 'Homem-Aranha', icon: '🕷️', regex: /(homem[\s\-\.]*aranha|spider[\s\-\.]*man)/i },
-    { id: 'guardioes-da-galaxia', name: 'Guardiões da Galáxia', icon: '🚀', regex: /(guardi[õo]es[\s\-\.]*da[\s\-\.]*gal[áa]xia|guardians[\s\-\.]*of[\s\-\.]*the[\s\-\.]*galaxy)/i },
-    { id: 'jogos-vorazes', name: 'Jogos Vorazes', icon: '🏹', regex: /(jogos[\s\-\.]*vorazes|hunger[\s\-\.]*games)/i },
-    { id: 'batman', name: 'Batman', icon: '🦇', regex: /\bbatman\b/i },
-    { id: 'anjos-da-lei', name: 'Anjos da Lei', icon: '👮', regex: /(anjos[\s\-\.]*da[\s\-\.]*lei|21[\s\-\.]*jump[\s\-\.]*street|22[\s\-\.]*jump[\s\-\.]*street)/i },
-    { id: 'shrek', name: 'Shrek', icon: '🧅', regex: /\b(shrek|gato[\s\-\.]*de[\s\-\.]*botas|puss[\s\-\.]*in[\s\-\.]*boots)\b/i },
-    { id: 'resident-evil', name: 'Resident Evil', icon: '☣️', regex: /resident[\s\-\.]*evil/i },
-    { id: 'patrulha-canina', name: 'Patrulha Canina', icon: '🐾', regex: /(patrulha[\s\-\.]*canina|paw[\s\-\.]*patrol)/i },
-    { id: 'vingadores-marvel', name: 'Universo Marvel (MCU)', icon: '🛡️', regex: /(vingadores|avengers|iron[\s\-\.]*man|homem[\s\-\.]*de[\s\-\.]*ferro|capit[ãa]o[\s\-\.]*am[ée]rica|captain[\s\-\.]*america|thor|pantera[\s\-\.]*negra|black[\s\-\.]*panther|doutor[\s\-\.]*estranho|doctor[\s\-\.]*strange)/i },
-    { id: 'harry-potter', name: 'Harry Potter', icon: '⚡', regex: /(harry[\s\-\.]*potter|animais[\s\-\.]*fant[áa]sticos|fantastic[\s\-\.]*beasts)/i },
-    { id: 'senhor-dos-aneis', name: 'O Senhor dos Anéis', icon: '💍', regex: /(senhor[\s\-\.]*dos[\s\-\.]*an[ée]is|lord[\s\-\.]*of[\s\-\.]*the[\s\-\.]*rings|hobbit)/i },
-    { id: 'star-wars', name: 'Star Wars', icon: '⚔️', regex: /star[\s\-\.]*wars/i },
-    { id: 'velozes-e-furiosos', name: 'Velozes e Furiosos', icon: '🏎️💨', regex: /(velozes[\s\-\.]*e[\s\-\.]*furiosos|fast[\s\-\.]*(and|&)?[\s\-\.]*furious)/i },
-    { id: 'john-wick', name: 'John Wick', icon: '🎯', regex: /john[\s\-\.]*wick/i },
-    { id: 'missao-impossivel', name: 'Missão Impossível', icon: '🕶️', regex: /(miss[ãa]o[\s\-\.]*imposs[íi]vel|mission[\s\-\.]*impossible)/i },
-    { id: 'piratas-do-caribe', name: 'Piratas do Caribe', icon: '🏴‍☠️', regex: /(piratas[\s\-\.]*do[\s\-\.]*caribe|pirates[\s\-\.]*of[\s\-\.]*the[\s\-\.]*caribbean)/i },
-    { id: 'transformers', name: 'Transformers', icon: '🤖', regex: /transformers/i },
-    { id: 'jurassic-park', name: 'Jurassic Park', icon: '🦖', regex: /(jurassic[\s\-\.]*park|jurassic[\s\-\.]*world)/i },
-    { id: 'matrix', name: 'Matrix', icon: '🕶️', regex: /\bmatrix\b/i },
-    { id: 'planeta-dos-macacos', name: 'Planeta dos Macacos', icon: '🦧', regex: /(planeta[\s\-\.]*dos[\s\-\.]*macacos|planet[\s\-\.]*of[\s\-\.]*the[\s\-\.]*apes)/i },
-    { id: 'mad-max', name: 'Mad Max', icon: '🔥', regex: /mad[\s\-\.]*max/i },
-    { id: 'avatar', name: 'Avatar', icon: '🌊', regex: /\bavatar\b/i },
-    { id: 'duna', name: 'Duna', icon: '🏜️', regex: /\bduna\b|\bdune\b/i },
-    { id: 'invocacao-do-mal', name: 'Universo Invocação do Mal', icon: '🕯️', regex: /(invoca[çc][ãa]o[\s\-\.]*do[\s\-\.]*mal|conjuring|annabelle|a[\s\-\.]*freira|the[\s\-\.]*nun)/i },
-    { id: 'meu-malvado-favorito', name: 'Meu Malvado Favorito & Minions', icon: '🍌', regex: /(meu[\s\-\.]*malvado[\s\-\.]*favorito|despicable[\s\-\.]*me|minions)/i },
-    { id: 'como-treinar-o-seu-dragao', name: 'Como Treinar o Seu Dragão', icon: '🐉', regex: /(como[\s\-\.]*treinar[\s\-\.]*o[\s\-\.]*seu[\s\-\.]*drag[ãa]o|how[\s\-\.]*to[\s\-\.]*train[\s\-\.]*your[\s\-\.]*dragon)/i },
-    { id: 'kung-fu-panda', name: 'Kung Fu Panda', icon: '🐼', regex: /kung[\s\-\.]*fu[\s\-\.]*panda/i },
-    { id: 'era-do-gelo', name: 'A Era do Gelo', icon: '❄️', regex: /(era[\s\-\.]*do[\s\-\.]*gelo|ice[\s\-\.]*age)/i },
-    { id: 'os-incriveis', name: 'Os Incríveis', icon: '⚡', regex: /(os[\s\-\.]*incr[íi]veis|incredibles)/i },
-    { id: 'deadpool', name: 'Deadpool', icon: '⚔️', regex: /deadpool/i },
-    { id: 'indiana-jones', name: 'Indiana Jones', icon: '🤠', regex: /indiana[\s\-\.]*jones/i }
+    { id: 'toy-story', name: 'Toy Story', icon: 'smart_toy', regex: /toy[\s\-\.]*story/i },
+    { id: 'carros', name: 'Carros', icon: 'directions_car', regex: /\b(carros|cars)\b/i },
+    { id: 'homem-aranha', name: 'Homem-Aranha', icon: 'blur_on', regex: /(homem[\s\-\.]*aranha|spider[\s\-\.]*man)/i },
+    { id: 'guardioes-da-galaxia', name: 'Guardiões da Galáxia', icon: 'rocket_launch', regex: /(guardi[õo]es[\s\-\.]*da[\s\-\.]*gal[áa]xia|guardians[\s\-\.]*of[\s\-\.]*the[\s\-\.]*galaxy)/i },
+    { id: 'jogos-vorazes', name: 'Jogos Vorazes', icon: 'military_tech', regex: /(jogos[\s\-\.]*vorazes|hunger[\s\-\.]*games)/i },
+    { id: 'batman', name: 'Batman', icon: 'dark_mode', regex: /\bbatman\b/i },
+    { id: 'anjos-da-lei', name: 'Anjos da Lei', icon: 'local_police', regex: /(anjos[\s\-\.]*da[\s\-\.]*lei|21[\s\-\.]*jump[\s\-\.]*street|22[\s\-\.]*jump[\s\-\.]*street)/i },
+    { id: 'shrek', name: 'Shrek', icon: 'eco', regex: /\b(shrek|gato[\s\-\.]*de[\s\-\.]*botas|puss[\s\-\.]*in[\s\-\.]*boots)\b/i },
+    { id: 'resident-evil', name: 'Resident Evil', icon: 'warning', regex: /resident[\s\-\.]*evil/i },
+    { id: 'patrulha-canina', name: 'Patrulha Canina', icon: 'pets', regex: /(patrulha[\s\-\.]*canina|paw[\s\-\.]*patrol)/i },
+    { id: 'vingadores-marvel', name: 'Universo Marvel (MCU)', icon: 'shield', regex: /(vingadores|avengers|iron[\s\-\.]*man|homem[\s\-\.]*de[\s\-\.]*ferro|capit[ãa]o[\s\-\.]*am[ée]rica|captain[\s\-\.]*america|thor|pantera[\s\-\.]*negra|black[\s\-\.]*panther|doutor[\s\-\.]*estranho|doctor[\s\-\.]*strange)/i },
+    { id: 'harry-potter', name: 'Harry Potter', icon: 'bolt', regex: /(harry[\s\-\.]*potter|animais[\s\-\.]*fant[áa]sticos|fantastic[\s\-\.]*beasts)/i },
+    { id: 'senhor-dos-aneis', name: 'O Senhor dos Anéis', icon: 'filter_vintage', regex: /(senhor[\s\-\.]*dos[\s\-\.]*an[ée]is|lord[\s\-\.]*of[\s\-\.]*the[\s\-\.]*rings|hobbit)/i },
+    { id: 'star-wars', name: 'Star Wars', icon: 'flare', regex: /star[\s\-\.]*wars/i },
+    { id: 'velozes-e-furiosos', name: 'Velozes e Furiosos', icon: 'speed', regex: /(velozes[\s\-\.]*e[\s\-\.]*furiosos|fast[\s\-\.]*(and|&)?[\s\-\.]*furious)/i },
+    { id: 'john-wick', name: 'John Wick', icon: 'adjust', regex: /john[\s\-\.]*wick/i },
+    { id: 'missao-impossivel', name: 'Missão Impossível', icon: 'visibility_off', regex: /(miss[ãa]o[\s\-\.]*imposs[íi]vel|mission[\s\-\.]*impossible)/i },
+    { id: 'piratas-do-caribe', name: 'Piratas do Caribe', icon: 'sailing', regex: /(piratas[\s\-\.]*do[\s\-\.]*caribe|pirates[\s\-\.]*of[\s\-\.]*the[\s\-\.]*caribbean)/i },
+    { id: 'transformers', name: 'Transformers', icon: 'smart_toy', regex: /transformers/i },
+    { id: 'jurassic-park', name: 'Jurassic Park', icon: 'nature', regex: /(jurassic[\s\-\.]*park|jurassic[\s\-\.]*world)/i },
+    { id: 'matrix', name: 'Matrix', icon: 'terminal', regex: /\bmatrix\b/i },
+    { id: 'planeta-dos-macacos', name: 'Planeta dos Macacos', icon: 'nature_people', regex: /(planeta[\s\-\.]*dos[\s\-\.]*macacos|planet[\s\-\.]*of[\s\-\.]*the[\s\-\.]*apes)/i },
+    { id: 'mad-max', name: 'Mad Max', icon: 'local_fire_department', regex: /mad[\s\-\.]*max/i },
+    { id: 'avatar', name: 'Avatar', icon: 'water_drop', regex: /\bavatar\b/i },
+    { id: 'duna', name: 'Duna', icon: 'terrain', regex: /\bduna\b|\bdune\b/i },
+    { id: 'invocacao-do-mal', name: 'Universo Invocação do Mal', icon: 'psychology', regex: /(invoca[çc][ãa]o[\s\-\.]*do[\s\-\.]*mal|conjuring|annabelle|a[\s\-\.]*freira|the[\s\-\.]*nun)/i },
+    { id: 'meu-malvado-favorito', name: 'Meu Malvado Favorito & Minions', icon: 'mood', regex: /(meu[\s\-\.]*malvado[\s\-\.]*favorito|despicable[\s\-\.]*me|minions)/i },
+    { id: 'como-treinar-o-seu-dragao', name: 'Como Treinar o Seu Dragão', icon: 'flight', regex: /(como[\s\-\.]*treinar[\s\-\.]*o[\s\-\.]*seu[\s\-\.]*drag[ãa]o|how[\s\-\.]*to[\s\-\.]*train[\s\-\.]*your[\s\-\.]*dragon)/i },
+    { id: 'kung-fu-panda', name: 'Kung Fu Panda', icon: 'sports_kabaddi', regex: /kung[\s\-\.]*fu[\s\-\.]*panda/i },
+    { id: 'era-do-gelo', name: 'A Era do Gelo', icon: 'ac_unit', regex: /(era[\s\-\.]*do[\s\-\.]*gelo|ice[\s\-\.]*age)/i },
+    { id: 'os-incriveis', name: 'Os Incríveis', icon: 'flash_on', regex: /(os[\s\-\.]*incr[íi]veis|incredibles)/i },
+    { id: 'deadpool', name: 'Deadpool', icon: 'sports_martial_arts', regex: /deadpool/i },
+    { id: 'indiana-jones', name: 'Indiana Jones', icon: 'explore', regex: /indiana[\s\-\.]*jones/i }
 ];
 
 export function detectFranchise(raw) {
@@ -101,12 +101,12 @@ export function detectSeries(name) {
 }
 
 /**
- * Retorna o caminho de pasta específico e organizado para um download.
- * - Séries: D:\filmes\Series\<Nome da Série>\Temporada XX
- * - Franquias: D:\filmes\Franquias\<Nome da Franquia>\<Nome do Filme>
- * - Filmes avulsos: D:\filmes\<Nome do Filme>
+ * Retorna o caminho de pasta específico e organizado para um download da plataforma.
+ * - Séries: D:\filmes\MatheusFlix\Series\<Nome da Série>\Temporada XX
+ * - Franquias: D:\filmes\MatheusFlix\Franquias\<Nome da Franquia>\<Nome do Filme>
+ * - Filmes avulsos: D:\filmes\MatheusFlix\<Nome do Filme>
  */
-export function getOrganizedDownloadPath(baseSavePath = 'D:\\filmes', title = '', filename = '') {
+export function getOrganizedDownloadPath(baseSavePath = path.join('D:\\filmes', 'MatheusFlix'), title = '', filename = '') {
     const raw = `${title} ${filename}`.trim();
     const seriesInfo = detectSeries(raw);
 
@@ -120,8 +120,8 @@ export function getOrganizedDownloadPath(baseSavePath = 'D:\\filmes', title = ''
             targetPath,
             category: 'series',
             groupName: cleanName,
-            icon: '📺',
-            displayPath: `D:\\filmes\\Series\\${cleanName}\\${seasonStr}`
+            icon: 'tv',
+            displayPath: `MatheusFlix\\Series\\${cleanName}\\${seasonStr}`
         };
     }
 
@@ -135,8 +135,8 @@ export function getOrganizedDownloadPath(baseSavePath = 'D:\\filmes', title = ''
             targetPath,
             category: 'franchise',
             groupName: franchise.name,
-            icon: franchise.icon,
-            displayPath: `D:\\filmes\\Franquias\\${franchise.name}\\${cleanMovieName}`
+            icon: franchise.icon || 'movie',
+            displayPath: `MatheusFlix\\Franquias\\${franchise.name}\\${cleanMovieName}`
         };
     }
 
@@ -148,8 +148,8 @@ export function getOrganizedDownloadPath(baseSavePath = 'D:\\filmes', title = ''
         targetPath,
         category: 'movie',
         groupName: null,
-        icon: '🎬',
-        displayPath: `D:\\filmes\\${cleanMovieName}`
+        icon: 'movie',
+        displayPath: `MatheusFlix\\${cleanMovieName}`
     };
 }
 

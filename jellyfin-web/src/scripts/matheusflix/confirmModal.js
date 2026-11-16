@@ -114,10 +114,10 @@ export async function confirmDownloadModal({ title, quality, size }) {
             <div class="mf-confirm-meta-row">
                 <span class="mf-confirm-badge mf-badge-quality">${escapeHtml(quality || '1080p')}</span>
                 ${size ? `<span class="mf-confirm-badge mf-badge-size">${escapeHtml(size)}</span>` : ''}
-                <span class="mf-confirm-badge mf-badge-dest">Destino: Na sua pasta</span>
+                <span class="mf-confirm-badge mf-badge-dest">Destino: Pasta MatheusFlix</span>
             </div>
             <p class="mf-confirm-desc">
-                O arquivo será salvo <strong>na sua pasta</strong>.
+                O arquivo será salvo na <strong>pasta MatheusFlix</strong>.
                 Você já pode <strong>assistir enquanto baixa</strong> em tempo real, sem esperar terminar!
             </p>
         </div>
@@ -125,7 +125,7 @@ export async function confirmDownloadModal({ title, quality, size }) {
 
     return showConfirmModal({
         title: 'Confirmar Download',
-        subtitle: 'Salvar filme na sua pasta local',
+        subtitle: 'Salvar filme na pasta MatheusFlix',
         icon: 'download',
         iconColor: 'var(--brand, #e50914)',
         htmlBody,
