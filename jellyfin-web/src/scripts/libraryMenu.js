@@ -38,8 +38,6 @@ function renderHeader() {
     html += '<div class="flex align-items-center flex-grow headerTop">';
     html += '<div class="headerLeft">';
     html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonLeft headerBackButton hide"><span class="material-icons ' + (browser.safari ? 'chevron_left' : 'arrow_back') + '" aria-hidden="true"></span></button>';
-    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerHomeButton hide barsMenuButton headerButtonLeft"><span class="material-icons home" aria-hidden="true"></span></button>';
-    html += '<button type="button" is="paper-icon-button-light" class="headerButton mainDrawerButton barsMenuButton headerButtonLeft"><span class="material-icons menu" aria-hidden="true"></span></button>';
     html += '<h3 class="pageTitle pageTitleWithLogo pageTitleWithDefaultLogo" aria-hidden="true"></h3>';
     html += '</div>';
     html += '<div class="headerTabs sectionTabs">';
@@ -48,7 +46,6 @@ function renderHeader() {
     html += '<button is="paper-icon-button-light" class="headerSyncButton syncButton headerButton headerButtonRight hide"><span class="material-icons groups" aria-hidden="true"></span></button>';
     html += '<span class="headerSelectedPlayer"></span>';
     html += '<button is="paper-icon-button-light" class="headerAudioPlayerButton audioPlayerButton headerButton headerButtonRight hide"><span class="material-icons music_note" aria-hidden="true"></span></button>';
-    html += '<button is="paper-icon-button-light" class="headerCastButton castButton headerButton headerButtonRight hide"><span class="material-icons cast" aria-hidden="true"></span></button>';
     html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton"><span class="material-icons search" aria-hidden="true"></span></button>';
     html += '<button is="paper-icon-button-light" class="headerButton headerButtonRight headerUserButton"><span class="material-icons person" aria-hidden="true"></span></button>';
     html += '<div class="currentTimeText hide"></div>';
@@ -59,12 +56,11 @@ function renderHeader() {
     skinHeader.classList.add('skinHeader-blurred');
     skinHeader.innerHTML = html;
 
-    // MatheusFlix: assegurar remoção completa de qualquer nuvem/discover residual
-    const residuals = skinHeader.querySelectorAll('.matheusflixDiscoverBtn, .cloud_download');
+    // MatheusFlix: assegurar remoção completa de qualquer nuvem/discover/hamburguer/casinha residual
+    const residuals = skinHeader.querySelectorAll('.matheusflixDiscoverBtn, .cloud_download, .mainDrawerButton, .barsMenuButton, .headerHomeButton, .headerCastButton, .castButton');
     residuals.forEach((el) => {
-        const btn = el.closest('button');
-        if (btn) btn.remove();
-        else el.remove();
+        const btn = el.closest('button') || el;
+        btn.remove();
     });
 
     Events.trigger(document, EventType.HEADER_RENDERED);
@@ -799,7 +795,8 @@ pageClassOn('pageshow', 'page', function (e) {
     const isLibraryPage = !isDashboardPage && page.classList.contains('libraryPage');
 
     if (mainDrawerButton) {
-        mainDrawerButton.classList.remove('hide');
+        mainDrawerButton.remove();
+        mainDrawerButton = null;
     }
 
     if (!isDashboardPage && currentDrawerType !== 'library') {

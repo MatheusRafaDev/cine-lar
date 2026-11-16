@@ -4774,12 +4774,26 @@ div[role="button"]:focus-visible {
     }
 }
 
-/* Ocultar completamente botoes de Cast e Conectar a TV */
+/* Ocultar completamente botoes de Cast, Conectar a TV, Hamburguer e Gaveta */
 .headerCastButton,
 .castButton,
 .mf-btn-cast-tv,
-.headerSelectedPlayer {
+.headerSelectedPlayer,
+.mainDrawerButton,
+.barsMenuButton,
+.headerHomeButton,
+button[title*="Menu"],
+button[aria-label*="Menu"],
+.mainDrawer,
+.mainDrawer-scrollContainer {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* ==========================================================================

@@ -133,10 +133,22 @@ body,
     flex-shrink: 0 !important;
 }
 
-/* Ocultar icones redundantes do Jellyfin (hamburguer e casinha) */
+/* Ocultar completamente qualquer menu hamburguer, gaveta e casinha no sistema */
 .headerHomeButton,
-.mainDrawerButton {
+.mainDrawerButton,
+.barsMenuButton,
+button[title*="Menu"],
+button[aria-label*="Menu"],
+.mainDrawer,
+.mainDrawer-scrollContainer {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* Botao voltar do cabecalho limpo e elegante estilo Netflix */
