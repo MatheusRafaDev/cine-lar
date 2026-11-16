@@ -338,9 +338,6 @@ function renderHero(homeTab, sections, movies) {
                 <button type="button" class="mf-btn-hero-play focusable">
                     <span class="material-icons">play_arrow</span>Assistir
                 </button>
-                <button type="button" class="mf-btn-hero-info focusable">
-                    <span class="material-icons">info_outline</span>Mais Informações
-                </button>
             </div>
         </div>
         ${list.length > 1 ? `
@@ -356,7 +353,6 @@ function renderHero(homeTab, sections, movies) {
     const metaEl = hero.querySelector('.mf-hero-meta');
     const descEl = hero.querySelector('.mf-hero-desc');
     const playBtn = hero.querySelector('.mf-btn-hero-play');
-    const infoBtn = hero.querySelector('.mf-btn-hero-info');
     const prevBtn = hero.querySelector('.mf-hero-prev');
     const nextBtn = hero.querySelector('.mf-hero-next');
     const dots = hero.querySelectorAll('.mf-hero-dot');
@@ -369,7 +365,7 @@ function renderHero(homeTab, sections, movies) {
         if (metaEl) {
             metaEl.innerHTML = [
                 movie.year ? `<span>${escapeHtml(movie.year)}</span>` : '',
-                movie.rating ? `<span>⭐ ${escapeHtml(movie.rating)}</span>` : '',
+                movie.rating ? `<span><span class="material-icons" style="font-size: 14px; vertical-align: middle; color: #f59e0b; margin-right: 2px;">star</span>${escapeHtml(movie.rating)}</span>` : '',
                 movie.genres ? `<span>${escapeHtml(movie.genres)}</span>` : ''
             ].filter(Boolean).join('');
         }
@@ -438,7 +434,6 @@ function renderHero(homeTab, sections, movies) {
         if (currentMovie) openStremioDetails(currentMovie);
     };
     if (playBtn) playBtn.addEventListener('click', onAction);
-    if (infoBtn) infoBtn.addEventListener('click', onAction);
 
     if (prevBtn) {
         prevBtn.addEventListener('click', (e) => {
