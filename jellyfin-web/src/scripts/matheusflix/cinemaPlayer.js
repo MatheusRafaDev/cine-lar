@@ -11,6 +11,7 @@ import { playbackManager } from 'components/playback/playbackmanager';
 import Events from 'utils/events';
 
 let activePlayerInstance = null;
+let lastFocusedBeforePlayer = null;
 const noop = () => {
     // Intentionally empty no-op handler
 };
@@ -40,6 +41,10 @@ export function openCinemaPlayer({
     resumePosition = 0,
     duration = 0
 }) {
+    if (document.activeElement && document.activeElement !== document.body) {
+        lastFocusedBeforePlayer = document.activeElement;
+    }
+
     // 1. Encerra qualquer reprodução cinema ativa para garantir apenas UM filme por vez
     if (activePlayerInstance) {
         closeCinemaPlayer();
@@ -677,6 +682,16 @@ export function openCinemaPlayer({
     };
 
     showControls();
+
+    setTimeout(() => {
+        const playBtn = playerEl.querySelector('.mf-btn-play');
+        const backBtn = playerEl.querySelector('.mf-player-btn-back');
+        if (playBtn) {
+            playBtn.focus();
+        } else if (backBtn) {
+            backBtn.focus();
+        }
+    }, 100);
 }
 
 export function closeCinemaPlayer() {
@@ -705,4 +720,13 @@ export function closeCinemaPlayer() {
 
     playerEl.remove();
     document.body.style.overflow = '';
+
+    if (lastFocusedBeforePlayer && typeof lastFocusedBeforePlayer.focus === 'function' && lastFocusedBeforePlayer.isConnected) {
+        const el = lastFocusedBeforePlayer;
+        setTimeout(() => {
+            try {
+                el.focus();
+            } catch (_) {}
+        }, 60);
+    }
 }

@@ -1,7 +1,7 @@
 import React, { type ChangeEvent, type FC, useCallback, useRef } from 'react';
-import AlphaPicker from 'components/alphaPicker/AlphaPickerComponent';
 import layoutManager from 'components/layoutManager';
 import browser from 'scripts/browser';
+import TvKeyboard from './TvKeyboard';
 import 'material-design-icons-iconfont';
 import 'styles/flexstyles.scss';
 import './searchfields.scss';
@@ -17,16 +17,13 @@ const SearchFields: FC<SearchFieldsProps> = ({
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const onAlphaPicked = useCallback((e: Event) => {
-        const value = (e as CustomEvent).detail.value;
-        const inputValue = inputRef.current?.value || '';
+    const onKeyInput = useCallback((char: string) => {
+        onSearch((query || '') + char);
+    }, [query, onSearch]);
 
-        if (value === 'backspace') {
-            onSearch(inputValue.length ? inputValue.substring(0, inputValue.length - 1) : '');
-        } else {
-            onSearch(inputValue + value);
-        }
-    }, [onSearch]);
+    const onBackspace = useCallback(() => {
+        onSearch(query.length ? query.substring(0, query.length - 1) : '');
+    }, [query, onSearch]);
 
     const onChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
         onSearch(e.target.value);
@@ -38,6 +35,12 @@ const SearchFields: FC<SearchFieldsProps> = ({
             inputRef.current.focus();
         }
     }, [onSearch]);
+
+    const onSelectSuggestion = useCallback((text: string) => {
+        onSearch(text);
+    }, [onSearch]);
+
+    const isTvMode = layoutManager.tv || browser.tv || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tv') === '1');
 
     return (
         <div className='padded-left padded-right searchFields'>
@@ -61,7 +64,7 @@ const SearchFields: FC<SearchFieldsProps> = ({
                 {query ? (
                     <button
                         type='button'
-                        className='searchfields-clearBtn'
+                        className='searchfields-clearBtn focusable'
                         title='Limpar busca'
                         onClick={onClear}
                     >
@@ -69,9 +72,15 @@ const SearchFields: FC<SearchFieldsProps> = ({
                     </button>
                 ) : null}
             </div>
-            {layoutManager.tv && !browser.tv && (
-                <AlphaPicker onAlphaPicked={onAlphaPicked} />
-            )}
+
+            {/* Teclado Virtual de TV com Histórico e Atalhos Rápidos */}
+            <TvKeyboard
+                query={query}
+                onKeyInput={onKeyInput}
+                onBackspace={onBackspace}
+                onClear={onClear}
+                onSelectSuggestion={onSelectSuggestion}
+            />
         </div>
     );
 };

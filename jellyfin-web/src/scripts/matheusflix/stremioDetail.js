@@ -13,6 +13,7 @@ const MAX_SOURCES = 15;
 let activeModal = null;
 let activeKeyHandler = null;
 let activePopHandler = null;
+let lastFocusedElement = null;
 
 function closeDetails(triggerBack = true) {
     if (activeModal) {
@@ -32,6 +33,15 @@ function closeDetails(triggerBack = true) {
     if (triggerBack && window.history.state && window.history.state.mfMoviePage) {
         window.history.back();
     }
+
+    if (lastFocusedElement && typeof lastFocusedElement.focus === 'function' && lastFocusedElement.isConnected) {
+        const elToFocus = lastFocusedElement;
+        setTimeout(() => {
+            try {
+                elToFocus.focus();
+            } catch (_) {}
+        }, 60);
+    }
 }
 
 function launchPlayer(config) {
@@ -40,6 +50,10 @@ function launchPlayer(config) {
 }
 
 export async function openStremioDetails(rawMovie) {
+    if (document.activeElement && document.activeElement !== document.body) {
+        lastFocusedElement = document.activeElement;
+    }
+
     closeCinemaPlayer();
     closeDetails(false);
     const movie = normalizeMovie(rawMovie);
@@ -86,8 +100,8 @@ export async function openStremioDetails(rawMovie) {
                                     ${movie.rating ? `<span class="mf-badge-chip mf-badge-rating"><span class="material-icons" style="font-size: 14px; color: #f59e0b;">star</span> ${movie.rating}</span>` : ''}
                                     ${movie.year ? `<span class="mf-badge-chip mf-badge-year">${escapeHtml(movie.year)}</span>` : ''}
                                     ${movie.genres ? movie.genres.split(/[,/]/).slice(0, 3).map(g => `<span class="mf-badge-chip mf-badge-genre">${escapeHtml(g.trim())}</span>`).join('') : ''}
-                                    ${movie.franchise ? `<span class="mf-badge-chip mf-badge-franchise">${escapeHtml(movie.franchiseIcon || '🎬')} Coleção ${escapeHtml(movie.franchise)}</span>` : ''}
-                                    ${movie.isSeries ? '<span class="mf-badge-chip mf-badge-series">📺 Série</span>' : ''}
+                                    ${movie.franchise ? `<span class="mf-badge-chip mf-badge-franchise"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">collections_bookmark</span> Coleção ${escapeHtml(movie.franchise)}</span>` : ''}
+                                    ${movie.isSeries ? '<span class="mf-badge-chip mf-badge-series"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">tv</span> Série</span>' : ''}
                                 </div>
                             </div>
                         </div>
@@ -134,7 +148,7 @@ export async function openStremioDetails(rawMovie) {
                         </div>
                         <div class="mf-streams-filter-chips">
                             <button type="button" class="mf-filter-chip focusable active" data-filter="all">Todos PT-BR</button>
-                            <button type="button" class="mf-filter-chip focusable" data-filter="dub">🇧🇷 Dublado / Dual</button>
+                            <button type="button" class="mf-filter-chip focusable" data-filter="dub">Dublado / Dual</button>
                             <button type="button" class="mf-filter-chip focusable" data-filter="1080p">1080p</button>
                             <button type="button" class="mf-filter-chip focusable" data-filter="4k">4K UHD</button>
                         </div>
@@ -152,6 +166,17 @@ export async function openStremioDetails(rawMovie) {
 
     document.body.appendChild(modalEl);
     activeModal = modalEl;
+
+    // Foco inicial automático para navegação por controle remoto na TV
+    setTimeout(() => {
+        const heroWatch = modalEl.querySelector('.mf-btn-hero-watch');
+        const backBtn = modalEl.querySelector('.mf-movie-page-back-btn');
+        if (heroWatch && !heroWatch.disabled) {
+            heroWatch.focus();
+        } else if (backBtn) {
+            backBtn.focus();
+        }
+    }, 80);
 
     modalEl.querySelector('.mf-movie-page-back-btn').addEventListener('click', () => closeDetails(true));
     activeKeyHandler = (e) => {

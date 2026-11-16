@@ -175,9 +175,11 @@ export function enable() {
 
         const key = getKeyName(e);
 
-        // Ignore navigation keys for non-TV
+        // Permite navegacao espacial (setas) sempre que nao estiver digitando em campo interativo
         if (!layoutManager.tv && isNavigationKey(key)) {
-            return;
+            if (isInteractiveElement(document.activeElement)) {
+                return;
+            }
         }
 
         // Ignore Media Keys for non-TV platform having MediaSession API
@@ -209,6 +211,16 @@ export function enable() {
                 inputManager.handleCommand('down');
                 break;
 
+            case 'Enter':
+                if (!isInteractiveElement(document.activeElement) && document.activeElement && document.activeElement !== document.body) {
+                    if (document.activeElement.tagName !== 'BUTTON' && document.activeElement.tagName !== 'A') {
+                        inputManager.handleCommand('select');
+                    }
+                } else {
+                    capture = false;
+                }
+                break;
+
             case 'GamepadA':
                 inputManager.handleCommand('select');
                 break;
@@ -216,9 +228,8 @@ export function enable() {
                 inputManager.handleCommand('back');
                 break;
 
-            // HACK: Hisense TV (VIDAA OS) uses Backspace for Back action
             case 'Backspace':
-                if (browser.tv && browser.hisense && browser.vidaa) {
+                if (!isInteractiveElement(document.activeElement)) {
                     inputManager.handleCommand('back');
                 } else {
                     capture = false;
@@ -226,11 +237,7 @@ export function enable() {
                 break;
 
             case 'Escape':
-                if (layoutManager.tv) {
-                    inputManager.handleCommand('back');
-                } else {
-                    capture = false;
-                }
+                inputManager.handleCommand('back');
                 break;
 
             case 'Find':

@@ -110,11 +110,36 @@ export function handleCommand(commandName, options) {
             appRouter.showSettings();
         },
         'back': () => {
-            if (appRouter.canGoBack()) {
-                appRouter.back();
-            } else if (appHost.supports(AppFeature.Exit)) {
-                appHost.exit();
+            // Se houver player de cinema ou diálogo de confirmação ativo, não interfere
+            if (document.querySelector('.mf-cinema-player') || document.querySelector('.mf-confirm-backdrop')) {
+                return;
             }
+
+            const isHome = window.location.hash.startsWith('#/home') || window.location.hash === '' || window.location.hash === '#/';
+
+            if (isHome || !appRouter.canGoBack()) {
+                import('./matheusflix/confirmModal').then(({ showConfirmModal }) => {
+                    showConfirmModal({
+                        title: 'Sair do MatheusFlix',
+                        subtitle: 'Deseja realmente sair da aplicação?',
+                        icon: 'exit_to_app',
+                        confirmText: 'Sair do App',
+                        cancelText: 'Continuar Assistindo',
+                        confirmType: 'danger'
+                    }).then((confirmed) => {
+                        if (confirmed && appHost.supports(AppFeature.Exit)) {
+                            appHost.exit();
+                        }
+                    });
+                }).catch(() => {
+                    if (appHost.supports(AppFeature.Exit)) {
+                        appHost.exit();
+                    }
+                });
+                return;
+            }
+
+            appRouter.back();
         },
         'select': () => {
             select(sourceElement);

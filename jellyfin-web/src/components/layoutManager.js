@@ -51,17 +51,37 @@ class LayoutManager {
     }
 
     autoLayout() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tv') === '1' || urlParams.get('tv') === 'true') {
+                this.setLayout('tv', false);
+                return;
+            }
+        } catch {
+            // Ignore url parse error
+        }
+
         // Take a guess at initial layout. The consuming app can override
-        if (browser.mobile) {
-            this.setLayout('mobile', false);
-        } else if (browser.tv || browser.xboxOne || browser.ps4) {
+        if (browser.tv || browser.xboxOne || browser.ps4) {
             this.setLayout('tv', false);
+        } else if (browser.mobile) {
+            this.setLayout('mobile', false);
         } else {
             this.setLayout(this.defaultLayout || 'tv', false);
         }
     }
 
     init() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tv') === '1' || urlParams.get('tv') === 'true') {
+                this.setLayout('tv', false);
+                return;
+            }
+        } catch {
+            // Ignore url parse error
+        }
+
         const saved = this.getSavedLayout();
         if (saved) {
             this.setLayout(saved, false);
