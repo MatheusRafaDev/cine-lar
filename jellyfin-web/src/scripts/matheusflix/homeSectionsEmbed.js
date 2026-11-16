@@ -569,6 +569,37 @@ function renderRow(container, { key, title, linkText, tabIndex, movies, onClick 
         scroller.appendChild(card);
     });
 
+    // Card 'Ver Mais' no final do carrossel para expandir a seção
+    if (tabIndex !== undefined && movies.length > 0) {
+        const seeMoreCard = document.createElement('button');
+        seeMoreCard.type = 'button';
+        seeMoreCard.className = 'mf-home-card mf-home-card-see-more focusable';
+        seeMoreCard.title = `${linkText || 'Ver mais'} - ${title}`;
+        seeMoreCard.setAttribute('aria-label', `${linkText || 'Ver mais'} - ${title}`);
+        seeMoreCard.innerHTML = `
+            <div class="mf-see-more-poster-wrap">
+                <div class="mf-see-more-icon-circle">
+                    <span class="material-icons">arrow_forward</span>
+                </div>
+                <span class="mf-see-more-badge">Expandir</span>
+            </div>
+            <div class="mf-home-card-info" style="padding: 10px 12px; text-align: left; background: rgba(15,18,26,0.95); width: 100%; box-sizing: border-box;">
+                <h4 class="mf-home-card-title" style="color: #ffffff !important; font-size: 13px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(linkText || 'Ver mais')}</h4>
+                <div class="mf-home-card-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1 !important; text-align: left;">
+                    <span>${escapeHtml(title)}</span>
+                    <span class="material-icons" style="font-size: 13px; color: var(--brand, #e50914); vertical-align: middle;">open_in_new</span>
+                </div>
+            </div>
+        `;
+        seeMoreCard.addEventListener('click', () => {
+            window.location.hash = `#/home?tab=${tabIndex}`;
+        });
+        seeMoreCard.addEventListener('focus', () => {
+            seeMoreCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+        scroller.appendChild(seeMoreCard);
+    }
+
     setupRowSlider(row);
 }
 
