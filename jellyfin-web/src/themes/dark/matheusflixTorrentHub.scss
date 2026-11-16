@@ -2232,17 +2232,25 @@ button:has(.cloud_download),
     margin: 0 auto;
 }
 
-/* Home Screen Hero Banner */
+/* Home Screen Hero Banner (Carrossel Rotativo de Múltiplos Filmes) */
 .mf-home-hero {
     position: relative;
     height: 380px;
     margin: 12px 16px 28px 16px;
     border-radius: 20px;
-    background-size: cover;
-    background-position: center 25%;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 32px rgba(255, 122, 26, 0.12);
+    background: #0b0d12;
+}
+
+.mf-hero-bg-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center 25%;
+    transition: opacity 0.35s ease-in-out;
+    z-index: 1;
 }
 
 .mf-home-hero .mf-hero-content {
@@ -2253,8 +2261,107 @@ button:has(.cloud_download),
     flex-direction: column;
     justify-content: flex-end;
     max-width: 650px;
-    z-index: 2;
+    z-index: 3;
     box-sizing: border-box;
+    transition: opacity 0.35s ease-in-out, transform 0.35s ease-in-out;
+}
+
+/* Botões laterais de navegação do Hero Banner */
+.mf-hero-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(15, 18, 26, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    opacity: 0;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.mf-hero-nav .material-icons {
+    font-size: 28px;
+}
+
+.mf-hero-nav:hover {
+    background: rgba(20, 20, 20, 0.95);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: var(--brand, #e50914);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.mf-hero-nav:focus,
+.mf-hero-nav:focus-visible {
+    opacity: 1 !important;
+    outline: 3px solid #ffffff !important;
+    outline-offset: 2px !important;
+    background: rgba(20, 20, 20, 0.95) !important;
+    color: var(--brand, #e50914) !important;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.mf-hero-nav.mf-hero-prev {
+    left: 20px;
+}
+
+.mf-hero-nav.mf-hero-next {
+    right: 20px;
+}
+
+.mf-home-hero:hover .mf-hero-nav {
+    opacity: 0.9;
+}
+
+.layout-tv .mf-hero-nav {
+    opacity: 0.85 !important;
+}
+
+/* Indicadores de slide do Hero Banner */
+.mf-hero-indicators {
+    position: absolute;
+    right: 36px;
+    bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
+.mf-hero-dot {
+    width: 22px;
+    height: 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.35);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mf-hero-dot:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.mf-hero-dot.active {
+    background: var(--brand, #e50914);
+    width: 40px;
+    box-shadow: 0 0 12px rgba(229, 9, 20, 0.6);
+}
+
+.mf-hero-dot:focus,
+.mf-hero-dot:focus-visible {
+    outline: 2px solid #ffffff !important;
+    outline-offset: 2px !important;
+    background: var(--brand, #e50914) !important;
 }
 
 .mf-home-hero .mf-hero-tag {

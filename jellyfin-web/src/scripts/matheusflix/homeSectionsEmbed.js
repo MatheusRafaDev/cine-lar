@@ -74,7 +74,9 @@ export async function embedMatheusFlixHomeSections(view) {
         const historyList = historyRes.status === 'fulfilled' ? (historyRes.value?.history || []) : [];
         const favoritesList = favsRes.status === 'fulfilled' ? (favsRes.value?.favorites || []) : [];
 
-        renderHero(homeTab, sections, trending[0]);
+        // Carrossel rotativo no topo: seleciona os principais destaques com backdrop
+        const heroMovies = trending.filter(m => m.backdrop && m.backdrop.length > 5);
+        renderHero(homeTab, sections, heroMovies.length >= 2 ? heroMovies.slice(0, 6) : trending.slice(0, 5));
 
         // Container exclusivo das fileiras do MatheusFlix para preservar a sequência estilo Netflix
         let wrap = sections.querySelector('.mf-home-sections-wrap');
@@ -222,37 +224,192 @@ function playLocal(m) {
     });
 }
 
-function renderHero(homeTab, sections, movie) {
+function renderHero(homeTab, sections, movies) {
+    let list = [];
+    if (Array.isArray(movies)) {
+        list = movies.filter(Boolean);
+    } else if (movies) {
+        list = [movies];
+    }
     let hero = homeTab.querySelector('.mf-home-hero');
-    if (!movie) {
-        hero?.remove();
+
+    if (list.length === 0) {
+        if (hero) {
+            if (hero._mfStopTimer) hero._mfStopTimer();
+            hero.remove();
+        }
         return;
     }
+
     if (!hero) {
         hero = document.createElement('div');
         hero.className = 'mf-home-hero';
         homeTab.insertBefore(hero, sections);
+    } else if (hero._mfStopTimer) {
+        hero._mfStopTimer();
     }
 
-    hero.style.backgroundImage = `linear-gradient(90deg, rgba(11,13,18,0.95) 0%, rgba(11,13,18,0.6) 50%, rgba(11,13,18,0.1) 100%), url('${escapeHtml(movie.backdrop)}')`;
     hero.innerHTML = `
+        <div class="mf-hero-bg-layer" aria-hidden="true"></div>
+        ${list.length > 1 ? `
+            <button type="button" class="mf-hero-nav mf-hero-prev focusable" aria-label="Filme anterior" title="Anterior">
+                <span class="material-icons">chevron_left</span>
+            </button>
+            <button type="button" class="mf-hero-nav mf-hero-next focusable" aria-label="Próximo filme" title="Próximo">
+                <span class="material-icons">chevron_right</span>
+            </button>
+        ` : ''}
         <div class="mf-hero-content">
             <span class="mf-hero-tag">EM ALTA</span>
-            <h1 class="mf-hero-title">${escapeHtml(movie.title)}</h1>
-            <div class="mf-hero-meta">
-                ${movie.year ? `<span>${escapeHtml(movie.year)}</span>` : ''}
-                ${movie.rating ? `<span>⭐ ${movie.rating}</span>` : ''}
-                ${movie.genres ? `<span>${escapeHtml(movie.genres)}</span>` : ''}
-            </div>
-            ${movie.description ? `<p class="mf-hero-desc">${escapeHtml(movie.description)}</p>` : ''}
+            <h1 class="mf-hero-title"></h1>
+            <div class="mf-hero-meta"></div>
+            <p class="mf-hero-desc"></p>
             <div class="mf-hero-buttons">
                 <button type="button" class="mf-btn-hero-play focusable">
                     <span class="material-icons">play_arrow</span>Assistir
                 </button>
+                <button type="button" class="mf-btn-hero-info focusable">
+                    <span class="material-icons">info_outline</span>Mais Informações
+                </button>
             </div>
         </div>
+        ${list.length > 1 ? `
+            <div class="mf-hero-indicators" role="tablist" aria-label="Destaques">
+                ${list.map((_, i) => `<button type="button" class="mf-hero-dot focusable${i === 0 ? ' active' : ''}" data-index="${i}" aria-label="Slide ${i + 1}"></button>`).join('')}
+            </div>
+        ` : ''}
     `;
-    hero.querySelector('.mf-btn-hero-play').addEventListener('click', () => openStremioDetails(movie));
+
+    const bgLayer = hero.querySelector('.mf-hero-bg-layer');
+    const content = hero.querySelector('.mf-hero-content');
+    const titleEl = hero.querySelector('.mf-hero-title');
+    const metaEl = hero.querySelector('.mf-hero-meta');
+    const descEl = hero.querySelector('.mf-hero-desc');
+    const playBtn = hero.querySelector('.mf-btn-hero-play');
+    const infoBtn = hero.querySelector('.mf-btn-hero-info');
+    const prevBtn = hero.querySelector('.mf-hero-prev');
+    const nextBtn = hero.querySelector('.mf-hero-next');
+    const dots = hero.querySelectorAll('.mf-hero-dot');
+
+    let currentIndex = 0;
+    let timer = null;
+
+    function applyMovieData(movie) {
+        if (titleEl) titleEl.textContent = movie.title || '';
+        if (metaEl) {
+            metaEl.innerHTML = [
+                movie.year ? `<span>${escapeHtml(movie.year)}</span>` : '',
+                movie.rating ? `<span>⭐ ${escapeHtml(movie.rating)}</span>` : '',
+                movie.genres ? `<span>${escapeHtml(movie.genres)}</span>` : ''
+            ].filter(Boolean).join('');
+        }
+        if (descEl) {
+            descEl.textContent = movie.description || '';
+            descEl.style.display = movie.description ? '' : 'none';
+        }
+    }
+
+    function updateSlide(nextIndex, animate = true) {
+        currentIndex = (nextIndex + list.length) % list.length;
+        const currentMovie = list[currentIndex];
+        if (!currentMovie) return;
+
+        const bgUrl = currentMovie.backdrop || currentMovie.poster || '';
+        const bgStyle = `linear-gradient(90deg, rgba(11,13,18,0.96) 0%, rgba(11,13,18,0.7) 48%, rgba(11,13,18,0.15) 100%), linear-gradient(0deg, #0b0d12 0%, rgba(11,13,18,0) 40%), url('${escapeHtml(bgUrl)}')`;
+
+        if (animate && content) {
+            content.style.opacity = '0';
+            content.style.transform = 'translateY(6px)';
+            if (bgLayer) bgLayer.style.opacity = '0.4';
+
+            setTimeout(() => {
+                if (bgLayer) {
+                    bgLayer.style.backgroundImage = bgStyle;
+                    bgLayer.style.opacity = '1';
+                }
+                applyMovieData(currentMovie);
+                content.style.opacity = '1';
+                content.style.transform = 'translateY(0)';
+            }, 120);
+        } else {
+            if (bgLayer) bgLayer.style.backgroundImage = bgStyle;
+            applyMovieData(currentMovie);
+        }
+
+        dots.forEach((dot, idx) => {
+            if (idx === currentIndex) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+    }
+
+    function startTimer() {
+        stopTimer();
+        if (list.length > 1) {
+            timer = setInterval(() => {
+                updateSlide(currentIndex + 1, true);
+            }, 6500);
+        }
+    }
+
+    function stopTimer() {
+        if (timer) {
+            clearInterval(timer);
+            timer = null;
+        }
+    }
+
+    hero._mfStopTimer = stopTimer;
+
+    const onAction = () => {
+        const currentMovie = list[currentIndex];
+        if (currentMovie) openStremioDetails(currentMovie);
+    };
+    if (playBtn) playBtn.addEventListener('click', onAction);
+    if (infoBtn) infoBtn.addEventListener('click', onAction);
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateSlide(currentIndex - 1, true);
+            startTimer();
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateSlide(currentIndex + 1, true);
+            startTimer();
+        });
+    }
+
+    dots.forEach((dot) => {
+        dot.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(dot.getAttribute('data-index') || '0', 10);
+            updateSlide(idx, true);
+            startTimer();
+        });
+    });
+
+    hero.addEventListener('mouseenter', stopTimer);
+    hero.addEventListener('mouseleave', () => {
+        if (!hero.contains(document.activeElement)) {
+            startTimer();
+        }
+    });
+    hero.addEventListener('focusin', stopTimer);
+    hero.addEventListener('focusout', (e) => {
+        if (!hero.contains(e.relatedTarget)) {
+            startTimer();
+        }
+    });
+
+    updateSlide(0, false);
+    startTimer();
 }
 
 function setupRowSlider(row) {
