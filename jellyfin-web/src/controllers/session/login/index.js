@@ -31,15 +31,13 @@ function authenticateUserByName(page, apiClient, url, username, password) {
         onLoginSuccessful(user.Id, result.AccessToken, apiClient, url);
     }, function (response) {
         loading.hide();
-        console.warn('[MatheusFlix] Falha na autenticação automática, redirecionando para home...', response);
-        // Garante que o formulário nunca apareça e segue direto para a Home
-        setTimeout(() => {
-            apiClient.authenticateUserByName('usuario', '10092004').then(function (res) {
-                onLoginSuccessful(res.User.Id, res.AccessToken, apiClient, url);
-            }).catch(function () {
-                Dashboard.navigate(url || 'home');
-            });
-        }, 500);
+        console.warn('[MatheusFlix] Falha na autenticação, tentando alternativa...', response);
+        const fallbackUser = username === 'rafae' ? 'usuario' : 'rafae';
+        apiClient.authenticateUserByName(fallbackUser, '10092004').then(function (res) {
+            onLoginSuccessful(res.User.Id, res.AccessToken, apiClient, url);
+        }).catch(function () {
+            Dashboard.navigate(url || 'home');
+        });
     });
 }
 
@@ -261,12 +259,12 @@ export default function (view, params) {
 
         const apiClient = getApiClient();
 
-        // MatheusFlix: Perfil único 'usuario' sempre logado automaticamente
+        // MatheusFlix: Auto-login sempre ativo
         view.querySelector('.visualLoginForm')?.classList.add('hide');
         view.querySelector('.manualLoginForm')?.classList.add('hide');
         view.querySelector('.readOnlyContent')?.classList.add('hide');
 
-        authenticateUserByName(view, apiClient, getTargetUrl(), 'usuario', '10092004');
+        authenticateUserByName(view, apiClient, getTargetUrl(), 'rafae', '10092004');
         return;
 
         apiClient.getQuickConnect('Enabled')

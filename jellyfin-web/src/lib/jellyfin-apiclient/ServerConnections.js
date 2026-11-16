@@ -103,8 +103,17 @@ class ServerConnections extends ConnectionManager {
             // MatheusFlix: Se o servidor exigir login (ServerSignIn), autentica automaticamente sem pedir tela
             if (result && (result.State === 2 || result.State === 'ServerSignIn' || !result.AccessToken) && result.ApiClient) {
                 try {
-                    console.log('[MatheusFlix] Realizando auto-login transparente de usuario...');
-                    const authRes = await result.ApiClient.authenticateUserByName('usuario', '10092004');
+                    console.log('[MatheusFlix] Realizando auto-login transparente...');
+                    const usernames = ['rafae', 'usuario'];
+                    let authRes = null;
+                    for (const u of usernames) {
+                        try {
+                            authRes = await result.ApiClient.authenticateUserByName(u, '10092004');
+                            if (authRes && authRes.User) {
+                                break;
+                            }
+                        } catch (_) {}
+                    }
                     if (authRes && authRes.User) {
                         result.State = 1; // SignedIn
                         result.User = authRes.User;

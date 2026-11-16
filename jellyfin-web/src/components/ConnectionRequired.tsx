@@ -79,11 +79,20 @@ const ConnectionRequired: FunctionComponent<ConnectionRequiredProps> = ({
                 navigate(BounceRoutes.Home);
                 return;
             case ConnectionState.ServerSignIn:
-                // MatheusFlix: Autenticação transparente direta de 'usuario' sem exibir tela de login
+                // MatheusFlix: Autenticação transparente direta de 'rafae'/'usuario' sem exibir tela de login
                 try {
                     const client = connectionResponse.ApiClient;
                     if (client) {
-                        const auth = await client.authenticateUserByName('usuario', '10092004');
+                        const usernames = ['rafae', 'usuario'];
+                        let auth = null;
+                        for (const u of usernames) {
+                            try {
+                                auth = await client.authenticateUserByName(u, '10092004');
+                                if (auth && auth.User) {
+                                    break;
+                                }
+                            } catch (_) {}
+                        }
                         if (auth && auth.User) {
                             console.debug('[ConnectionRequired] auto-login succeeded, redirecting to home');
                             navigate(BounceRoutes.Home);
