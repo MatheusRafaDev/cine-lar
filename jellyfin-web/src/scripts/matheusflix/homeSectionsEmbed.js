@@ -20,7 +20,7 @@
 import { fetchCatalog, fetchLocalMovies, fetchUserFavorites, fetchWatchHistory, deleteWatchHistory } from './api';
 import { openStremioDetails } from './stremioDetail';
 import { openCinemaPlayer } from './cinemaPlayer';
-import { escapeHtml, normalizeMovie } from './utils';
+import { escapeHtml, normalizeMovie, parseDuration } from './utils';
 import toast from 'components/toast/toast';
 
 const inFlight = new WeakSet();
@@ -290,7 +290,7 @@ function playLocal(m) {
         isLocal: true,
         movieId: m.imdbId || m.id,
         poster: m.poster,
-        duration: m.duration || (m.runtime ? m.runtime * 60 : 0)
+        duration: parseDuration(m)
     });
 }
 

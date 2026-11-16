@@ -7,7 +7,7 @@
 import { cancelDownload, fetchDownloads, fetchLocalMovies, rescanLocalMovies, deleteLocalMovie } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
 import { confirmDeleteModal, confirmDeleteFileModal } from './confirmModal';
-import { escapeHtml, normalizeMovie } from './utils';
+import { escapeHtml, normalizeMovie, parseDuration } from './utils';
 import toast from 'components/toast/toast';
 
 export function renderLocalFolderView(container) {
@@ -305,7 +305,7 @@ function createMovieCard(m) {
             isLocal: true,
             movieId: m.imdbId || m.id,
             poster: m.poster,
-            duration: m.duration || (m.runtime ? m.runtime * 60 : 0)
+            duration: parseDuration(m)
         });
     });
 

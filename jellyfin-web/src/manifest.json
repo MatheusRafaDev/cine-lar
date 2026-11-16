@@ -1,12 +1,13 @@
 {
-    "name": "Jellyfin",
-    "description": "The Free Software Media System",
-    "lang": "en-US",
-    "short_name": "Jellyfin",
-    "start_url": "index.html#/home",
-    "theme_color": "#101010",
-    "background_color": "#101010",
-    "display": "standalone",
+    "name": "MatheusFlix",
+    "description": "MatheusFlix - Cinema e Streaming 10-foot para TV",
+    "lang": "pt-BR",
+    "short_name": "MatheusFlix",
+    "start_url": "index.html#!/home?tv=1",
+    "theme_color": "#141414",
+    "background_color": "#141414",
+    "display": "fullscreen",
+    "orientation": "landscape",
     "icons": [
         {
             "sizes": "72x72",

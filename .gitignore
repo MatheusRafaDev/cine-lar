@@ -8,6 +8,11 @@ jellyfin-web_git_backup/
 *.log
 npm-debug.log*
 
+# Variáveis de ambiente
+.env
+*.env
+.env.local
+
 # Sistema
 .DS_Store
 Thumbs.db

@@ -6,7 +6,7 @@
 import { checkIsFavorite, fetchDownloads, fetchSeriesMeta, searchTorrents, startDownload, toggleFavorite, deleteLocalMovie, deleteWatchHistory } from './api';
 import { openCinemaPlayer, closeCinemaPlayer } from './cinemaPlayer';
 import { confirmDownloadModal, confirmDeleteFileModal } from './confirmModal';
-import { escapeHtml, normalizeMovie, normalizeStream } from './utils';
+import { escapeHtml, normalizeMovie, normalizeStream, parseDuration } from './utils';
 import toast from 'components/toast/toast';
 
 const MAX_SOURCES = 15;
@@ -489,7 +489,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 movieId: movie.imdbId || movie.id,
                 poster: movie.poster,
                 resumePosition: movie.resumePosition || 0,
-                duration: movie.duration || (movie.runtime ? movie.runtime * 60 : 0)
+                duration: parseDuration(movie)
             });
         });
 
@@ -507,7 +507,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 movieId: movie.imdbId || movie.id,
                 poster: movie.poster,
                 resumePosition: movie.resumePosition || 0,
-                duration: movie.duration || (movie.runtime ? movie.runtime * 60 : 0)
+                duration: parseDuration(movie)
             });
         };
     } else if (localFile && localStatus) {
@@ -535,7 +535,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 movieId: movie.imdbId || movie.id,
                 poster: movie.poster,
                 resumePosition: movie.resumePosition || 0,
-                duration: (localFile && localFile.duration) || movie.duration || (movie.runtime ? movie.runtime * 60 : 0)
+                duration: parseDuration(localFile) || parseDuration(movie)
             });
         };
     }
@@ -837,6 +837,6 @@ function playStream(stream, movie, currentEp = null) {
         movieId: movie.imdbId || movie.id,
         poster: movie.poster,
         resumePosition: movie.resumePosition || 0,
-        duration: movie.duration || (movie.runtime ? movie.runtime * 60 : 0)
+        duration: parseDuration(movie)
     });
 }

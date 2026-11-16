@@ -500,11 +500,53 @@ export function streamLocalVideo(filePath, req, res) {
             'X-Media-Duration': String(duration),
             'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
         });
-        fs.createReadStream(targetFile).pipe(res);
+        const stream = fs.createReadStream(targetFile);
+        stream.pipe(res);
+        req.on('close', () => {
+            if (stream && typeof stream.destroy === 'function') stream.destroy();
+        });
+        stream.on('error', (err) => {
+            console.error('[LocalStream] Direct stream error:', err.message);
+            if (!res.headersSent) res.writeHead(500);
+            res.end();
+        });
     } else {
-        const parts = range.replace(/bytes=/, '').split('-');
-        const start = parseInt(parts[0], 10);
-        const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
+        const matches = range.match(/bytes=(\d*)-(\d*)/);
+        if (!matches) {
+            res.writeHead(416, {
+                'Content-Range': `bytes */${total}`,
+                'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
+            });
+            res.end();
+            return;
+        }
+
+        let start;
+        let end;
+
+        if (matches[1] === '') {
+            // Suffix range: bytes=-500 (últimos 500 bytes)
+            const suffix = parseInt(matches[2], 10);
+            start = Math.max(0, total - suffix);
+            end = total - 1;
+        } else if (matches[2] === '') {
+            // Range aberto: bytes=500- (do byte 500 até o final)
+            start = parseInt(matches[1], 10);
+            end = total - 1;
+        } else {
+            start = parseInt(matches[1], 10);
+            end = parseInt(matches[2], 10);
+        }
+
+        if (isNaN(start) || isNaN(end) || start >= total || end >= total || start > end) {
+            res.writeHead(416, {
+                'Content-Range': `bytes */${total}`,
+                'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
+            });
+            res.end();
+            return;
+        }
+
         const chunksize = (end - start) + 1;
 
         res.writeHead(206, {
@@ -515,7 +557,16 @@ export function streamLocalVideo(filePath, req, res) {
             'X-Media-Duration': String(duration),
             'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
         });
-        fs.createReadStream(targetFile, { start, end }).pipe(res);
+        const stream = fs.createReadStream(targetFile, { start, end });
+        stream.pipe(res);
+        req.on('close', () => {
+            if (stream && typeof stream.destroy === 'function') stream.destroy();
+        });
+        stream.on('error', (err) => {
+            console.error('[LocalStream] Range stream error:', err.message);
+            if (!res.headersSent) res.writeHead(500);
+            res.end();
+        });
     }
 }
 

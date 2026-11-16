@@ -1,0 +1,177 @@
+/* ==========================================================================
+   MatheusFlix - Estilos de Layout e Legibilidade 10-Foot (TV)
+   Projetado para telas grandes, navegacao por controle remoto e safe area
+   ========================================================================== */
+
+/* 1. Safe Area / Overscan e Ocultacao de Barras de Rolagem */
+html.layout-tv,
+.layout-tv {
+    --tv-safe-x: 4vw;
+    --tv-safe-y: 4vh;
+    --tv-base-font: 20px;
+
+    font-size: var(--tv-base-font) !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+
+    * {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+
+        &::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+    }
+}
+
+/* Escala para televisores 4K */
+@media (min-width: 2500px) {
+    html.layout-tv,
+    .layout-tv {
+        --tv-base-font: 24px;
+        --tv-safe-x: 5vw;
+        --tv-safe-y: 5vh;
+    }
+}
+
+/* 2. Margens Seguras (Safe Area 4%) nas Telas Principais */
+.layout-tv .mainAnimatedPage {
+    padding-left: var(--tv-safe-x, 4vw) !important;
+    padding-right: var(--tv-safe-x, 4vw) !important;
+    padding-bottom: max(var(--tv-safe-y, 4vh), 40px) !important;
+    box-sizing: border-box !important;
+}
+
+.layout-tv .mf-home-sections-wrap {
+    padding-bottom: calc(var(--tv-safe-y, 4vh) + 40px);
+}
+
+/* 3. Hero do Streaming em Escala TV */
+.layout-tv .mf-home-hero {
+    margin-left: calc(-1 * var(--tv-safe-x, 4vw)) !important;
+    margin-right: calc(-1 * var(--tv-safe-x, 4vw)) !important;
+    padding-left: var(--tv-safe-x, 4vw) !important;
+    padding-right: var(--tv-safe-x, 4vw) !important;
+    min-height: 60vh !important;
+
+    .mf-hero-title {
+        font-size: 2.8rem !important;
+        font-weight: 800 !important;
+        line-height: 1.15 !important;
+        letter-spacing: -0.02em !important;
+        margin-bottom: 12px !important;
+        text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9) !important;
+    }
+
+    .mf-hero-desc {
+        font-size: 1.15rem !important;
+        line-height: 1.55 !important;
+        max-width: 680px !important;
+        color: #e2e8f0 !important;
+        margin-bottom: 24px !important;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9) !important;
+    }
+
+    .mf-hero-btn {
+        height: 52px !important;
+        padding: 0 32px !important;
+        font-size: 1.15rem !important;
+        border-radius: 8px !important;
+        gap: 10px !important;
+    }
+
+    .mf-btn-hero-primary {
+        background: var(--brand, #e50914) !important;
+        color: #ffffff !important;
+    }
+
+    .mf-btn-hero-secondary {
+        background: rgba(255, 255, 255, 0.22) !important;
+        color: #ffffff !important;
+    }
+}
+
+/* 4. Escala e Proporcao dos Cards na TV */
+.layout-tv .mf-home-section {
+    margin-bottom: 32px !important;
+
+    .sectionTitle {
+        font-size: 1.55rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.01em !important;
+        margin-bottom: 14px !important;
+    }
+}
+
+.layout-tv .mf-home-card {
+    width: 210px !important;
+    min-width: 210px !important;
+    border-radius: 8px !important;
+
+    .mf-home-card-title {
+        font-size: 1.05rem !important;
+        line-height: 1.35 !important;
+        font-weight: 700 !important;
+    }
+
+    .mf-home-card-meta {
+        font-size: 0.9rem !important;
+        font-weight: 500 !important;
+    }
+}
+
+@media (min-width: 2500px) {
+    .layout-tv .mf-home-card {
+        width: 320px !important;
+        min-width: 320px !important;
+
+        .mf-home-card-title {
+            font-size: 1.25rem !important;
+        }
+
+        .mf-home-card-meta {
+            font-size: 1rem !important;
+        }
+    }
+}
+
+/* 5. Alvos de Toque e Navegacao Minimos (48px) */
+.layout-tv button,
+.layout-tv a,
+.layout-tv .focusable,
+.layout-tv .mf-category-chip,
+.layout-tv .mf-genre-chip {
+    min-height: 44px;
+    font-size: 1rem;
+}
+
+.layout-tv .mf-category-chip,
+.layout-tv .mf-genre-chip {
+    padding: 10px 22px !important;
+    font-size: 1.05rem !important;
+    border-radius: 9999px !important;
+}
+
+/* 6. Foco com Destaque e Aceleracao por Hardware */
+.layout-tv .focusable:focus,
+.layout-tv .focusable:focus-visible {
+    outline: 3px solid #ffffff !important;
+    outline-offset: 2px !important;
+    transform: scale(1.08) !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9), 0 0 24px rgba(229, 9, 20, 0.45) !important;
+    z-index: 100 !important;
+    will-change: transform, box-shadow;
+}
+
+/* 7. Otimizacoes para Hardware Fraco e Reducao de Movimento */
+@media (prefers-reduced-motion: reduce) {
+    .layout-tv .focusable:focus,
+    .layout-tv .focusable:focus-visible,
+    .layout-tv .mf-home-card:focus,
+    .layout-tv .mf-search-card:focus {
+        transform: none !important;
+        box-shadow: 0 0 0 3px #ffffff !important;
+    }
+}

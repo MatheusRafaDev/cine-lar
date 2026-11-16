@@ -14,6 +14,23 @@ import { getOrganizedDownloadPath, groupMediaLibrary } from './organizer.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Carregamento de variáveis de ambiente (.env)
+if (typeof process.loadEnvFile === 'function') {
+    const envPaths = [
+        path.join(__dirname, '.env'),
+        path.join(process.cwd(), '.env'),
+        path.join(process.cwd(), 'torrent-service', '.env')
+    ];
+    for (const ep of envPaths) {
+        if (fs.existsSync(ep)) {
+            try {
+                process.loadEnvFile(ep);
+                break;
+            } catch (_) {}
+        }
+    }
+}
+
 const PORT = process.env.PORT || 8085;
 const SAVE_PATH = process.env.SAVE_PATH || 'D:\\filmes';
 const PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'MatheusFlix');
@@ -492,8 +509,9 @@ async function markLocalMoviesInList(movieList) {
 const server = http.createServer(async (req, res) => {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS, HEAD');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Emby-Token');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration');
 
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
@@ -1302,7 +1320,7 @@ const server = http.createServer(async (req, res) => {
         }
 
         // Live Torrent Streaming endpoint (Range / 206 Partial Content com fallback de transcode)
-        if (pathname.startsWith('/api/stream/') && req.method === 'GET') {
+        if (pathname.startsWith('/api/stream/') && (req.method === 'GET' || req.method === 'HEAD')) {
             const infoHash = pathname.replace('/api/stream/', '').trim().toLowerCase();
             let torrent = getActiveTorrent(infoHash);
 
@@ -1365,6 +1383,17 @@ const server = http.createServer(async (req, res) => {
                 if (file.name.endsWith('.mkv')) contentType = 'video/x-matroska';
                 else if (file.name.endsWith('.webm')) contentType = 'video/webm';
                 else if (file.name.endsWith('.avi')) contentType = 'video/x-msvideo';
+
+                if (req.method === 'HEAD') {
+                    res.writeHead(200, {
+                        'Content-Length': total,
+                        'Content-Type': contentType,
+                        'Accept-Ranges': 'bytes',
+                        'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
+                    });
+                    res.end();
+                    return;
+                }
 
                 const range = req.headers.range;
 

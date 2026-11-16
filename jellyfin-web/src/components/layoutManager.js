@@ -57,6 +57,10 @@ class LayoutManager {
                 this.setLayout('tv', false);
                 return;
             }
+            if (localStorage.getItem('mf_tv_mode') === 'true') {
+                this.setLayout('tv', false);
+                return;
+            }
         } catch {
             // Ignore url parse error
         }
@@ -75,6 +79,10 @@ class LayoutManager {
         try {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('tv') === '1' || urlParams.get('tv') === 'true') {
+                this.setLayout('tv', false);
+                return;
+            }
+            if (localStorage.getItem('mf_tv_mode') === 'true') {
                 this.setLayout('tv', false);
                 return;
             }

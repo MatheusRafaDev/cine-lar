@@ -141,3 +141,17 @@ export function normalizeStream(s = {}) {
         isPortuguese: Boolean(s.isPortuguese ?? true)
     };
 }
+
+/**
+ * Converte duração de filme (em segundos ou formato "104 min" / runtime) para segundos inteiros.
+ */
+export function parseDuration(m = {}) {
+    if (!m) return 0;
+    if (typeof m.duration === 'number' && m.duration > 0) return Math.round(m.duration);
+    if (m.duration && !isNaN(Number(m.duration)) && Number(m.duration) > 0) return Math.round(Number(m.duration));
+    if (m.runtime) {
+        const parsed = parseInt(String(m.runtime), 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed * 60;
+    }
+    return 0;
+}

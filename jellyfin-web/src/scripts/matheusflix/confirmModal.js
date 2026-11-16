@@ -44,7 +44,7 @@ export function showConfirmModal({
                         <h3 id="mfConfirmTitle" class="mf-confirm-title">${escapeHtml(title)}</h3>
                         ${subtitle ? `<p class="mf-confirm-subtitle">${escapeHtml(subtitle)}</p>` : ''}
                     </div>
-                    <button type="button" class="mf-confirm-close-btn" title="Fechar (Esc)"><span class="material-icons" style="font-size: 18px;">close</span></button>
+                    <button type="button" class="mf-confirm-close-btn focusable" title="Fechar (Esc)"><span class="material-icons" style="font-size: 18px;">close</span></button>
                 </div>
 
                 <div class="mf-confirm-body">
@@ -52,8 +52,8 @@ export function showConfirmModal({
                 </div>
 
                 <div class="mf-confirm-footer">
-                    <button type="button" class="mf-confirm-btn-cancel">${escapeHtml(cancelText)}</button>
-                    <button type="button" class="mf-confirm-btn-action ${confirmBtnClass}">${escapeHtml(confirmText)}</button>
+                    <button type="button" class="mf-confirm-btn-cancel focusable">${escapeHtml(cancelText)}</button>
+                    <button type="button" class="mf-confirm-btn-action ${confirmBtnClass} focusable">${escapeHtml(confirmText)}</button>
                 </div>
             </div>
         `;
@@ -76,12 +76,15 @@ export function showConfirmModal({
         };
 
         const handleKey = (e) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' || e.key === 'Backspace') {
                 e.stopPropagation();
                 cleanup(false);
-            } else if (e.key === 'Enter') {
+            } else if (e.key === 'ArrowLeft') {
                 e.stopPropagation();
-                cleanup(true);
+                backdrop.querySelector('.mf-confirm-btn-cancel')?.focus();
+            } else if (e.key === 'ArrowRight') {
+                e.stopPropagation();
+                backdrop.querySelector('.mf-confirm-btn-action')?.focus();
             }
         };
 
@@ -162,7 +165,7 @@ export async function confirmDeleteModal({ title, isCompleted = false }) {
         title: mainTitle,
         subtitle,
         icon: 'delete_forever',
-        iconColor: '#ef4444',
+        iconColor: 'var(--brand, #e50914)',
         htmlBody,
         confirmText: actionText,
         cancelText: 'Voltar / Manter',
@@ -177,7 +180,7 @@ export async function confirmDeleteFileModal({ title }) {
     const htmlBody = `
         <div class="mf-confirm-info-box mf-confirm-danger-box">
             <h4 class="mf-confirm-movie-name">${escapeHtml(title)}</h4>
-            <p class="mf-confirm-desc" style="color: #cbd5e1; margin-bottom: 0;">
+            <p class="mf-confirm-desc" style="color: var(--text-2, #b3b3b3); margin-bottom: 0;">
                 O arquivo deste filme e suas legendas serão <strong>apagados definitivamente da sua pasta</strong>, liberando espaço no disco.
             </p>
         </div>
@@ -187,7 +190,7 @@ export async function confirmDeleteFileModal({ title }) {
         title: 'Excluir Arquivo do Computador',
         subtitle: 'Liberar espaço em disco',
         icon: 'delete_forever',
-        iconColor: '#ef4444',
+        iconColor: 'var(--brand, #e50914)',
         htmlBody,
         confirmText: 'Sim, Excluir Arquivo',
         cancelText: 'Cancelar',
@@ -202,7 +205,7 @@ export async function confirmDropMovieModal({ title }) {
     const htmlBody = `
         <div class="mf-confirm-info-box mf-confirm-danger-box">
             <h4 class="mf-confirm-movie-name">${escapeHtml(title)}</h4>
-            <p class="mf-confirm-desc" style="color: #cbd5e1; margin-bottom: 0;">
+            <p class="mf-confirm-desc" style="color: var(--text-2, #b3b3b3); margin-bottom: 0;">
                 Deseja dropar este título? O progresso salvo será apagado e ele não aparecerá mais na sua lista de <strong>Continuar Assistindo</strong>.
             </p>
         </div>
@@ -212,7 +215,7 @@ export async function confirmDropMovieModal({ title }) {
         title: 'Dropar Filme',
         subtitle: 'Remover de Continuar Assistindo',
         icon: 'playlist_remove',
-        iconColor: '#f97316',
+        iconColor: 'var(--brand, #e50914)',
         htmlBody,
         confirmText: 'Sim, Dropar Filme',
         cancelText: 'Manter na Lista',

@@ -49,6 +49,7 @@ import './styles/detailtable.scss';
 import './styles/librarybrowser.scss';
 import './themes/dark/matheusflixTorrentHub.scss';
 import './themes/dark/matheusflixPlayer.scss';
+import './themes/dark/matheusflix10Foot.scss';
 
 async function init() {
     // Log current version to console to help out with issue triage and debugging

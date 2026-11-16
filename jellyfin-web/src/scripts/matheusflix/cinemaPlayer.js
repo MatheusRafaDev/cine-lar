@@ -5,7 +5,7 @@
  */
 
 import { API_BASE, getStreamStatus, saveWatchProgress } from './api';
-import { escapeHtml } from './utils';
+import { escapeHtml, parseDuration } from './utils';
 import toast from 'components/toast/toast';
 import { playbackManager } from 'components/playback/playbackmanager';
 import Events from 'utils/events';
@@ -171,6 +171,10 @@ export function openCinemaPlayer({
                     </div>
 
                     <span class="mf-player-quality-tag">${escapeHtml(quality)}</span>
+
+                    <button type="button" class="mf-ctrl-btn mf-btn-subtitles focusable" title="Legendas e Áudio (S)">
+                        <span class="material-icons">subtitles</span>
+                    </button>
 
                     <button type="button" class="mf-ctrl-btn mf-btn-fullscreen focusable" title="Tela Cheia (F)">
                         <span class="material-icons">fullscreen</span>
@@ -357,7 +361,7 @@ export function openCinemaPlayer({
         }
     }
 
-    let totalDuration = duration || 0;
+    let totalDuration = parseDuration({ duration });
 
     // Se a duração não foi passada pelo chamador, obtém via cabeçalho HEAD do servidor
     if (!totalDuration || totalDuration <= 0) {
@@ -371,11 +375,11 @@ export function openCinemaPlayer({
     }
 
     function getEffectiveDuration() {
+        if (totalDuration > 30) {
+            return totalDuration;
+        }
         if (video.duration && isFinite(video.duration) && video.duration > 180) {
             return video.duration;
-        }
-        if (totalDuration > 0) {
-            return totalDuration;
         }
         if (video.duration && isFinite(video.duration) && video.duration > 0) {
             return video.duration;
@@ -387,7 +391,66 @@ export function openCinemaPlayer({
         const dur = getEffectiveDuration();
         if (dur > 0) {
             timeDur.textContent = formatSeconds(dur);
+        } else {
+            timeDur.textContent = '--:--';
         }
+    }
+
+    // Gerenciador de Wake Lock (mantém a tela da TV/computador acesa durante reprodução)
+    let wakeLock = null;
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator && !wakeLock) {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        } catch (_) {}
+    }
+
+    function releaseWakeLock() {
+        try {
+            if (wakeLock) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+        } catch (_) {}
+    }
+
+    // Alternar legendas e áudio
+    function toggleSubtitles() {
+        const tracks = video.textTracks;
+        if (!tracks || tracks.length === 0) {
+            toast('Nenhuma legenda embutida encontrada neste vídeo.');
+            return;
+        }
+        let anyShowing = false;
+        for (let i = 0; i < tracks.length; i++) {
+            if (tracks[i].mode === 'showing') {
+                anyShowing = true;
+                tracks[i].mode = 'disabled';
+                break;
+            }
+        }
+        if (!anyShowing) {
+            let targetTrack = tracks[0];
+            for (let i = 0; i < tracks.length; i++) {
+                if (/por|pt|bra/i.test(tracks[i].language || tracks[i].label || '')) {
+                    targetTrack = tracks[i];
+                    break;
+                }
+            }
+            targetTrack.mode = 'showing';
+            toast(`Legendas ativadas: ${targetTrack.label || targetTrack.language || 'Legenda 1'}`);
+        } else {
+            toast('Legendas desativadas');
+        }
+    }
+
+    const btnSubtitles = playerEl.querySelector('.mf-btn-subtitles');
+    if (btnSubtitles) {
+        btnSubtitles.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleSubtitles();
+        });
     }
 
     // Seek controls robustos com suporte a tempo total e transcoder
@@ -400,7 +463,7 @@ export function openCinemaPlayer({
             progressFill.style.width = `${pct}%`;
             timeCur.textContent = formatSeconds(targetTime);
 
-            if (video.duration && isFinite(video.duration) && video.duration > 180) {
+            if (video.duration && isFinite(video.duration) && video.duration > 180 && !video.src.includes('transcode=1')) {
                 video.currentTime = targetTime;
             } else {
                 clearTimeout(seekDebounce);
@@ -422,15 +485,27 @@ export function openCinemaPlayer({
     let lastProgressSave = 0;
     let hasResumed = false;
 
+    function getCurrentTimeSec() {
+        let offsetTime = 0;
+        try {
+            const u = new URL(video.src, window.location.href);
+            offsetTime = parseFloat(u.searchParams.get('startTime') || 0) || 0;
+        } catch {}
+        return offsetTime + (video.currentTime || 0);
+    }
+
     function persistCurrentProgress() {
         const dur = getEffectiveDuration();
-        if (movieId && dur > 0 && video.currentTime > 5) {
+        const currentSec = getCurrentTimeSec();
+        if (movieId && dur > 0 && currentSec > 5) {
+            const isCompleted = (currentSec / dur) >= 0.90;
             saveWatchProgress({
                 movieId,
                 title,
                 poster,
-                position: Math.floor(video.currentTime),
-                duration: Math.floor(dur)
+                position: Math.floor(currentSec),
+                duration: Math.floor(dur),
+                completed: isCompleted
             }).catch(noop);
         }
     }
@@ -450,11 +525,13 @@ export function openCinemaPlayer({
         }
 
         const dur = getEffectiveDuration();
+        const currentSec = getCurrentTimeSec();
+
         if (dur > 0) {
-            const pct = (video.currentTime / dur) * 100;
+            const pct = (currentSec / dur) * 100;
             seekSlider.value = pct;
             progressFill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
-            timeCur.textContent = formatSeconds(video.currentTime);
+            timeCur.textContent = formatSeconds(currentSec);
             timeDur.textContent = formatSeconds(dur);
 
             const now = Date.now();
@@ -463,12 +540,18 @@ export function openCinemaPlayer({
                 persistCurrentProgress();
             }
         } else {
-            timeCur.textContent = formatSeconds(video.currentTime);
+            timeCur.textContent = formatSeconds(currentSec);
+            timeDur.textContent = '--:--';
         }
 
         // Buffer fill
         if (video.buffered.length > 0 && dur > 0) {
-            const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+            let offsetTime = 0;
+            try {
+                const u = new URL(video.src, window.location.href);
+                offsetTime = parseFloat(u.searchParams.get('startTime') || 0) || 0;
+            } catch {}
+            const bufferedEnd = offsetTime + video.buffered.end(video.buffered.length - 1);
             const bPct = (bufferedEnd / dur) * 100;
             bufferFill.style.width = `${Math.min(100, Math.max(0, bPct))}%`;
         }
@@ -497,6 +580,7 @@ export function openCinemaPlayer({
         btnPlay.querySelector('.material-icons').textContent = 'pause';
         hideOverlay();
         showControls();
+        requestWakeLock();
     });
 
     video.addEventListener('playing', () => {
@@ -504,25 +588,32 @@ export function openCinemaPlayer({
         hideOverlay();
         tryResumePlayback();
         showControls();
+        requestWakeLock();
     });
 
     video.addEventListener('pause', () => {
         btnPlay.querySelector('.material-icons').textContent = 'play_arrow';
         playerEl.classList.add('controls-visible');
         persistCurrentProgress();
+        releaseWakeLock();
     });
 
     video.addEventListener('ended', () => {
         const dur = getEffectiveDuration();
-        if (dur > 60 && video.currentTime < (dur - 15)) {
+        const currentSec = getCurrentTimeSec();
+        if (dur > 60 && currentSec < (dur - 15)) {
             // Chunk intermediário de stream, não finaliza a reprodução
             return;
         }
         btnPlay.querySelector('.material-icons').textContent = 'replay';
         persistCurrentProgress();
+        releaseWakeLock();
     });
 
     video.addEventListener('loadedmetadata', () => {
+        if (!totalDuration && video.duration && isFinite(video.duration) && video.duration > 180) {
+            totalDuration = Math.round(video.duration);
+        }
         updateDurationUI();
         tryResumePlayback();
         hideOverlay();
@@ -638,6 +729,10 @@ export function openCinemaPlayer({
             video.muted = !video.muted;
             updateVolIcon();
             showControls();
+        } else if (e.key === 's' || e.key === 'S') {
+            e.preventDefault();
+            toggleSubtitles();
+            showControls();
         } else if (['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(e.key)) {
             e.preventDefault();
             handleExit();
@@ -668,6 +763,7 @@ export function openCinemaPlayer({
         document.removeEventListener('viewshow', handleNavAway);
         Events.off(playbackManager, 'playbackstart', handleNavAway);
 
+        releaseWakeLock();
         if (statusInterval) clearInterval(statusInterval);
         clearTimeout(controlsTimer);
         clearTimeout(watchdogTimer);
