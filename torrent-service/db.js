@@ -406,3 +406,14 @@ export function getWatchHistory(userId) {
     `).all(userId);
 }
 
+export function deleteWatchHistory(userId, movieId) {
+    if (!userId || !movieId) return false;
+    const database = getDb();
+    const res = database.prepare(`
+        DELETE FROM watch_history
+        WHERE user_id = ? AND movie_id = ?
+    `).run(userId, movieId);
+    return res.changes > 0;
+}
+
+

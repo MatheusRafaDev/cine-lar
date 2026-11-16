@@ -3,10 +3,12 @@
  * Destaque no topo + duas fileiras: "Em alta" (catálogo) e "Na sua pasta" (D:\filmes).
  */
 
-import { fetchCatalog, fetchLocalMovies, fetchUserFavorites, fetchWatchHistory } from './api';
+import { fetchCatalog, fetchLocalMovies, fetchUserFavorites, fetchWatchHistory, deleteWatchHistory } from './api';
 import { openStremioDetails } from './stremioDetail';
 import { openCinemaPlayer } from './cinemaPlayer';
+import { confirmDropMovieModal } from './confirmModal';
 import { escapeHtml, normalizeMovie } from './utils';
+import toast from 'components/toast/toast';
 
 const inFlight = new WeakSet();
 
@@ -219,6 +221,9 @@ function renderHistoryRow(sections, { key, title, movies }) {
         card.innerHTML = `
             <div class="mf-home-card-poster-wrap">
                 <img class="mf-home-card-poster" src="${escapeHtml(m.poster)}" alt="" loading="lazy" />
+                <button type="button" class="mf-btn-history-remove focusable" title="Dropar filme (Remover de Continuar Assistindo)">
+                    <span class="material-icons" style="font-size: 16px;">close</span>
+                </button>
                 <div class="mf-home-card-play-overlay"><span class="material-icons" style="font-size: 26px; color: #140a02;">play_arrow</span></div>
                 <div class="mf-history-bar"><div class="mf-history-bar-fill" style="width: ${m.progressPct}%;"></div></div>
             </div>
@@ -227,6 +232,31 @@ function renderHistoryRow(sections, { key, title, movies }) {
                 <div class="mf-home-card-meta" style="display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1 !important; text-align: left;"><span style="color: #ef4444 !important; font-weight: 700;">${m.progressPct}%</span> • <span>Faltam ${remainingMin}m</span></div>
             </div>
         `;
+
+        const btnDrop = card.querySelector('.mf-btn-history-remove');
+        if (btnDrop) {
+            btnDrop.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const confirmed = await confirmDropMovieModal({ title: m.title });
+                if (confirmed) {
+                    try {
+                        await deleteWatchHistory(m.id || m.movieId);
+                        toast(`"${m.title}" removido de Continuar Assistindo.`);
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.85)';
+                        setTimeout(() => {
+                            card.remove();
+                            if (!scroller.querySelector('.mf-home-card')) {
+                                row.remove();
+                            }
+                        }, 200);
+                    } catch (err) {
+                        toast(`Erro ao remover: ${err.message}`);
+                    }
+                }
+            });
+        }
+
         card.addEventListener('click', () => openStremioDetails({ ...m, resumePosition: m.position }));
         scroller.appendChild(card);
     });

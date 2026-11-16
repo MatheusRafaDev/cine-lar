@@ -3,9 +3,9 @@
  * Design System unificado, layout cinematográfico imersivo, botão de voltar e filtros de fontes.
  */
 
-import { checkIsFavorite, fetchDownloads, fetchSeriesMeta, searchTorrents, startDownload, toggleFavorite } from './api';
+import { checkIsFavorite, fetchDownloads, fetchSeriesMeta, searchTorrents, startDownload, toggleFavorite, deleteLocalMovie, deleteWatchHistory } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
-import { confirmDownloadModal } from './confirmModal';
+import { confirmDownloadModal, confirmDeleteFileModal, confirmDropMovieModal } from './confirmModal';
 import { escapeHtml, normalizeMovie, normalizeStream } from './utils';
 import toast from 'components/toast/toast';
 
@@ -101,6 +101,11 @@ export async function openStremioDetails(rawMovie) {
                                 <span class="material-icons" style="font-size: 26px;">play_circle_filled</span>
                                 <span class="mf-hero-watch-text">Buscando fontes disponíveis...</span>
                             </button>
+                            ${movie.resumePosition ? `
+                            <button type="button" class="mf-btn-drop-movie focusable" title="Dropar filme (Remover de Continuar Assistindo)">
+                                <span class="material-icons" style="font-size: 20px;">playlist_remove</span>
+                                <span>Dropar Filme</span>
+                            </button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -247,6 +252,28 @@ export async function openStremioDetails(rawMovie) {
                 toast(`Erro ao favoritar: ${err.message}`);
             } finally {
                 btnFav.disabled = false;
+            }
+        });
+    }
+
+    // Configurar botão de dropar filme (remover de Continuar Assistindo)
+    const btnDropMovie = modalEl.querySelector('.mf-btn-drop-movie');
+    if (btnDropMovie) {
+        btnDropMovie.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const confirmed = await confirmDropMovieModal({ title: movie.title });
+            if (confirmed) {
+                btnDropMovie.disabled = true;
+                try {
+                    await deleteWatchHistory(movie.imdbId || movie.id);
+                    movie.resumePosition = 0;
+                    btnDropMovie.style.opacity = '0';
+                    setTimeout(() => btnDropMovie.remove(), 200);
+                    toast(`"${movie.title}" removido de Continuar Assistindo.`);
+                } catch (err) {
+                    btnDropMovie.disabled = false;
+                    toast(`Erro ao dropar filme: ${err.message}`);
+                }
             }
         });
     }
@@ -551,11 +578,35 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                     <div class="mf-stream-title" style="color: #4ade80; font-weight: 700;">Reproduzir arquivo salvo no computador (D:\\filmes)</div>
                 </div>
                 <div class="mf-stream-actions">
-                    <button type="button" class="mf-btn-stream-play mf-btn-stream-play-local" title="Assistir agora da pasta local">
+                    <button type="button" class="mf-btn-stream-play mf-btn-stream-play-local focusable" title="Assistir agora da pasta local">
                         <span class="material-icons">play_arrow</span>
+                    </button>
+                    <button type="button" class="mf-btn-stream-delete-local focusable" title="Excluir arquivo permanentemente do computador (D:\\filmes)">
+                        <span class="material-icons" style="font-size: 18px;">delete_outline</span>
                     </button>
                 </div>
             `;
+            const btnDelLocal = localItem.querySelector('.mf-btn-stream-delete-local');
+            if (btnDelLocal) {
+                btnDelLocal.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const confirmed = await confirmDeleteFileModal({ title: movie.title });
+                    if (confirmed) {
+                        btnDelLocal.disabled = true;
+                        try {
+                            await deleteLocalMovie(localFile.videoPath || localFile.path || localFile.file);
+                            toast(`"${movie.title}" foi excluído do computador.`);
+                            localFile = null;
+                            localItem.remove();
+                            updateStreamsList();
+                        } catch (err) {
+                            btnDelLocal.disabled = false;
+                            toast(`Erro ao excluir: ${err.message}`);
+                        }
+                    }
+                });
+            }
+
             localItem.addEventListener('click', () => {
                 openCinemaPlayer({
                     streamUrl: localFile.streamUrl,

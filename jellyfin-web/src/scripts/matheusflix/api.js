@@ -200,3 +200,29 @@ export async function switchUserProfile(profile) {
     }
     return data;
 }
+
+export async function deleteLocalMovie(filePath) {
+    const res = await fetch(`${API_BASE}/local/file`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: filePath })
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+export async function deleteWatchHistory(movieId) {
+    const userId = getCurrentUserId();
+    const res = await fetch(`${API_BASE}/user/history?userId=${encodeURIComponent(userId)}&movieId=${encodeURIComponent(movieId)}`, {
+        method: 'DELETE'
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+

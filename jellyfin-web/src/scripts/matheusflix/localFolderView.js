@@ -4,9 +4,9 @@
  * Clique no pôster = assistir.
  */
 
-import { cancelDownload, fetchDownloads, fetchLocalMovies, rescanLocalMovies } from './api';
+import { cancelDownload, fetchDownloads, fetchLocalMovies, rescanLocalMovies, deleteLocalMovie } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
-import { confirmDeleteModal } from './confirmModal';
+import { confirmDeleteModal, confirmDeleteFileModal } from './confirmModal';
 import { escapeHtml, normalizeMovie } from './utils';
 import toast from 'components/toast/toast';
 
@@ -260,6 +260,9 @@ function createMovieCard(m) {
     card.innerHTML = `
         <div class="mf-poster-wrap">
             <img src="${escapeHtml(m.poster)}" alt="" loading="lazy" class="mf-poster-img" />
+            <button type="button" class="mf-btn-delete-local focusable" title="Excluir arquivo permanentemente do computador">
+                <span class="material-icons" style="font-size: 17px;">delete_outline</span>
+            </button>
             <div class="mf-poster-play-hover"><span class="material-icons mf-play-icon-large">play_circle_filled</span></div>
             ${franchiseTag}
         </div>
@@ -271,6 +274,27 @@ function createMovieCard(m) {
             </div>
         </div>
     `;
+
+    const btnDel = card.querySelector('.mf-btn-delete-local');
+    if (btnDel) {
+        btnDel.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const confirmed = await confirmDeleteFileModal({ title: m.title });
+            if (confirmed) {
+                btnDel.disabled = true;
+                try {
+                    await deleteLocalMovie(m.videoPath);
+                    toast(`"${m.title}" excluído do disco com sucesso.`);
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.85)';
+                    setTimeout(() => card.remove(), 250);
+                } catch (err) {
+                    btnDel.disabled = false;
+                    toast(`Erro ao excluir: ${err.message}`);
+                }
+            }
+        });
+    }
 
     card.addEventListener('click', () => {
         openCinemaPlayer({

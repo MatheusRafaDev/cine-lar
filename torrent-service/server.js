@@ -5,10 +5,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import WebTorrent from 'webtorrent';
-import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites, isUserFavorite, toggleUserFavorite, updateWatchProgress, getWatchHistory } from './db.js';
+import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites, isUserFavorite, toggleUserFavorite, updateWatchProgress, getWatchHistory, deleteWatchHistory } from './db.js';
 import { seedCatalog, scanLocalMovies } from './seeder.js';
 import { askAiMovieRecommendations } from './aiSearch.js';
-import { getLocalLibrary, streamLocalVideo } from './localScanner.js';
+import { getLocalLibrary, streamLocalVideo, deleteLocalFile, invalidateLocalCache } from './localScanner.js';
 import { getOrganizedDownloadPath, groupMediaLibrary } from './organizer.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -461,6 +461,20 @@ const server = http.createServer(async (req, res) => {
             const history = getWatchHistory(userId);
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({ history }));
+            return;
+        }
+
+        if (pathname === '/api/user/history' && req.method === 'DELETE') {
+            const movieId = urlObj.searchParams.get('movieId');
+            const userId = urlObj.searchParams.get('userId') || 'default';
+            if (movieId) {
+                deleteWatchHistory(userId, movieId);
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ success: true, message: 'Filme removido de Continuar Assistindo' }));
+            } else {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'movieId é obrigatório' }));
+            }
             return;
         }
 
@@ -1060,6 +1074,43 @@ const server = http.createServer(async (req, res) => {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: err.message }));
             }
+            return;
+        }
+
+        // Delete local movie file from disk
+        if (pathname === '/api/local/file' && req.method === 'DELETE') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = body ? JSON.parse(body) : {};
+                    const filePath = data.path || urlObj.searchParams.get('path');
+                    if (!filePath) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Parâmetro path é obrigatório' }));
+                        return;
+                    }
+
+                    const allowedBase = path.resolve(SAVE_PATH).toLowerCase();
+                    const targetPath = path.resolve(filePath).toLowerCase();
+
+                    if (!targetPath.startsWith(allowedBase)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Acesso negado: só é permitido excluir arquivos da pasta de filmes' }));
+                        return;
+                    }
+
+                    deleteLocalFile(filePath);
+                    invalidateLocalCache();
+                    refreshJellyfinLibrary();
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ success: true, message: 'Arquivo excluído do computador com sucesso' }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
             return;
         }
 

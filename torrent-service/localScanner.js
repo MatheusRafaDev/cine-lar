@@ -380,3 +380,44 @@ export function streamLocalVideo(filePath, req, res) {
         fs.createReadStream(filePath, { start, end }).pipe(res);
     }
 }
+
+export function invalidateLocalCache() {
+    localCache = null;
+    lastScanTime = 0;
+}
+
+export function deleteLocalFile(targetPath) {
+    if (!fs.existsSync(targetPath)) return false;
+
+    const stat = fs.statSync(targetPath);
+    if (stat.isFile()) {
+        fs.unlinkSync(targetPath);
+
+        // Deletar legendas e arquivos associados correspondentes
+        const baseName = targetPath.replace(/\.[^.]+$/, '');
+        for (const ext of ['.srt', '.vtt', '.nfo', '.jpg', '.png']) {
+            const extra = baseName + ext;
+            if (fs.existsSync(extra)) {
+                try { fs.unlinkSync(extra); } catch {}
+            }
+        }
+
+        // Se o diretório pai for uma pasta específica do filme dentro de D:\filmes e estiver vazia, remove a pasta
+        const parentDir = path.dirname(targetPath);
+        const allowedBase = path.resolve('D:\\filmes');
+        if (path.resolve(parentDir) !== allowedBase && path.resolve(parentDir).startsWith(allowedBase)) {
+            try {
+                const remaining = fs.readdirSync(parentDir);
+                if (remaining.length === 0 || remaining.every(f => /\.(srt|vtt|nfo|jpg|png|txt)$/i.test(f))) {
+                    fs.rmSync(parentDir, { recursive: true, force: true });
+                }
+            } catch {}
+        }
+        return true;
+    } else if (stat.isDirectory()) {
+        fs.rmSync(targetPath, { recursive: true, force: true });
+        return true;
+    }
+    return false;
+}
+

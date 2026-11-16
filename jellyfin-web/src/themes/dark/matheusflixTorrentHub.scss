@@ -4649,4 +4649,122 @@ div[role="button"]:focus-visible {
     transform: none !important;
 }
 
+/* ==========================================================================
+   Botões de Exclusão de Arquivos & Dropar Filmes de Continuar Assistindo
+   ========================================================================== */
+
+/* Botão de dropar filme diretamente no card de Continuar Assistindo */
+.mf-btn-history-remove {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    z-index: 25 !important;
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    background: rgba(15, 18, 26, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: #cbd5e1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+        border-color: #ef4444 !important;
+        transform: scale(1.18) !important;
+        box-shadow: 0 0 16px rgba(239, 68, 68, 0.8) !important;
+    }
+}
+
+/* Botão de excluir arquivo local no card da Pasta Local */
+.mf-btn-delete-local {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    z-index: 25 !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    background: rgba(15, 18, 26, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: #cbd5e1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+        border-color: #ef4444 !important;
+        transform: scale(1.18) !important;
+        box-shadow: 0 0 16px rgba(239, 68, 68, 0.8) !important;
+    }
+}
+
+/* Botão de excluir arquivo local dentro da lista de fontes */
+.mf-btn-stream-delete-local {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 12px !important;
+    background: rgba(239, 68, 68, 0.12) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    color: #f87171 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+        border-color: #ef4444 !important;
+        transform: scale(1.1) !important;
+        box-shadow: 0 0 16px rgba(239, 68, 68, 0.7) !important;
+    }
+}
+
+/* Botão de dropar filme na tela de detalhes */
+.mf-btn-drop-movie {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    height: 52px !important;
+    padding: 0 22px !important;
+    border-radius: 14px !important;
+    background: rgba(239, 68, 68, 0.12) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35) !important;
+    color: #f87171 !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    margin-left: 12px !important;
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+        border-color: #ef4444 !important;
+        transform: scale(1.05) !important;
+        box-shadow: 0 0 22px rgba(239, 68, 68, 0.7) !important;
+    }
+}
+
+
 
