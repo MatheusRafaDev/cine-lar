@@ -1718,6 +1718,8 @@ export default function (view) {
         }
     });
     view.addEventListener('viewbeforehide', function () {
+        onViewHideStopPlayback();
+
         if (statsOverlay) {
             statsOverlay.enabled(false);
         }

@@ -4,7 +4,7 @@
  */
 
 import { fetchDownloads } from './matheusflix/api';
-import { openCinemaPlayer } from './matheusflix/cinemaPlayer';
+import { openCinemaPlayer, closeCinemaPlayer } from './matheusflix/cinemaPlayer';
 
 let activeDownloadsCache = [];
 let pollInterval = null;
@@ -50,9 +50,9 @@ export function init() {
         window.MatheusFlix.openStreaming = () => navigateToTab(1);
         window.MatheusFlix.openLocalFolder = () => navigateToTab(2);
         window.MatheusFlix.openDownloads = () => navigateToTab(3);
-        window.MatheusFlix.openProfileSelector = () => import('./matheusflix/profileSelector').then(m => m.openProfileSelector());
         window.MatheusFlix.getDownloads = () => activeDownloadsCache;
         window.MatheusFlix.playCinema = openCinemaPlayer;
+        window.MatheusFlix.closeCinema = closeCinemaPlayer;
     }
 
     startPolling();

@@ -7,6 +7,8 @@
 import { API_BASE, getStreamStatus, saveWatchProgress } from './api';
 import { escapeHtml } from './utils';
 import toast from 'components/toast/toast';
+import { playbackManager } from 'components/playback/playbackmanager';
+import Events from 'utils/events';
 
 let activePlayerInstance = null;
 const noop = () => {
@@ -37,13 +39,38 @@ export function openCinemaPlayer({
     poster = null,
     resumePosition = 0
 }) {
+    // 1. Encerra qualquer reprodução cinema ativa para garantir apenas UM filme por vez
     if (activePlayerInstance) {
         closeCinemaPlayer();
     }
 
+    // 2. Interrompe qualquer mídia nativa do Jellyfin para não rodar simultaneamente
+    try {
+        if (playbackManager && (playbackManager.isPlaying?.() || playbackManager.isPlayingVideo?.() || playbackManager.isPlayingAudio?.())) {
+            playbackManager.stop();
+        }
+    } catch (_) {}
+
+    // 3. Força interrupção e limpeza de quaisquer elementos de vídeo e áudio existentes na página
+    document.querySelectorAll('video, audio').forEach((media) => {
+        try {
+            media.pause();
+            media.removeAttribute('src');
+            media.src = '';
+            media.load();
+        } catch (_) {}
+    });
+
     // Remove qualquer modal de detalhes ou tela anterior para ir direto para o filme
     document.querySelectorAll('.mf-movie-page, .mf-stremio-modal, .mf-stremio-modal-backdrop').forEach(el => el.remove());
     document.body.style.overflow = 'hidden';
+
+    // Gerencia o histórico para que o botão Voltar do navegador funcione perfeitamente
+    if (window.history.state?.mfMoviePage) {
+        window.history.replaceState({ mfCinemaPlayer: true }, '');
+    } else if (!window.history.state?.mfCinemaPlayer) {
+        window.history.pushState({ mfCinemaPlayer: true }, '');
+    }
 
     // Auto-recupera infoHash se não foi fornecido explicitamente
     let currentHash = infoHash;
@@ -62,15 +89,21 @@ export function openCinemaPlayer({
     playerEl.innerHTML = `
         <div class="mf-player-topbar">
             <div class="mf-player-meta">
-                <h3 class="mf-player-title">${escapeHtml(title)}</h3>
-                <span class="mf-player-sub">${escapeHtml(subInfo || quality)}</span>
+                <button type="button" class="mf-player-back-nav-btn focusable" title="Voltar (Esc)">
+                    <span class="material-icons" style="font-size: 20px;">arrow_back</span>
+                    <span>Voltar</span>
+                </button>
+                <div class="mf-player-title-box">
+                    <h3 class="mf-player-title">${escapeHtml(title)}</h3>
+                    <span class="mf-player-sub">${escapeHtml(subInfo || quality)}</span>
+                </div>
             </div>
             <div class="mf-player-top-actions">
-                <button type="button" class="mf-btn-cast-tv" title="Transmitir na TV">
+                <button type="button" class="mf-btn-cast-tv focusable" title="Transmitir na TV">
                     <span class="material-icons" style="font-size: 18px;">cast</span>
                     <span>TV</span>
                 </button>
-                <button type="button" class="mf-player-close-btn" title="Fechar (Esc)">✕</button>
+                <button type="button" class="mf-player-close-btn focusable" title="Fechar (Esc)">✕</button>
             </div>
         </div>
 
@@ -78,15 +111,17 @@ export function openCinemaPlayer({
             <video class="mf-player-video" playsinline preload="auto" controlslist="nodownload"></video>
 
             <div class="mf-player-buffer-overlay" style="${isLocal ? 'display: none;' : ''}">
-                <div class="mf-player-spinner">🍿</div>
+                <div class="mf-player-spinner">
+                    <span class="material-icons" style="font-size: 40px; color: #e50914; animation: spin 1.2s linear infinite;">sync</span>
+                </div>
                 <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 800;">Conectando e Carregando Filme...</h2>
                 <p class="mf-buf-msg" style="margin: 0 0 16px 0; color: #a0a6b5; font-size: 14px; max-width: 520px; line-height: 1.5;">
                     O MatheusFlix está preparando o filme para você começar a assistir imediatamente!
                 </p>
                 <div class="mf-buffer-stats">
-                    <span class="mf-buffer-pill mf-buf-speed">⚡ Velocidade: ...</span>
-                    <span class="mf-buffer-pill mf-buf-peers">👥 Peers: ...</span>
-                    <span class="mf-buffer-pill mf-buf-progress">📊 Buffer: 0%</span>
+                    <span class="mf-buffer-pill mf-buf-speed"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">speed</span> Velocidade: ...</span>
+                    <span class="mf-buffer-pill mf-buf-peers"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">group</span> Peers: ...</span>
+                    <span class="mf-buffer-pill mf-buf-progress"><span class="material-icons" style="font-size: 14px; vertical-align: middle;">cloud_sync</span> Buffer: 0%</span>
                 </div>
                 <button type="button" class="mf-btn-force-play" style="margin-top: 16px; background: #e50914; color: #ffffff; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(229, 9, 20, 0.45); transition: transform 0.15s ease;">
                     <span class="material-icons" style="font-size: 18px;">play_arrow</span>
@@ -248,9 +283,24 @@ export function openCinemaPlayer({
         toggleFullscreen();
     });
 
+    function handleExit() {
+        closeCinemaPlayer();
+        if (window.history.state?.mfCinemaPlayer) {
+            window.history.back();
+        }
+    }
+
+    const btnBackNav = playerEl.querySelector('.mf-player-back-nav-btn');
+    if (btnBackNav) {
+        btnBackNav.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleExit();
+        });
+    }
+
     btnClose.addEventListener('click', (e) => {
         e.stopPropagation();
-        closeCinemaPlayer();
+        handleExit();
     });
 
     const btnCastTv = playerEl.querySelector('.mf-btn-cast-tv');
@@ -444,9 +494,9 @@ export function openCinemaPlayer({
             const progEl = playerEl.querySelector('.mf-buf-progress');
             const msgEl = playerEl.querySelector('.mf-buf-msg');
 
-            if (spEl) spEl.textContent = `⚡ Velocidade: ${data.downloadSpeed || '0 KB/s'}`;
-            if (prEl) prEl.textContent = `👥 Peers: ${data.numPeers || 0}`;
-            if (progEl) progEl.textContent = `📊 Buffer: ${data.progress || 0}%`;
+            if (spEl) spEl.innerHTML = `<span class="material-icons" style="font-size: 14px; vertical-align: middle;">speed</span> Velocidade: ${escapeHtml(data.downloadSpeed || '0 KB/s')}`;
+            if (prEl) prEl.innerHTML = `<span class="material-icons" style="font-size: 14px; vertical-align: middle;">group</span> Peers: ${data.numPeers || 0}`;
+            if (progEl) progEl.innerHTML = `<span class="material-icons" style="font-size: 14px; vertical-align: middle;">cloud_sync</span> Buffer: ${data.progress || 0}%`;
 
             if (data.numPeers === 0 && msgEl) {
                 msgEl.textContent = 'Conectando a sementes e peers na rede... Se demorar, experimente selecionar outra fonte na lista.';
@@ -513,38 +563,74 @@ export function openCinemaPlayer({
             showControls();
         } else if (['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(e.key)) {
             e.preventDefault();
-            if (document.fullscreenElement) {
-                document.exitFullscreen?.().catch(noop);
-            }
-            closeCinemaPlayer();
+            handleExit();
         }
     }
 
+    // Encerra imediatamente o player ao navegar para outra tela ou mudar rota
+    function handleNavAway() {
+        closeCinemaPlayer();
+    }
+
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('popstate', handleNavAway);
+    window.addEventListener('hashchange', handleNavAway);
+    window.addEventListener('pagehide', handleNavAway);
+    window.addEventListener('beforeunload', handleNavAway);
+    document.addEventListener('viewbeforehide', handleNavAway);
+    document.addEventListener('viewshow', handleNavAway);
+    Events.on(playbackManager, 'playbackstart', handleNavAway);
 
     playerEl._cleanup = () => {
         window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('popstate', handleNavAway);
+        window.removeEventListener('hashchange', handleNavAway);
+        window.removeEventListener('pagehide', handleNavAway);
+        window.removeEventListener('beforeunload', handleNavAway);
+        document.removeEventListener('viewbeforehide', handleNavAway);
+        document.removeEventListener('viewshow', handleNavAway);
+        Events.off(playbackManager, 'playbackstart', handleNavAway);
+
         if (statusInterval) clearInterval(statusInterval);
         clearTimeout(controlsTimer);
         clearTimeout(watchdogTimer);
         persistCurrentProgress();
-        video.pause();
-        video.src = '';
+
+        try {
+            video.pause();
+            video.removeAttribute('src');
+            video.src = '';
+            video.load();
+        } catch (_) {}
     };
 
     showControls();
 }
 
 export function closeCinemaPlayer() {
-    if (activePlayerInstance) {
-        if (document.fullscreenElement) {
-            document.exitFullscreen?.().catch(noop);
-        }
-        if (activePlayerInstance._cleanup) {
-            activePlayerInstance._cleanup();
-        }
-        activePlayerInstance.remove();
-        activePlayerInstance = null;
-        document.body.style.overflow = '';
+    if (!activePlayerInstance) return;
+
+    const playerEl = activePlayerInstance;
+    activePlayerInstance = null;
+
+    if (document.fullscreenElement) {
+        document.exitFullscreen?.().catch(noop);
     }
+
+    if (playerEl._cleanup) {
+        playerEl._cleanup();
+    }
+
+    const video = playerEl.querySelector('video');
+    if (video) {
+        try {
+            video.pause();
+            video.removeAttribute('src');
+            video.src = '';
+            video.load();
+        } catch (_) {}
+    }
+
+    playerEl.remove();
+    document.body.style.overflow = '';
 }

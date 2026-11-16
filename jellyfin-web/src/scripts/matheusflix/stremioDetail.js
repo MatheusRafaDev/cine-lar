@@ -4,7 +4,7 @@
  */
 
 import { checkIsFavorite, fetchDownloads, fetchSeriesMeta, searchTorrents, startDownload, toggleFavorite, deleteLocalMovie, deleteWatchHistory } from './api';
-import { openCinemaPlayer } from './cinemaPlayer';
+import { openCinemaPlayer, closeCinemaPlayer } from './cinemaPlayer';
 import { confirmDownloadModal, confirmDeleteFileModal, confirmDropMovieModal } from './confirmModal';
 import { escapeHtml, normalizeMovie, normalizeStream } from './utils';
 import toast from 'components/toast/toast';
@@ -40,6 +40,7 @@ function launchPlayer(config) {
 }
 
 export async function openStremioDetails(rawMovie) {
+    closeCinemaPlayer();
     closeDetails(false);
     const movie = normalizeMovie(rawMovie);
 
