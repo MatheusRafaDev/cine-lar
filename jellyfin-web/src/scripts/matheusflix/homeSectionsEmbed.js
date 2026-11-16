@@ -26,6 +26,45 @@ import toast from 'components/toast/toast';
 
 const inFlight = new WeakSet();
 
+function getMovieKey(m) {
+    if (!m) return '';
+    const id = m.imdbId || m.id || m.imdb_id;
+    if (id && String(id).startsWith('tt')) {
+        return String(id).toLowerCase();
+    }
+    if (m.title) {
+        return m.title.trim().toLowerCase();
+    }
+    return id ? String(id) : '';
+}
+
+function filterUniqueCategoryMovies(movies, seenSet, limit = 20, minTarget = 12) {
+    const list = [];
+    const skipped = [];
+    for (const m of movies) {
+        if (!m) continue;
+        const key = getMovieKey(m);
+        if (!key) continue;
+        if (!seenSet.has(key)) {
+            seenSet.add(key);
+            list.push(m);
+            if (list.length >= limit) break;
+        } else {
+            skipped.push(m);
+        }
+    }
+    if (list.length < minTarget && skipped.length > 0) {
+        for (const m of skipped) {
+            const key = getMovieKey(m);
+            if (!list.some(existing => getMovieKey(existing) === key)) {
+                list.push(m);
+                if (list.length >= minTarget) break;
+            }
+        }
+    }
+    return list;
+}
+
 export async function embedMatheusFlixHomeSections(view) {
     if (!view || inFlight.has(view)) return;
     const homeTab = view.querySelector('#homeTab') || view;
@@ -51,13 +90,13 @@ export async function embedMatheusFlixHomeSections(view) {
             historyRes,
             favsRes
         ] = await Promise.allSettled([
-            fetchCatalog({ limit: 20, sort: 'trending' }),
-            fetchCatalog({ limit: 20, sort: 'newest' }),
-            fetchCatalog({ limit: 20, genre: 'Action' }),
-            fetchCatalog({ limit: 20, genre: 'Adventure' }),
-            fetchCatalog({ limit: 20, genre: 'Comedy' }),
-            fetchCatalog({ limit: 20, genre: 'Sci-Fi' }),
-            fetchCatalog({ limit: 20, genre: 'Animation' }),
+            fetchCatalog({ limit: 60, sort: 'trending' }),
+            fetchCatalog({ limit: 60, sort: 'newest' }),
+            fetchCatalog({ limit: 60, genre: 'Action' }),
+            fetchCatalog({ limit: 60, genre: 'Adventure' }),
+            fetchCatalog({ limit: 60, genre: 'Comedy' }),
+            fetchCatalog({ limit: 60, genre: 'Sci-Fi' }),
+            fetchCatalog({ limit: 60, genre: 'Animation' }),
             fetchLocalMovies(),
             fetchWatchHistory(),
             fetchUserFavorites()
@@ -74,9 +113,17 @@ export async function embedMatheusFlixHomeSections(view) {
         const historyList = historyRes.status === 'fulfilled' ? (historyRes.value?.history || []) : [];
         const favoritesList = favsRes.status === 'fulfilled' ? (favsRes.value?.favorites || []) : [];
 
+        // Registro de filmes já exibidos para evitar qualquer repetição entre as sugestões
+        const seenMovieKeys = new Set();
+
         // Carrossel rotativo no topo: seleciona os principais destaques com backdrop
         const heroMovies = trending.filter(m => m.backdrop && m.backdrop.length > 5);
-        renderHero(homeTab, sections, heroMovies.length >= 2 ? heroMovies.slice(0, 6) : trending.slice(0, 5));
+        const heroSelection = heroMovies.length >= 2 ? heroMovies.slice(0, 6) : trending.slice(0, 5);
+        heroSelection.forEach(m => {
+            const k = getMovieKey(m);
+            if (k) seenMovieKeys.add(k);
+        });
+        renderHero(homeTab, sections, heroSelection);
 
         // Container exclusivo das fileiras do MatheusFlix para preservar a sequência estilo Netflix
         let wrap = sections.querySelector('.mf-home-sections-wrap');
@@ -104,6 +151,11 @@ export async function embedMatheusFlixHomeSections(view) {
             })
             .filter(h => h.position > 10 && h.duration > 0 && h.position < (h.duration * 0.95));
 
+        continueWatching.forEach(m => {
+            const k = getMovieKey(m);
+            if (k) seenMovieKeys.add(k);
+        });
+
         renderHistoryRow(wrap, {
             key: 'history',
             title: 'Continuar Assistindo',
@@ -119,6 +171,12 @@ export async function embedMatheusFlixHomeSections(view) {
             year: f.year || '',
             rating: f.rating || ''
         }));
+
+        userFavs.forEach(m => {
+            const k = getMovieKey(m);
+            if (k) seenMovieKeys.add(k);
+        });
+
         renderRow(wrap, {
             key: 'favorites',
             title: 'Minha Lista',
@@ -129,6 +187,11 @@ export async function embedMatheusFlixHomeSections(view) {
         });
 
         // 3. Na sua pasta (D:\filmes)
+        localMovies.forEach(m => {
+            const k = getMovieKey(m);
+            if (k) seenMovieKeys.add(k);
+        });
+
         renderRow(wrap, {
             key: 'local',
             title: 'Na sua pasta (D:\\filmes)',
@@ -138,73 +201,80 @@ export async function embedMatheusFlixHomeSections(view) {
             onClick: playLocal
         });
 
-        // 4. ✨ Lançamentos
+        // 4. ✨ Lançamentos (filtrados sem repetição)
+        const uniqueNewest = filterUniqueCategoryMovies(newest, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'newest',
             title: '✨ Lançamentos',
             linkText: 'Ver mais',
             tabIndex: 1,
-            movies: newest,
+            movies: uniqueNewest,
             onClick: openStremioDetails
         });
 
-        // 5. 🔥 Em alta no MatheusFlix
+        // 5. 🔥 Em alta no MatheusFlix (filtrados sem repetição)
+        const uniqueTrending = filterUniqueCategoryMovies(trending, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'trending',
             title: '🔥 Em alta no MatheusFlix',
             linkText: 'Ver mais',
             tabIndex: 1,
-            movies: trending.slice(1),
+            movies: uniqueTrending,
             onClick: openStremioDetails
         });
 
-        // 6. 💥 Filmes de Ação
+        // 6. 💥 Filmes de Ação (filtrados sem repetição)
+        const uniqueAction = filterUniqueCategoryMovies(action, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'action',
             title: '💥 Filmes de Ação',
             linkText: 'Ver mais',
             tabIndex: 1,
-            movies: action,
+            movies: uniqueAction,
             onClick: openStremioDetails
         });
 
-        // 7. 🏰 Filmes de Aventura
+        // 7. 🏰 Filmes de Aventura (filtrados sem repetição)
+        const uniqueAdventure = filterUniqueCategoryMovies(adventure, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'adventure',
             title: '🏰 Aventura & Fantasia',
             linkText: 'Ver mais',
             tabIndex: 1,
-            movies: adventure,
+            movies: uniqueAdventure,
             onClick: openStremioDetails
         });
 
-        // 8. 🤣 Comédias
+        // 8. 🤣 Comédias (filtrados sem repetição)
+        const uniqueComedy = filterUniqueCategoryMovies(comedy, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'comedy',
             title: '🤣 Comédias',
             linkText: 'Ver mais',
             tabIndex: 1,
-            movies: comedy,
+            movies: uniqueComedy,
             onClick: openStremioDetails
         });
 
-        // 9. 🚀 Ficção Científica
+        // 9. 🚀 Ficção Científica (filtrados sem repetição)
+        const uniqueScifi = filterUniqueCategoryMovies(scifi, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'scifi',
             title: '🚀 Ficção Científica',
             linkText: 'Ver mais',
             tabIndex: 1,
-            movies: scifi,
+            movies: uniqueScifi,
             onClick: openStremioDetails
         });
 
-        // 10. 🎨 Animação & Família
+        // 10. 🎨 Animação & Família (filtrados sem repetição)
+        const uniqueAnim = filterUniqueCategoryMovies(anim, seenMovieKeys, 20);
         renderRow(wrap, {
             key: 'anim',
             title: '🎨 Animação & Família',
             linkText: 'Ver mais',
             tabIndex: 1,
-            movies: anim,
+            movies: uniqueAnim,
             onClick: openStremioDetails
         });
     } finally {

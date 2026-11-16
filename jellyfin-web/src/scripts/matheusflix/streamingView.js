@@ -183,10 +183,19 @@ async function renderGenres(genreBar, state, load) {
 }
 
 function appendCards(grid, movies) {
+    const existingKeys = new Set(
+        Array.from(grid.querySelectorAll('.mf-movie-card[data-movie-key]')).map((c) => c.getAttribute('data-movie-key'))
+    );
     const frag = document.createDocumentFragment();
     movies.forEach((m) => {
+        const rawKey = m.imdbId || m.id || m.title;
+        const key = rawKey ? String(rawKey).trim().toLowerCase() : '';
+        if (key && existingKeys.has(key)) return;
+        if (key) existingKeys.add(key);
+
         const card = document.createElement('button');
         card.type = 'button';
+        if (key) card.setAttribute('data-movie-key', key);
         card.className = 'mf-movie-card focusable';
         card.title = m.reason || m.title;
         card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
