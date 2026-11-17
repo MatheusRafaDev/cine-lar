@@ -137,9 +137,12 @@ body,
 .headerHomeButton,
 .mainDrawerButton,
 .barsMenuButton,
+.skinHeader button:has(.material-icons.menu),
+.skinHeader button:has(.material-icons.home),
 button[title*="Menu"],
 button[aria-label*="Menu"],
 .mainDrawer,
+.mainDrawerHandle,
 .mainDrawer-scrollContainer {
     display: none !important;
     visibility: hidden !important;

@@ -168,7 +168,7 @@ const UserSettingsPage: FC = () => {
                     {/* Áudio Padrão */}
                     <div className='mf-settings-group'>
                         <div className='mf-settings-group-title'>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#e50914' }}>volume_up</span>
+                            <span className='material-icons' style={{ fontSize: 18, color: '#e5e5e5' }}>volume_up</span>
                             Áudio Padrão dos Filmes & Séries
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -192,7 +192,7 @@ const UserSettingsPage: FC = () => {
                     {/* Legendas */}
                     <div className='mf-settings-group'>
                         <div className='mf-settings-group-title'>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#38bdf8' }}>subtitles</span>
+                            <span className='material-icons' style={{ fontSize: 18, color: '#e5e5e5' }}>subtitles</span>
                             Legendas em Português
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -220,7 +220,7 @@ const UserSettingsPage: FC = () => {
                     {/* Tamanho da Legenda */}
                     <div className='mf-settings-group'>
                         <div className='mf-settings-group-title'>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#fbbf24' }}>format_size</span>
+                            <span className='material-icons' style={{ fontSize: 18, color: '#e5e5e5' }}>format_size</span>
                             Tamanho da Legenda
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -248,7 +248,7 @@ const UserSettingsPage: FC = () => {
                     {/* Qualidade de Vídeo */}
                     <div className='mf-settings-group' style={{ marginBottom: 0 }}>
                         <div className='mf-settings-group-title'>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#46d369' }}>hd</span>
+                            <span className='material-icons' style={{ fontSize: 18, color: '#e5e5e5' }}>hd</span>
                             Qualidade de Reprodução
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -282,7 +282,7 @@ const UserSettingsPage: FC = () => {
 
                     <div className='mf-settings-status-row'>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <span className='material-icons' style={{ color: '#46d369', fontSize: 24 }}>folder</span>
+                            <span className='material-icons' style={{ color: '#b3b3b3', fontSize: 24 }}>folder</span>
                             <div>
                                 <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>Pasta de Filmes & Downloads</div>
                                 <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>D:\filmes (Organização em Franquias e Séries)</div>
@@ -297,7 +297,7 @@ const UserSettingsPage: FC = () => {
 
                     <div className='mf-settings-status-row'>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <span className='material-icons' style={{ color: '#38bdf8', fontSize: 24 }}>bolt</span>
+                            <span className='material-icons' style={{ color: '#b3b3b3', fontSize: 24 }}>bolt</span>
                             <div>
                                 <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>Serviço de Torrent & Streaming</div>
                                 <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>Porta 8085 (Node.js + WebTorrent em tempo real)</div>

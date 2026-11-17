@@ -598,21 +598,21 @@ button:has(.cloud_download),
 }
 
 .mf-pill-quality {
-    background: rgba(229, 9, 20, 0.2);
-    color: var(--mf-accent);
-    border: 1px solid rgba(229, 9, 20, 0.4);
+    background: #2a2a2a;
+    color: #ffffff;
+    border: none;
 }
 
 .mf-pill-pt {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.4);
+    background: rgba(34, 197, 94, 0.15);
+    color: #46d369;
+    border: none;
 }
 
 .mf-pill-seeds {
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: #222222;
+    color: #94a3b8;
+    border: none;
 }
 
 .mf-pill-size {
@@ -651,8 +651,8 @@ button:has(.cloud_download),
 
 .mf-btn-download:hover {
     background: var(--brand-hover, #f6121d);
-    transform: scale(1.03);
-    box-shadow: 0 4px 14px rgba(229, 9, 20, 0.4);
+    transform: scale(1.02);
+    box-shadow: none;
 }
 
 .mf-btn-qbittorrent {
@@ -967,7 +967,7 @@ button:has(.cloud_download),
     align-items: center;
     justify-content: center;
     gap: 10px;
-    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.4);
+    box-shadow: none;
     transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -1320,7 +1320,7 @@ button:has(.cloud_download),
     align-items: center;
     justify-content: center;
     gap: 10px;
-    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.4);
+    box-shadow: none;
     transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -1479,12 +1479,12 @@ button:has(.cloud_download),
 .mf-nav-tab-btn.active {
     background: var(--brand, #e50914);
     color: #ffffff;
-    box-shadow: 0 4px 16px rgba(229, 9, 20, 0.35);
+    box-shadow: none;
 }
 
 .mf-nav-tab-btn.btn-ai.active {
-    background: linear-gradient(90deg, #a855f7, #c084fc);
-    color: #fff;
+    background: var(--brand, #e50914);
+    color: #ffffff;
 }
 
 .mf-window-controls {
@@ -2748,7 +2748,7 @@ button:has(.cloud_download),
     padding: 2px 8px;
     border-radius: 99px;
     letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(70, 211, 105, 0.5);
+    box-shadow: none;
 }
 
 .mf-profile-name {
@@ -4146,7 +4146,7 @@ button[aria-label*="Grupo"] {
     border-color: var(--brand, #e50914);
     color: #ffffff !important;
     font-weight: 700;
-    box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45);
+    box-shadow: none;
 }
 
 .mf-category-chip.active .mf-chip-count {
@@ -4292,7 +4292,7 @@ button[aria-label*="Grupo"] {
     background: var(--brand, #e50914);
     border-color: var(--brand, #e50914);
     color: #ffffff !important;
-    box-shadow: 0 4px 18px rgba(229, 9, 20, 0.45);
+    box-shadow: none;
 }
 
 .mf-type-chip-icon {
@@ -4762,9 +4762,12 @@ div[role="button"]:focus-visible {
 .mainDrawerButton,
 .barsMenuButton,
 .headerHomeButton,
+.skinHeader button:has(.material-icons.menu),
+.skinHeader button:has(.material-icons.home),
 button[title*="Menu"],
 button[aria-label*="Menu"],
 .mainDrawer,
+.mainDrawerHandle,
 .mainDrawer-scrollContainer {
     display: none !important;
     visibility: hidden !important;
@@ -4983,7 +4986,7 @@ button[aria-label*="Menu"],
     font-size: 12px !important;
     font-weight: 600 !important;
     color: #46d369 !important;
-    background: rgba(70, 211, 105, 0.12) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
     border: none !important;
     padding: 4px 12px !important;
     border-radius: 4px !important;
@@ -4992,8 +4995,8 @@ button[aria-label*="Menu"],
 .mf-settings-badge-info {
     font-size: 12px !important;
     font-weight: 600 !important;
-    color: #38bdf8 !important;
-    background: rgba(56, 189, 248, 0.12) !important;
+    color: #e5e5e5 !important;
+    background: rgba(255, 255, 255, 0.08) !important;
     border: none !important;
     padding: 4px 12px !important;
     border-radius: 4px !important;

@@ -80,8 +80,8 @@
             background: #e50914 !important;
             border-color: #e50914 !important;
             color: #ffffff !important;
-            transform: scale(1.1) !important;
-            box-shadow: 0 4px 20px rgba(229, 9, 20, 0.55) !important;
+            transform: scale(1.05) !important;
+            box-shadow: none !important;
         }
 
         &:active {
@@ -209,11 +209,11 @@
         transition: height 0.16s ease !important;
     }
 
-    /* Barra reproduzida (Vermelho Netflix com brilho sutil) */
+    /* Barra reproduzida (Vermelho Netflix limpo) */
     .mdl-slider-background-lower {
         background: #e50914 !important;
         border-radius: 4px !important;
-        box-shadow: 0 0 10px rgba(229, 9, 20, 0.7) !important;
+        box-shadow: none !important;
     }
 
     /* Expansão elegante ao passar o mouse */
@@ -329,8 +329,8 @@
         &:hover {
             background: #ffffff !important;
             border-color: #ffffff !important;
-            transform: scale(1.12) !important;
-            box-shadow: 0 0 24px rgba(255, 255, 255, 0.45) !important;
+            transform: scale(1.08) !important;
+            box-shadow: none !important;
 
             .material-icons {
                 color: #141414 !important;
@@ -569,7 +569,7 @@ video::cue {
 
         &:hover {
             transform: scale(1.1) !important;
-            box-shadow: 0 0 16px rgba(255, 255, 255, 0.4) !important;
+            box-shadow: none !important;
         }
     }
 }
@@ -682,8 +682,8 @@ video::cue {
             background: var(--brand, #e50914) !important;
             border-color: var(--brand, #e50914) !important;
             color: #ffffff !important;
-            transform: scale(1.05) !important;
-            box-shadow: 0 4px 20px rgba(229, 9, 20, 0.5) !important;
+            transform: scale(1.04) !important;
+            box-shadow: none !important;
         }
 
         &:focus-visible {
@@ -801,8 +801,8 @@ video::cue {
         &:hover {
             background: var(--brand, #e50914) !important;
             border-color: var(--brand, #e50914) !important;
-            transform: scale(1.1) !important;
-            box-shadow: 0 4px 20px rgba(229, 9, 20, 0.5) !important;
+            transform: scale(1.05) !important;
+            box-shadow: none !important;
         }
 
         &:focus-visible {
@@ -887,7 +887,7 @@ video::cue {
         background: var(--brand, #e50914) !important;
         z-index: 2 !important;
         pointer-events: none !important;
-        box-shadow: 0 0 12px rgba(229, 9, 20, 0.6) !important;
+        box-shadow: none !important;
     }
 
     /* Linha de botões de controle */
@@ -1126,14 +1126,14 @@ video::cue {
         display: inline-flex !important;
         align-items: center !important;
         gap: 8px !important;
-        box-shadow: 0 4px 16px rgba(229, 9, 20, 0.45) !important;
+        box-shadow: none !important;
         transition: all 0.2s ease !important;
         margin-top: 18px !important;
 
         &:hover {
             background: var(--brand-hover, #f6121d) !important;
-            transform: scale(1.03) !important;
-            box-shadow: 0 4px 22px rgba(229, 9, 20, 0.6) !important;
+            transform: scale(1.02) !important;
+            box-shadow: none !important;
         }
 
         &:focus-visible {

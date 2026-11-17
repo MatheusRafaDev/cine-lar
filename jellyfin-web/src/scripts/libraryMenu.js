@@ -57,7 +57,7 @@ function renderHeader() {
     skinHeader.innerHTML = html;
 
     // MatheusFlix: assegurar remoção completa de qualquer nuvem/discover/hamburguer/casinha residual
-    const residuals = skinHeader.querySelectorAll('.matheusflixDiscoverBtn, .cloud_download, .mainDrawerButton, .barsMenuButton, .headerHomeButton, .headerCastButton, .castButton');
+    const residuals = skinHeader.querySelectorAll('.matheusflixDiscoverBtn, .cloud_download, .mainDrawerButton, .barsMenuButton, .headerHomeButton, .headerCastButton, .castButton, button:has(.material-icons.menu), button:has(.material-icons.home)');
     residuals.forEach((el) => {
         const btn = el.closest('button') || el;
         btn.remove();
@@ -66,8 +66,8 @@ function renderHeader() {
     Events.trigger(document, EventType.HEADER_RENDERED);
 
     headerBackButton = skinHeader.querySelector('.headerBackButton');
-    headerHomeButton = skinHeader.querySelector('.headerHomeButton');
-    mainDrawerButton = skinHeader.querySelector('.mainDrawerButton');
+    headerHomeButton = null;
+    mainDrawerButton = null;
     headerUserButton = skinHeader.querySelector('.headerUserButton');
     headerCastButton = skinHeader.querySelector('.headerCastButton');
     headerAudioPlayerButton = skinHeader.querySelector('.headerAudioPlayerButton');
@@ -178,10 +178,6 @@ function updateUserInHeader(user) {
     }
 
     if (user?.localUser) {
-        if (headerHomeButton) {
-            headerHomeButton.classList.remove('hide');
-        }
-
         if (headerSearchButton) {
             headerSearchButton.classList.remove('hide');
         }
@@ -196,16 +192,12 @@ function updateUserInHeader(user) {
             headerSyncButton.classList.add('hide');
         }
 
-        // MatheusFlix: assegurar remoção completa de qualquer nuvem/discover residual
-        skinHeader.querySelectorAll('.matheusflixDiscoverBtn, .cloud_download').forEach((el) => {
-            const btn = el.closest('button');
-            if (btn) btn.remove();
-            else el.remove();
+        // MatheusFlix: assegurar remoção completa de qualquer residual (hamburguer, home, nuvem)
+        skinHeader.querySelectorAll('.matheusflixDiscoverBtn, .cloud_download, .mainDrawerButton, .barsMenuButton, .headerHomeButton, button:has(.material-icons.menu), button:has(.material-icons.home)').forEach((el) => {
+            const btn = el.closest('button') || el;
+            btn.remove();
         });
     } else {
-        if (headerHomeButton) {
-            headerHomeButton.classList.add('hide');
-        }
         if (headerCastButton) {
             headerCastButton.classList.add('hide');
         }
@@ -845,6 +837,9 @@ pageClassOn('pageshow', 'page', function (e) {
     if (mainDrawerButton) {
         mainDrawerButton.remove();
         mainDrawerButton = null;
+    }
+    if (skinHeader) {
+        skinHeader.querySelectorAll('.mainDrawerButton, .barsMenuButton, .headerHomeButton, button:has(.material-icons.menu), button:has(.material-icons.home)').forEach(el => el.remove());
     }
 
     if (!isDashboardPage && currentDrawerType !== 'library') {
