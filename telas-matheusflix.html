@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatheusFlix - Especificacao Completa das Telas do Sistema</title>
+    <style>
+        :root {
+            --bg-base: #0f0f0f;
+            --bg-card: #181818;
+            --bg-card-hover: #222222;
+            --bg-surface: #141414;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-active: #e50914;
+            --text-primary: #ffffff;
+            --text-secondary: #a3a3a3;
+            --text-muted: #737373;
+            --red-netflix: #e50914;
+            --red-hover: #b80710;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding-bottom: 60px;
+        }
+
+        /* Top Bar de Apresentacao */
+        .top-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 14px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .brand-title span {
+            color: var(--red-netflix);
+        }
+
+        .brand-badge {
+            font-size: 11px;
+            text-transform: uppercase;
+            background: rgba(229, 9, 20, 0.15);
+            color: var(--red-netflix);
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-prompt {
+            background: var(--red-netflix);
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-prompt:hover {
+            background: var(--red-hover);
+        }
+
+        /* Container Principal */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+
+        /* Menu de Navegacao por Abas de Telas */
+        .screens-nav {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .screen-nav-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .screen-nav-btn:hover {
+            color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .screen-nav-btn.active {
+            background: rgba(229, 9, 20, 0.15);
+            border-color: var(--red-netflix);
+            color: #ffffff;
+        }
+
+        /* Secao de Cada Tela */
+        .screen-section {
+            display: none;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 32px;
+        }
+
+        .screen-section.active {
+            display: block;
+        }
+
+        .screen-header-info {
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+        }
+
+        .screen-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .screen-route {
+            font-family: monospace;
+            font-size: 13px;
+            background: #000000;
+            color: #4ade80;
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+
+        .screen-desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+            max-width: 800px;
+        }
+
+        /* Mockup Frame */
+        .mockup-frame {
+            background: #0a0a0a;
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px;
+        }
+
+        .mockup-canvas {
+            background: #141414;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Detalhes Tecnicos e Especificacoes */
+        .screen-specs {
+            padding: 28px 32px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            background: var(--bg-surface);
+        }
+
+        @media (max-width: 900px) {
+            .screen-specs {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .spec-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .spec-box h4 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--red-netflix);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .spec-list {
+            list-style: none;
+        }
+
+        .spec-list li {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .spec-list li:last-child {
+            border-bottom: none;
+        }
+
+        .spec-bullet {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--red-netflix);
+            flex-shrink: 0;
+        }
+
+        /* Elementos Visuais Compartilhados nos Mockups */
+        .mk-header {
+            height: 56px;
+            background: rgba(20, 20, 20, 0.98);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .mk-logo {
+            font-weight: 900;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+        }
+
+        .mk-logo span {
+            color: var(--red-netflix);
+        }
+
+        .mk-nav {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-left: 20px;
+        }
+
+        .mk-nav-link {
+            font-size: 13px;
+            color: #b3b3b3;
+            text-decoration: none;
+            position: relative;
+            padding: 6px 0;
+        }
+
+        .mk-nav-link.active {
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .mk-nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--red-netflix);
+            border-radius: 2px;
+        }
+
+        .mk-right-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .mk-icon-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #fff;
+            border: none;
+        }
+
+        .mk-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            background: var(--red-netflix);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* Mockup 1: Home Hero e Carrosseis */
+        .mk-hero {
+            position: relative;
+            height: 280px;
+            background: linear-gradient(180deg, rgba(20,20,20,0.2) 0%, rgba(20,20,20,0.9) 100%), #2a1515;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 24px;
+        }
+
+        .mk-hero-tag {
+            font-size: 11px;
+            font-weight: 700;
+            color: #e50914;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .mk-hero-title {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 8px;
+            line-height: 1.1;
+        }
+
+        .mk-hero-meta {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 12px;
+            color: #a3a3a3;
+            margin-bottom: 12px;
+        }
+
+        .mk-badge-imdb {
+            background: #eab308;
+            color: #000;
+            font-weight: 800;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 10px;
+        }
+
+        .mk-hero-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .mk-btn-play {
+            background: #ffffff;
+            color: #000000;
+            font-weight: 700;
+            padding: 8px 18px;
+            border-radius: 4px;
+            font-size: 13px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .mk-btn-info {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .mk-row {
+            padding: 16px 24px;
+        }
+
+        .mk-row-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #e5e5e5;
+        }
+
+        .mk-row-cards {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+        }
+
+        .mk-poster-card {
+            background: #202020;
+            aspect-ratio: 2/3;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 8px;
+        }
+
+        .mk-poster-card.focus-demo {
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+            transform: scale(1.03);
+        }
+
+        .mk-poster-title {
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mk-poster-sub {
+            font-size: 9px;
+            color: #888;
+        }
+
+        /* Mockup 2: Hub de Torrents */
+        .mk-torrent-search {
+            padding: 18px 24px;
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .mk-input {
+            flex: 1;
+            background: #1e1e1e;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            padding: 8px 14px;
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .mk-filters {
+            display: flex;
+            gap: 8px;
+            padding: 10px 24px;
+        }
+
+        .mk-pill {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #b3b3b3;
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .mk-pill.active {
+            background: var(--red-netflix);
+            color: #fff;
+            border-color: var(--red-netflix);
+        }
+
+        .mk-torrent-grid {
+            padding: 16px 24px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+        }
+
+        .mk-torrent-card {
+            background: #1a1a1a;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mk-badge-quality {
+            background: #2563eb;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+            align-self: flex-start;
+        }
+
+        .mk-meta-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #888;
+        }
+
+        .mk-meta-seeds {
+            color: #4ade80;
+            font-weight: 600;
+        }
+
+        .mk-card-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .mk-btn-stream {
+            flex: 1;
+            background: var(--red-netflix);
+            color: #fff;
+            border: none;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .mk-btn-dl {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        /* Mockup 4: Downloads */
+        .mk-dl-list {
+            padding: 16px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mk-dl-item {
+            background: #1a1a1a;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .mk-progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .mk-progress-fill {
+            height: 100%;
+            background: var(--red-netflix);
+            border-radius: 3px;
+        }
+
+        /* Mockup 5: Cinema Modal */
+        .mk-modal-container {
+            position: relative;
+            background: #121212;
+            padding: 24px;
+        }
+
+        .mk-modal-box {
+            background: #181818;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .mk-modal-backdrop {
+            height: 200px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, #181818 100%), #331515;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .mk-modal-content {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        /* Mockup 6: Video Player */
+        .mk-player {
+            position: relative;
+            background: #000000;
+            height: 380px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        .mk-player-top {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .mk-player-title {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .mk-player-bottom {
+            background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            padding-top: 20px;
+        }
+
+        .mk-player-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .mk-ctrl-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* Bloco de Prompt para o Claude */
+        .claude-prompt-box {
+            background: #121212;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-top: 32px;
+        }
+
+        .claude-prompt-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .claude-prompt-text {
+            background: #080808;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #d4d4d4;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.6;
+            margin-top: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Bar -->
+    <header class="top-navbar">
+        <div class="brand-title">
+            MATHEUS<span>FLIX</span>
+            <div class="brand-badge">Mapa de Design das Telas</div>
+        </div>
+        <div class="quick-actions">
+            <button class="btn-prompt" onclick="copyClaudePrompt()">Copiar Prompt para o Claude</button>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- Abas Seletoras de Telas -->
+        <nav class="screens-nav">
+            <button class="screen-nav-btn active" onclick="switchScreen('s1')">1. Tela Inicial (Catalogo)</button>
+            <button class="screen-nav-btn" onclick="switchScreen('s2')">2. Hub de Torrents</button>
+            <button class="screen-nav-btn" onclick="switchScreen('s3')">3. Pasta Local (Disco D:)</button>
+            <button class="screen-nav-btn" onclick="switchScreen('s4')">4. Gerenciador de Downloads</button>
+            <button class="screen-nav-btn" onclick="switchScreen('s5')">5. Modal de Detalhes (Cinema)</button>
+            <button class="screen-nav-btn" onclick="switchScreen('s6')">6. Player de Video</button>
+            <button class="screen-nav-btn" onclick="switchScreen('s7')">7. Perfil & Preferencias</button>
+            <button class="screen-nav-btn" onclick="switchScreen('s8')">8. Cabecalho Global (Header)</button>
+        </nav>
+
+        <!-- TELA 1: HOME / CATALOGO -->
+        <section id="s1" class="screen-section active">
+            <div class="screen-header-info">
+                <div>
+                    <h2 class="screen-title">1. Tela Inicial (Catalogo & Carrosseis Netflix)</h2>
+                    <span class="screen-route">Rota: #/home?tab=0</span>
+                    <p class="screen-desc">
+                        A tela de entrada principal do MatheusFlix. Apresenta o Hero Banner com o filme em destaque (backdrop em 4K, titulo, sinopse, nota e botao de reproducao imediata) seguido por carrosseis horizontais categorizados com navegacao fluida por controle remoto (D-Pad).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mockup Visual -->
+            <div class="mockup-frame">
+                <div class="mockup-canvas">
+                    <div class="mk-header">
+                        <div style="display:flex; align-items:center;">
+                            <div class="mk-logo">MATHEUS<span>FLIX</span></div>
+                            <nav class="mk-nav">
+                                <a href="#" class="mk-nav-link active">Inicio</a>
+                                <a href="#" class="mk-nav-link">Torrents</a>
+                                <a href="#" class="mk-nav-link">Pasta Local</a>
+                                <a href="#" class="mk-nav-link">Downloads</a>
+                            </nav>
+                        </div>
+                        <div class="mk-right-actions">
+                            <button class="mk-icon-btn">Q</button>
+                            <div class="mk-avatar">R</div>
+                        </div>
+                    </div>
+
+                    <div class="mk-hero">
+                        <span class="mk-hero-tag">Destaque da Semana</span>
+                        <h1 class="mk-hero-title">Duna: Parte 2</h1>
+                        <div class="mk-hero-meta">
+                            <span class="mk-badge-imdb">IMDb 8.6</span>
+                            <span>2024</span>
+                            <span>2h 46m</span>
+                            <span>Ficcao Cientifica, Aventura</span>
+                            <span>Dublado & Legendado</span>
+                        </div>
+                        <div class="mk-hero-btns">
+                            <button class="mk-btn-play">Assistir Agora</button>
+                            <button class="mk-btn-info">Mais Informacoes</button>
+                        </div>
+                    </div>
+
+                    <div class="mk-row">
+                        <h3 class="mk-row-title">Continuar Assistindo</h3>
+                        <div class="mk-row-cards">
+                            <div class="mk-poster-card focus-demo">
+                                <div class="mk-poster-title">Oppenheimer</div>
+                                <div class="mk-poster-sub">Faltam 42m</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Interestelar</div>
+                                <div class="mk-poster-sub">Faltam 1h 10m</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Blade Runner 2049</div>
+                                <div class="mk-poster-sub">Faltam 55m</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Deadpool & Wolverine</div>
+                                <div class="mk-poster-sub">Faltam 20m</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Batman</div>
+                                <div class="mk-poster-sub">Faltam 1h 30m</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Gladiador II</div>
+                                <div class="mk-poster-sub">Faltam 1h 05m</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mk-row">
+                        <h3 class="mk-row-title">Na sua pasta (Baixados no Disco D:)</h3>
+                        <div class="mk-row-cards">
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Matrix Resurrections</div>
+                                <div class="mk-poster-sub">4K UHD HDR</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Top Gun: Maverick</div>
+                                <div class="mk-poster-sub">1080p Dublado</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Avatar: O Caminho da Agua</div>
+                                <div class="mk-poster-sub">4K UHD</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Vingadores: Ultimato</div>
+                                <div class="mk-poster-sub">1080p Dublado</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Mad Max: Estrada da Furia</div>
+                                <div class="mk-poster-sub">1080p Dublado</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <div class="mk-poster-title">Coringa: Delirio a Dois</div>
+                                <div class="mk-poster-sub">4K UHD</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-specs">
+                <div class="spec-box">
+                    <h4>Componentes Essenciais</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Hero Banner panoramico com gradiente escuro de transicao</li>
+                        <li><span class="spec-bullet"></span> Botoes principais: "Assistir" (fundo branco) e "Mais Informacoes"</li>
+                        <li><span class="spec-bullet"></span> Carrosseis categorizados: Continuar Assistindo, Na Sua Pasta, Lancamentos, Em Alta, Acao, Ficcao, Comedia</li>
+                        <li><span class="spec-bullet"></span> Cards de poster com aspect-ratio 2:3 e badges de qualidade (4K, 1080p, Nota)</li>
+                    </ul>
+                </div>
+                <div class="spec-box">
+                    <h4>Regras de UX e Navegacao TV</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Suporte total a controle remoto: setas navegam entre cards com scroll horizontal automatico</li>
+                        <li><span class="spec-bullet"></span> Foco ativo: borda branca de 2px ou escala de 1.05x sem drop-shadow neon</li>
+                        <li><span class="spec-bullet"></span> Ao clicar em um poster: abre o Cinema Modal instantaneamente</li>
+                        <li><span class="spec-bullet"></span> Sem atrasos ou travamentos na renderizacao dos posters</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 2: HUB DE TORRENTS -->
+        <section id="s2" class="screen-section">
+            <div class="screen-header-info">
+                <div>
+                    <h2 class="screen-title">2. Hub de Torrents & Busca ao Vivo</h2>
+                    <span class="screen-route">Rota: #/home?tab=1</span>
+                    <p class="screen-desc">
+                        Buscador integrado de torrents com indexacao em tempo real de provedores publicos. Exibe resultados com pontuacao de saude (sementes/peers), tamanho, resolucao (1080p / 4K) e opcoes de assistir imediatamente por streaming ou baixar para o disco local.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mockup Visual -->
+            <div class="mockup-frame">
+                <div class="mockup-canvas">
+                    <div class="mk-header">
+                        <div style="display:flex; align-items:center;">
+                            <div class="mk-logo">MATHEUS<span>FLIX</span></div>
+                            <nav class="mk-nav">
+                                <a href="#" class="mk-nav-link">Inicio</a>
+                                <a href="#" class="mk-nav-link active">Torrents</a>
+                                <a href="#" class="mk-nav-link">Pasta Local</a>
+                                <a href="#" class="mk-nav-link">Downloads</a>
+                            </nav>
+                        </div>
+                        <div class="mk-right-actions">
+                            <button class="mk-icon-btn">Q</button>
+                            <div class="mk-avatar">R</div>
+                        </div>
+                    </div>
+
+                    <div class="mk-torrent-search">
+                        <input type="text" class="mk-input" value="Deadpool & Wolverine 2024" placeholder="Buscar filmes, series ou termos em torrents...">
+                        <button class="mk-btn-play">Pesquisar</button>
+                    </div>
+
+                    <div class="mk-filters">
+                        <div class="mk-pill active">Todos</div>
+                        <div class="mk-pill">4K UHD</div>
+                        <div class="mk-pill">1080p Full HD</div>
+                        <div class="mk-pill">Dublados (PT-BR)</div>
+                        <div class="mk-pill">Mais Sementes</div>
+                    </div>
+
+                    <div class="mk-torrent-grid">
+                        <div class="mk-torrent-card">
+                            <span class="mk-badge-quality">4K UHD • 14.2 GB</span>
+                            <div style="font-weight:700; font-size:13px;">Deadpool.and.Wolverine.2024.2160p.WEB-DL.DDP5.1.Atmos.DV.HDR</div>
+                            <div class="mk-meta-row">
+                                <span class="mk-meta-seeds">3,420 sementes</span>
+                                <span>84 peers</span>
+                            </div>
+                            <div class="mk-card-actions">
+                                <button class="mk-btn-stream">Assistir Agora</button>
+                                <button class="mk-btn-dl">Baixar</button>
+                            </div>
+                        </div>
+
+                        <div class="mk-torrent-card">
+                            <span class="mk-badge-quality" style="background:#059669;">1080p • 2.8 GB</span>
+                            <div style="font-weight:700; font-size:13px;">Deadpool & Wolverine (2024) [1080p] [DUBLADO PT-BR]</div>
+                            <div class="mk-meta-row">
+                                <span class="mk-meta-seeds">5,180 sementes</span>
+                                <span>120 peers</span>
+                            </div>
+                            <div class="mk-card-actions">
+                                <button class="mk-btn-stream">Assistir Agora</button>
+                                <button class="mk-btn-dl">Baixar</button>
+                            </div>
+                        </div>
+
+                        <div class="mk-torrent-card">
+                            <span class="mk-badge-quality" style="background:#059669;">1080p • 4.1 GB</span>
+                            <div style="font-weight:700; font-size:13px;">Deadpool.and.Wolverine.2024.1080p.WEBRip.x264.AAC5.1</div>
+                            <div class="mk-meta-row">
+                                <span class="mk-meta-seeds">2,110 sementes</span>
+                                <span>45 peers</span>
+                            </div>
+                            <div class="mk-card-actions">
+                                <button class="mk-btn-stream">Assistir Agora</button>
+                                <button class="mk-btn-dl">Baixar</button>
+                            </div>
+                        </div>
+
+                        <div class="mk-torrent-card">
+                            <span class="mk-badge-quality" style="background:#6366f1;">720p • 1.2 GB</span>
+                            <div style="font-weight:700; font-size:13px;">Deadpool.Wolverine.2024.720p.HD-Dublado.mp4</div>
+                            <div class="mk-meta-row">
+                                <span class="mk-meta-seeds">980 sementes</span>
+                                <span>30 peers</span>
+                            </div>
+                            <div class="mk-card-actions">
+                                <button class="mk-btn-stream">Assistir Agora</button>
+                                <button class="mk-btn-dl">Baixar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-specs">
+                <div class="spec-box">
+                    <h4>Dados e Integracao</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> API de busca conectada no serviço torrent local (porta 8085)</li>
+                        <li><span class="spec-bullet"></span> Streaming sequencial instantaneo com conversao em pipeline HTTP/HLS</li>
+                        <li><span class="spec-bullet"></span> Filtros de audio (identificacao automatica de faixas PT-BR)</li>
+                        <li><span class="spec-bullet"></span> Metricas de saude em tempo real (seeds, peers, velocidade estimada)</li>
+                    </ul>
+                </div>
+                <div class="spec-box">
+                    <h4>Diretrizes de Design</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Visual limpo de lista ou cards sem poluicao visual</li>
+                        <li><span class="spec-bullet"></span> Destaque claro para versao dublada e melhor resolucao</li>
+                        <li><span class="spec-bullet"></span> Botoes de acao de facil clique no controle remoto</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 3: PASTA LOCAL -->
+        <section id="s3" class="screen-section">
+            <div class="screen-header-info">
+                <div>
+                    <h2 class="screen-title">3. Pasta Local (Filmes no Disco D:)</h2>
+                    <span class="screen-route">Rota: #/home?tab=2</span>
+                    <p class="screen-desc">
+                        Apresenta a colecao de filmes ja baixados e organizados no disco rigido local (D:\Filmes). Funciona 100% offline, permitindo reproducao direta sem buffer de internet, com organizacao por franquias e pastas.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mockup Visual -->
+            <div class="mockup-frame">
+                <div class="mockup-canvas">
+                    <div class="mk-header">
+                        <div style="display:flex; align-items:center;">
+                            <div class="mk-logo">MATHEUS<span>FLIX</span></div>
+                            <nav class="mk-nav">
+                                <a href="#" class="mk-nav-link">Inicio</a>
+                                <a href="#" class="mk-nav-link">Torrents</a>
+                                <a href="#" class="mk-nav-link active">Pasta Local</a>
+                                <a href="#" class="mk-nav-link">Downloads</a>
+                            </nav>
+                        </div>
+                        <div class="mk-right-actions">
+                            <span style="font-size:12px; color:#a3a3a3;">33 filmes no Disco D:</span>
+                            <div class="mk-avatar">R</div>
+                        </div>
+                    </div>
+
+                    <div class="mk-row" style="padding-top:24px;">
+                        <div class="mk-row-cards">
+                            <div class="mk-poster-card">
+                                <span class="mk-badge-quality" style="position:absolute; top:8px; right:8px;">4K Local</span>
+                                <div class="mk-poster-title">Duna: Parte 2</div>
+                                <div class="mk-poster-sub">D:\Filmes\Duna 2</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <span class="mk-badge-quality" style="position:absolute; top:8px; right:8px; background:#059669;">1080p Local</span>
+                                <div class="mk-poster-title">Oppenheimer</div>
+                                <div class="mk-poster-sub">D:\Filmes\Oppenheimer</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <span class="mk-badge-quality" style="position:absolute; top:8px; right:8px;">4K Local</span>
+                                <div class="mk-poster-title">Interestelar</div>
+                                <div class="mk-poster-sub">D:\Filmes\Interestelar</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <span class="mk-badge-quality" style="position:absolute; top:8px; right:8px; background:#059669;">1080p Local</span>
+                                <div class="mk-poster-title">Matrix</div>
+                                <div class="mk-poster-sub">D:\Filmes\Matrix</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <span class="mk-badge-quality" style="position:absolute; top:8px; right:8px; background:#059669;">1080p Local</span>
+                                <div class="mk-poster-title">Gladiador</div>
+                                <div class="mk-poster-sub">D:\Filmes\Gladiador</div>
+                            </div>
+                            <div class="mk-poster-card">
+                                <span class="mk-badge-quality" style="position:absolute; top:8px; right:8px;">4K Local</span>
+                                <div class="mk-poster-title">Avatar 2</div>
+                                <div class="mk-poster-sub">D:\Filmes\Avatar 2</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-specs">
+                <div class="spec-box">
+                    <h4>Caracteristicas da Tela</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Listagem instantanea dos arquivos de video salvos</li>
+                        <li><span class="spec-bullet"></span> Metadados recuperados do TMDb (capas, sinopse, ano, elenco)</li>
+                        <li><span class="spec-bullet"></span> Execucao direta sem necessidade de conexao de rede</li>
+                        <li><span class="spec-bullet"></span> Indicador de espaco livre no disco local</li>
+                    </ul>
+                </div>
+                <div class="spec-box">
+                    <h4>Objetivos de Redesign</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Opcoes de ordenacao (recentes, nome, tamanho, avaliacao)</li>
+                        <li><span class="spec-bullet"></span> Visualizacao em grade ou lista compacta</li>
+                        <li><span class="spec-bullet"></span> Botoes para gerenciar arquivo (excluir ou abrir no explorador)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 4: DOWNLOADS -->
+        <section id="s4" class="screen-section">
+            <div class="screen-header-info">
+                <div>
+                    <h2 class="screen-title">4. Gerenciador de Downloads & Fila de Gravacao</h2>
+                    <span class="screen-route">Rota: #/home?tab=3</span>
+                    <p class="screen-desc">
+                        Painel central de controle de downloads em andamento no disco D:. Mostra taxa de download em tempo real, porcentagem concluida, conexoes com sementes e botoes para pausar, retomar ou cancelar.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mockup Visual -->
+            <div class="mockup-frame">
+                <div class="mockup-canvas">
+                    <div class="mk-header">
+                        <div style="display:flex; align-items:center;">
+                            <div class="mk-logo">MATHEUS<span>FLIX</span></div>
+                            <nav class="mk-nav">
+                                <a href="#" class="mk-nav-link">Inicio</a>
+                                <a href="#" class="mk-nav-link">Torrents</a>
+                                <a href="#" class="mk-nav-link">Pasta Local</a>
+                                <a href="#" class="mk-nav-link active">Downloads</a>
+                            </nav>
+                        </div>
+                        <div class="mk-right-actions">
+                            <span style="font-size:12px; color:#4ade80; font-weight:700;">↓ 18.4 MB/s</span>
+                            <div class="mk-avatar">R</div>
+                        </div>
+                    </div>
+
+                    <div class="mk-dl-list">
+                        <div class="mk-dl-item">
+                            <div style="flex:1;">
+                                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700;">
+                                    <span>Deadpool & Wolverine (2024) 4K UHD</span>
+                                    <span style="color:#4ade80;">14.2 MB/s • 68%</span>
+                                </div>
+                                <div class="mk-progress-bar">
+                                    <div class="mk-progress-fill" style="width: 68%;"></div>
+                                </div>
+                                <div class="mk-meta-row" style="margin-top:6px;">
+                                    <span>Baixado: 9.6 GB de 14.2 GB • Restam 5 min</span>
+                                    <span>124 sementes ativas</span>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button class="mk-btn-dl">Pausar</button>
+                                <button class="mk-btn-dl" style="color:#ef4444;">Cancelar</button>
+                            </div>
+                        </div>
+
+                        <div class="mk-dl-item">
+                            <div style="flex:1;">
+                                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700;">
+                                    <span>Gladiador II (2024) 1080p Dublado</span>
+                                    <span style="color:#4ade80;">4.2 MB/s • 32%</span>
+                                </div>
+                                <div class="mk-progress-bar">
+                                    <div class="mk-progress-fill" style="width: 32%;"></div>
+                                </div>
+                                <div class="mk-meta-row" style="margin-top:6px;">
+                                    <span>Baixado: 1.1 GB de 3.4 GB • Restam 12 min</span>
+                                    <span>78 sementes ativas</span>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button class="mk-btn-dl">Pausar</button>
+                                <button class="mk-btn-dl" style="color:#ef4444;">Cancelar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-specs">
+                <div class="spec-box">
+                    <h4>Componentes Necessarios</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Cabecalho de sumario: velocidade total atual, tarefas ativas e espaco restante no disco</li>
+                        <li><span class="spec-bullet"></span> Barra de progresso visual fluida sem cortes</li>
+                        <li><span class="spec-bullet"></span> Informacoes tecnicas claras (ETA, sementes, peers, tamanho)</li>
+                        <li><span class="spec-bullet"></span> Notificacao quando um download e concluido com sucesso</li>
+                    </ul>
+                </div>
+                <div class="spec-box">
+                    <h4>Regras de Operacao</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Opcao de reproduzir o filme mesmo antes do termino do download (modo streaming)</li>
+                        <li><span class="spec-bullet"></span> Priorizacao de fila de downloads</li>
+                        <li><span class="spec-bullet"></span> Confirmacao simples ao cancelar download</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 5: CINEMA MODAL (DETALHES) -->
+        <section id="s5" class="screen-section">
+            <div class="screen-header-info">
+                <div>
+                    <h2 class="screen-title">5. Modal de Detalhes do Filme (Cinema Modal Netflix)</h2>
+                    <span class="screen-route">Componente: CinemaModal (Sobreposto em qualquer tela)</span>
+                    <p class="screen-desc">
+                        Janela modal ampla inspirada no "Preview Modal" da Netflix. Apresenta backdrop cinematografico de alta resolucao, titulo oficial, sinopse, elenco, generos, selecao de qualidade/audio e botao central "Assistir Agora".
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mockup Visual -->
+            <div class="mockup-frame">
+                <div class="mockup-canvas">
+                    <div class="mk-modal-container">
+                        <div class="mk-modal-box">
+                            <div class="mk-modal-backdrop">
+                                <h1 style="font-size:32px; font-weight:900; line-height:1.1; margin-bottom:10px;">Interestelar</h1>
+                                <div style="display:flex; gap:10px; align-items:center; font-size:13px; color:#e5e5e5; margin-bottom:14px;">
+                                    <span class="mk-badge-imdb">IMDb 8.7</span>
+                                    <span>2014</span>
+                                    <span>2h 49m</span>
+                                    <span>4K Ultra HD</span>
+                                    <span style="border:1px solid rgba(255,255,255,0.3); padding:1px 4px; border-radius:3px;">12+</span>
+                                </div>
+                                <div style="display:flex; gap:10px;">
+                                    <button class="mk-btn-play" style="font-size:14px; padding:10px 24px;">Assistir Agora</button>
+                                    <button class="mk-btn-info" style="font-size:14px; padding:10px 18px;">Trailer Oficial</button>
+                                    <button class="mk-btn-info" style="font-size:14px; padding:10px 18px;">+ Minha Lista</button>
+                                </div>
+                            </div>
+                            <div class="mk-modal-content">
+                                <div>
+                                    <p style="font-size:14px; color:#d4d4d4; line-height:1.6; margin-bottom:16px;">
+                                        Com o futuro da Terra ameacado pelas pragas alimentares, um grupo de exploradores recebe a missao mais importante da historia humana: viajar atraves de um buraco de minhoca e encontrar um novo lar entre as estrelas.
+                                    </p>
+                                    <div style="font-size:13px; color:#a3a3a3; display:flex; flex-direction:column; gap:6px;">
+                                        <div><strong style="color:#fff;">Direcao:</strong> Christopher Nolan</div>
+                                        <div><strong style="color:#fff;">Roteiro:</strong> Jonathan Nolan, Christopher Nolan</div>
+                                    </div>
+                                </div>
+                                <div style="background:#141414; padding:14px; border-radius:6px; border:1px solid rgba(255,255,255,0.06);">
+                                    <div style="font-size:12px; font-weight:700; color:#fff; margin-bottom:8px;">Opcoes de Reproducao</div>
+                                    <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+                                        <div style="color:#4ade80;">Audio Dublado (PT-BR) Disponivel</div>
+                                        <div style="color:#4ade80;">Audio Original em Dolby 5.1</div>
+                                        <div style="color:#a3a3a3;">Legendas em Portugues embutidas</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-specs">
+                <div class="spec-box">
+                    <h4>Componentes e Estrutura</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Fundo escurecido com efeito de blur de 20px</li>
+                        <li><span class="spec-bullet"></span> Banner panoramico 16:9 no topo com transicao suave em degradê</li>
+                        <li><span class="spec-bullet"></span> Seletor de versoes: Dublado vs Legendado, 4K vs 1080p</li>
+                        <li><span class="spec-bullet"></span> Botao de fechar discreto no canto superior direito ou tecla Voltar/ESC</li>
+                    </ul>
+                </div>
+                <div class="spec-box">
+                    <h4>Comportamento TV & Teclado</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Foco inicial imediato no botao "Assistir Agora"</li>
+                        <li><span class="spec-bullet"></span> Tecla ESC ou botao Back do controle fecha o modal retornando o foco ao card de origem</li>
+                        <li><span class="spec-bullet"></span> Sem travamento de scroll do catalogo no fundo</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 6: PLAYER DE VIDEO -->
+        <section id="s6" class="screen-section">
+            <div class="screen-header-info">
+                <div>
+                    <h2 class="screen-title">6. Player de Video (Controles Customizados Netflix)</h2>
+                    <span class="screen-route">Rota: #/video</span>
+                    <p class="screen-desc">
+                        Interface de reproducao cinematografica em tela cheia. OSD totalmente limpo e minimalista que se oculta automaticamente apos 3 segundos de inatividade, controles centralizados para controle remoto e menus rapidos de audio/legenda.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mockup Visual -->
+            <div class="mockup-frame">
+                <div class="mockup-canvas">
+                    <div class="mk-player">
+                        <!-- Top OSD -->
+                        <div class="mk-player-top">
+                            <button class="mk-icon-btn">&larr;</button>
+                            <div>
+                                <div class="mk-player-title">Duna: Parte 2</div>
+                                <div style="font-size:11px; color:#a3a3a3;">Audio Dublado (PT-BR) • 4K UHD</div>
+                            </div>
+                        </div>
+
+                        <!-- Center Play/Pause Indicator -->
+                        <div style="align-self:center; font-size:40px; color:rgba(255,255,255,0.7);">
+                            ▶
+                        </div>
+
+                        <!-- Bottom OSD -->
+                        <div class="mk-player-bottom">
+                            <!-- Seekbar -->
+                            <div style="position:relative; height:4px; background:rgba(255,255,255,0.2); border-radius:2px; cursor:pointer;">
+                                <div style="position:absolute; left:0; top:0; bottom:0; width:45%; background:var(--red-netflix); border-radius:2px;"></div>
+                                <div style="position:absolute; left:45%; top:-4px; width:12px; height:12px; border-radius:50%; background:#fff;"></div>
+                            </div>
+
+                            <div class="mk-player-controls">
+                                <div class="mk-ctrl-group">
+                                    <button class="mk-btn-play" style="padding:4px 10px; font-size:12px;">Pausar</button>
+                                    <button class="mk-icon-btn">-10s</button>
+                                    <button class="mk-icon-btn">+10s</button>
+                                    <span style="font-size:12px; color:#e5e5e5; font-family:monospace;">1:14:32 / 2:46:00</span>
+                                </div>
+                                <div class="mk-ctrl-group">
+                                    <button class="mk-icon-btn" title="Audio">Áudio</button>
+                                    <button class="mk-icon-btn" title="Legendas">CC</button>
+                                    <button class="mk-icon-btn" title="Velocidade">1.0x</button>
+                                    <button class="mk-icon-btn" title="Tela Cheia">[  ]</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-specs">
+                <div class="spec-box">
+                    <h4>Comportamento Crucial de Reproducao</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Parada total garantida: ao sair do player, o video para instantaneamente sem rodar em background</li>
+                        <li><span class="spec-bullet"></span> OSD auto-hide com fade-out suave apos 3 segundos de inatividade</li>
+                        <li><span class="spec-bullet"></span> Menu rapido popup para troca de idioma de audio e legendas sem interromper o filme</li>
+                    </ul>
+                </div>
+                <div class="spec-box">
+                    <h4>Controle Remoto TV</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Tecla OK/Enter: Play/Pause</li>
+                        <li><span class="spec-bullet"></span> Setas Esquerda/Direita: Avanco ou retrocesso rapido de 10 segundos com preview visual</li>
+                        <li><span class="spec-bullet"></span> Seta para cima: Exibe controles e informacoes do filme</li>
+                        <li><span class="spec-bullet"></span> Botao Voltar: Retorna imediatamente a tela anterior e destroi o player</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 7: PERFIL & PREFERENCIAS -->
+        <section id="s7" class="screen-section">
+            <div class="screen-header-info">
+                <div>
+                    <h2 class="screen-title">7. Perfil & Preferencias de Reproducao</h2>
+                    <span class="screen-route">Rota: #/mypreferencesmenu</span>
+                    <p class="screen-desc">
+                        Painel de configuracoes do usuario ativo. Permite alterar o nome de exibicao do perfil, configurar o audio e legenda preferidos por padrao (ex: Dublado PT-BR prioritario) e definir a pasta do disco onde filmes e downloads serao gravados.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mockup Visual -->
+            <div class="mockup-frame">
+                <div class="mockup-canvas">
+                    <div class="mk-header">
+                        <div style="display:flex; align-items:center;">
+                            <button class="mk-icon-btn" style="margin-right:12px;">&larr;</button>
+                            <div class="mk-logo">MATHEUS<span>FLIX</span></div>
+                            <nav class="mk-nav">
+                                <a href="#" class="mk-nav-link">Inicio</a>
+                                <a href="#" class="mk-nav-link">Torrents</a>
+                                <a href="#" class="mk-nav-link">Pasta Local</a>
+                                <a href="#" class="mk-nav-link">Downloads</a>
+                            </nav>
+                        </div>
+                        <div class="mk-right-actions">
+                            <div class="mk-avatar" style="border:2px solid #fff;">R</div>
+                        </div>
+                    </div>
+
+                    <div style="padding:24px; max-width:800px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+                        <!-- Card Perfil -->
+                        <div style="background:#1a1a1a; border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:20px; display:flex; align-items:center; justify-content:space-between;">
+                            <div style="display:flex; align-items:center; gap:16px;">
+                                <div style="width:48px; height:48px; border-radius:6px; background:var(--red-netflix); font-size:22px; font-weight:800; display:flex; align-items:center; justify-content:center;">R</div>
+                                <div>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <h3 style="font-size:18px; font-weight:700;">rafae</h3>
+                                        <span style="font-size:10px; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-weight:700;">ADMINISTRADOR</span>
+                                    </div>
+                                    <div style="font-size:12px; color:#888;">Perfil ativo no MatheusFlix • Sem exigencia de senhas</div>
+                                </div>
+                            </div>
+                            <button class="mk-btn-dl">Alterar Nome</button>
+                        </div>
+
+                        <!-- Card Audio e Legendas -->
+                        <div style="background:#1a1a1a; border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:20px; display:flex; flex-direction:column; gap:14px;">
+                            <h4 style="font-size:14px; font-weight:700; color:#fff;">Preferencias de Reproducao</h4>
+
+                            <div>
+                                <div style="font-size:12px; color:#a3a3a3; margin-bottom:6px;">Audio Padrao</div>
+                                <div style="display:flex; gap:8px;">
+                                    <div class="mk-pill active">Dublado PT-BR (Padrao)</div>
+                                    <div class="mk-pill">Audio Original</div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div style="font-size:12px; color:#a3a3a3; margin-bottom:6px;">Legendas em Portugues</div>
+                                <div style="display:flex; gap:8px;">
+                                    <div class="mk-pill active">Automatica (Se nao dublado)</div>
+                                    <div class="mk-pill">Sempre Ativada</div>
+                                    <div class="mk-pill">Desativada</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Armazenamento -->
+                        <div style="background:#1a1a1a; border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:20px; display:flex; align-items:center; justify-content:space-between;">
+                            <div>
+                                <div style="font-size:14px; font-weight:700;">Pasta de Filmes & Downloads</div>
+                                <div style="font-size:12px; color:#888; margin-top:2px;">D:\Filmes (Ativo no Disco D:)</div>
+                            </div>
+                            <button class="mk-btn-dl">Alterar Pasta</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-specs">
+                <div class="spec-box">
+                    <h4>Campos e Controles</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Edicao rapida de nome de usuario sem trocar de pagina</li>
+                        <li><span class="spec-bullet"></span> Seletores em formato chip/pill para audio, legendas e qualidade padrao</li>
+                        <li><span class="spec-bullet"></span> Alteracao do diretorio de downloads com persistencia no servidor local</li>
+                        <li><span class="spec-bullet"></span> Botao de voltar no cabecalho leva direto de volta a tela inicial</li>
+                    </ul>
+                </div>
+                <div class="spec-box">
+                    <h4>Regras de Negocio</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Botao "Trocar Perfil" removido: sistema focado em uso transparente direto</li>
+                        <li><span class="spec-bullet"></span> Login automatico transparente sem solicitacao de senha</li>
+                        <li><span class="spec-bullet"></span> Navegacao no topo mantem as abas desmarcadas indicando a pagina de perfil</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TELA 8: CABECALHO GLOBAL -->
+        <section id="s8" class="screen-section">
+            <div class="screen-header-info">
+                <div>
+                    <h2 class="screen-title">8. Cabecalho Global (Header de Navegacao)</h2>
+                    <span class="screen-route">Componente: Header Principal Global (fixo em 68px de altura)</span>
+                    <p class="screen-desc">
+                        A barra superior permanente do aplicativo. Deve seguir a proporcao exata da Netflix: abas coladas a esquerda logo apos a logo (sem ficar no centro vazio), botao de voltar discreto quando necessario, e busca/perfil alinhados na extrema direita.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mockup Visual -->
+            <div class="mockup-frame">
+                <div class="mockup-canvas">
+                    <!-- Estado 1: Catalogo Home -->
+                    <div style="padding:10px 24px; font-size:11px; color:#888; background:#000;">ESTADO 1: NA TELA INICIAL (SEM BOTAO DE VOLTAR)</div>
+                    <div class="mk-header">
+                        <div style="display:flex; align-items:center;">
+                            <div class="mk-logo">MATHEUS<span>FLIX</span></div>
+                            <nav class="mk-nav">
+                                <a href="#" class="mk-nav-link active">Inicio</a>
+                                <a href="#" class="mk-nav-link">Torrents</a>
+                                <a href="#" class="mk-nav-link">Pasta Local</a>
+                                <a href="#" class="mk-nav-link">Downloads</a>
+                            </nav>
+                        </div>
+                        <div class="mk-right-actions">
+                            <button class="mk-icon-btn">Q</button>
+                            <div class="mk-avatar">R</div>
+                        </div>
+                    </div>
+
+                    <!-- Estado 2: Navegacao Interna -->
+                    <div style="padding:10px 24px; font-size:11px; color:#888; background:#000; margin-top:20px;">ESTADO 2: NA TELA DE PERFIL OU DETALHES (COM BOTAO VOLTAR E AVATAR ATIVO)</div>
+                    <div class="mk-header">
+                        <div style="display:flex; align-items:center;">
+                            <button class="mk-icon-btn" style="margin-right:12px;">&larr;</button>
+                            <div class="mk-logo">MATHEUS<span>FLIX</span></div>
+                            <nav class="mk-nav">
+                                <a href="#" class="mk-nav-link">Inicio</a>
+                                <a href="#" class="mk-nav-link">Torrents</a>
+                                <a href="#" class="mk-nav-link">Pasta Local</a>
+                                <a href="#" class="mk-nav-link">Downloads</a>
+                            </nav>
+                        </div>
+                        <div class="mk-right-actions">
+                            <button class="mk-icon-btn">Q</button>
+                            <div class="mk-avatar" style="border:2px solid #fff;">R</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-specs">
+                <div class="spec-box">
+                    <h4>Anatomia do Cabecalho</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Altura fixa: 68px com fundo escuro semi-transparente (rgba(20,20,20,0.96)) e blur</li>
+                        <li><span class="spec-bullet"></span> Lado Esquerdo: Botao Voltar (quando em rotas internas) + Logo MATHEUSFLIX</li>
+                        <li><span class="spec-bullet"></span> Navegacao Central-Esquerda: Abas com 20px de espacamento coladas a 28px da logo</li>
+                        <li><span class="spec-bullet"></span> Lado Direito: Botao de Pesquisa circular + Avatar de perfil 32x32px com cantos arredondados de 4px</li>
+                    </ul>
+                </div>
+                <div class="spec-box">
+                    <h4>O que deve ser evitado</h4>
+                    <ul class="spec-list">
+                        <li><span class="spec-bullet"></span> Nao centralizar as abas no meio da tela criando buracos vazios gigantes</li>
+                        <li><span class="spec-bullet"></span> Nao usar menu hamburguer ou gaveta lateral deslizante</li>
+                        <li><span class="spec-bullet"></span> Nao adicionar bordas grossas com outline offset nos avatares ou botoes</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bloco Especial: Prompt Completo Estruturado para o Claude -->
+        <div class="claude-prompt-box">
+            <div class="claude-prompt-title">
+                <span>Prompt Completo Estruturado para Enviar ao Claude</span>
+                <button class="btn-prompt" onclick="copyClaudePrompt()">Copiar Prompt</button>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary);">
+                Clique no botao acima para copiar todas as especificacoes tecnicas e regras visuais do MatheusFlix. Voce pode colar este texto diretamente no Claude para ele gerar o design novo, componentes React/HTML/CSS ou sugestoes completas de interface.
+            </p>
+            <pre class="claude-prompt-text" id="claudePromptText">Atue como um Designer UI/UX de nivel mundial especialista em servicos de streaming premium (Netflix, Apple TV, Disney+) e crie um novo design system e codigo completo para o aplicativo MATHEUSFLIX.
+
+O MATHEUSFLIX e uma plataforma desktop/smart-tv que combina a biblioteca local do Jellyfin com um hub de streaming sequencial de torrents em tempo real e gerenciador de downloads no disco D:\Filmes.
+
+REQUISITOS GLOBAIS DE DESIGN:
+1. Identidade Visual Netflix Clean: Paleta de cores escura e sofisticada (#141414, #0f0f0f, #181818, #e50914). Sem sombras neon, sem bordas brilhantes artificiais, sem visual generico de IA.
+2. Navegacao para TV / Controle Remoto (D-Pad): Todos os elementos interativos devem possuir estados de foco claros (borda solida branca de 2px ou escala de 1.05x).
+3. PROIBIDO O USO DE QUALQUER EMOJI: Toda iconografia deve usar Material Icons ou SVGs limpos.
+4. Idioma Padrao: Portugues do Brasil (PT-BR).
+
+MAPA DAS 8 TELAS DO SISTEMA:
+
+TELA 1: TELA INICIAL (CATALOGO & CARROSSEIS)
+- Hero Banner cinematografico em 4K com sinopse, nota IMDb/TMDb, tags de audio (Dublado/Legendado) e botoes de acao imediata ("Assistir" e "Mais Informacoes").
+- Carrosseis horizontais com rolagem suave: "Continuar Assistindo", "Na sua pasta (Baixados)", "Lancamentos", "Em alta", "Acao", "Aventura", "Comedia", "Ficcao Cientifica", "Animacao".
+- Cards de poster 2:3 com badges minimalistas de qualidade (4K, 1080p).
+
+TELA 2: HUB DE TORRENTS (BUSCA & STREAMING AO VIVO)
+- Barra de busca instantanea conectada ao backend torrent-service (porta 8085).
+- Filtros em chips: Todos, 4K UHD, 1080p, Dublados PT-BR, Mais Sementes.
+- Grade de resultados com cards tecnicos limpos: titulo do release, tamanho, quantidade de sementes e peers, e botoes "Assistir Agora" (streaming direto) e "Baixar".
+
+TELA 3: PASTA LOCAL (DISCO RIGIDO D:\FILMES)
+- Grade de filmes locais salvos no disco D:.
+- Identificacao offline imediata, ordenacao por recentes, tamanho ou avaliacao.
+- Reproducao direta sem buffer de rede.
+
+TELA 4: GERENCIADOR DE DOWNLOADS
+- Sumario no topo com velocidade total em MB/s e espaco livre no disco.
+- Lista de downloads com barra de progresso em vermelho Netflix, tempo restante (ETA), sementes ativas e acoes de Pausar, Retomar e Cancelar.
+
+TELA 5: MODAL DE DETALHES DO FILME (CINEMA MODAL)
+- Janela modal ampla com efeito backdrop-filter blur de 20px.
+- Banner panoramico no topo com titulo em destaque, metadados (ano, duracao, classificacao indicativa, nota).
+- Botoes "Assistir Agora", "Trailer Oficial" e "+ Minha Lista".
+- Selecao inteligente de versoes (Dublado prioritario ou Legendado).
+
+TELA 6: PLAYER DE VIDEO
+- Player em tela cheia com OSD minimalista que se oculta apos 3 segundos.
+- Parada total ao sair da tela sem vazamento de audio em background.
+- Barra de tempo (seekbar) com tempo decorrido e restante.
+- Controles: Play/Pause, -10s, +10s, seletor popup de Faixas de Audio e Legendas.
+
+TELA 7: PERFIL & PREFERENCIAS
+- Card do usuario ativo com opcao de "Alterar Nome" inline.
+- Preferencias de audio: Dublado PT-BR prioritario ou Audio Original.
+- Preferencias de legendas: Automatica, Sempre Ativada, Desativada.
+- Armazenamento: Configuracao do diretorio de gravacao dos filmes com botao "Alterar Pasta".
+
+TELA 8: CABECALHO GLOBAL (HEADER)
+- Altura fixa de 68px, fixado no topo com fundo semi-transparente escuro e blur.
+- Lado esquerdo: Botao voltar circular (32px) quando em telas internas + Logo MATHEUSFLIX.
+- Abas de navegacao (Inicio, Torrents, Pasta Local, Downloads) coladas logo ao lado da logo (espacamento de 28px), NUNCA centralizadas no meio da tela com espacos vazios.
+- Lado direito: Botao de busca circular + Avatar de perfil quadrado (32x32px, cantos arredondados de 4px).
+- NENHUM menu hamburguer ou gaveta lateral.
+
+Com base neste mapa completo de telas e requisitos, gere a proposta de novo design.</pre>
+        </div>
+
+    </main>
+
+    <script>
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.screen-nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            const target = document.getElementById(screenId);
+            if (target) {
+                target.classList.add('active');
+            }
+
+            const activeBtn = Array.from(document.querySelectorAll('.screen-nav-btn')).find(b => b.getAttribute('onclick').includes(screenId));
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
+
+            window.scrollTo({ top: 120, behavior: 'smooth' });
+        }
+
+        function copyClaudePrompt() {
+            const promptText = document.getElementById('claudePromptText').innerText;
+            navigator.clipboard.writeText(promptText).then(() => {
+                alert('Prompt completo copiado para a area de transferencia! Agora voce pode colar diretamente no Claude.');
+            }).catch(() => {
+                const textarea = document.createElement('textarea');
+                textarea.value = promptText;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Prompt copiado com sucesso!');
+            });
+        }
+    </script>
+</body>
+</html>
