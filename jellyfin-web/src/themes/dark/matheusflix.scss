@@ -365,6 +365,12 @@ button[aria-label*="Menu"],
         box-shadow: none !important;
         border: none !important;
     }
+
+    &.headerUserButtonActive {
+        outline: 2px solid #ffffff !important;
+        outline-offset: 2px !important;
+        transform: scale(1.05) !important;
+    }
 }
 
 /* Ocultar definitivamente botoes desnecessarios */

@@ -32,8 +32,21 @@ if (typeof process.loadEnvFile === 'function') {
 }
 
 const PORT = process.env.PORT || 8085;
-const SAVE_PATH = process.env.SAVE_PATH || 'D:\\filmes';
-const PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'MatheusFlix');
+const CONFIG_FILE = path.join(__dirname, 'config.json');
+let SAVE_PATH = process.env.SAVE_PATH || 'D:\\filmes';
+
+try {
+    if (fs.existsSync(CONFIG_FILE)) {
+        const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+        if (cfg.savePath) {
+            SAVE_PATH = cfg.savePath;
+        }
+    }
+} catch (e) {
+    console.warn('[TorrentService] Could not load config.json:', e.message);
+}
+
+let PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'MatheusFlix');
 const JELLYFIN_URL = process.env.JELLYFIN_URL || 'http://localhost:8096';
 const JELLYFIN_USER = process.env.JELLYFIN_USER || 'usuario';
 const JELLYFIN_PW = process.env.JELLYFIN_PW || '10092004';
@@ -548,6 +561,49 @@ const server = http.createServer(async (req, res) => {
                 totalDownloads: downloadsRegistry.size,
                 qbittorrentInstalled: fs.existsSync('C:\\Program Files\\qBittorrent\\qbittorrent.exe')
             }));
+            return;
+        }
+
+        // Save Path settings endpoint
+        if (pathname === '/api/settings/save-path' && req.method === 'GET') {
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ savePath: SAVE_PATH }));
+            return;
+        }
+
+        if (pathname === '/api/settings/save-path' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = JSON.parse(body);
+                    let newPath = (data.savePath || '').trim();
+                    if (!newPath) {
+                        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                        res.end(JSON.stringify({ error: 'Caminho de pasta inválido.' }));
+                        return;
+                    }
+                    newPath = path.normalize(newPath);
+                    if (!fs.existsSync(newPath)) {
+                        fs.mkdirSync(newPath, { recursive: true });
+                    }
+                    SAVE_PATH = newPath;
+                    PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'MatheusFlix');
+                    if (!fs.existsSync(PLATFORM_DOWNLOAD_PATH)) {
+                        fs.mkdirSync(PLATFORM_DOWNLOAD_PATH, { recursive: true });
+                    }
+                    fs.writeFileSync(CONFIG_FILE, JSON.stringify({ savePath: SAVE_PATH }, null, 2), 'utf8');
+                    try {
+                        invalidateLocalCache();
+                        scanLocalMovies(SAVE_PATH);
+                    } catch (_) {}
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ success: true, savePath: SAVE_PATH }));
+                } catch (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
             return;
         }
 

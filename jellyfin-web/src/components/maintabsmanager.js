@@ -94,11 +94,17 @@ export function renderMatheusFlixDefaultTabs(activeIdx = null) {
         if (currentHash.includes('tab=1')) activeIdx = 1;
         else if (currentHash.includes('tab=2')) activeIdx = 2;
         else if (currentHash.includes('tab=3')) activeIdx = 3;
-        else if (currentHash.includes('/home') || currentHash === '' || currentHash === '#/') activeIdx = 0;
+        else if (currentHash.includes('mypreferencesmenu') || currentHash.includes('/settings') || currentHash.includes('/item')) {
+            activeIdx = null;
+        } else if (currentHash.includes('/home') || currentHash === '' || currentHash === '#/') {
+            activeIdx = 0;
+        } else {
+            activeIdx = null;
+        }
     }
 
     const tabsItems = MATHEUSFLIX_GLOBAL_TABS.map((t, idx) => {
-        const isActive = Number(activeIdx) === idx;
+        const isActive = activeIdx !== null && activeIdx !== undefined && Number(activeIdx) === idx;
         const activeClass = isActive ? ' emby-tab-button-active' : '';
         return `<a href="${t.href}" is="emby-linkbutton" class="emby-tab-button${activeClass}" data-index="${idx}"><div class="emby-button-foreground">${t.name}</div></a>`;
     }).join('');

@@ -4871,29 +4871,93 @@ button[aria-label*="Menu"],
     font-weight: 500 !important;
 }
 
-.mf-btn-switch-profile {
+.mf-btn-switch-profile,
+.mf-btn-action-outline {
     background: rgba(255, 255, 255, 0.08) !important;
     color: #ffffff !important;
-    border: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
     border-radius: 4px !important;
-    padding: 10px 22px !important;
+    padding: 8px 16px !important;
     font-size: 13px !important;
     font-weight: 600 !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 6px !important;
     cursor: pointer !important;
-    transition: background 0.2s ease !important;
+    transition: background 0.15s ease, border-color 0.15s ease !important;
     box-shadow: none !important;
 }
 
 .mf-btn-switch-profile:hover,
-.mf-btn-switch-profile:focus-visible {
+.mf-btn-switch-profile:focus-visible,
+.mf-btn-action-outline:hover,
+.mf-btn-action-outline:focus-visible {
     background: rgba(255, 255, 255, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
     color: #ffffff !important;
-    border: none !important;
     transform: none !important;
     box-shadow: none !important;
+}
+
+.mf-settings-input {
+    background: #141414 !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+
+    &:focus {
+        border-color: #ffffff !important;
+    }
+}
+
+.mf-btn-save-inline {
+    background: #e50914 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease !important;
+    box-shadow: none !important;
+
+    &:hover,
+    &:focus-visible {
+        background: #f6121d !important;
+        outline: none !important;
+    }
+
+    &:disabled {
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
+    }
+}
+
+.mf-btn-cancel-inline {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #e5e5e5 !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease !important;
+    box-shadow: none !important;
+
+    &:hover,
+    &:focus-visible {
+        background: rgba(255, 255, 255, 0.18) !important;
+        color: #ffffff !important;
+        outline: none !important;
+    }
 }
 
 .mf-settings-section-title {

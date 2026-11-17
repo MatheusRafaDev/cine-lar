@@ -213,6 +213,18 @@ function updateUserInHeader(user) {
     requiresUserRefresh = false;
 }
 
+function updateHeaderActiveNavigation() {
+    const hash = window.location.hash || '';
+    const isProfilePage = hash.includes('mypreferencesmenu') || hash.includes('/settings');
+    if (headerUserButton) {
+        if (isProfilePage) {
+            headerUserButton.classList.add('headerUserButtonActive');
+        } else {
+            headerUserButton.classList.remove('headerUserButtonActive');
+        }
+    }
+}
+
 function updateHeaderUserButton(src) {
     if (!headerUserButton) {
         return;
@@ -225,6 +237,7 @@ function updateHeaderUserButton(src) {
         headerUserButton.classList.remove('headerUserButtonRound');
         headerUserButton.innerHTML = '<span class="material-icons person" aria-hidden="true"></span>';
     }
+    updateHeaderActiveNavigation();
 }
 
 function updateClock() {
@@ -847,6 +860,7 @@ pageClassOn('pageshow', 'page', function (e) {
     }
 
     updateMenuForPageType(isDashboardPage, isLibraryPage);
+    updateHeaderActiveNavigation();
 
     // TODO: Seems to do nothing? Check if needed (also in other views).
     if (!e.detail.isRestored) {
@@ -898,6 +912,8 @@ const LibraryMenu = {
     setTitle,
     setTransparentMenu
 };
+
+window.addEventListener('hashchange', updateHeaderActiveNavigation);
 
 window.LibraryMenu = LibraryMenu;
 renderHeader();

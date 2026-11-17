@@ -55,6 +55,34 @@ const UserSettingsPage: FC = () => {
     const [ qualityPref, setQualityPref ] = useState(() => localStorage.getItem('mf_pref_quality') || 'auto');
     const [ savedNotice, setSavedNotice ] = useState<string | null>(null);
 
+    // Edição do nome do perfil
+    const [ isEditingName, setIsEditingName ] = useState(false);
+    const [ editNameValue, setEditNameValue ] = useState('');
+    const [ isSavingName, setIsSavingName ] = useState(false);
+
+    // Edição da pasta de salvamento
+    const [ savePath, setSavePath ] = useState(() => localStorage.getItem('mf_save_path') || 'D:\\filmes');
+    const [ isEditingPath, setIsEditingPath ] = useState(false);
+    const [ editPathValue, setEditPathValue ] = useState('');
+    const [ isSavingPath, setIsSavingPath ] = useState(false);
+
+    useEffect(() => {
+        fetch('http://localhost:8085/api/settings/save-path')
+            .then(res => res.json())
+            .then(data => {
+                if (data?.savePath) {
+                    setSavePath(data.savePath);
+                    localStorage.setItem('mf_save_path', data.savePath);
+                }
+            })
+            .catch(() => {});
+    }, []);
+
+    const diskLabel = useMemo(() => {
+        const match = savePath.match(/^([A-Za-z]):/);
+        return match ? `Ativo no Disco ${match[1].toUpperCase()}:` : 'Pasta Ativa';
+    }, [ savePath ]);
+
     const userId = useMemo(() => (
         searchParams.get('userId') || currentUser?.Id
     ), [ currentUser, searchParams ]);
@@ -93,11 +121,69 @@ const UserSettingsPage: FC = () => {
         savePref('mf_pref_quality', val, setQualityPref, 'Qualidade');
     }, [ savePref ]);
 
-    const onSwitchProfileClick = useCallback((e: React.MouseEvent) => {
-        e.preventDefault();
-        setSavedNotice('Perfil único ativo no MatheusFlix (Acesso direto sem login).');
-        window.setTimeout(() => setSavedNotice(null), 3000);
-    }, []);
+    const handleSaveName = useCallback(async () => {
+        const trimmed = editNameValue.trim();
+        if (!trimmed) {
+            setSavedNotice('O nome não pode estar vazio.');
+            window.setTimeout(() => setSavedNotice(null), 3000);
+            return;
+        }
+        if (!user) return;
+        setIsSavingName(true);
+        try {
+            const updatedUser = { ...user, Name: trimmed };
+            const apiClient = (window as any).ApiClient;
+            if (apiClient?.updateUser) {
+                await apiClient.updateUser(updatedUser);
+            }
+            setUser(updatedUser);
+            setIsEditingName(false);
+            localStorage.setItem('mf_user_name', trimmed);
+            const userBtn = document.querySelector('.headerUserButton');
+            if (userBtn) userBtn.setAttribute('title', trimmed);
+            setSavedNotice(`Nome alterado para "${trimmed}" com sucesso!`);
+            window.setTimeout(() => setSavedNotice(null), 3000);
+        } catch (err: any) {
+            console.error('[UserSettings] Erro ao salvar nome:', err);
+            setSavedNotice(`Erro ao salvar nome: ${err.message || 'Falha de conexão'}`);
+            window.setTimeout(() => setSavedNotice(null), 4000);
+        } finally {
+            setIsSavingName(false);
+        }
+    }, [ editNameValue, user ]);
+
+    const handleSavePath = useCallback(async () => {
+        const trimmed = editPathValue.trim();
+        if (!trimmed) {
+            setSavedNotice('O caminho da pasta não pode estar vazio.');
+            window.setTimeout(() => setSavedNotice(null), 3000);
+            return;
+        }
+        setIsSavingPath(true);
+        try {
+            const res = await fetch('http://localhost:8085/api/settings/save-path', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ savePath: trimmed })
+            });
+            const data = await res.json();
+            if (!res.ok || data.error) {
+                throw new Error(data.error || 'Falha ao salvar pasta.');
+            }
+            const saved = data.savePath || trimmed;
+            setSavePath(saved);
+            localStorage.setItem('mf_save_path', saved);
+            setIsEditingPath(false);
+            setSavedNotice(`Pasta de downloads atualizada para "${saved}"!`);
+            window.setTimeout(() => setSavedNotice(null), 3000);
+        } catch (err: any) {
+            console.error('[UserSettings] Erro ao salvar pasta:', err);
+            setSavedNotice(`Erro ao atualizar pasta: ${err.message || 'Serviço de torrent indisponível'}`);
+            window.setTimeout(() => setSavedNotice(null), 4000);
+        } finally {
+            setIsSavingPath(false);
+        }
+    }, [ editPathValue ]);
 
     const onLogoutClick = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -126,37 +212,76 @@ const UserSettingsPage: FC = () => {
 
                 {/* Card do Perfil Atual Padrão Netflix */}
                 <div className='mf-settings-card mf-profile-card'>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 18, flex: 1, minWidth: 260 }}>
                         <div className='mf-profile-avatar'>
                             {(user.Name || 'U').charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <h2 className='mf-profile-name'>
-                                    {user.Name}
-                                </h2>
-                                {user.Policy?.IsAdministrator && (
-                                    <span className='mf-profile-badge'>
-                                        Administrador
-                                    </span>
-                                )}
-                            </div>
+                        <div style={{ flex: 1 }}>
+                            {isEditingName ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                    <input
+                                        type='text'
+                                        className='mf-settings-input focusable'
+                                        value={editNameValue}
+                                        onChange={(e) => setEditNameValue(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveName();
+                                            if (e.key === 'Escape') setIsEditingName(false);
+                                        }}
+                                        autoFocus
+                                        maxLength={32}
+                                        placeholder='Nome do perfil...'
+                                        style={{ maxWidth: 220 }}
+                                    />
+                                    <button
+                                        type='button'
+                                        onClick={handleSaveName}
+                                        disabled={isSavingName}
+                                        className='mf-btn-save-inline focusable'
+                                    >
+                                        {isSavingName ? 'Salvando...' : 'Salvar'}
+                                    </button>
+                                    <button
+                                        type='button'
+                                        onClick={() => setIsEditingName(false)}
+                                        className='mf-btn-cancel-inline focusable'
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                    <h2 className='mf-profile-name'>
+                                        {user.Name}
+                                    </h2>
+                                    {user.Policy?.IsAdministrator && (
+                                        <span className='mf-profile-badge'>
+                                            Administrador
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                             <p className='mf-profile-subtext'>
                                 Perfil ativo no MatheusFlix • Sem exigência de senhas
                             </p>
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        <button
-                            type='button'
-                            onClick={onSwitchProfileClick}
-                            className='mf-btn-switch-profile focusable'
-                        >
-                            <span className='material-icons' style={{ fontSize: 18 }}>switch_account</span>
-                            Trocar Perfil
-                        </button>
-                    </div>
+                    {!isEditingName && (
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button
+                                type='button'
+                                onClick={() => {
+                                    setEditNameValue(user.Name || '');
+                                    setIsEditingName(true);
+                                }}
+                                className='mf-btn-action-outline focusable'
+                            >
+                                <span className='material-icons' style={{ fontSize: 16 }}>edit</span>
+                                Alterar Nome
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Preferências de Reprodução & Áudio Padrão Netflix */}
@@ -280,17 +405,68 @@ const UserSettingsPage: FC = () => {
                         Armazenamento Local & Serviços
                     </h3>
 
-                    <div className='mf-settings-status-row'>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <span className='material-icons' style={{ color: '#b3b3b3', fontSize: 24 }}>folder</span>
-                            <div>
+                    <div className='mf-settings-status-row' style={{ alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 260 }}>
+                            <span className='material-icons' style={{ color: '#b3b3b3', fontSize: 24, marginTop: 2 }}>folder</span>
+                            <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>Pasta de Filmes & Downloads</div>
-                                <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>D:\filmes (Organização em Franquias e Séries)</div>
+                                {isEditingPath ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                                        <input
+                                            type='text'
+                                            className='mf-settings-input focusable'
+                                            value={editPathValue}
+                                            onChange={(e) => setEditPathValue(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSavePath();
+                                                if (e.key === 'Escape') setIsEditingPath(false);
+                                            }}
+                                            autoFocus
+                                            placeholder='Ex: D:\filmes ou C:\Downloads...'
+                                            style={{ minWidth: 260, flex: 1 }}
+                                        />
+                                        <button
+                                            type='button'
+                                            onClick={handleSavePath}
+                                            disabled={isSavingPath}
+                                            className='mf-btn-save-inline focusable'
+                                        >
+                                            {isSavingPath ? 'Salvando...' : 'Salvar'}
+                                        </button>
+                                        <button
+                                            type='button'
+                                            onClick={() => setIsEditingPath(false)}
+                                            className='mf-btn-cancel-inline focusable'
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>
+                                        {savePath} (Organização em Franquias e Séries)
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        <span className='mf-settings-badge-success'>
-                            Ativo no Disco D:
-                        </span>
+
+                        {!isEditingPath && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <span className='mf-settings-badge-success'>
+                                    {diskLabel}
+                                </span>
+                                <button
+                                    type='button'
+                                    onClick={() => {
+                                        setEditPathValue(savePath);
+                                        setIsEditingPath(true);
+                                    }}
+                                    className='mf-btn-action-outline focusable'
+                                >
+                                    <span className='material-icons' style={{ fontSize: 16 }}>folder_open</span>
+                                    Alterar Pasta
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className='mf-settings-divider' />
