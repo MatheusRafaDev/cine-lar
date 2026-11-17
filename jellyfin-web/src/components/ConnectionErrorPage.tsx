@@ -25,13 +25,17 @@ const ConnectionErrorPage: FC<ConnectionErrorPageProps> = ({
         setIsConnectDisabled(true);
 
         try {
-            const server = ServerConnections.getLastUsedServer();
+            const server = ServerConnections.getLastUsedServer() || {
+                ManualAddress: ServerConnections.currentApiClient()?.serverAddress() || window.location.origin
+            };
             await ServerConnections.updateSavedServerId(server);
             window.location.reload();
         } catch (err) {
             console.error('[ConnectionErrorPage] Failed to force connect to server', err);
-            toast(globalize.translate('HeaderConnectionFailure'));
-            setIsConnectDisabled(false);
+            try {
+                localStorage.removeItem('jellyfin_credentials');
+            } catch (_) {}
+            window.location.reload();
         }
     }, []);
 
@@ -64,6 +68,28 @@ const ConnectionErrorPage: FC<ConnectionErrorPageProps> = ({
         }
     }, [ state ]);
 
+    if (state === ConnectionState.ServerMismatch) {
+        return (
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100vh',
+                background: '#141414',
+                color: '#ffffff',
+                fontFamily: 'sans-serif'
+            }}>
+                <div style={{ fontSize: 28, fontWeight: 900, marginBottom: 12, color: '#e50914', letterSpacing: 1.5 }}>
+                    MATHEUSFLIX
+                </div>
+                <div style={{ fontSize: 14, color: '#b3b3b3' }}>
+                    Sincronizando com o servidor...
+                </div>
+            </div>
+        );
+    }
+
     if (!title) return;
 
     return (
@@ -93,15 +119,6 @@ const ConnectionErrorPage: FC<ConnectionErrorPageProps> = ({
                         href='/selectserver'
                     >
                         {globalize.translate('ButtonChangeServer')}
-                    </LinkButton>
-                )}
-
-                {state === ConnectionState.ServerMismatch && (
-                    <LinkButton
-                        onClick={onForceConnect}
-                        style={ isConnectDisabled ? { pointerEvents: 'none' } : undefined }
-                    >
-                        {globalize.translate('ConnectAnyway')}
                     </LinkButton>
                 )}
             </div>

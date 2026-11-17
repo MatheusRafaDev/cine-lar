@@ -66,7 +66,8 @@ function filterUniqueCategoryMovies(movies, seenSet, limit = 20, minTarget = 12)
 
 export async function embedMatheusFlixHomeSections(view) {
     if (!view || inFlight.has(view)) return;
-    const homeTab = view.querySelector('#homeTab') || view;
+    const homeTab = view.querySelector('#homeTab') || (view.id === 'homeTab' ? view : document.querySelector('#homeTab')) || view;
+    homeTab.classList.add('is-active');
     const sections = homeTab.querySelector('.sections');
     if (!sections) return;
 

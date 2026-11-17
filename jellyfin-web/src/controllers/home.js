@@ -5,18 +5,69 @@ import '../elements/emby-scroller/emby-scroller';
 import LibraryMenu from '../scripts/libraryMenu';
 
 class HomeView extends TabbedView {
+    constructor(view, params) {
+        super(view, params);
+
+        this._switchTabTo = (targetIndex) => {
+            if (!this.view) return;
+            const tabContainers = this.view.querySelectorAll('.tabContent');
+            tabContainers.forEach((tc, idx) => {
+                if (idx === targetIndex) {
+                    tc.classList.add('is-active');
+                } else {
+                    tc.classList.remove('is-active');
+                }
+            });
+
+            this.getTabController(targetIndex).then((controller) => {
+                if (controller?.onResume) {
+                    controller.onResume({ refresh: false });
+                }
+            });
+        };
+
+        this._onHashChange = () => {
+            const hash = window.location.hash || '';
+            if (!hash.includes('/home')) return;
+
+            let targetIndex = 0;
+            if (hash.includes('tab=1')) targetIndex = 1;
+            else if (hash.includes('tab=2')) targetIndex = 2;
+            else if (hash.includes('tab=3')) targetIndex = 3;
+
+            this._switchTabTo(targetIndex);
+        };
+
+        window.addEventListener('hashchange', this._onHashChange);
+    }
+
     setTitle() {
         LibraryMenu.setTitle(null);
     }
 
     onPause() {
-        super.onPause(this);
-        document.querySelector('.skinHeader').classList.remove('noHomeButtonHeader');
+        super.onPause();
+        document.querySelector('.skinHeader')?.classList.remove('noHomeButtonHeader');
     }
 
     onResume(options) {
-        super.onResume(this, options);
-        document.querySelector('.skinHeader').classList.add('noHomeButtonHeader');
+        super.onResume(options);
+        document.querySelector('.skinHeader')?.classList.add('noHomeButtonHeader');
+
+        const hash = window.location.hash || '';
+        let targetIndex = 0;
+        if (hash.includes('tab=1')) targetIndex = 1;
+        else if (hash.includes('tab=2')) targetIndex = 2;
+        else if (hash.includes('tab=3')) targetIndex = 3;
+        else if (this.params?.tab != null) targetIndex = parseInt(this.params.tab, 10);
+
+        this._switchTabTo(targetIndex);
+    }
+
+    destroy() {
+        if (this._onHashChange) {
+            window.removeEventListener('hashchange', this._onHashChange);
+        }
     }
 
     getDefaultTabIndex() {

@@ -193,9 +193,16 @@ EmbyTabs.attachedCallback = function () {
     initScroller(this);
 
     const current = this.querySelector('.' + activeButtonClass);
-    const currentIndex = current ? parseInt(current.getAttribute('data-index'), 10) : parseInt(this.getAttribute('data-index') || '0', 10);
+    const dataIndexAttr = this.getAttribute('data-index');
+    let currentIndex = -1;
 
-    if (currentIndex !== -1) {
+    if (current) {
+        currentIndex = parseInt(current.getAttribute('data-index'), 10);
+    } else if (dataIndexAttr != null && dataIndexAttr !== '' && dataIndexAttr !== '-1') {
+        currentIndex = parseInt(dataIndexAttr, 10);
+    }
+
+    if (currentIndex !== -1 && !isNaN(currentIndex)) {
         this.selectedTabIndex = currentIndex;
 
         const tabButtons = this.querySelectorAll('.' + buttonClass);
@@ -205,6 +212,8 @@ EmbyTabs.attachedCallback = function () {
         if (newTabButton) {
             setActiveTabButton(newTabButton);
         }
+    } else {
+        this.selectedTabIndex = -1;
     }
 
     if (!this.readyFired) {

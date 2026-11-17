@@ -8,6 +8,7 @@ import LinkButton from 'elements/emby-button/LinkButton';
 import { useApi } from 'hooks/useApi';
 import { useUsers } from 'hooks/useUsers';
 import globalize from 'lib/globalize';
+import { ServerConnections } from 'lib/jellyfin-apiclient';
 import Dashboard from 'utils/dashboard';
 
 interface PrefChipProps {
@@ -65,6 +66,21 @@ const UserSettingsPage: FC = () => {
     const [ isEditingPath, setIsEditingPath ] = useState(false);
     const [ editPathValue, setEditPathValue ] = useState('');
     const [ isSavingPath, setIsSavingPath ] = useState(false);
+
+    useEffect(() => {
+        import('components/maintabsmanager').then((m) => {
+            m.renderMatheusFlixDefaultTabs(null);
+        });
+        const userBtn = document.querySelector('.headerUserButton');
+        if (userBtn) {
+            userBtn.classList.add('headerUserButtonActive');
+        }
+        return () => {
+            if (userBtn) {
+                userBtn.classList.remove('headerUserButtonActive');
+            }
+        };
+    }, []);
 
     useEffect(() => {
         fetch('http://localhost:8085/api/settings/save-path')
@@ -132,7 +148,7 @@ const UserSettingsPage: FC = () => {
         setIsSavingName(true);
         try {
             const updatedUser = { ...user, Name: trimmed };
-            const apiClient = (window as any).ApiClient;
+            const apiClient = (window as any).ApiClient || ServerConnections.currentApiClient();
             if (apiClient?.updateUser) {
                 await apiClient.updateUser(updatedUser);
             }

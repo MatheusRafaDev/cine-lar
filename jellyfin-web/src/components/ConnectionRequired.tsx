@@ -218,15 +218,21 @@ const ConnectionRequired: FunctionComponent<ConnectionRequiredProps> = ({
                 if (firstConnection?.State === ConnectionState.ServerMismatch) {
                     console.warn('[ConnectionRequired] ServerMismatch detectado, conectando automaticamente');
                     try {
-                        const server = ServerConnections.getLastUsedServer();
+                        const server = ServerConnections.getLastUsedServer() || {
+                            ManualAddress: ServerConnections.currentApiClient()?.serverAddress() || window.location.origin
+                        };
                         ServerConnections.updateSavedServerId(server).then(() => {
                             window.location.reload();
                         }).catch(() => {
+                            try { localStorage.removeItem('jellyfin_credentials'); } catch (_) {}
                             window.location.reload();
                         });
                         return;
                     } catch (e) {
                         console.error('[ConnectionRequired] Erro ao atualizar serverId em ServerMismatch', e);
+                        try { localStorage.removeItem('jellyfin_credentials'); } catch (_) {}
+                        window.location.reload();
+                        return;
                     }
                 }
                 setErrorState(firstConnection.State);

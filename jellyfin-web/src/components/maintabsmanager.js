@@ -108,16 +108,33 @@ export function renderMatheusFlixDefaultTabs(activeIdx = null) {
         const activeClass = isActive ? ' emby-tab-button-active' : '';
         return `<a href="${t.href}" is="emby-linkbutton" class="emby-tab-button${activeClass}" data-index="${idx}"><div class="emby-button-foreground">${t.name}</div></a>`;
     }).join('');
-    const tabsHtml = `<div is="emby-tabs" class="tabs-viewmenubar"><div class="emby-tabs-slider" style="white-space:nowrap;">${tabsItems}</div></div>`;
+    const indexAttr = (activeIdx != null && activeIdx !== undefined) ? ` data-index="${activeIdx}"` : ' data-index="-1"';
+    const tabsHtml = `<div is="emby-tabs"${indexAttr} class="tabs-viewmenubar"><div class="emby-tabs-slider" style="white-space:nowrap;">${tabsItems}</div></div>`;
 
     headerTabsContainer.innerHTML = tabsHtml;
     window.CustomElements.upgradeSubtree(headerTabsContainer);
     tabsElem = headerTabsContainer.querySelector('[is="emby-tabs"]');
 
+    if (activeIdx == null) {
+        headerTabsContainer.querySelectorAll('.emby-tab-button').forEach(btn => {
+            btn.classList.remove('emby-tab-button-active');
+        });
+    }
+
     headerTabsContainer.querySelectorAll('.emby-tab-button').forEach(btn => {
         btn.addEventListener('click', () => {
             if (typeof window !== 'undefined' && window.MatheusFlix?.closeCinema) {
                 window.MatheusFlix.closeCinema();
+            }
+            const idx = parseInt(btn.getAttribute('data-index'), 10);
+            if (!isNaN(idx)) {
+                const homeView = document.querySelector('#indexPage');
+                if (homeView) {
+                    homeView.querySelectorAll('.tabContent').forEach((tc, i) => {
+                        if (i === idx) tc.classList.add('is-active');
+                        else tc.classList.remove('is-active');
+                    });
+                }
             }
         });
     });
@@ -125,7 +142,12 @@ export function renderMatheusFlixDefaultTabs(activeIdx = null) {
 
 if (typeof window !== 'undefined') {
     window.addEventListener('hashchange', () => {
-        if (!tabOwnerView) {
+        const hash = window.location.hash || '';
+        const isHome = hash.includes('/home') || hash === '' || hash === '#/' || hash === '#';
+        if (!isHome) {
+            tabOwnerView = null;
+            renderMatheusFlixDefaultTabs(null);
+        } else if (!tabOwnerView) {
             renderMatheusFlixDefaultTabs();
         }
     });
@@ -191,6 +213,12 @@ export function setTabs(view, selectedIndex, getTabsFn, getTabContainersFn, onBe
         configureSwipeTabs(view, tabsElem);
 
         if (getTabContainersFn) {
+            const initialContainers = getTabContainersFn();
+            const initIdx = selectedIndex != null ? selectedIndex : 0;
+            if (initialContainers && initialContainers[initIdx]) {
+                initialContainers[initIdx].classList.add('is-active');
+            }
+
             tabsElem.addEventListener('beforetabchange', function (e) {
                 const tabContainers = getTabContainersFn();
                 if (e.detail.previousIndex != null) {

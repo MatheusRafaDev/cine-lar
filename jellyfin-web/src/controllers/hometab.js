@@ -14,13 +14,14 @@ class HomeTab {
         view.querySelector('.sections')?.addEventListener('settingschange', onHomeScreenSettingsChanged.bind(this));
     }
     onResume(options = {}) {
-        if (this.sectionsRendered) {
-            embedMatheusFlixHomeSections(this.view);
-            return Promise.resolve();
+        const view = this.view || document.querySelector('#homeTab');
+        if (!view) return Promise.resolve();
+
+        if (this.sectionsRendered && !options?.refresh) {
+            return embedMatheusFlixHomeSections(view);
         }
 
         loading.show();
-        const view = this.view;
         this.destroyHomeSections();
         this.sectionsRendered = true;
         return embedMatheusFlixHomeSections(view)

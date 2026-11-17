@@ -115,7 +115,11 @@ function onBackClick() {
     if (typeof window !== 'undefined' && window.MatheusFlix?.closeCinema) {
         window.MatheusFlix.closeCinema();
     }
-    appRouter.back();
+    if (appRouter.canGoBack()) {
+        appRouter.back();
+    } else {
+        window.location.hash = '#/home?tab=0';
+    }
 }
 
 function retranslateUi() {
@@ -689,7 +693,11 @@ function updateTitle(page) {
 
 function updateBackButton(page) {
     if (headerBackButton) {
-        if (page.getAttribute('data-backbutton') !== 'false' && appRouter.canGoBack()) {
+        const hash = window.location.hash || '';
+        const isHome = hash.includes('/home') || hash === '' || hash === '#/' || hash === '#';
+        if (!isHome) {
+            headerBackButton.classList.remove('hide');
+        } else if (page?.getAttribute?.('data-backbutton') !== 'false' && appRouter.canGoBack()) {
             headerBackButton.classList.remove('hide');
         } else {
             headerBackButton.classList.add('hide');
