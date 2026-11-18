@@ -160,18 +160,15 @@ export function openCinemaPlayer({
                 <div class="mf-player-spinner">
                     <span class="material-icons">sync</span>
                 </div>
-                <h2 class="mf-buf-title">Conectando e Carregando Filme...</h2>
-                <p class="mf-buf-msg">
-                    O MatheusFlix está preparando o filme para você começar a assistir imediatamente!
-                </p>
+                <h2 class="mf-buf-title">Carregando transmissão...</h2>
                 <div class="mf-buffer-stats">
                     <span class="mf-buffer-pill mf-buf-speed"><span class="material-icons">speed</span> Velocidade: ...</span>
-                    <span class="mf-buffer-pill mf-buf-peers"><span class="material-icons">group</span> Peers: ...</span>
+                    <span class="mf-buffer-pill mf-buf-peers"><span class="material-icons">group</span> Sementes: ...</span>
                     <span class="mf-buffer-pill mf-buf-progress"><span class="material-icons">cloud_sync</span> Buffer: 0%</span>
                 </div>
                 <button type="button" class="mf-btn-force-play focusable">
                     <span class="material-icons">play_arrow</span>
-                    <span>Forçar Reprodução</span>
+                    <span>Iniciar</span>
                 </button>
             </div>
         </div>

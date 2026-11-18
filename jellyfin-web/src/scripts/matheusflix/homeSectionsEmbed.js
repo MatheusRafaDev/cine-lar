@@ -340,13 +340,20 @@ function renderHero(homeTab, sections, movies) {
             </button>
         ` : ''}
         <div class="mf-hero-content">
-            <span class="mf-hero-tag">EM ALTA</span>
+            <div class="mf-hero-chips" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+                <span class="c on" style="font-size:13px;padding:5px 14px;border-radius:999px;background:#FAF9F5;color:#141413;font-weight:700;">4K</span>
+                <span class="c" style="font-size:13px;padding:5px 14px;border-radius:999px;border:1.5px solid rgba(250,249,245,0.2);color:#FAF9F5;font-weight:500;">Dublado</span>
+                <span class="mf-hero-rating c" style="font-size:13px;padding:5px 14px;border-radius:999px;border:1.5px solid rgba(250,249,245,0.2);color:#FAF9F5;font-weight:500;"></span>
+            </div>
             <h1 class="mf-hero-title"></h1>
             <div class="mf-hero-meta"></div>
             <p class="mf-hero-desc"></p>
-            <div class="mf-hero-buttons">
+            <div class="mf-hero-buttons" style="display:flex;gap:16px;align-items:center;">
                 <button type="button" class="mf-btn-hero-play focusable">
                     <span class="material-icons">play_arrow</span>Assistir
+                </button>
+                <button type="button" class="mf-btn-hero-info btn g focusable" style="border:0;border-radius:12px;height:44px;padding:0 22px;background:rgba(250,249,245,0.12);color:#FAF9F5;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+                    Mais informações
                 </button>
             </div>
         </div>
@@ -363,6 +370,7 @@ function renderHero(homeTab, sections, movies) {
     const metaEl = hero.querySelector('.mf-hero-meta');
     const descEl = hero.querySelector('.mf-hero-desc');
     const playBtn = hero.querySelector('.mf-btn-hero-play');
+    const infoBtn = hero.querySelector('.mf-btn-hero-info');
     const prevBtn = hero.querySelector('.mf-hero-prev');
     const nextBtn = hero.querySelector('.mf-hero-next');
     const dots = hero.querySelectorAll('.mf-hero-dot');
@@ -372,12 +380,20 @@ function renderHero(homeTab, sections, movies) {
 
     function applyMovieData(movie) {
         if (titleEl) titleEl.textContent = movie.title || '';
+        const ratingChip = hero.querySelector('.mf-hero-rating');
+        if (ratingChip) {
+            if (movie.rating) {
+                ratingChip.textContent = `${movie.rating} IMDb`;
+                ratingChip.style.display = 'inline-block';
+            } else {
+                ratingChip.style.display = 'none';
+            }
+        }
         if (metaEl) {
             metaEl.innerHTML = [
                 movie.year ? `<span>${escapeHtml(movie.year)}</span>` : '',
-                movie.rating ? `<span><span class="material-icons" style="font-size: 14px; vertical-align: middle; color: #f59e0b; margin-right: 2px;">star</span>${escapeHtml(movie.rating)}</span>` : '',
                 movie.genres ? `<span>${escapeHtml(movie.genres)}</span>` : ''
-            ].filter(Boolean).join('');
+            ].filter(Boolean).join(' • ');
         }
         if (descEl) {
             descEl.textContent = movie.description || '';
@@ -444,6 +460,7 @@ function renderHero(homeTab, sections, movies) {
         if (currentMovie) openStremioDetails(currentMovie);
     };
     if (playBtn) playBtn.addEventListener('click', onAction);
+    if (infoBtn) infoBtn.addEventListener('click', onAction);
 
     if (prevBtn) {
         prevBtn.addEventListener('click', (e) => {

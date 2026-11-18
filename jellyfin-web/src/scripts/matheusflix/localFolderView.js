@@ -24,7 +24,7 @@ export function renderLocalFolderView(container) {
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;margin-bottom:32px;">
                 <div>
                     <div class="t" style="font-size:36px;font-weight:700;color:#FAF9F5;">Pasta Local</div>
-                    <div class="m" style="margin-top:6px;color:#A8A59C;font-size:15px;">${escapeHtml(savedPath)} · reprodução direta, sem buffer de rede</div>
+                    <div class="m" style="margin-top:6px;color:#A8A59C;font-size:15px;">${escapeHtml(savedPath)} · reprodução direta do disco</div>
                 </div>
                 <div class="mf-local-category-bar" style="display:flex;gap:12px;flex-wrap:wrap;">
                     <button type="button" class="mf-category-chip c on focusable active" data-view="all">
@@ -254,7 +254,7 @@ function createMovieCard(m) {
     card.innerHTML = `
         <div class="mf-poster-wrap">
             <img src="${escapeHtml(m.poster)}" alt="" loading="lazy" class="mf-poster-img" />
-            <button type="button" class="mf-btn-delete-local focusable" title="Excluir arquivo permanentemente do computador">
+            <button type="button" class="mf-btn-delete-local focusable" title="Excluir arquivo do disco">
                 <span class="material-icons" style="font-size: 17px;">delete_outline</span>
             </button>
             <div class="mf-poster-play-hover"><span class="material-icons mf-play-icon-large">play_circle_filled</span></div>
@@ -278,7 +278,7 @@ function createMovieCard(m) {
                 btnDel.disabled = true;
                 try {
                     await deleteLocalMovie(m.videoPath);
-                    toast(`"${m.title}" excluído do disco com sucesso.`);
+                    toast(`"${m.title}" excluído do disco.`);
                     card.style.opacity = '0';
                     card.style.transform = 'scale(0.85)';
                     setTimeout(() => card.remove(), 250);

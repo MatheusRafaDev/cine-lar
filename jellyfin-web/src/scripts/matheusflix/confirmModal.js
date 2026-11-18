@@ -117,22 +117,20 @@ export async function confirmDownloadModal({ title, quality, size }) {
             <div class="mf-confirm-meta-row">
                 <span class="mf-confirm-badge mf-badge-quality">${escapeHtml(quality || '1080p')}</span>
                 ${size ? `<span class="mf-confirm-badge mf-badge-size">${escapeHtml(size)}</span>` : ''}
-                <span class="mf-confirm-badge mf-badge-dest">Destino: Pasta MatheusFlix</span>
             </div>
             <p class="mf-confirm-desc">
-                O arquivo será salvo na <strong>pasta MatheusFlix</strong>.
-                Você já pode <strong>assistir enquanto baixa</strong> em tempo real, sem esperar terminar!
+                O arquivo será salvo na sua pasta local para reprodução direta.
             </p>
         </div>
     `;
 
     return showConfirmModal({
-        title: 'Confirmar Download',
-        subtitle: 'Salvar filme na pasta MatheusFlix',
+        title: 'Baixar título',
+        subtitle: '',
         icon: 'download',
         iconColor: 'var(--brand, #e50914)',
         htmlBody,
-        confirmText: 'Iniciar Download',
+        confirmText: 'Baixar',
         cancelText: 'Cancelar',
         confirmType: 'primary'
     });
@@ -142,57 +140,57 @@ export async function confirmDownloadModal({ title, quality, size }) {
  * Modal de Confirmação para Cancelar ou Apagar Download
  */
 export async function confirmDeleteModal({ title, isCompleted = false }) {
-    let mainTitle = 'Cancelar Download';
-    let subtitle = 'Tem certeza que deseja cancelar?';
-    let message = 'O download em andamento será interrompido e os dados parciais serão descartados.';
-    let actionText = 'Sim, Cancelar Download';
+    let mainTitle = 'Cancelar download';
+    let subtitle = '';
+    let message = 'O download deste filme será cancelado e os dados parciais serão removidos.';
+    let actionText = 'Cancelar download';
 
     if (isCompleted) {
-        mainTitle = 'Remover do Histórico';
-        subtitle = 'Remover registro de download';
-        message = 'O registro deste filme será removido da lista do Gerenciador de Downloads.';
-        actionText = 'Sim, Remover';
+        mainTitle = 'Remover do histórico';
+        subtitle = '';
+        message = 'O registro deste download será removido da lista.';
+        actionText = 'Remover';
     }
 
     const htmlBody = `
         <div class="mf-confirm-info-box mf-confirm-danger-box">
             <h4 class="mf-confirm-movie-name">${escapeHtml(title)}</h4>
-            <p class="mf-confirm-desc" style="color: #cbd5e1; margin-bottom: 0;">${escapeHtml(message)}</p>
+            <p class="mf-confirm-desc" style="color: #FAF9F5; margin-bottom: 0;">${escapeHtml(message)}</p>
         </div>
     `;
 
     return showConfirmModal({
         title: mainTitle,
         subtitle,
-        icon: 'delete_forever',
+        icon: 'delete_outline',
         iconColor: 'var(--brand, #e50914)',
         htmlBody,
         confirmText: actionText,
-        cancelText: 'Voltar / Manter',
+        cancelText: 'Voltar',
         confirmType: 'danger'
     });
 }
 
 /**
- * Modal de Confirmação para Excluir Arquivo Local do Disco (D:\filmes)
+ * Modal de Confirmação para Excluir Arquivo Local do Disco
  */
 export async function confirmDeleteFileModal({ title }) {
     const htmlBody = `
         <div class="mf-confirm-info-box mf-confirm-danger-box">
             <h4 class="mf-confirm-movie-name">${escapeHtml(title)}</h4>
-            <p class="mf-confirm-desc" style="color: var(--text-2, #b3b3b3); margin-bottom: 0;">
-                O arquivo deste filme e suas legendas serão <strong>apagados definitivamente da sua pasta</strong>, liberando espaço no disco.
+            <p class="mf-confirm-desc" style="color: #A8A59C; margin-bottom: 0;">
+                O arquivo será excluído permanentemente da sua pasta local, liberando espaço no disco.
             </p>
         </div>
     `;
 
     return showConfirmModal({
-        title: 'Excluir Arquivo do Computador',
-        subtitle: 'Liberar espaço em disco',
-        icon: 'delete_forever',
+        title: 'Excluir do disco',
+        subtitle: '',
+        icon: 'delete_outline',
         iconColor: 'var(--brand, #e50914)',
         htmlBody,
-        confirmText: 'Sim, Excluir Arquivo',
+        confirmText: 'Excluir',
         cancelText: 'Cancelar',
         confirmType: 'danger'
     });
@@ -205,20 +203,20 @@ export async function confirmDropMovieModal({ title }) {
     const htmlBody = `
         <div class="mf-confirm-info-box mf-confirm-danger-box">
             <h4 class="mf-confirm-movie-name">${escapeHtml(title)}</h4>
-            <p class="mf-confirm-desc" style="color: var(--text-2, #b3b3b3); margin-bottom: 0;">
-                Deseja dropar este título? O progresso salvo será apagado e ele não aparecerá mais na sua lista de <strong>Continuar Assistindo</strong>.
+            <p class="mf-confirm-desc" style="color: #A8A59C; margin-bottom: 0;">
+                O progresso deste filme será removido de Continuar Assistindo.
             </p>
         </div>
     `;
 
     return showConfirmModal({
-        title: 'Dropar Filme',
-        subtitle: 'Remover de Continuar Assistindo',
+        title: 'Remover da lista',
+        subtitle: '',
         icon: 'playlist_remove',
         iconColor: 'var(--brand, #e50914)',
         htmlBody,
-        confirmText: 'Sim, Dropar Filme',
-        cancelText: 'Manter na Lista',
+        confirmText: 'Remover',
+        cancelText: 'Cancelar',
         confirmType: 'danger'
     });
 }

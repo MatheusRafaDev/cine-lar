@@ -284,7 +284,7 @@ const UserSettingsPage: FC = () => {
                                 </div>
                             )}
                             <p className='mf-profile-subtext'>
-                                Perfil ativo no MatheusFlix • Sem exigência de senhas
+                                Perfil local
                             </p>
                         </div>
                     </div>
@@ -300,7 +300,7 @@ const UserSettingsPage: FC = () => {
                                 className='mf-btn-action-outline focusable'
                             >
                                 <span className='material-icons' style={{ fontSize: 16 }}>edit</span>
-                                Alterar Nome
+                                Alterar nome
                             </button>
                         </div>
                     )}
@@ -314,7 +314,7 @@ const UserSettingsPage: FC = () => {
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                             <PrefChip
                                 active={audioPref === 'ptbr'}
-                                label='Dublado PT-BR (Padrão)'
+                                label='Dublado PT-BR'
                                 value='ptbr'
                                 onSelect={onSelectAudio}
                             />
@@ -333,13 +333,13 @@ const UserSettingsPage: FC = () => {
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                             <PrefChip
                                 active={subPref === 'auto'}
-                                label='Automática (Se não dublado)'
+                                label='Automática'
                                 value='auto'
                                 onSelect={onSelectSub}
                             />
                             <PrefChip
                                 active={subPref === 'always'}
-                                label='Sempre Ativada'
+                                label='Sempre'
                                 value='always'
                                 onSelect={onSelectSub}
                             />
@@ -364,7 +364,7 @@ const UserSettingsPage: FC = () => {
                             />
                             <PrefChip
                                 active={subSize === 'large'}
-                                label='Grande (Recomendado)'
+                                label='Grande'
                                 value='large'
                                 onSelect={onSelectSubSize}
                             />
@@ -383,26 +383,26 @@ const UserSettingsPage: FC = () => {
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                             <PrefChip
                                 active={qualityPref === 'auto'}
-                                label='Automática (Mais Rápido)'
+                                label='Automática'
                                 value='auto'
                                 onSelect={onSelectQuality}
                             />
                             <PrefChip
                                 active={qualityPref === '1080p'}
-                                label='1080p Full HD'
+                                label='1080p'
                                 value='1080p'
                                 onSelect={onSelectQuality}
                             />
                             <PrefChip
                                 active={qualityPref === '4k'}
-                                label='4K UHD Máxima'
+                                label='4K UHD'
                                 value='4k'
                                 onSelect={onSelectQuality}
                             />
                         </div>
                     </div>
 
-                    {/* Armazenamento & Motor de Download */}
+                    {/* Armazenamento */}
                     <div className='mf-settings-card' style={{ gridColumn: 'span 2' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
                             <div style={{ flex: 1, minWidth: 260 }}>
@@ -457,16 +457,6 @@ const UserSettingsPage: FC = () => {
                                     Alterar pasta
                                 </button>
                             )}
-                        </div>
-
-                        <div className='mf-settings-divider' />
-
-                        <div className='mf-settings-status-row'>
-                            <div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>Serviço de Torrent & Streaming</div>
-                                <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>Porta 8085 (Node.js + WebTorrent em tempo real)</div>
-                            </div>
-                            <span className='mf-settings-badge-info'>Conectado</span>
                         </div>
                     </div>
                 </div>

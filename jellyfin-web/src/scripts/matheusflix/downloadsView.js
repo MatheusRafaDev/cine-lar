@@ -116,7 +116,7 @@ function renderLists(downloads, speedEl, diskEl, countEl, activeList, completedL
         activeList.innerHTML = `
             <div class="card" style="padding: 36px; text-align: center; background: #1E1D1B; border: 1px solid rgba(250,249,245,0.1); border-radius: 20px; color: #A8A59C;">
                 <p style="margin: 0 0 6px 0; font-size: 16px; font-weight: 600; color: #FAF9F5;">Nenhum download ativo no momento.</p>
-                <p style="margin: 0; font-size: 14px;">Navegue até a aba Torrents para escolher um título e começar a assistir ou baixar!</p>
+                <p style="margin: 0; font-size: 14px;">Você pode iniciar downloads através da aba Torrents.</p>
             </div>
         `;
     } else {
@@ -184,7 +184,7 @@ function renderLists(downloads, speedEl, diskEl, countEl, activeList, completedL
             <div class="card mf-dl-card" data-id="${escapeHtml(d.id)}" style="background:#1E1D1B;border:1px solid rgba(250,249,245,0.1);border-radius:20px;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;">
                 <div>
                     <div style="font-weight:600;font-size:17px;color:#FAF9F5;">${escapeHtml(d.title || d.name || 'Filme')}</div>
-                    <div class="m" style="color:#46d369;font-size:13px;margin-top:4px;">100% Concluído · Salvo na pasta local</div>
+                    <div class="m" style="color:#46d369;font-size:13px;margin-top:4px;">Salvo na pasta local</div>
                 </div>
                 <button type="button" class="btn f mf-btn-watch-dl focusable" style="border:0;border-radius:12px;height:42px;padding:0 20px;background:#E50914;color:#FAF9F5;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
                     <span class="material-icons" style="font-size:18px;">play_arrow</span> Assistir
@@ -204,124 +204,6 @@ function renderLists(downloads, speedEl, diskEl, countEl, activeList, completedL
                         quality: '1080p',
                         infoHash: d.id,
                         isLocal: true
-                    });
-                }
-            });
-        });
-    }
-}
-                        title: d.title || d.name,
-                        subInfo: `${d.quality || '1080p'} • Baixando (${d.progress}%)`,
-                        quality: d.quality || '1080p',
-                        isLocal: false,
-                        infoHash: d.id,
-                        duration: d.duration || 0
-                    });
-                }
-            });
-        });
-
-        activeList.querySelectorAll('.mf-btn-cancel-dl').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const card = btn.closest('.mf-dl-card');
-                const id = card.dataset.id;
-                const d = active.find(item => item.id === id);
-                const title = d?.title || d?.name || 'este filme';
-
-                const confirmed = await confirmDeleteModal({
-                    title,
-                    isCompleted: false
-                });
-                if (!confirmed) return;
-
-                btn.disabled = true;
-                try {
-                    await cancelDownload(id);
-                    toast(`Download de "${title}" cancelado e removido da pasta.`);
-                    card.remove();
-                    rescanLocalMovies().catch((err) => {
-                        console.debug('[DownloadsView] rescan local movies:', err);
-                    });
-                } catch (err) {
-                    btn.disabled = false;
-                    toast(`Erro ao cancelar: ${err.message}`);
-                }
-            });
-        });
-    }
-
-    if (completed.length === 0) {
-        completedList.innerHTML = `
-            <div style="padding: 24px; text-align: center; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08); color: #8c93a4;">
-                Nenhum download concluído ainda. Os filmes finalizados aparecem também na <strong>Pasta Local</strong>.
-            </div>
-        `;
-    } else {
-        completedList.innerHTML = completed.map(d => `
-            <div class="mf-dl-card" data-id="${escapeHtml(d.id)}" style="background: rgba(18,22,32,0.65); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                <div>
-                    <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 700; color: #ffffff;">${escapeHtml(d.title || d.name || 'Filme Concluído')}</h4>
-                    <div style="font-size: 13px; color: #4ade80; display: flex; gap: 14px; align-items: center;">
-                        <span style="display: inline-flex; align-items: center; gap: 4px; font-weight: 700;">
-                            <span class="material-icons" style="font-size: 15px;">check_circle</span> Concluído
-                        </span>
-                        <span style="color: #94a3b8;">Tamanho: ${escapeHtml(d.total || d.downloaded || '')}</span>
-                        <span style="color: #64748b;">Salvo na sua pasta</span>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button type="button" class="mf-btn-play-completed focusable" style="background: #22c55e; border: none; color: #080a0f; font-weight: 800; font-size: 13px; padding: 8px 18px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(34,197,94,0.4); transition: transform 0.2s ease;">
-                        <span class="material-icons" style="font-size: 18px;">play_arrow</span>
-                        <span>Assistir</span>
-                    </button>
-                    <button type="button" class="mf-btn-remove-dl focusable" title="Remover do histórico" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #8c93a4; border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: all 0.2s ease;">
-                        <span class="material-icons" style="font-size: 18px;">delete</span>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-
-        completedList.querySelectorAll('.mf-btn-remove-dl').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const card = btn.closest('.mf-dl-card');
-                const id = card.dataset.id;
-                const d = completed.find(item => item.id === id);
-                const title = d?.title || d?.name || 'este filme';
-
-                const confirmed = await confirmDeleteModal({
-                    title,
-                    isCompleted: true
-                });
-                if (!confirmed) return;
-
-                btn.disabled = true;
-                try {
-                    await cancelDownload(id);
-                    toast(`Registro de "${title}" removido do histórico.`);
-                    card.remove();
-                    rescanLocalMovies().catch((err) => {
-                        console.debug('[DownloadsView] rescan local movies:', err);
-                    });
-                } catch (err) {
-                    btn.disabled = false;
-                    toast(`Erro ao remover: ${err.message}`);
-                }
-            });
-        });
-
-        completedList.querySelectorAll('.mf-btn-play-completed').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = btn.closest('.mf-dl-card').dataset.id;
-                const d = completed.find(item => item.id === id);
-                if (d) {
-                    openCinemaPlayer({
-                        streamUrl: d.streamUrl || `/api/stream/${d.id}`,
-                        title: d.title || d.name,
-                        subInfo: `${d.quality || '1080p'} • Arquivo Salvo`,
-                        quality: d.quality || '1080p',
-                        isLocal: false,
-                        infoHash: d.id,
-                        duration: d.duration || 0
                     });
                 }
             });

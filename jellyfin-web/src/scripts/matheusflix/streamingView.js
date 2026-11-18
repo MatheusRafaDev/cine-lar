@@ -49,7 +49,7 @@ export function renderStreamingView(container, initialFilters = {}) {
             <div class="mf-catalog-toolbar">
                 <div class="mf-search-box">
                     <span class="material-icons mf-search-icon">search</span>
-                    <input type="search" class="mf-search-input focusable" placeholder="Buscar filmes em torrent (PT-BR)…" />
+                    <input type="search" class="mf-search-input focusable" placeholder="Buscar filmes e séries…" />
                 </div>
                 <select class="mf-select mf-sort-select focusable" title="Ordenar">
                     <option value="trending"${state.sort === 'trending' ? ' selected' : ''}>Em alta</option>

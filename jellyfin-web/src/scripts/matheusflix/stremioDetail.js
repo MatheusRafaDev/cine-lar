@@ -97,7 +97,7 @@ export async function openStremioDetails(rawMovie) {
                             <div class="mf-stremio-header-info">
                                 <h1 class="mf-stremio-title">${escapeHtml(movie.title)}</h1>
                                 <div class="mf-stremio-subinfo">
-                                    ${movie.rating ? `<span class="mf-netflix-match"><span class="material-icons" style="font-size: 15px; vertical-align: middle; margin-right: 3px;">star</span>${movie.rating}</span>` : '<span class="mf-netflix-match">98% Relevante</span>'}
+                                    ${movie.rating ? `<span class="mf-netflix-match"><span class="material-icons" style="font-size: 15px; vertical-align: middle; margin-right: 3px;">star</span>${movie.rating}</span>` : ''}
                                     ${movie.year ? `<span class="mf-netflix-year">${escapeHtml(movie.year)}</span>` : ''}
                                     <span class="mf-netflix-badge-hd">1080p</span>
                                     ${movie.genres ? `<span class="mf-netflix-genres">${escapeHtml(movie.genres.split(/[,/]/).slice(0, 3).map(g => g.trim()).join(' • '))}</span>` : ''}
@@ -119,7 +119,7 @@ export async function openStremioDetails(rawMovie) {
                         <div class="mf-stremio-hero-action">
                             <button type="button" class="mf-btn-hero-watch focusable" disabled>
                                 <span class="material-icons mf-hero-play-icon">play_arrow</span>
-                                <span class="mf-hero-watch-text">Buscando fontes disponíveis...</span>
+                                <span class="mf-hero-watch-text">Carregando opções...</span>
                             </button>
                             <button type="button" class="mf-btn-hero-fav mf-btn-fav-toggle focusable" title="Minha Lista (Favoritos)" aria-label="Minha Lista">
                                 <span class="material-icons mf-fav-icon">favorite_border</span>
@@ -159,7 +159,7 @@ export async function openStremioDetails(rawMovie) {
                     <div class="mf-stremio-streams-list">
                         <div class="mf-streams-loading">
                             <div class="mf-spinner"></div>
-                            <p>Procurando as melhores fontes de transmissão...</p>
+                            <p>Buscando opções de reprodução...</p>
                         </div>
                     </div>
                 </div>
@@ -480,13 +480,12 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 <div class="mf-dl-alert-left">
                     <span class="material-icons mf-dl-spinning-icon">sync</span>
                     <div class="mf-dl-alert-text">
-                        <strong>Baixando para a pasta MatheusFlix (${activeDl.progress || 0}%)</strong>
-                        <span>Você pode assistir em tempo real enquanto baixa, sem travar!</span>
+                        <strong>Baixando para a pasta local (${activeDl.progress || 0}%)</strong>
                     </div>
                 </div>
                 <button type="button" class="mf-btn-watch-while-dl">
-                    <span class="material-icons">play_circle_filled</span>
-                    <span>Assistir Agora Enquanto Baixa</span>
+                    <span class="material-icons">play_arrow</span>
+                    <span>Assistir</span>
                 </button>
             </div>
         `;
@@ -495,7 +494,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
             launchPlayer({
                 streamUrl: activeDl.streamUrl,
                 title: movie.title,
-                subInfo: `${activeDl.quality || '1080p'} • Baixando em tempo real (${activeDl.progress || 0}%)`,
+                subInfo: `${activeDl.quality || '1080p'} • Baixando (${activeDl.progress || 0}%)`,
                 quality: activeDl.quality || '1080p',
                 isLocal: false,
                 infoHash: activeDl.id,
@@ -508,12 +507,12 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
 
         heroBtn.disabled = false;
         heroBtn.className = 'mf-btn-hero-watch mf-btn-watching-dl';
-        heroText.textContent = `Assistir Enquanto Baixa (${activeDl.quality || '1080p'})`;
+        heroText.textContent = `Assistir (${activeDl.quality || '1080p'})`;
         heroBtn.onclick = () => {
             launchPlayer({
                 streamUrl: activeDl.streamUrl,
                 title: movie.title,
-                subInfo: `${activeDl.quality || '1080p'} • Baixando em tempo real (${activeDl.progress || 0}%)`,
+                subInfo: `${activeDl.quality || '1080p'} • Baixando (${activeDl.progress || 0}%)`,
                 quality: activeDl.quality || '1080p',
                 isLocal: false,
                 infoHash: activeDl.id,
