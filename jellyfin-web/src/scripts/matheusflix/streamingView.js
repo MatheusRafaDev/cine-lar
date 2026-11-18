@@ -168,10 +168,10 @@ export function renderStreamingView(container, initialFilters = {}) {
             searchInput.value = '';
             state.q = '';
             if (state.type === 'series') {
-                searchInput.placeholder = 'Buscar séries em torrent (PT-BR)…';
+                searchInput.placeholder = 'Buscar séries…';
                 genreBar.style.display = 'none';
             } else {
-                searchInput.placeholder = 'Buscar filmes em torrent (PT-BR)…';
+                searchInput.placeholder = 'Buscar filmes…';
                 genreBar.style.display = '';
             }
             load();
@@ -246,7 +246,6 @@ function appendCards(grid, movies) {
                     <span class="mf-meta-year" style="color: var(--text-2, #b3b3b3) !important; font-weight: 500;">${escapeHtml(m.year)}</span>
                     <span class="mf-meta-genre" style="color: var(--text-2, #b3b3b3) !important; font-weight: 500;">${escapeHtml(String(m.genres).split(',')[0])}</span>
                 </div>
-                ${m.reason ? `<p class="mf-ai-reason" style="font-size: 11px; color: #38bdf8; margin: 2px 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(m.reason)}</p>` : ''}
             </div>
         `;
         card.addEventListener('click', () => openStremioDetails(m));
