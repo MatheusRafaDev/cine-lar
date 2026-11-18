@@ -4790,9 +4790,9 @@ button[aria-label*="Menu"],
 }
 
 .mf-settings-container {
-    max-width: 860px !important;
+    max-width: 1200px !important;
     margin: 0 auto !important;
-    padding: 24px 24px 64px 24px !important;
+    padding: 36px 48px 80px 48px !important;
     box-sizing: border-box !important;
 }
 
@@ -4800,91 +4800,114 @@ button[aria-label*="Menu"],
     background: rgba(70, 211, 105, 0.15) !important;
     border: 1px solid rgba(70, 211, 105, 0.4) !important;
     color: #46d369 !important;
-    padding: 12px 20px !important;
-    border-radius: 8px !important;
-    margin-bottom: 20px !important;
+    padding: 14px 24px !important;
+    border-radius: 12px !important;
+    margin-bottom: 24px !important;
     display: flex !important;
     align-items: center !important;
-    gap: 10px !important;
-    font-size: 14px !important;
+    gap: 12px !important;
+    font-size: 15px !important;
     font-weight: 700 !important;
     animation: mfFadeIn 0.2s ease !important;
 }
 
+.mf-settings-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px !important;
+    margin-top: 24px !important;
+}
+
+@media (max-width: 860px) {
+    .mf-settings-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .mf-settings-grid > div {
+        grid-column: span 1 !important;
+    }
+}
+
 .mf-settings-card {
-    background: #181818 !important;
-    border: none !important;
-    border-radius: 6px !important;
-    padding: 26px 30px !important;
-    margin-bottom: 24px !important;
+    background: #1E1D1B !important;
+    border: 1px solid rgba(250, 249, 245, 0.1) !important;
+    border-radius: 20px !important;
+    padding: 32px !important;
+    margin-bottom: 0 !important;
     box-shadow: none !important;
+    box-sizing: border-box !important;
+    position: relative !important;
 }
 
 .mf-profile-card {
+    background: #1E1D1B !important;
+    border: 1px solid rgba(250, 249, 245, 0.1) !important;
+    border-radius: 20px !important;
+    padding: 36px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
     flex-wrap: wrap !important;
-    gap: 18px !important;
+    gap: 28px !important;
+    margin-bottom: 24px !important;
 }
 
 .mf-profile-avatar {
-    width: 68px !important;
-    height: 68px !important;
-    border-radius: 4px !important;
+    width: 96px !important;
+    height: 96px !important;
+    border-radius: 20px !important;
     background: #e50914 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    color: #ffffff !important;
+    color: #FAF9F5 !important;
     font-weight: 800 !important;
-    font-size: 28px !important;
+    font-size: 42px !important;
     box-shadow: none !important;
     flex-shrink: 0 !important;
 }
 
 .mf-profile-name {
     margin: 0 !important;
-    font-size: 24px !important;
-    font-weight: 800 !important;
-    color: #ffffff !important;
-    line-height: 1.2 !important;
+    font-size: 38px !important;
+    font-weight: 700 !important;
+    color: #FAF9F5 !important;
+    line-height: 1.15 !important;
     letter-spacing: -0.3px !important;
 }
 
 .mf-profile-badge {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: #b3b3b3 !important;
+    background: rgba(250, 249, 245, 0.1) !important;
+    color: #A8A59C !important;
     border: none !important;
-    font-size: 11px !important;
+    font-size: 12px !important;
     font-weight: 700 !important;
-    padding: 3px 10px !important;
-    border-radius: 4px !important;
+    padding: 4px 12px !important;
+    border-radius: 6px !important;
     letter-spacing: 0.3px !important;
     text-transform: uppercase !important;
 }
 
 .mf-profile-subtext {
     margin: 4px 0 0 0 !important;
-    font-size: 13px !important;
-    color: #808080 !important;
+    font-size: 15px !important;
+    color: #A8A59C !important;
     font-weight: 500 !important;
 }
 
 .mf-btn-switch-profile,
 .mf-btn-action-outline {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    border-radius: 4px !important;
-    padding: 8px 16px !important;
-    font-size: 13px !important;
+    background: rgba(250, 249, 245, 0.12) !important;
+    color: #FAF9F5 !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 12px 24px !important;
+    font-size: 15px !important;
     font-weight: 600 !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 8px !important;
     cursor: pointer !important;
-    transition: background 0.15s ease, border-color 0.15s ease !important;
+    transition: all 0.2s ease !important;
     box-shadow: none !important;
 }
 
@@ -4892,10 +4915,11 @@ button[aria-label*="Menu"],
 .mf-btn-switch-profile:focus-visible,
 .mf-btn-action-outline:hover,
 .mf-btn-action-outline:focus-visible {
-    background: rgba(255, 255, 255, 0.18) !important;
-    border-color: rgba(255, 255, 255, 0.35) !important;
+    background: rgba(250, 249, 245, 0.2) !important;
     color: #ffffff !important;
-    transform: none !important;
+    outline: 3px solid #FAF9F5 !important;
+    outline-offset: 3px !important;
+    transform: scale(1.04) !important;
     box-shadow: none !important;
 }
 
@@ -4996,44 +5020,53 @@ button[aria-label*="Menu"],
     gap: 8px !important;
 }
 
+.mf-settings-card-title {
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    color: #FAF9F5 !important;
+    margin: 0 0 16px 0 !important;
+}
+
 .mf-pref-chip {
-    padding: 8px 16px !important;
-    border-radius: 4px !important;
-    font-size: 13px !important;
+    height: 44px !important;
+    padding: 0 20px !important;
+    border-radius: 999px !important;
+    font-size: 14px !important;
     font-weight: 500 !important;
     cursor: pointer !important;
-    border: none !important;
-    background: #242424 !important;
-    color: #b3b3b3 !important;
-    transition: background 0.2s ease !important;
+    border: 1.5px solid rgba(250, 249, 245, 0.2) !important;
+    background: transparent !important;
+    color: #FAF9F5 !important;
+    transition: all 0.2s ease !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 6px !important;
+    justify-content: center !important;
+    gap: 8px !important;
     user-select: none !important;
     outline: none !important;
     box-shadow: none !important;
 }
 
 .mf-pref-chip:hover {
-    background: #333333 !important;
+    background: rgba(250, 249, 245, 0.08) !important;
+    border-color: rgba(250, 249, 245, 0.35) !important;
     color: #ffffff !important;
-    border: none !important;
     transform: none !important;
 }
 
 .mf-pref-chip.active {
-    background: #e50914 !important;
-    border: none !important;
-    color: #ffffff !important;
+    background: #FAF9F5 !important;
+    border: 1.5px solid #FAF9F5 !important;
+    color: #141413 !important;
     font-weight: 700 !important;
     box-shadow: none !important;
 }
 
 .mf-pref-chip:focus,
 .mf-pref-chip:focus-visible {
-    outline: 2px solid #ffffff !important;
-    outline-offset: 2px !important;
-    transform: none !important;
+    outline: 3px solid #FAF9F5 !important;
+    outline-offset: 3px !important;
+    transform: scale(1.04) !important;
     z-index: 5 !important;
 }
 

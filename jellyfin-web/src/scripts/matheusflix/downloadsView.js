@@ -11,58 +11,57 @@ import toast from 'components/toast/toast';
 
 export function renderDownloadsView(container) {
     container.innerHTML = `
-        <div class="mf-downloads-page" style="padding: 28px 36px; max-width: 1400px; margin: 0 auto;">
-            <div class="mf-downloads-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 20px;">
-                <div>
-                    <h2 style="margin: 0 0 6px 0; font-size: 28px; font-weight: 800; display: flex; align-items: center; gap: 12px; color: #ffffff;">
-                        <span class="material-icons" style="color: #38bdf8; font-size: 30px;">download</span>
-                        Gerenciador de Downloads & Streaming
-                    </h2>
-                    <p class="mf-dl-summary" style="margin: 0; color: #94a3b8; font-size: 14px;">Carregando status dos downloads...</p>
+        <div class="mf-downloads-page sp" style="padding: 36px 48px; max-width: 1400px; margin: 0 auto;">
+            <!-- Resumo em 3 Cards Estilo Cinelar -->
+            <div class="mf-dl-summary-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:32px;">
+                <div class="card" style="padding:28px;background:#1E1D1B;border:1px solid rgba(250,249,245,0.1);border-radius:20px;">
+                    <div class="m" style="color:#A8A59C;font-size:15px;">Velocidade total</div>
+                    <div class="t mf-dl-total-speed" style="font-size:36px;font-weight:700;color:#FAF9F5;margin-top:6px;">0 B/s</div>
                 </div>
-                <button type="button" class="mf-btn-refresh-dl" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); color: #ffffff; padding: 10px 18px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; transition: all 0.2s ease;">
-                    <span class="material-icons" style="font-size: 18px;">refresh</span>
-                    <span>Atualizar</span>
-                </button>
+                <div class="card" style="padding:28px;background:#1E1D1B;border:1px solid rgba(250,249,245,0.1);border-radius:20px;">
+                    <div class="m" style="color:#A8A59C;font-size:15px;">Espaço livre em disco</div>
+                    <div class="t mf-dl-disk-space" style="font-size:36px;font-weight:700;color:#FAF9F5;margin-top:6px;">Ativo</div>
+                </div>
+                <div class="card" style="padding:28px;background:#1E1D1B;border:1px solid rgba(250,249,245,0.1);border-radius:20px;">
+                    <div class="m" style="color:#A8A59C;font-size:15px;">Downloads ativos</div>
+                    <div class="t mf-dl-active-count" style="font-size:36px;font-weight:700;color:#FAF9F5;margin-top:6px;">0</div>
+                </div>
             </div>
 
-            <!-- Seção de Downloads Ativos (com Play enquanto baixa) -->
+            <!-- Seção de Downloads Ativos -->
             <div class="mf-section-active-dl" style="margin-bottom: 36px;">
-                <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; color: #ffffff;">
-                    <span class="material-icons" style="color: #38bdf8; font-size: 22px;">sync</span>
-                    Baixando Agora (Assista em Tempo Real)
-                </h3>
-                <div class="mf-active-list" style="display: flex; flex-direction: column; gap: 14px;"></div>
+                <div class="t" style="font-size: 24px; font-weight: 700; margin-bottom: 18px; color: #FAF9F5;">
+                    Downloads Ativos
+                </div>
+                <div class="mf-active-list" style="display: flex; flex-direction: column; gap: 16px;"></div>
             </div>
 
             <!-- Seção de Concluídos -->
             <div class="mf-section-completed-dl">
-                <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; color: #ffffff;">
-                    <span class="material-icons" style="color: #22c55e; font-size: 22px;">check_circle</span>
-                    Downloads Concluídos
-                </h3>
-                <div class="mf-completed-list" style="display: flex; flex-direction: column; gap: 14px;"></div>
+                <div class="t" style="font-size: 24px; font-weight: 700; margin-bottom: 18px; color: #FAF9F5;">
+                    Concluídos
+                </div>
+                <div class="mf-completed-list" style="display: flex; flex-direction: column; gap: 16px;"></div>
             </div>
         </div>
     `;
 
-    const summaryEl = container.querySelector('.mf-dl-summary');
+    const speedEl = container.querySelector('.mf-dl-total-speed');
+    const diskEl = container.querySelector('.mf-dl-disk-space');
+    const countEl = container.querySelector('.mf-dl-active-count');
     const activeList = container.querySelector('.mf-active-list');
     const completedList = container.querySelector('.mf-completed-list');
-    const btnRefresh = container.querySelector('.mf-btn-refresh-dl');
 
     async function loadData() {
         try {
             const data = await fetchDownloads();
             const list = data.downloads || [];
-            renderLists(list, summaryEl, activeList, completedList);
+            renderLists(list, speedEl, diskEl, countEl, activeList, completedList);
         } catch (err) {
-            summaryEl.textContent = 'Erro ao carregar downloads. Verifique se o torrent-service está ativo.';
             activeList.innerHTML = `<p style="color: #ef4444;">${escapeHtml(err.message)}</p>`;
         }
     }
 
-    btnRefresh.addEventListener('click', loadData);
     loadData();
 
     // Polling contínuo enquanto a aba estiver visível
@@ -81,52 +80,64 @@ function isCompleted(d) {
     return d.status === 'completed' || parseFloat(d.progress) >= 100;
 }
 
-function renderLists(downloads, summaryEl, activeList, completedList) {
+function renderLists(downloads, speedEl, diskEl, countEl, activeList, completedList) {
     const active = downloads.filter(d => !isCompleted(d));
     const completed = downloads.filter(d => isCompleted(d));
 
-    summaryEl.textContent = `${active.length} download(s) em andamento • ${completed.length} filme(s) concluído(s)`;
+    if (countEl) countEl.textContent = String(active.length);
+    if (speedEl) {
+        const totalSpeed = active.reduce((acc, d) => {
+            const sp = d.downloadSpeed || '';
+            const match = sp.match(/([\d.]+)\s*([KMG]?B\/s)/i);
+            if (match) {
+                const val = parseFloat(match[1]);
+                const unit = match[2].toUpperCase();
+                if (unit.startsWith('M')) return acc + val * 1024 * 1024;
+                if (unit.startsWith('K')) return acc + val * 1024;
+                return acc + val;
+            }
+            return acc;
+        }, 0);
+        if (totalSpeed >= 1024 * 1024) {
+            speedEl.textContent = `${(totalSpeed / (1024 * 1024)).toFixed(1)} MB/s`;
+        } else if (totalSpeed >= 1024) {
+            speedEl.textContent = `${(totalSpeed / 1024).toFixed(0)} KB/s`;
+        } else {
+            speedEl.textContent = active.length > 0 ? (active[0].downloadSpeed || '0 B/s') : '0 B/s';
+        }
+    }
+    if (diskEl) {
+        const savedPath = localStorage.getItem('mf_save_path') || 'D:\\filmes';
+        const diskMatch = savedPath.match(/^([A-Za-z]):/);
+        diskEl.textContent = diskMatch ? `Disco ${diskMatch[1].toUpperCase()}:` : 'Pasta Local';
+    }
 
     if (active.length === 0) {
         activeList.innerHTML = `
-            <div style="padding: 32px; text-align: center; background: rgba(255,255,255,0.02); border-radius: 14px; border: 1px dashed rgba(255,255,255,0.1); color: #94a3b8;">
-                <p style="margin: 0 0 6px 0; font-size: 15px; font-weight: 600; color: #cbd5e1;">Nenhum download ativo no momento.</p>
-                <p style="margin: 0; font-size: 13px;">Navegue até a aba <strong>Torrents</strong> para escolher um filme e começar a assistir ou baixar!</p>
+            <div class="card" style="padding: 36px; text-align: center; background: #1E1D1B; border: 1px solid rgba(250,249,245,0.1); border-radius: 20px; color: #A8A59C;">
+                <p style="margin: 0 0 6px 0; font-size: 16px; font-weight: 600; color: #FAF9F5;">Nenhum download ativo no momento.</p>
+                <p style="margin: 0; font-size: 14px;">Navegue até a aba Torrents para escolher um título e começar a assistir ou baixar!</p>
             </div>
         `;
     } else {
         activeList.innerHTML = active.map(d => `
-            <div class="mf-dl-card" data-id="${escapeHtml(d.id)}" style="background: rgba(19, 23, 34, 0.9); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 12px;">
-                    <div>
-                        <h4 style="margin: 0 0 6px 0; font-size: 17px; font-weight: 700; color: #ffffff;">${escapeHtml(d.title || d.name || 'Download')}</h4>
-                        <div style="font-size: 13px; color: #94a3b8; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;">
-                            <span style="color: #cbd5e1;"><span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">save</span>${escapeHtml(d.downloaded || '0 MB')} / ${escapeHtml(d.total || '0 MB')}</span>
-                            <span style="color: #38bdf8; font-weight: 600;"><span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">speed</span>${escapeHtml(d.downloadSpeed || '0 B/s')}</span>
-                            <span style="color: #4ade80;"><span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">group</span>${d.numPeers || 0} peers</span>
-                            <span><span class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 3px;">schedule</span>${escapeHtml(d.timeRemaining || 'Calculando...')}</span>
-                        </div>
+            <div class="card mf-dl-card" data-id="${escapeHtml(d.id)}" style="background:#1E1D1B;border:1px solid rgba(250,249,245,0.1);border-radius:20px;padding:24px 32px;display:flex;align-items:center;gap:32px;">
+                <div style="flex:1;">
+                    <div style="font-weight:600;font-size:18px;color:#FAF9F5;word-break:break-all;">${escapeHtml(d.title || d.name || 'Download')}</div>
+                    <div class="bar" style="height:8px;border-radius:4px;background:rgba(250,249,245,0.14);margin:14px 0 10px;overflow:hidden;">
+                        <i style="display:block;height:8px;border-radius:4px;background:#E50914;width:${Math.min(100, parseFloat(d.progress) || 0)}%;"></i>
                     </div>
-
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <button type="button" class="mf-btn-watch-dl focusable" title="Assistir imediatamente enquanto o filme baixa" style="background: linear-gradient(135deg, #16a34a, #22c55e); color: #ffffff; border: none; border-radius: 10px; padding: 8px 18px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 4px 14px rgba(34,197,94,0.4); transition: transform 0.2s ease;">
-                            <span class="material-icons" style="font-size: 18px;">play_arrow</span>
-                            <span>Assistir enquanto baixa</span>
-                        </button>
-
-                        <button type="button" class="mf-btn-cancel-dl focusable" title="Cancelar download" style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: #f87171; border-radius: 10px; padding: 8px 14px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; transition: all 0.2s ease;">
-                            <span class="material-icons" style="font-size: 16px;">close</span>
-                            <span>Cancelar</span>
-                        </button>
+                    <div class="m" style="color:#A8A59C;font-size:14px;">
+                        ${escapeHtml(d.progress || 0)}% · ETA ${escapeHtml(d.timeRemaining || 'Calculando')} · ${d.numPeers || 0} sementes ativas · ${escapeHtml(d.downloadSpeed || '0 B/s')}
                     </div>
                 </div>
-
-                <div style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 99px; overflow: hidden; margin-top: 14px;">
-                    <div style="background: var(--brand, #e50914); height: 100%; width: ${Math.min(100, parseFloat(d.progress) || 0)}%; transition: width 0.3s ease;"></div>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2, #b3b3b3); margin-top: 6px;">
-                    <span>Salvando na sua pasta</span>
-                    <span style="font-weight: 700; color: #ffffff;">${escapeHtml(d.progress || 0)}%</span>
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <button type="button" class="btn f mf-btn-watch-dl focusable" style="border:0;border-radius:12px;height:44px;padding:0 22px;background:#E50914;color:#FAF9F5;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+                        <span class="material-icons" style="font-size:18px;">play_arrow</span> Assistir
+                    </button>
+                    <button type="button" class="btn g mf-btn-cancel-dl focusable" style="border:0;border-radius:12px;height:44px;padding:0 22px;background:rgba(250,249,245,0.12);color:#FAF9F5;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+                        Cancelar
+                    </button>
                 </div>
             </div>
         `).join('');
@@ -138,6 +149,67 @@ function renderLists(downloads, summaryEl, activeList, completedList) {
                 if (d) {
                     openCinemaPlayer({
                         streamUrl: d.streamUrl || `/api/stream/${d.id}`,
+                        title: d.title || d.name,
+                        subInfo: `${d.progress || 0}% baixado`,
+                        quality: '1080p',
+                        infoHash: d.id
+                    });
+                }
+            });
+        });
+
+        activeList.querySelectorAll('.mf-btn-cancel-dl').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.closest('.mf-dl-card').dataset.id;
+                try {
+                    await cancelDownload(id);
+                    toast('Download cancelado');
+                    const card = btn.closest('.mf-dl-card');
+                    if (card) card.remove();
+                } catch (e) {
+                    toast('Erro ao cancelar: ' + e.message);
+                }
+            });
+        });
+    }
+
+    if (completed.length === 0) {
+        completedList.innerHTML = `
+            <div class="card" style="padding: 24px 32px; background: #1E1D1B; border: 1px solid rgba(250,249,245,0.1); border-radius: 20px; color: #A8A59C;">
+                Nenhum download concluído ainda.
+            </div>
+        `;
+    } else {
+        completedList.innerHTML = completed.map(d => `
+            <div class="card mf-dl-card" data-id="${escapeHtml(d.id)}" style="background:#1E1D1B;border:1px solid rgba(250,249,245,0.1);border-radius:20px;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;">
+                <div>
+                    <div style="font-weight:600;font-size:17px;color:#FAF9F5;">${escapeHtml(d.title || d.name || 'Filme')}</div>
+                    <div class="m" style="color:#46d369;font-size:13px;margin-top:4px;">100% Concluído · Salvo na pasta local</div>
+                </div>
+                <button type="button" class="btn f mf-btn-watch-dl focusable" style="border:0;border-radius:12px;height:42px;padding:0 20px;background:#E50914;color:#FAF9F5;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+                    <span class="material-icons" style="font-size:18px;">play_arrow</span> Assistir
+                </button>
+            </div>
+        `).join('');
+
+        completedList.querySelectorAll('.mf-btn-watch-dl').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.closest('.mf-dl-card').dataset.id;
+                const d = completed.find(item => item.id === id);
+                if (d) {
+                    openCinemaPlayer({
+                        streamUrl: d.streamUrl || `/api/stream/${d.id}`,
+                        title: d.title || d.name,
+                        subInfo: 'Salvo em disco',
+                        quality: '1080p',
+                        infoHash: d.id,
+                        isLocal: true
+                    });
+                }
+            });
+        });
+    }
+}
                         title: d.title || d.name,
                         subInfo: `${d.quality || '1080p'} • Baixando (${d.progress}%)`,
                         quality: d.quality || '1080p',

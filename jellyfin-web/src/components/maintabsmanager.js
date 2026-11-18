@@ -10,8 +10,8 @@ let headerTabsContainer;
 let tabsElem;
 
 function ensureElements() {
-    if (!headerTabsContainer) {
-        headerTabsContainer = queryScope.querySelector('.headerTabs');
+    if (!headerTabsContainer || !headerTabsContainer.isConnected) {
+        headerTabsContainer = document.querySelector('.skinHeader .headerTabs') || document.querySelector('.headerTabs');
     }
 }
 
@@ -90,11 +90,14 @@ export function renderMatheusFlixDefaultTabs(activeIdx = null) {
     document.body.classList.add('withSectionTabs');
 
     const currentHash = window.location.hash || '';
-    if (activeIdx == null) {
+    const isProfile = currentHash.includes('mypreferencesmenu') || currentHash.includes('/settings') || currentHash.includes('/user');
+    if (isProfile) {
+        activeIdx = null;
+    } else if (activeIdx == null) {
         if (currentHash.includes('tab=1')) activeIdx = 1;
         else if (currentHash.includes('tab=2')) activeIdx = 2;
         else if (currentHash.includes('tab=3')) activeIdx = 3;
-        else if (currentHash.includes('mypreferencesmenu') || currentHash.includes('/settings') || currentHash.includes('/item')) {
+        else if (currentHash.includes('/item')) {
             activeIdx = null;
         } else if (currentHash.includes('/home') || currentHash === '' || currentHash === '#/') {
             activeIdx = 0;

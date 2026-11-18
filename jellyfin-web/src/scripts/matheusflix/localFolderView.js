@@ -16,25 +16,27 @@ export function renderLocalFolderView(container) {
     let series = [];
     let currentView = 'all';
 
+    const savedPath = localStorage.getItem('mf_save_path') || 'D:\\filmes';
+
     container.innerHTML = `
-        <div class="mf-local">
-            <!-- Barra de Categorias e Agrupamentos (Todos, Franquias, Séries) -->
-            <div class="mf-local-category-bar">
-                <button type="button" class="mf-category-chip focusable active" data-view="all">
-                    <span class="material-icons" style="font-size: 16px;">folder</span>
-                    <span>Todos os Filmes</span>
-                    <span class="mf-chip-count mf-count-all">0</span>
-                </button>
-                <button type="button" class="mf-category-chip focusable" data-view="franchises">
-                    <span class="material-icons" style="font-size: 16px;">movie_filter</span>
-                    <span>Franquias & Coleções</span>
-                    <span class="mf-chip-count mf-count-franchises">0</span>
-                </button>
-                <button type="button" class="mf-category-chip focusable" data-view="series">
-                    <span class="material-icons" style="font-size: 16px;">tv</span>
-                    <span>Séries</span>
-                    <span class="mf-chip-count mf-count-series">0</span>
-                </button>
+        <div class="mf-local sp" style="padding: 36px 48px; max-width: 1600px; margin: 0 auto;">
+            <!-- Header Estilo Cinelar -->
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;margin-bottom:32px;">
+                <div>
+                    <div class="t" style="font-size:36px;font-weight:700;color:#FAF9F5;">Pasta Local</div>
+                    <div class="m" style="margin-top:6px;color:#A8A59C;font-size:15px;">${escapeHtml(savedPath)} · reprodução direta, sem buffer de rede</div>
+                </div>
+                <div class="mf-local-category-bar" style="display:flex;gap:12px;flex-wrap:wrap;">
+                    <button type="button" class="mf-category-chip c on focusable active" data-view="all">
+                        <span>Todos os Filmes</span>
+                    </button>
+                    <button type="button" class="mf-category-chip c focusable" data-view="franchises">
+                        <span>Franquias</span>
+                    </button>
+                    <button type="button" class="mf-category-chip c focusable" data-view="series">
+                        <span>Séries</span>
+                    </button>
+                </div>
             </div>
 
             <div class="mf-downloads-strip hide"></div>
@@ -73,8 +75,10 @@ export function renderLocalFolderView(container) {
         chip.addEventListener('click', () => {
             categoryChips.forEach((c) => {
                 c.classList.remove('active');
+                c.classList.remove('on');
             });
             chip.classList.add('active');
+            chip.classList.add('on');
             currentView = chip.getAttribute('data-view') || 'all';
             render();
         });

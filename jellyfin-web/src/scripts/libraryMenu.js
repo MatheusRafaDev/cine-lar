@@ -37,17 +37,13 @@ function renderHeader() {
     let html = '';
     html += '<div class="flex align-items-center flex-grow headerTop">';
     html += '<div class="headerLeft">';
-    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonLeft headerBackButton hide"><span class="material-icons ' + (browser.safari ? 'chevron_left' : 'arrow_back') + '" aria-hidden="true"></span></button>';
+    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonLeft headerBackButton hide" aria-label="Voltar"><span class="material-icons ' + (browser.safari ? 'chevron_left' : 'arrow_back') + '" aria-hidden="true"></span></button>';
     html += '<h3 class="pageTitle pageTitleWithLogo pageTitleWithDefaultLogo" aria-hidden="true"></h3>';
-    html += '</div>';
-    html += '<div class="headerTabs sectionTabs">';
+    html += '<div class="headerTabs sectionTabs"></div>';
     html += '</div>';
     html += '<div class="headerRight">';
-    html += '<button is="paper-icon-button-light" class="headerSyncButton syncButton headerButton headerButtonRight hide"><span class="material-icons groups" aria-hidden="true"></span></button>';
-    html += '<span class="headerSelectedPlayer"></span>';
-    html += '<button is="paper-icon-button-light" class="headerAudioPlayerButton audioPlayerButton headerButton headerButtonRight hide"><span class="material-icons music_note" aria-hidden="true"></span></button>';
-    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton"><span class="material-icons search" aria-hidden="true"></span></button>';
-    html += '<button is="paper-icon-button-light" class="headerButton headerButtonRight headerUserButton"><span class="material-icons person" aria-hidden="true"></span></button>';
+    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton" aria-label="Buscar"><span class="material-icons search" aria-hidden="true"></span></button>';
+    html += '<button is="paper-icon-button-light" class="headerButton headerButtonRight headerUserButton" aria-label="Perfil"></button>';
     html += '<div class="currentTimeText hide"></div>';
     html += '</div>';
     html += '</div>';
@@ -223,6 +219,13 @@ function updateHeaderActiveNavigation() {
     if (headerUserButton) {
         if (isProfilePage) {
             headerUserButton.classList.add('headerUserButtonActive');
+            // Garantir que nenhuma aba principal (Início, Torrents, etc) fique destacada no Perfil
+            const tabsContainer = skinHeader.querySelector('.headerTabs');
+            if (tabsContainer) {
+                tabsContainer.querySelectorAll('.emby-tab-button').forEach(btn => {
+                    btn.classList.remove('emby-tab-button-active');
+                });
+            }
         } else {
             headerUserButton.classList.remove('headerUserButtonActive');
         }
@@ -234,12 +237,15 @@ function updateHeaderUserButton(src) {
         return;
     }
 
+    const userName = currentUser?.Name || currentUser?.localUser?.Name || localStorage.getItem('mf_user_name') || 'R';
+    const initial = userName.charAt(0).toUpperCase();
+
     if (src) {
-        headerUserButton.classList.add('headerUserButtonRound');
-        headerUserButton.innerHTML = '<div class="headerButton headerButtonRight paper-icon-button-light headerUserButtonRound" style="background-image:url(\'' + src + "');\"></div>";
+        headerUserButton.classList.remove('mf-avatar-text');
+        headerUserButton.innerHTML = '<div class="headerUserButtonImage" style="background-image:url(\'' + src + "');\"></div>";
     } else {
-        headerUserButton.classList.remove('headerUserButtonRound');
-        headerUserButton.innerHTML = '<span class="material-icons person" aria-hidden="true"></span>';
+        headerUserButton.classList.add('mf-avatar-text');
+        headerUserButton.innerHTML = '<span class="mf-avatar-initial">' + initial + '</span>';
     }
     updateHeaderActiveNavigation();
 }

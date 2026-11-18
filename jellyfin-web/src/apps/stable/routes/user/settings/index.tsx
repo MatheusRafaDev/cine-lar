@@ -75,7 +75,13 @@ const UserSettingsPage: FC = () => {
         if (userBtn) {
             userBtn.classList.add('headerUserButtonActive');
         }
+        const deactiveTabs = () => {
+            document.querySelectorAll('.skinHeader .emby-tab-button').forEach(t => t.classList.remove('emby-tab-button-active'));
+        };
+        deactiveTabs();
+        const timer = setTimeout(deactiveTabs, 150);
         return () => {
+            clearTimeout(timer);
             if (userBtn) {
                 userBtn.classList.remove('headerUserButtonActive');
             }
@@ -300,42 +306,30 @@ const UserSettingsPage: FC = () => {
                     )}
                 </div>
 
-                {/* Preferências de Reprodução & Áudio Padrão Netflix */}
-                <div className='mf-settings-card'>
-                    <h3 className='mf-settings-section-title'>
-                        Preferências de Reprodução & Áudio
-                    </h3>
-
-                    {/* Áudio Padrão */}
-                    <div className='mf-settings-group'>
-                        <div className='mf-settings-group-title'>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#e5e5e5' }}>volume_up</span>
-                            Áudio Padrão dos Filmes & Séries
-                        </div>
+                {/* Grid de Configurações Estilo Cinelar / Netflix */}
+                <div className='mf-settings-grid'>
+                    {/* Áudio */}
+                    <div className='mf-settings-card'>
+                        <h3 className='mf-settings-card-title'>Áudio</h3>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                             <PrefChip
                                 active={audioPref === 'ptbr'}
                                 label='Dublado PT-BR (Padrão)'
                                 value='ptbr'
-                                icon='star'
                                 onSelect={onSelectAudio}
                             />
                             <PrefChip
                                 active={audioPref === 'original'}
                                 label='Áudio Original'
                                 value='original'
-                                icon='language'
                                 onSelect={onSelectAudio}
                             />
                         </div>
                     </div>
 
                     {/* Legendas */}
-                    <div className='mf-settings-group'>
-                        <div className='mf-settings-group-title'>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#e5e5e5' }}>subtitles</span>
-                            Legendas em Português
-                        </div>
+                    <div className='mf-settings-card'>
+                        <h3 className='mf-settings-card-title'>Legendas</h3>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                             <PrefChip
                                 active={subPref === 'auto'}
@@ -359,11 +353,8 @@ const UserSettingsPage: FC = () => {
                     </div>
 
                     {/* Tamanho da Legenda */}
-                    <div className='mf-settings-group'>
-                        <div className='mf-settings-group-title'>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#e5e5e5' }}>format_size</span>
-                            Tamanho da Legenda
-                        </div>
+                    <div className='mf-settings-card'>
+                        <h3 className='mf-settings-card-title'>Tamanho da Legenda</h3>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                             <PrefChip
                                 active={subSize === 'normal'}
@@ -386,12 +377,9 @@ const UserSettingsPage: FC = () => {
                         </div>
                     </div>
 
-                    {/* Qualidade de Vídeo */}
-                    <div className='mf-settings-group' style={{ marginBottom: 0 }}>
-                        <div className='mf-settings-group-title'>
-                            <span className='material-icons' style={{ fontSize: 18, color: '#e5e5e5' }}>hd</span>
-                            Qualidade de Reprodução
-                        </div>
+                    {/* Qualidade de Reprodução */}
+                    <div className='mf-settings-card'>
+                        <h3 className='mf-settings-card-title'>Qualidade de Reprodução</h3>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                             <PrefChip
                                 active={qualityPref === 'auto'}
@@ -413,19 +401,12 @@ const UserSettingsPage: FC = () => {
                             />
                         </div>
                     </div>
-                </div>
 
-                {/* Armazenamento & Motor de Download */}
-                <div className='mf-settings-card'>
-                    <h3 className='mf-settings-section-title'>
-                        Armazenamento Local & Serviços
-                    </h3>
-
-                    <div className='mf-settings-status-row' style={{ alignItems: 'flex-start' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 260 }}>
-                            <span className='material-icons' style={{ color: '#b3b3b3', fontSize: 24, marginTop: 2 }}>folder</span>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>Pasta de Filmes & Downloads</div>
+                    {/* Armazenamento & Motor de Download */}
+                    <div className='mf-settings-card' style={{ gridColumn: 'span 2' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+                            <div style={{ flex: 1, minWidth: 260 }}>
+                                <h3 className='mf-settings-card-title' style={{ marginBottom: 6 }}>Armazenamento</h3>
                                 {isEditingPath ? (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                                         <input
@@ -458,18 +439,13 @@ const UserSettingsPage: FC = () => {
                                         </button>
                                     </div>
                                 ) : (
-                                    <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>
-                                        {savePath} (Organização em Franquias e Séries)
+                                    <div style={{ fontSize: 14, color: '#A8A59C', marginTop: 4 }}>
+                                        Pasta de gravação: <strong style={{ color: '#FAF9F5' }}>{savePath}</strong> <span className='mf-settings-badge-success' style={{ marginLeft: 8 }}>{diskLabel}</span>
                                     </div>
                                 )}
                             </div>
-                        </div>
 
-                        {!isEditingPath && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <span className='mf-settings-badge-success'>
-                                    {diskLabel}
-                                </span>
+                            {!isEditingPath && (
                                 <button
                                     type='button'
                                     onClick={() => {
@@ -478,26 +454,20 @@ const UserSettingsPage: FC = () => {
                                     }}
                                     className='mf-btn-action-outline focusable'
                                 >
-                                    <span className='material-icons' style={{ fontSize: 16 }}>folder_open</span>
-                                    Alterar Pasta
+                                    Alterar pasta
                                 </button>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
 
-                    <div className='mf-settings-divider' />
+                        <div className='mf-settings-divider' />
 
-                    <div className='mf-settings-status-row'>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <span className='material-icons' style={{ color: '#b3b3b3', fontSize: 24 }}>bolt</span>
+                        <div className='mf-settings-status-row'>
                             <div>
                                 <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>Serviço de Torrent & Streaming</div>
                                 <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>Porta 8085 (Node.js + WebTorrent em tempo real)</div>
                             </div>
+                            <span className='mf-settings-badge-info'>Conectado</span>
                         </div>
-                        <span className='mf-settings-badge-info'>
-                            Conectado
-                        </span>
                     </div>
                 </div>
 
