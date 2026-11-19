@@ -1030,5 +1030,28 @@ body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
     }
 }
 
+/* Titulos de Franquias e Colecoes estilo Editorial Cinelar */
+.mf-franchise-block-title {
+    font-family: var(--font-serif, 'Newsreader', serif) !important;
+    font-size: 24px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.3px !important;
+    color: #FAF9F5 !important;
+}
+
+/* Foco de controle remoto nas telas de Downloads e Pasta Local */
+.mf-downloads-page,
+.mf-local {
+    .btn:focus,
+    .btn:focus-visible,
+    button.focusable:focus,
+    button.focusable:focus-visible {
+        outline: 3px solid #FAF9F5 !important;
+        outline-offset: 3px !important;
+        transform: scale(1.04) !important;
+    }
+}
+
+
 
 

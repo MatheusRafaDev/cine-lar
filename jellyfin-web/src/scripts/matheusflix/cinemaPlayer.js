@@ -158,6 +158,7 @@ export function openCinemaPlayer({
                 </div>
             </div>
             <div class="mf-player-top-actions">
+                <div class="mf-player-telemetry-pill hide"></div>
                 <button type="button" class="mf-player-close-btn focusable" title="Fechar (Esc)">
                     <span class="material-icons">close</span>
                 </button>
@@ -649,10 +650,11 @@ export function openCinemaPlayer({
                 }
             } catch (_) {}
         }
-        if (movieId && dur > 0 && currentSec > 5) {
+        const effectiveMovieId = movieId || currentHash || (title ? encodeURIComponent(title) : null);
+        if (effectiveMovieId && dur > 0 && currentSec > 5) {
             const isCompleted = (currentSec / dur) >= 0.90;
             saveWatchProgress({
-                movieId,
+                movieId: effectiveMovieId,
                 title,
                 poster,
                 position: Math.floor(currentSec),
@@ -806,6 +808,15 @@ export function openCinemaPlayer({
         toast('Erro ao carregar o vídeo. Tente outra fonte.');
     });
 
+    // Telemetria discreta para arquivo local
+    if (isLocal) {
+        const telemEl = playerEl.querySelector('.mf-player-telemetry-pill');
+        if (telemEl) {
+            telemEl.classList.remove('hide');
+            telemEl.innerHTML = `<span class="mf-telemetry-dot" style="background:#22c55e;"></span><span>Arquivo Local</span>`;
+        }
+    }
+
     // Torrent streaming status polling
     if (!isLocal && currentHash) {
         statusInterval = setInterval(async () => {
@@ -821,6 +832,12 @@ export function openCinemaPlayer({
             if (spEl) spEl.innerHTML = `<span class="material-icons" style="font-size: 14px; vertical-align: middle;">speed</span> Velocidade: ${escapeHtml(data.downloadSpeed || '0 KB/s')}`;
             if (prEl) prEl.innerHTML = `<span class="material-icons" style="font-size: 14px; vertical-align: middle;">group</span> Peers: ${data.numPeers || 0}`;
             if (progEl) progEl.innerHTML = `<span class="material-icons" style="font-size: 14px; vertical-align: middle;">cloud_sync</span> Buffer: ${data.progress || 0}%`;
+
+            const telemEl = playerEl.querySelector('.mf-player-telemetry-pill');
+            if (telemEl) {
+                telemEl.classList.remove('hide');
+                telemEl.innerHTML = `<span class="mf-telemetry-dot"></span><span>${escapeHtml(data.downloadSpeed || '0 KB/s')}</span><span style="opacity:0.4;">•</span><span>${data.numPeers || 0} peers</span><span style="opacity:0.4;">•</span><span>Buffer ${data.progress || 0}%</span>`;
+            }
 
             if (data.numPeers === 0 && msgEl) {
                 msgEl.textContent = 'Conectando a sementes e peers na rede... Se demorar, experimente selecionar outra fonte na lista.';
