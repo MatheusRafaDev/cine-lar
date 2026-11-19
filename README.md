@@ -224,13 +224,20 @@ A interface foi projetada para utilizacao total por controle remoto TV (D-Pad) o
 
 | Tecla / Botao | Acao |
 |---|---|
-| Setas Direcionais | Navegacao entre cards, menus e controles de tela |
+| Setas Direcionais / D-Pad | Navegacao entre cards, menus e controles de tela |
 | Enter / OK | Selecionar item, iniciar reproducao ou abrir detalhes |
 | Backspace / ESC / Voltar | Fechar modal, fechar player ou retornar a tela anterior |
 | Espaco | Pausar ou retomar reproducao de video |
 | Seta Esquerda (no Player) | Retroceder 10 segundos no video |
 | Seta Direita (no Player) | Avancar 10 segundos no video |
-| Seta Cima / Baixo (no Player) | Exibir ou ocultar a barra de controles (OSD) |
+| Seta Cima / Baixo (no Player) | Ajustar volume do video em tempo real (+/- 10%) |
+| M | Ativar ou desativar o mudo (silenciar) |
+| F | Alternar modo tela cheia (Fullscreen) |
+| S | Alternar faixas de legendas e idioma de audio |
+| C | Ciclar velocidade de reproducao (0.75x, 1.0x, 1.25x, 1.5x) |
+| P | Modo Miniplayer flutuante (Picture-in-Picture) |
+| / (Barra) | Acesso direto a barra de busca de torrents |
+| ? ou H | Abrir guia de atalhos e controle remoto em overlay |
 
 ---
 

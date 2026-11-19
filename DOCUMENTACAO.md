@@ -303,6 +303,15 @@ O MatheusFlix adota integralmente as diretrizes do **Cinelar TV Design System**:
 - **Indicador de Foco TV:** Contorno de alta visibilidade `outline: 3px solid #FAF9F5; outline-offset: 3px; transform: scale(1.04);` em qualquer elemento selecionado via controle remoto.
 - **Proporcao de Cartazes:** Cartazes de filmes mantem proporcao rigida `aspect-ratio: 2 / 3` com cantos arredondados em 14px.
 
+### 6.3. Tipografia Editorial
+- **Newsreader (Display Serif):** Utilizada em títulos de destaque hero, nomes de obras cinematográficas, cabeçalhos de modais e no wordmark da marca (`MATHEUSFLIX`), conferindo sofisticação editorial e acabamento de cinema.
+- **Inter (Interface Sans-serif):** Utilizada em todos os rótulos de navegação, metadados (resolução, ano, duração, sementes), tabelas de downloads, chips e controles funcionais para máxima legibilidade a distância na TV.
+
+### 6.4. Identidade Visual e Favicons
+- **Emblema do Sistema:** Insígnia em formato squircle (cantos suavizados) com gradiente vermelho cinematográfico `#E50914` a terracota `#D97757` e monograma 'M' estilizado em corte geométrico.
+- **Wordmark da Barra Superior:** Componente `.mf-header-logo` com transição suave, hover dinâmico e foco via D-Pad para retorno instantâneo à página inicial.
+- **Favicons e PWA:** Conjunto completo de ícones incluindo `favicon.svg` vetorial, `favicon.ico` multi-resolução (16x16 e 32x32), ícones de toque Apple (180x180, 144x144, 114x114, 72x72) e manifest para Smart TVs e PWA (192x192 e 512x512).
+
 ---
 
 ## 7. Guia de Instalacao e Implantacao
@@ -334,3 +343,34 @@ O MatheusFlix adota integralmente as diretrizes do **Cinelar TV Design System**:
 ### Erro de conexao com o servico na porta 8085
 - **Causa:** O processo `node server.js` nao foi iniciado ou outra aplicacao esta ocupando a porta 8085.
 - **Solucao:** Verifique se o processo do Node.js esta em execucao atraves do comando `curl http://localhost:8085/api/status`. Se necessario, encerre o processo conflitante e reinicie o servico.
+
+---
+
+## 9. Atalhos de Teclado, Guia TV Remote e Recursos Avancados
+
+O MatheusFlix oferece suporte de primeira classe para operacao por controle remoto de Smart TV (D-Pad), teclados fisicos e controles multimidia sem necessidade de mouse.
+
+### 9.1. Tabela de Mapeamento de Teclas
+
+| Tecla / Botao | Contexto | Acao Executada |
+|---|---|---|
+| Setas Direcionais / D-Pad | Global | Navegacao espacial entre cards, botoes, trilhos e menus |
+| Enter / OK | Global | Confirmar selecao, abrir detalhes ou reproduzir midia |
+| Backspace / ESC / Voltar | Modais / Telas | Fechar modal aberto, encerrar player ou voltar tela |
+| Espaco | Player | Alternar entre pausar e retomar a reproducao do video |
+| Seta Esquerda | Player | Retroceder 10 segundos na linha do tempo |
+| Seta Direita | Player | Avancar 10 segundos na linha do tempo |
+| Seta Cima / Baixo | Player | Aumentar ou diminuir volume em degraus de 10% |
+| M | Player | Alternar mudo (silenciar e restaurar volume) |
+| F | Player | Alternar modo de tela cheia (Fullscreen) |
+| S | Player | Ciclar entre faixas de legendas e trilhas de audio |
+| C | Player | Ciclar velocidade de reproducao (0.75x, 1.0x, 1.25x, 1.5x) |
+| P | Player | Ativar modo Miniplayer flutuante (Picture-in-Picture) |
+| / (Barra) | Global | Focar instantaneamente no campo de busca de torrents |
+| ? ou H | Global / Player | Exibir modal de guia de atalhos e controle remoto |
+
+### 9.2. Recursos Avancados de Reproducao
+- **Ciclo de Velocidade Dinamica:** Permite ajustar a cadencia do filme em 0.75x, 1.0x, 1.25x e 1.5x com exibicao de feedback visual temporario no canto superior da tela.
+- **Miniplayer Picture-in-Picture (PiP):** Permite continuar acompanhando o conteudo em janela flutuante no sistema enquanto navega em outras aplicacoes.
+- **Filtro de Lançamentos em Tempo Real:** Na tela de detalhes (Cinelar Screen 2), chips permitem filtrar instantaneamente as fontes disponiveis por resolucao (4K UHD, 1080p), idioma dublado (PT-BR) ou maior numero de sementes ativas.
+- **Overlay de Guia do Controle Remoto:** Dialogo sob medida com design Cinelar destacando os atalhos de controle remoto e teclado para facil consulta a qualquer momento.
