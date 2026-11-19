@@ -1644,6 +1644,44 @@ const server = http.createServer(async (req, res) => {
         if (pathname.startsWith('/api/stream/') && pathname.endsWith('/status') && req.method === 'GET') {
             const infoHash = pathname.replace('/api/stream/', '').replace('/status', '').trim().toLowerCase();
             const torrent = getActiveTorrent(infoHash);
+
+            // Verifica se o arquivo já existe em disco
+            const magnetParam = urlObj.searchParams.get('magnet') || '';
+            let dnParam = urlObj.searchParams.get('dn') || '';
+            if (!dnParam && magnetParam) {
+                const dnMatch = magnetParam.match(/[?&]dn=([^&]+)/i);
+                if (dnMatch) {
+                    try { dnParam = decodeURIComponent(dnMatch[1]); } catch (_) { dnParam = dnMatch[1]; }
+                }
+            }
+            if (dnParam) {
+                const candidates = [
+                    path.join(PLATFORM_DOWNLOAD_PATH, dnParam),
+                    path.join(SAVE_PATH, dnParam)
+                ];
+                for (const cand of candidates) {
+                    try {
+                        if (fs.existsSync(cand) && fs.statSync(cand).size > 1024 * 1024) {
+                            const size = fs.statSync(cand).size;
+                            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                            res.end(JSON.stringify({
+                                ready: true,
+                                name: dnParam,
+                                fileName: path.basename(cand),
+                                fileLength: size,
+                                progress: '100.0',
+                                downloadSpeed: '100 MB/s',
+                                numPeers: 1,
+                                canPlay: true,
+                                downloaded: formatBytes(size),
+                                total: formatBytes(size)
+                            }));
+                            return;
+                        }
+                    } catch (_) {}
+                }
+            }
+
             if (!torrent) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Torrent not active' }));
@@ -1736,6 +1774,107 @@ const server = http.createServer(async (req, res) => {
                 else if (file.name.endsWith('.webm')) contentType = 'video/webm';
                 else if (file.name.endsWith('.avi')) contentType = 'video/x-msvideo';
 
+                const isTranscode = urlObj.searchParams.get('transcode') === '1';
+                const startTimeParam = parseFloat(urlObj.searchParams.get('startTime') || urlObj.searchParams.get('t') || 0);
+                const isAviOrIncompatible = /\.(avi|wmv|flv|mov|ts|vob)$/i.test(file.name);
+
+                // Se pediu transcode ou o formato do arquivo é incompatível nativamente com o navegador (ex: AVI)
+                if ((isTranscode || isAviOrIncompatible) && RESOLVED_FFMPEG) {
+                    console.log(`[StreamingTranscode] Ativando conversao em tempo real com FFmpeg para "${file.name}" (start: ${startTimeParam}s)`);
+
+                    if (req.method === 'HEAD') {
+                        res.writeHead(200, {
+                            'Content-Type': 'video/mp4',
+                            'Accept-Ranges': 'none',
+                            'Access-Control-Allow-Origin': '*'
+                        });
+                        res.end();
+                        return;
+                    }
+
+                    // Tenta achar arquivo local no disco
+                    const possibleDiskPaths = [
+                        path.join(PLATFORM_DOWNLOAD_PATH, file.path),
+                        path.join(PLATFORM_DOWNLOAD_PATH, file.name),
+                        path.join(SAVE_PATH, file.path),
+                        path.join(SAVE_PATH, file.name)
+                    ];
+                    let diskFilePath = null;
+                    for (const dp of possibleDiskPaths) {
+                        try {
+                            if (fs.existsSync(dp) && fs.statSync(dp).size > 1024 * 1024) {
+                                diskFilePath = dp;
+                                break;
+                            }
+                        } catch (_) {}
+                    }
+
+                    const args = [
+                        '-hide_banner',
+                        '-loglevel', 'error'
+                    ];
+
+                    if (startTimeParam > 0) {
+                        args.push('-ss', String(startTimeParam));
+                    }
+
+                    let ffmpegUsePipe = false;
+                    if (diskFilePath) {
+                        args.push('-i', diskFilePath);
+                    } else {
+                        ffmpegUsePipe = true;
+                        args.push('-i', 'pipe:0');
+                    }
+
+                    const isH264 = !isAviOrIncompatible && file.name.endsWith('.mp4');
+                    const isAac = !isAviOrIncompatible && file.name.endsWith('.mp4');
+
+                    args.push(
+                        '-c:v', isH264 ? 'copy' : 'libx264',
+                        ...(isH264 ? [] : ['-preset', 'ultrafast', '-tune', 'zerolatency', '-crf', '22']),
+                        '-c:a', isAac ? 'copy' : 'aac',
+                        ...(isAac ? [] : ['-b:a', '192k', '-ac', '2']),
+                        '-sn',
+                        '-f', 'mp4',
+                        '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+                        'pipe:1'
+                    );
+
+                    res.writeHead(200, {
+                        'Content-Type': 'video/mp4',
+                        'Accept-Ranges': 'none',
+                        'Cache-Control': 'no-cache, no-store',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
+                    });
+
+                    const ffmpegProc = spawn(RESOLVED_FFMPEG, args, { stdio: [ffmpegUsePipe ? 'pipe' : 'ignore', 'pipe', 'ignore'] });
+
+                    if (ffmpegUsePipe) {
+                        const inStream = file.createReadStream();
+                        inStream.pipe(ffmpegProc.stdin);
+                        inStream.on('error', (err) => {
+                            console.warn('[StreamingTranscode] InStream warning:', err.message);
+                        });
+                    }
+
+                    ffmpegProc.stdout.pipe(res);
+
+                    req.on('close', () => {
+                        try {
+                            ffmpegProc.kill('SIGKILL');
+                        } catch (_) {}
+                    });
+
+                    ffmpegProc.on('error', (err) => {
+                        console.error('[StreamingTranscode] FFmpeg proc error:', err.message);
+                        if (!res.headersSent) res.writeHead(500);
+                        res.end();
+                    });
+
+                    return;
+                }
+
                 if (req.method === 'HEAD') {
                     res.writeHead(200, {
                         'Content-Length': total,
@@ -1826,6 +1965,43 @@ const server = http.createServer(async (req, res) => {
                     }
                 });
             };
+
+            // 1. Verifica se já temos o arquivo em disco para tocar imediatamente sem esperar peers
+            const magnetParam = urlObj.searchParams.get('magnet') || '';
+            let dnParam = urlObj.searchParams.get('dn') || '';
+            if (!dnParam && magnetParam) {
+                const dnMatch = magnetParam.match(/[?&]dn=([^&]+)/i);
+                if (dnMatch) {
+                    try { dnParam = decodeURIComponent(dnMatch[1]); } catch (_) { dnParam = dnMatch[1]; }
+                }
+            }
+
+            let foundLocalFile = null;
+            if (dnParam) {
+                const candidates = [
+                    path.join(PLATFORM_DOWNLOAD_PATH, dnParam),
+                    path.join(SAVE_PATH, dnParam)
+                ];
+                for (const cand of candidates) {
+                    try {
+                        if (fs.existsSync(cand) && fs.statSync(cand).size > 1024 * 1024) {
+                            foundLocalFile = {
+                                path: cand,
+                                name: path.basename(cand),
+                                length: fs.statSync(cand).size,
+                                createReadStream: (opts) => fs.createReadStream(cand, opts)
+                            };
+                            break;
+                        }
+                    } catch (_) {}
+                }
+            }
+
+            if (foundLocalFile) {
+                console.log(`[Streaming] Arquivo local detectado em disco para ${infoHash}: "${foundLocalFile.name}" (${(foundLocalFile.length / 1024 / 1024).toFixed(1)} MB)`);
+                streamFile(foundLocalFile);
+                return;
+            }
 
             if (torrent.ready && torrent.files && torrent.files.length > 0) {
                 const videoFile = selectBestVideoFile(torrent.files);

@@ -144,6 +144,13 @@ export function openCinemaPlayer({
 
     let fullStreamUrl = streamUrl.startsWith('http') ? streamUrl : `${API_BASE.replace('/api', '')}${streamUrl}`;
 
+    // Auto-detecta formatos não compatíveis nativamente em navegadores (como AVI, WMV) e ativa transcode imediato
+    if (/\.(avi|wmv|vob|flv)(\b|&|$)/i.test(fullStreamUrl) && !fullStreamUrl.includes('transcode=1')) {
+        const sep = fullStreamUrl.includes('?') ? '&' : '?';
+        fullStreamUrl = `${fullStreamUrl}${sep}transcode=1`;
+        hasFallbackTranscoded = true;
+    }
+
     const playerEl = document.createElement('div');
     playerEl.className = 'mf-cinema-player';
     playerEl.innerHTML = `
