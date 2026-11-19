@@ -1,0 +1,15 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 52" width="260" height="52" fill="none">
+  <defs>
+    <linearGradient id="mfLogoG" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E50914" />
+      <stop offset="100%" stop-color="#D97757" />
+    </linearGradient>
+  </defs>
+  <!-- Emblem Badge -->
+  <g transform="translate(2, 4)">
+    <rect width="44" height="44" rx="12" fill="url(#mfLogoG)" />
+    <path transform="translate(2, 2) scale(0.4)" d="M 28 25 L 40 25 L 50 47 L 60 25 L 72 25 L 72 75 L 61 75 L 61 41 L 54 57 L 46 57 L 39 41 L 39 75 L 28 75 Z" fill="#141413" />
+  </g>
+  <!-- Typography Newsreader -->
+  <text x="58" y="34" font-family="'Newsreader', Georgia, serif" font-size="28" font-weight="600" fill="#FAF9F5" letter-spacing="-0.3">MATHEUS<tspan fill="#E50914" font-weight="700">FLIX</tspan></text>
+</svg>

@@ -1,0 +1,10 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="mfBrandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E50914" />
+      <stop offset="100%" stop-color="#D97757" />
+    </linearGradient>
+  </defs>
+  <rect width="92" height="92" x="4" y="4" rx="26" fill="url(#mfBrandGrad)" />
+  <path d="M 28 25 L 40 25 L 50 47 L 60 25 L 72 25 L 72 75 L 61 75 L 61 41 L 54 57 L 46 57 L 39 41 L 39 75 L 28 75 Z" fill="#141413" />
+</svg>

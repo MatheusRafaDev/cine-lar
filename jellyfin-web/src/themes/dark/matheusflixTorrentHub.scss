@@ -19,8 +19,10 @@
     --warning: #f5a623;
     --danger: #ff4d4f;
 
-    /* 2. Tipografia & Raios (DESIGN.md) */
-    --font: "Netflix Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    /* 2. Tipografia Cinelar TV */
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+    --font-editorial: var(--font-serif);
     --r-btn: 4px;
     --r-card: 6px;
     --r-modal: 8px;
@@ -3921,7 +3923,7 @@ button[aria-label*="Grupo"] {
     box-sizing: border-box;
     overflow: hidden;
     transform: scale(1);
-    font-family: var(--font, "Netflix Sans", sans-serif);
+    font-family: var(--font, 'Inter', sans-serif);
     animation: mfModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 

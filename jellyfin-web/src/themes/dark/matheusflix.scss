@@ -19,8 +19,10 @@
     --warning: #f5a623;
     --danger: #ff4d4f;
 
-    /* 2. Tipografia (DESIGN.md) */
-    --font: "Netflix Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    /* 2. Tipografia Cinelar TV */
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+    --font-editorial: var(--font-serif);
 
     /* 3. Espaçamento (Base 4px) */
     --s1: 4px;
@@ -51,7 +53,7 @@
     --mf-text-muted: var(--text-2);
 }
 
-/* Tipografia global e fundo da página (DESIGN.md) */
+/* Tipografia global e fundo da página (Cinelar TV) */
 html,
 body,
 .backgroundContainer {
@@ -59,6 +61,16 @@ body,
     background-color: var(--bg-0) !important;
     background: var(--bg-0) !important;
     color: var(--text-1) !important;
+}
+
+/* Tipografia Editorial para Títulos Cinelar */
+h1, h2, h3,
+.t,
+.mf-hero-title,
+.mf-stremio-title,
+.sectionTitle,
+.cardTitle-large {
+    font-family: var(--font-serif) !important;
 }
 
 /* ==========================================================================
@@ -199,46 +211,75 @@ button[aria-label*="Menu"],
     display: none !important;
 }
 
-/* Logo permanente MatheusFlix no topo (Padrão Netflix) */
+/* Logo permanente MatheusFlix no topo (Padrão Cinelar TV) */
 .pageTitle,
 .pageTitleWithDefaultLogo {
-    background-image: none !important;
-    font-size: 0 !important;
-    width: auto !important;
+    display: none !important;
+}
+
+.mf-header-logo {
     display: inline-flex !important;
     align-items: center !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    gap: 12px !important;
     cursor: pointer !important;
     user-select: none !important;
     text-decoration: none !important;
-    transition: transform 0.2s ease, opacity 0.2s ease !important;
+    outline: none !important;
+    margin-right: 32px !important;
+    padding: 6px 10px !important;
+    border-radius: 12px !important;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease !important;
 
     &:hover {
-        transform: scale(1.02) !important;
-        opacity: 0.9 !important;
+        transform: scale(1.03) !important;
+    }
+
+    &:focus-visible {
+        outline: 3px solid #FAF9F5 !important;
+        outline-offset: 3px !important;
+    }
+
+    .mf-logo-badge {
+        width: 36px !important;
+        height: 36px !important;
+        flex-shrink: 0 !important;
+        border-radius: 10px !important;
+        filter: drop-shadow(0 2px 8px rgba(229, 9, 20, 0.35)) !important;
+    }
+
+    .mf-logo-wordmark {
+        font-family: var(--font-serif, 'Newsreader', Georgia, serif) !important;
+        font-size: 26px !important;
+        font-weight: 600 !important;
+        color: #FAF9F5 !important;
+        letter-spacing: -0.2px !important;
+        line-height: 1 !important;
+        display: inline-flex !important;
+        align-items: baseline !important;
+
+        b {
+            color: #E50914 !important;
+            font-weight: 700 !important;
+            margin-left: 1px !important;
+        }
     }
 }
 
-.pageTitle::before,
-.pageTitleWithDefaultLogo::before {
-    content: "MATHEUS" !important;
-    font-size: 22px !important;
-    font-weight: 900 !important;
-    color: #ffffff !important;
-    letter-spacing: 0.5px !important;
-    text-shadow: none !important;
-}
+@media (max-width: 860px) {
+    .mf-header-logo {
+        margin-right: 14px !important;
+        gap: 8px !important;
+        padding: 4px 6px !important;
 
-.pageTitle::after,
-.pageTitleWithDefaultLogo::after {
-    content: "FLIX" !important;
-    font-size: 22px !important;
-    font-weight: 900 !important;
-    color: #e50914 !important;
-    letter-spacing: 0.5px !important;
-    margin-left: 2px !important;
-    text-shadow: none !important;
+        .mf-logo-badge {
+            width: 30px !important;
+            height: 30px !important;
+        }
+
+        .mf-logo-wordmark {
+            font-size: 20px !important;
+        }
+    }
 }
 
 /* Abas de Navegação integradas ao Logo no estilo Cinelar / Netflix */
@@ -770,4 +811,28 @@ body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.35);
 }
+
+/* Splash Screen / Loader inicial MatheusFlix */
+.splashLogo {
+    width: 96px !important;
+    height: 96px !important;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23E50914"/><stop offset="100%" stop-color="%23D97757"/></linearGradient></defs><rect width="92" height="92" x="4" y="4" rx="26" fill="url(%23g)"/><path d="M 28 25 L 40 25 L 50 47 L 60 25 L 72 25 L 72 75 L 61 75 L 61 41 L 54 57 L 46 57 L 39 41 L 39 75 L 28 75 Z" fill="%23141413"/></svg>') !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    filter: drop-shadow(0 10px 30px rgba(229, 9, 20, 0.45)) !important;
+    animation: mfSplashPulse 1.8s ease-in-out infinite alternate !important;
+}
+
+@keyframes mfSplashPulse {
+    from {
+        transform: scale(0.96);
+        opacity: 0.85;
+    }
+    to {
+        transform: scale(1.04);
+        opacity: 1;
+    }
+}
+
 
