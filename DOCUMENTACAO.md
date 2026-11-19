@@ -343,9 +343,9 @@ O MatheusFlix adota integralmente as diretrizes do **Cinelar TV Design System**:
 - **Inter (Interface Sans-serif):** Utilizada em todos os rótulos de navegação, abas, metadados (resolução, ano, duração, sementes), tabelas de downloads, chips e controles funcionais para máxima legibilidade a distância na TV.
 
 ### 6.4. Identidade Visual e Favicons
-- **Emblema do Sistema:** Insígnia compacta em formato squircle (cantos suavizados) com gradiente vermelho cinematográfico `#E50914` a terracota `#D97757` e monograma 'M' estilizado em corte geométrico.
-- **Wordmark da Barra Superior:** Componente `.mf-header-logo` refinado e compacto (16px, proporção equilibrada), com transição suave, hover dinâmico e foco via D-Pad para retorno instantâneo à página inicial.
-- **Favicons e PWA:** Conjunto completo de ícones incluindo `favicon.svg` vetorial, `favicon.ico` multi-resolução (16x16 e 32x32), ícones de toque Apple (180x180, 144x144, 114x114, 72x72) e manifest para Smart TVs e PWA (192x192 e 512x512).
+- **Emblema Profissional de Streaming (Monograma 3D Ribbon 'M'):** Insignia de alta fidelidade baseada em fitas tridimensionais dobradas com acabamento acetinado em gradiente vermelho carmesim vibrante (`#FF3847`, `#E50914`, `#B20710`), iluminacao especular e sombreamento de profundidade sobre azulejo squircle em grafite escuro (`#121316`) com borda de vidro e backlight sutil.
+- **Wordmark da Barra Superior (`.mf-header-logo`):** Componente refinado e proporcional de 15px com kerning amplo de 2px no bloco `MATHEUS` em marfim puro (`#FAF9F5`) e `FLIX` em negrito 900 com preenchimento em gradiente vermelho streaming com text-shadow sutil, eliminando qualquer visual generico ou infantil.
+- **Pacote de Favicons e PWA de Alta Resolucao:** Conjunto vetorial `favicon.svg`, `icon.svg` e `logo.svg`, alem de icones rasterizados em alta qualidade (512x512, 192x192, 180x180, 144x144, 114x114, 72x72, 32x32, 16x16) para navegadores desktop, mobile, telas Retina e Smart TVs.
 
 ---
 

@@ -39,8 +39,23 @@ function renderHeader() {
     html += '<div class="headerLeft">';
     html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonLeft headerBackButton hide" aria-label="Voltar"><span class="material-icons ' + (browser.safari ? 'chevron_left' : 'arrow_back') + '" aria-hidden="true"></span></button>';
     html += '<div class="mf-header-logo focusable" role="button" tabindex="0" title="MatheusFlix - Início" aria-label="MatheusFlix">';
-    html += '<svg class="mf-logo-badge" width="24" height="24" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="hdrLogoG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E50914" /><stop offset="100%" stop-color="#D97757" /></linearGradient></defs><rect width="92" height="92" x="4" y="4" rx="26" fill="url(#hdrLogoG)" /><path d="M 28 25 L 40 25 L 50 47 L 60 25 L 72 25 L 72 75 L 61 75 L 61 41 L 54 57 L 46 57 L 39 41 L 39 75 L 28 75 Z" fill="#141413" /></svg>';
-    html += '<span class="mf-logo-wordmark">MATHEUS<b>FLIX</b></span>';
+    html += '<svg class="mf-logo-badge" width="28" height="28" viewBox="0 0 100 100" fill="none" aria-hidden="true">'
+          + '<defs>'
+          + '<linearGradient id="hdrSqGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1A1B20"/><stop offset="50%" stop-color="#121316"/><stop offset="100%" stop-color="#090A0C"/></linearGradient>'
+          + '<linearGradient id="hdrBrdGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="rgba(255,255,255,0.28)"/><stop offset="50%" stop-color="rgba(229,9,20,0.45)"/><stop offset="100%" stop-color="rgba(255,255,255,0.08)"/></linearGradient>'
+          + '<linearGradient id="hdrLegL" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#B20710"/><stop offset="100%" stop-color="#5E0004"/></linearGradient>'
+          + '<linearGradient id="hdrLegR" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#B20710"/><stop offset="100%" stop-color="#5E0004"/></linearGradient>'
+          + '<linearGradient id="hdrDiagL" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FF3847"/><stop offset="50%" stop-color="#E50914"/><stop offset="100%" stop-color="#8F0008"/></linearGradient>'
+          + '<linearGradient id="hdrDiagR" x1="100%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FF4D5A"/><stop offset="45%" stop-color="#E50914"/><stop offset="100%" stop-color="#A8040C"/></linearGradient>'
+          + '<filter id="hdrShdw" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="-1" dy="2.5" stdDeviation="2" flood-color="#000" flood-opacity="0.8"/></filter>'
+          + '</defs>'
+          + '<rect x="4" y="4" width="92" height="92" rx="24" fill="url(#hdrSqGrad)" stroke="url(#hdrBrdGrad)" stroke-width="1.5"/>'
+          + '<path d="M 21 23 L 34 23 L 34 77 L 21 77 Z" fill="url(#hdrLegL)"/>'
+          + '<path d="M 66 23 L 79 23 L 79 77 L 66 77 Z" fill="url(#hdrLegR)"/>'
+          + '<path d="M 21 23 L 34 23 L 56 75 L 43 75 Z" fill="url(#hdrDiagL)" filter="url(#hdrShdw)"/>'
+          + '<path d="M 79 23 L 66 23 L 44 75 L 57 75 Z" fill="url(#hdrDiagR)" filter="url(#hdrShdw)"/>'
+          + '</svg>';
+    html += '<span class="mf-logo-wordmark"><span class="mf-wordmark-title">MATHEUS</span><span class="mf-wordmark-flix">FLIX</span></span>';
     html += '</div>';
     html += '<h3 class="pageTitle hide" aria-hidden="true"></h3>';
     html += '<div class="headerTabs sectionTabs"></div>';
