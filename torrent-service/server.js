@@ -553,10 +553,18 @@ const server = http.createServer(async (req, res) => {
     try {
         // Status endpoint
         if (pathname === '/api/status' && req.method === 'GET') {
+            let freeSpaceGB = null;
+            try {
+                if (fs.existsSync(SAVE_PATH)) {
+                    const st = fs.statfsSync(SAVE_PATH);
+                    freeSpaceGB = parseFloat(((st.bfree * st.bsize) / (1024 ** 3)).toFixed(1));
+                }
+            } catch (_) {}
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({
                 status: 'online',
                 savePath: SAVE_PATH,
+                freeSpaceGB,
                 activeTorrents: client.torrents.length,
                 totalDownloads: downloadsRegistry.size,
                 qbittorrentInstalled: fs.existsSync('C:\\Program Files\\qBittorrent\\qbittorrent.exe')

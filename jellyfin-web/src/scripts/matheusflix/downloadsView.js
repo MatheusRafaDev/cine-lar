@@ -19,8 +19,8 @@ export function renderDownloadsView(container) {
                     <div class="t mf-dl-total-speed" style="font-size:36px;font-weight:700;color:#FAF9F5;margin-top:6px;">0 B/s</div>
                 </div>
                 <div class="card" style="padding:28px;background:#1E1D1B;border:1px solid rgba(250,249,245,0.1);border-radius:20px;">
-                    <div class="m" style="color:#A8A59C;font-size:15px;">Espaço livre em disco</div>
-                    <div class="t mf-dl-disk-space" style="font-size:36px;font-weight:700;color:#FAF9F5;margin-top:6px;">Ativo</div>
+                    <div class="m mf-dl-disk-label" style="color:#A8A59C;font-size:15px;">Espaço livre em disco</div>
+                    <div class="t mf-dl-disk-space" style="font-size:36px;font-weight:700;color:#FAF9F5;margin-top:6px;">Carregando...</div>
                 </div>
                 <div class="card" style="padding:28px;background:#1E1D1B;border:1px solid rgba(250,249,245,0.1);border-radius:20px;">
                     <div class="m" style="color:#A8A59C;font-size:15px;">Downloads ativos</div>
@@ -48,15 +48,27 @@ export function renderDownloadsView(container) {
 
     const speedEl = container.querySelector('.mf-dl-total-speed');
     const diskEl = container.querySelector('.mf-dl-disk-space');
+    const diskLabelEl = container.querySelector('.mf-dl-disk-label');
     const countEl = container.querySelector('.mf-dl-active-count');
     const activeList = container.querySelector('.mf-active-list');
     const completedList = container.querySelector('.mf-completed-list');
+
+    let cachedStatus = null;
+    async function fetchStatus() {
+        try {
+            const res = await fetch('http://localhost:8085/api/status');
+            if (res.ok) {
+                cachedStatus = await res.json();
+            }
+        } catch (_) {}
+    }
+    fetchStatus();
 
     async function loadData() {
         try {
             const data = await fetchDownloads();
             const list = data.downloads || [];
-            renderLists(list, speedEl, diskEl, countEl, activeList, completedList);
+            renderLists(list, speedEl, diskEl, diskLabelEl, countEl, activeList, completedList, cachedStatus);
         } catch (err) {
             activeList.innerHTML = `<p style="color: #ef4444;">${escapeHtml(err.message)}</p>`;
         }
@@ -80,7 +92,7 @@ function isCompleted(d) {
     return d.status === 'completed' || parseFloat(d.progress) >= 100;
 }
 
-function renderLists(downloads, speedEl, diskEl, countEl, activeList, completedList) {
+function renderLists(downloads, speedEl, diskEl, diskLabelEl, countEl, activeList, completedList, statusData) {
     const active = downloads.filter(d => !isCompleted(d));
     const completed = downloads.filter(d => isCompleted(d));
 
@@ -107,9 +119,17 @@ function renderLists(downloads, speedEl, diskEl, countEl, activeList, completedL
         }
     }
     if (diskEl) {
-        const savedPath = localStorage.getItem('mf_save_path') || 'D:\\filmes';
+        const savedPath = statusData?.savePath || localStorage.getItem('mf_save_path') || 'D:\\filmes';
         const diskMatch = savedPath.match(/^([A-Za-z]):/);
-        diskEl.textContent = diskMatch ? `Disco ${diskMatch[1].toUpperCase()}:` : 'Pasta Local';
+        const driveLetter = diskMatch ? diskMatch[1].toUpperCase() : '';
+        if (diskLabelEl) {
+            diskLabelEl.textContent = driveLetter ? `Espaço livre em ${driveLetter}:` : 'Espaço livre em disco';
+        }
+        if (statusData?.freeSpaceGB != null) {
+            diskEl.textContent = `${statusData.freeSpaceGB} GB`;
+        } else {
+            diskEl.textContent = driveLetter ? `Disco ${driveLetter}:` : 'Pasta Local';
+        }
     }
 
     if (active.length === 0) {

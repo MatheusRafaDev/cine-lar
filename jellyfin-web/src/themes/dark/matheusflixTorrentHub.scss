@@ -5188,5 +5188,33 @@ button[aria-label*="Menu"],
     transform: none !important;
 }
 
+/* Skeletons para carregamento suave estilo streaming */
+.mf-skeleton-card {
+    background: #1E1D1B !important;
+    border: 1px solid rgba(250, 249, 245, 0.06) !important;
+    border-radius: 14px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    aspect-ratio: 2 / 3 !important;
+}
+
+.mf-skeleton-shimmer {
+    position: absolute !important;
+    inset: 0 !important;
+    background: linear-gradient(90deg, transparent 0%, rgba(250, 249, 245, 0.05) 50%, transparent 100%) !important;
+    background-size: 200% 100% !important;
+    animation: mfShimmerAnimation 1.5s infinite linear !important;
+}
+
+@keyframes mfShimmerAnimation {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+
 
 

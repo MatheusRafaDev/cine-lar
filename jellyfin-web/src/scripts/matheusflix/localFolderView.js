@@ -39,6 +39,18 @@ export function renderLocalFolderView(container) {
                 </div>
             </div>
 
+            <!-- Toolbar de Busca e Sincronizacao -->
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:28px;">
+                <div class="mf-search-box" style="flex:1;max-width:440px;">
+                    <span class="material-icons mf-search-icon">search</span>
+                    <input type="search" class="mf-search-input mf-local-search-input focusable" placeholder="Filtrar arquivos locais..." />
+                </div>
+                <button type="button" class="btn g mf-btn-rescan-folder focusable" style="height:44px;padding:0 22px;border-radius:12px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+                    <span class="material-icons" style="font-size:18px;">sync</span>
+                    Sincronizar pasta
+                </button>
+            </div>
+
             <div class="mf-downloads-strip hide"></div>
             <div class="mf-local-content-area">
                 <div class="mf-local-grid"></div>

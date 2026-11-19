@@ -84,7 +84,12 @@ export function renderStreamingView(container, initialFilters = {}) {
         const requestId = ++state.requestId;
         if (!append) {
             state.offset = 0;
-            setStatus('<p class="mf-muted">Carregando…</p>');
+            setStatus('');
+            grid.innerHTML = Array(12).fill(0).map(() => `
+                <div class="mf-movie-card mf-skeleton-card" style="aspect-ratio: 2/3; border-radius: 14px; background: #1E1D1B; position: relative; overflow: hidden;">
+                    <div class="mf-skeleton-shimmer"></div>
+                </div>
+            `).join('');
         }
         try {
             if (state.genre === 'favorites') {
@@ -146,6 +151,14 @@ export function renderStreamingView(container, initialFilters = {}) {
             clearTimeout(searchTimer);
             state.q = searchInput.value.trim();
             load();
+            setTimeout(() => {
+                const first = grid.querySelector('.mf-movie-card.focusable');
+                if (first) first.focus();
+            }, 300);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const first = grid.querySelector('.mf-movie-card.focusable');
+            if (first) first.focus();
         }
     });
     sortSelect.addEventListener('change', () => {

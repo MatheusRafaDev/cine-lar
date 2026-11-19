@@ -130,6 +130,16 @@ export function openCinemaPlayer({
         }
     }
 
+    const progressStorageKey = 'mf_resume_' + (currentHash || movieId || encodeURIComponent(title || ''));
+    if (!resumePosition || resumePosition <= 0) {
+        try {
+            const saved = parseFloat(localStorage.getItem(progressStorageKey) || '0');
+            if (saved > 10) {
+                resumePosition = saved;
+            }
+        } catch (_) {}
+    }
+
     let fullStreamUrl = streamUrl.startsWith('http') ? streamUrl : `${API_BASE.replace('/api', '')}${streamUrl}`;
 
     const playerEl = document.createElement('div');
@@ -342,6 +352,23 @@ export function openCinemaPlayer({
         }
     }
 
+    function showSeekFeedback(text) {
+        let badge = playerEl.querySelector('.mf-player-feedback-badge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.className = 'mf-player-feedback-badge';
+            playerEl.appendChild(badge);
+        }
+        badge.textContent = text;
+        badge.classList.remove('active');
+        void badge.offsetWidth;
+        badge.classList.add('active');
+        clearTimeout(badge._timer);
+        badge._timer = setTimeout(() => {
+            badge.classList.remove('active');
+        }, 700);
+    }
+
     btnPlay.addEventListener('click', (e) => {
         e.stopPropagation();
         togglePlay();
@@ -350,11 +377,13 @@ export function openCinemaPlayer({
     btnRw.addEventListener('click', (e) => {
         e.stopPropagation();
         video.currentTime = Math.max(0, video.currentTime - 10);
+        showSeekFeedback('-10s');
     });
 
     btnFf.addEventListener('click', (e) => {
         e.stopPropagation();
         video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
+        showSeekFeedback('+10s');
     });
 
     btnFullscreen.addEventListener('click', (e) => {
@@ -543,6 +572,15 @@ export function openCinemaPlayer({
     function persistCurrentProgress() {
         const dur = getEffectiveDuration();
         const currentSec = getCurrentTimeSec();
+        if (currentSec > 5) {
+            try {
+                if (dur > 0 && (currentSec / dur) >= 0.92) {
+                    localStorage.removeItem(progressStorageKey);
+                } else {
+                    localStorage.setItem(progressStorageKey, String(Math.floor(currentSec)));
+                }
+            } catch (_) {}
+        }
         if (movieId && dur > 0 && currentSec > 5) {
             const isCompleted = (currentSec / dur) >= 0.90;
             saveWatchProgress({
@@ -756,22 +794,26 @@ export function openCinemaPlayer({
         } else if (e.key === 'ArrowRight' || e.key === 'MediaFastForward') {
             e.preventDefault();
             video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
+            showSeekFeedback('+10s');
             showControls();
         } else if (e.key === 'ArrowLeft' || e.key === 'MediaRewind') {
             e.preventDefault();
             video.currentTime = Math.max(0, video.currentTime - 10);
+            showSeekFeedback('-10s');
             showControls();
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             video.volume = Math.min(1, video.volume + 0.1);
             volSlider.value = video.volume;
             updateVolIcon();
+            showSeekFeedback(`Volume: ${Math.round(video.volume * 100)}%`);
             showControls();
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
             video.volume = Math.max(0, video.volume - 0.1);
             volSlider.value = video.volume;
             updateVolIcon();
+            showSeekFeedback(`Volume: ${Math.round(video.volume * 100)}%`);
             showControls();
         } else if (e.key === 'f' || e.key === 'F') {
             e.preventDefault();
@@ -780,6 +822,7 @@ export function openCinemaPlayer({
             e.preventDefault();
             video.muted = !video.muted;
             updateVolIcon();
+            showSeekFeedback(video.muted ? 'Mudo' : `Volume: ${Math.round(video.volume * 100)}%`);
             showControls();
         } else if (e.key === 's' || e.key === 'S') {
             e.preventDefault();
