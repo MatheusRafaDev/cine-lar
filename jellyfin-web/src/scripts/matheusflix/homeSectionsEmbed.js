@@ -20,7 +20,7 @@
 import { fetchCatalog, fetchLocalMovies, fetchUserFavorites, fetchWatchHistory, deleteWatchHistory } from './api';
 import { openStremioDetails } from './stremioDetail';
 import { openCinemaPlayer } from './cinemaPlayer';
-import { escapeHtml, normalizeMovie, parseDuration } from './utils';
+import { escapeHtml, normalizeMovie, parseDuration, PLACEHOLDER_POSTER } from './utils';
 import toast from 'components/toast/toast';
 
 const inFlight = new WeakSet();
@@ -582,7 +582,7 @@ function renderRow(container, { key, title, linkText, tabIndex, targetHash, movi
         card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
         card.innerHTML = `
             <div class="mf-home-card-poster-wrap">
-                <img class="mf-home-card-poster" src="${escapeHtml(m.poster)}" alt="" loading="lazy" />
+                <img class="mf-home-card-poster" src="${escapeHtml(m.poster || PLACEHOLDER_POSTER)}" alt="Pôster de ${escapeHtml(m.title)}" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" />
                 <div class="mf-home-card-play-overlay"><span class="material-icons" style="font-size: 26px; color: #140a02;">play_arrow</span></div>
                 ${m.isLocal ? '<span class="mf-badge-on-disk"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta</span>' : ''}
             </div>
@@ -670,10 +670,10 @@ function renderHistoryRow(container, { key, title, movies }) {
         const remainingMin = Math.max(1, Math.round((m.duration - m.position) / 60));
         card.innerHTML = `
             <div class="mf-home-card-poster-wrap">
-                <img class="mf-home-card-poster" src="${escapeHtml(m.poster)}" alt="" loading="lazy" />
-                <button type="button" class="mf-btn-history-remove focusable" title="Dropar filme (Remover de Continuar Assistindo)">
+                <img class="mf-home-card-poster" src="${escapeHtml(m.poster || PLACEHOLDER_POSTER)}" alt="Pôster de ${escapeHtml(m.title)}" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" />
+                <span role="button" tabindex="0" class="mf-btn-history-remove focusable" aria-label="Remover ${escapeHtml(m.title)} de Continuar Assistindo" title="Remover de Continuar Assistindo">
                     <span class="material-icons" style="font-size: 16px;">close</span>
-                </button>
+                </span>
                 <div class="mf-home-card-play-overlay"><span class="material-icons" style="font-size: 26px; color: #140a02;">play_arrow</span></div>
                 <div class="mf-history-bar"><div class="mf-history-bar-fill" style="width: ${m.progressPct}%;"></div></div>
             </div>
@@ -685,7 +685,7 @@ function renderHistoryRow(container, { key, title, movies }) {
 
         const btnDrop = card.querySelector('.mf-btn-history-remove');
         if (btnDrop) {
-            btnDrop.addEventListener('click', async (e) => {
+            const removeFromHistory = async (e) => {
                 e.stopPropagation();
                 try {
                     await deleteWatchHistory(m.id || m.movieId);
@@ -700,6 +700,13 @@ function renderHistoryRow(container, { key, title, movies }) {
                     }, 200);
                 } catch (err) {
                     toast(`Erro ao remover: ${err.message}`);
+                }
+            };
+            btnDrop.addEventListener('click', removeFromHistory);
+            btnDrop.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    removeFromHistory(e);
                 }
             });
         }

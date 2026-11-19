@@ -7,7 +7,7 @@
 import { cancelDownload, fetchDownloads, fetchLocalMovies, rescanLocalMovies, deleteLocalMovie } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
 import { confirmDeleteModal, confirmDeleteFileModal } from './confirmModal';
-import { escapeHtml, normalizeMovie, parseDuration } from './utils';
+import { escapeHtml, normalizeMovie, parseDuration, PLACEHOLDER_POSTER } from './utils';
 import toast from 'components/toast/toast';
 
 export function renderLocalFolderView(container) {
@@ -265,7 +265,7 @@ function createMovieCard(m) {
 
     card.innerHTML = `
         <div class="mf-poster-wrap">
-            <img src="${escapeHtml(m.poster)}" alt="" loading="lazy" class="mf-poster-img" />
+            <img src="${escapeHtml(m.poster || PLACEHOLDER_POSTER)}" alt="Pôster de ${escapeHtml(m.title)}" loading="lazy" class="mf-poster-img" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" />
             <button type="button" class="mf-btn-delete-local focusable" title="Excluir arquivo do disco">
                 <span class="material-icons" style="font-size: 17px;">delete_outline</span>
             </button>

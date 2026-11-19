@@ -3,7 +3,7 @@
  * Normaliza os formatos diferentes que o backend devolve (catálogo, IA, pasta local, torrents).
  */
 
-export const PLACEHOLDER_POSTER = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22300%22%20height%3D%22450%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20fill%3D%22%231a1d26%22%20width%3D%22300%22%20height%3D%22450%22%2F%3E%3C%2Fsvg%3E';
+export const PLACEHOLDER_POSTER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 450' width='300' height='450'%3E%3Crect width='300' height='450' fill='%231E1D1B'/%3E%3Cpath d='M130 205l50 25-50 25z' fill='%2355534e'/%3E%3Crect x='100' y='180' width='100' height='75' rx='8' fill='none' stroke='%2355534e' stroke-width='4'/%3E%3C/svg%3E";
 
 export function escapeHtml(value) {
     return String(value ?? '')

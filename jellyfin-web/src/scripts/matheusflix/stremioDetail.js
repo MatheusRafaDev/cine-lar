@@ -6,7 +6,7 @@
 import { checkIsFavorite, fetchDownloads, fetchSeriesMeta, searchTorrents, startDownload, toggleFavorite, deleteLocalMovie, deleteWatchHistory } from './api';
 import { openCinemaPlayer, closeCinemaPlayer } from './cinemaPlayer';
 import { confirmDownloadModal, confirmDeleteFileModal } from './confirmModal';
-import { escapeHtml, normalizeMovie, normalizeStream, parseDuration } from './utils';
+import { escapeHtml, normalizeMovie, normalizeStream, parseDuration, PLACEHOLDER_POSTER } from './utils';
 import toast from 'components/toast/toast';
 
 const MAX_SOURCES = 15;
@@ -92,7 +92,7 @@ export async function openStremioDetails(rawMovie) {
                     <div class="mf-hero-details-container">
                         <div class="mf-stremio-poster-wrap">
                             <div class="mf-poster-glow-container">
-                                <img src="${escapeHtml(movie.poster)}" alt="" class="mf-stremio-poster" />
+                                <img src="${escapeHtml(movie.poster || PLACEHOLDER_POSTER)}" alt="Pôster de ${escapeHtml(movie.title)}" class="mf-stremio-poster" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" />
                             </div>
                             <div class="mf-stremio-header-info">
                                 <h1 class="mf-stremio-title">${escapeHtml(movie.title)}</h1>
@@ -115,18 +115,23 @@ export async function openStremioDetails(rawMovie) {
                         <!-- Alerta se o filme estiver salvo no disco local -->
                         <div class="mf-local-status-container"></div>
 
-                        <!-- Ações Principais Padrão Netflix (Assistir + Minha Lista) -->
-                        <div class="mf-stremio-hero-action">
-                            <button type="button" class="mf-btn-hero-watch focusable" disabled>
-                                <span class="material-icons mf-hero-play-icon">play_arrow</span>
+                        <!-- Acoes Principais Estilo Cinelar TV -->
+                        <div class="mf-stremio-hero-action" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:24px 0;">
+                            <button type="button" class="mf-btn-hero-watch btn f focusable" style="height:48px;padding:0 26px;border-radius:12px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;" disabled>
+                                <span class="material-icons mf-hero-play-icon" style="font-size:20px;">play_arrow</span>
                                 <span class="mf-hero-watch-text">Carregando opções...</span>
                             </button>
-                            <button type="button" class="mf-btn-hero-fav mf-btn-fav-toggle focusable" title="Minha Lista (Favoritos)" aria-label="Minha Lista">
-                                <span class="material-icons mf-fav-icon">favorite_border</span>
+                            <button type="button" class="btn g mf-btn-trailer focusable" style="height:48px;padding:0 22px;border-radius:12px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+                                <span class="material-icons" style="font-size:18px;">movie</span>
+                                <span>Trailer oficial</span>
+                            </button>
+                            <button type="button" class="btn g mf-btn-fav-toggle focusable" style="height:48px;padding:0 22px;border-radius:12px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;" title="Minha Lista" aria-label="Minha Lista">
+                                <span class="material-icons mf-fav-icon" style="font-size:18px;">add</span>
+                                <span class="mf-fav-text">Minha lista</span>
                             </button>
                             ${movie.resumePosition ? `
-                            <button type="button" class="mf-btn-drop-movie focusable" title="Remover de Continuar Assistindo">
-                                <span class="material-icons" style="font-size: 20px;">delete_outline</span>
+                            <button type="button" class="btn g mf-btn-drop-movie focusable" style="height:48px;padding:0 18px;border-radius:12px;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:6px;cursor:pointer;" title="Remover de Continuar Assistindo">
+                                <span class="material-icons" style="font-size:18px;">delete_outline</span>
                                 <span>Remover</span>
                             </button>` : ''}
                         </div>
@@ -194,11 +199,13 @@ export async function openStremioDetails(rawMovie) {
         const hero = modalEl.querySelector('.mf-btn-hero-watch');
         const backBtn = modalEl.querySelector('.mf-movie-page-back-btn');
         const closeBtn = modalEl.querySelector('.mf-btn-topbar-close');
+        const trailerBtn = modalEl.querySelector('.mf-btn-trailer');
         const favBtn = modalEl.querySelector('.mf-btn-fav-toggle');
+        const dropBtn = modalEl.querySelector('.mf-btn-drop-movie');
         const firstStream = modalEl.querySelector('.mf-stream-item, .mf-episode-chip');
 
         if (e.key === 'ArrowDown') {
-            if (active === hero || active === favBtn) {
+            if (active === hero || active === trailerBtn || active === favBtn || active === dropBtn) {
                 e.preventDefault();
                 firstStream?.focus?.();
             } else if (active === backBtn || active === closeBtn) {
@@ -215,7 +222,7 @@ export async function openStremioDetails(rawMovie) {
             if (active === firstStream) {
                 e.preventDefault();
                 hero?.focus?.();
-            } else if (active === hero || active === favBtn) {
+            } else if (active === hero || active === trailerBtn || active === favBtn || active === dropBtn) {
                 e.preventDefault();
                 backBtn?.focus?.();
             } else if (active?.classList.contains('mf-stream-item')) {
@@ -235,9 +242,19 @@ export async function openStremioDetails(rawMovie) {
                 else hero?.focus?.();
             } else if (active === hero) {
                 e.preventDefault();
+                if (trailerBtn) trailerBtn.focus();
+                else if (favBtn) favBtn.focus();
+                else firstStream?.focus?.();
+            } else if (active === trailerBtn) {
+                e.preventDefault();
                 if (favBtn) favBtn.focus();
+                else if (dropBtn) dropBtn.focus();
                 else firstStream?.focus?.();
             } else if (active === favBtn) {
+                e.preventDefault();
+                if (dropBtn) dropBtn.focus();
+                else firstStream?.focus?.();
+            } else if (active === dropBtn) {
                 e.preventDefault();
                 firstStream?.focus?.();
             }
@@ -245,7 +262,15 @@ export async function openStremioDetails(rawMovie) {
             if (active === closeBtn) {
                 e.preventDefault();
                 backBtn?.focus?.();
+            } else if (active === dropBtn) {
+                e.preventDefault();
+                if (favBtn) favBtn.focus();
+                else hero?.focus?.();
             } else if (active === favBtn) {
+                e.preventDefault();
+                if (trailerBtn) trailerBtn.focus();
+                else hero?.focus?.();
+            } else if (active === trailerBtn) {
                 e.preventDefault();
                 hero?.focus?.();
             } else if (active?.classList?.contains('mf-stream-item') || active?.classList?.contains('mf-episode-chip')) {
@@ -259,14 +284,26 @@ export async function openStremioDetails(rawMovie) {
     };
     window.addEventListener('keydown', activeKeyHandler);
 
-    // Configurar botão de favoritos
+    // Configurar botão de trailer oficial
+    const btnTrailer = modalEl.querySelector('.mf-btn-trailer');
+    if (btnTrailer) {
+        btnTrailer.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const query = encodeURIComponent(`${movie.title} trailer oficial dublado`);
+            window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank');
+        });
+    }
+
+    // Configurar botão de favoritos (Minha Lista)
     const btnFav = modalEl.querySelector('.mf-btn-fav-toggle');
     const favIcon = modalEl.querySelector('.mf-fav-icon');
+    const favText = modalEl.querySelector('.mf-fav-text');
     if (btnFav && movie.imdbId) {
         checkIsFavorite(movie.imdbId).then(res => {
             if (res.favorite) {
-                favIcon.textContent = 'favorite';
-                favIcon.style.color = '#ef4444';
+                if (favIcon) favIcon.textContent = 'check';
+                if (favText) favText.textContent = 'Na minha lista';
+                btnFav.classList.add('active');
             }
         }).catch(() => {
             // Ignore failure on favorite check
@@ -284,13 +321,15 @@ export async function openStremioDetails(rawMovie) {
                     rating: movie.rating
                 });
                 if (res.favorite) {
-                    favIcon.textContent = 'favorite';
-                    favIcon.style.color = '#ef4444';
-                    toast(`"${movie.title}" adicionado aos Favoritos!`);
+                    if (favIcon) favIcon.textContent = 'check';
+                    if (favText) favText.textContent = 'Na minha lista';
+                    btnFav.classList.add('active');
+                    toast(`"${movie.title}" adicionado à Minha Lista.`);
                 } else {
-                    favIcon.textContent = 'favorite_border';
-                    favIcon.style.color = '#fff';
-                    toast(`"${movie.title}" removido dos Favoritos.`);
+                    if (favIcon) favIcon.textContent = 'add';
+                    if (favText) favText.textContent = 'Minha lista';
+                    btnFav.classList.remove('active');
+                    toast(`"${movie.title}" removido da Minha Lista.`);
                 }
             } catch (err) {
                 toast(`Erro ao favoritar: ${err.message}`);
@@ -529,7 +568,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 <span class="material-icons mf-local-alert-icon">folder_special</span>
                 <div class="mf-local-alert-text">
                     <strong>Disponível na sua pasta local</strong>
-                    <span>Reprodução imediata sem download • ${escapeHtml(localFile.quality)} • ${escapeHtml(localFile.sizeFormatted)} • Sem gastar internet</span>
+                    <span>Reprodução local imediata • ${escapeHtml(localFile.quality)} • ${escapeHtml(localFile.sizeFormatted)}</span>
                 </div>
             </div>
         `;
@@ -557,7 +596,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
             <div class="mf-empty-state" style="padding: 60px 20px; text-align: center; color: #a0a6b5;">
                 <span class="material-icons" style="font-size: 48px; color: #64748b; margin-bottom: 12px; display: block;">search_off</span>
                 <p style="margin: 0; font-size: 15px; font-weight: 600; color: #cbd5e1;">Nenhuma fonte em Português (PT-BR) encontrada.</p>
-                <p style="margin: 6px 0 0 0; font-size: 13px; color: #64748b;">Fontes exclusivamente em inglês foram ocultadas conforme sua preferência por conteúdo dublado / nacional.</p>
+                <p style="margin: 6px 0 0 0; font-size: 13px; color: #64748b;">Tente novamente mais tarde ou altere o filtro de reprodução.</p>
             </div>
         `;
         countEl.textContent = '';

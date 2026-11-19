@@ -5215,6 +5215,106 @@ button[aria-label*="Menu"],
     }
 }
 
+/* Navegação por teclado e estados de foco consistentes */
+.mf-home-card:focus-visible,
+.mf-slider-btn:focus-visible,
+.mf-hero-nav:focus-visible,
+.mf-hero-dot:focus-visible,
+.mf-btn-history-remove:focus-visible {
+    outline: 3px solid #ffffff !important;
+    outline-offset: 3px !important;
+}
 
+.mf-btn-history-remove {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+}
+
+/* Melhorias responsivas para celular e tablets */
+@media (max-width: 860px) {
+    .skinHeader,
+    .layout-desktop .skinHeader,
+    .layout-mobile .skinHeader {
+        height: 58px !important;
+        min-height: 58px !important;
+        max-height: 58px !important;
+        padding: 0 16px !important;
+    }
+
+    .headerTabs,
+    .sectionTabs {
+        gap: 4px !important;
+        margin-left: 12px !important;
+        overflow-x: auto !important;
+    }
+
+    .headerTab,
+    .headerTab a,
+    .headerTab button {
+        min-height: 44px !important;
+    }
+
+    .mf-home-hero {
+        height: min(54vh, 430px) !important;
+        min-height: 330px !important;
+        margin: 8px 0 20px !important;
+        border-radius: 0 !important;
+    }
+
+    .mf-home-hero .mf-hero-content {
+        max-width: 92% !important;
+        padding: 28px 20px 32px !important;
+    }
+
+    .mf-home-hero .mf-hero-title {
+        font-size: clamp(28px, 8vw, 38px) !important;
+    }
+
+    .mf-home-hero .mf-hero-desc {
+        -webkit-line-clamp: 3 !important;
+    }
+
+    .mf-home-section {
+        margin-top: 20px !important;
+        padding: 0 12px !important;
+    }
+
+    .mf-home-section .sectionTitle {
+        font-size: 18px !important;
+    }
+
+    .mf-home-card {
+        flex-basis: clamp(132px, 38vw, 160px) !important;
+        width: clamp(132px, 38vw, 160px) !important;
+    }
+
+    .mf-home-card-poster-wrap {
+        height: clamp(198px, 57vw, 240px) !important;
+    }
+
+    .mf-slider-btn {
+        width: 44px !important;
+    }
+
+    .mf-btn-history-remove {
+        width: 44px !important;
+        height: 44px !important;
+        top: 4px !important;
+        right: 4px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
 
 

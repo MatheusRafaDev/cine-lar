@@ -5,7 +5,7 @@
 
 import { fetchCatalog, fetchGenres, fetchUserFavorites } from './api';
 import { openStremioDetails } from './stremioDetail';
-import { escapeHtml, normalizeMovie } from './utils';
+import { escapeHtml, normalizeMovie, PLACEHOLDER_POSTER } from './utils';
 
 const PAGE_SIZE = 48;
 
@@ -248,7 +248,7 @@ function appendCards(grid, movies) {
 
         card.innerHTML = `
             <div class="mf-poster-wrap">
-                <img src="${escapeHtml(m.poster)}" alt="" loading="lazy" class="mf-poster-img" />
+                <img src="${escapeHtml(m.poster || PLACEHOLDER_POSTER)}" alt="Pôster de ${escapeHtml(m.title)}" loading="lazy" class="mf-poster-img" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" />
                 ${m.rating ? `<span class="mf-badge-rating"><span class="material-icons" style="font-size: 12px; vertical-align: middle; margin-right: 2px; color: #f59e0b;">star</span>${m.rating}</span>` : ''}
                 ${m.isLocal ? '<span class="mf-badge-on-disk"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta</span>' : ''}
                 ${seriesBadge}
