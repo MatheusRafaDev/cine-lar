@@ -38,21 +38,40 @@ class ServerConnections extends ConnectionManager {
         this.localApiClient = null;
         this.firstConnection = null;
 
-        // MatheusFlix: Auto-provisionar servidor padrão se credentials estiver vazio
+        // MatheusFlix: Auto-provisionar servidor com host dinâmico (compatível com TV e rede local)
         try {
             const creds = credentialProvider.credentials();
+            const currentHost = (typeof window !== 'undefined' && window.location.hostname) || 'localhost';
+            const serverUrl = `http://${currentHost}:8096`;
+            const realServerId = '574219d1e21c4f85b760a4621c52642d';
+
             if (!creds.Servers || creds.Servers.length === 0) {
                 const defaultServer = {
-                    Id: 'a61271d6b728483aa696c8d52ace8e04',
-                    Name: 'MatheusFlix Server',
-                    ManualAddress: 'http://localhost:8096',
-                    LocalAddress: 'http://localhost:8096',
+                    Id: realServerId,
+                    Name: 'DESKTOP-P5USA9K',
+                    ManualAddress: serverUrl,
+                    LocalAddress: serverUrl,
                     LastConnectionMode: 2,
                     manualAddressOnly: true,
                     DateLastAccessed: Date.now()
                 };
                 creds.Servers = [defaultServer];
                 credentialProvider.credentials(creds);
+            } else {
+                let changed = false;
+                creds.Servers.forEach(s => {
+                    if (s.ManualAddress && s.ManualAddress.includes('localhost') && currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+                        s.ManualAddress = s.ManualAddress.replace('localhost', currentHost);
+                        changed = true;
+                    }
+                    if (s.LocalAddress && s.LocalAddress.includes('localhost') && currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+                        s.LocalAddress = s.LocalAddress.replace('localhost', currentHost);
+                        changed = true;
+                    }
+                });
+                if (changed) {
+                    credentialProvider.credentials(creds);
+                }
             }
         } catch (e) {
             console.warn('[MatheusFlix] Error preconfiguring server credentials:', e);

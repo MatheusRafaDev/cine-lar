@@ -187,6 +187,15 @@ export default function (view, params) {
         if (layoutManager.tv) {
             focusManager.autoFocus(view);
         }
+
+        // MatheusFlix: Auto-conectar diretamente quando houver apenas 1 servidor configurado
+        if (servers && servers.length === 1 && !window._mfAutoConnectingServer) {
+            window._mfAutoConnectingServer = true;
+            setTimeout(() => {
+                window._mfAutoConnectingServer = false;
+                connectToServer(servers[0]);
+            }, 250);
+        }
     }
 
     function loadServers() {
