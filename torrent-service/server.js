@@ -551,6 +551,31 @@ const server = http.createServer(async (req, res) => {
     const pathname = urlObj.pathname;
 
     try {
+        // Download MatheusFlix.wgt for Smart TV
+        if (pathname === '/download/MatheusFlix.wgt' && (req.method === 'GET' || req.method === 'HEAD')) {
+            const wgtPath = path.resolve(__dirname, '..', 'MatheusFlix.wgt');
+            if (fs.existsSync(wgtPath)) {
+                const stat = fs.statSync(wgtPath);
+                res.writeHead(200, {
+                    'Content-Type': 'application/vnd.tizen.wgt',
+                    'Content-Length': stat.size,
+                    'Content-Disposition': 'attachment; filename="MatheusFlix.wgt"',
+                    'Access-Control-Allow-Origin': '*'
+                });
+                if (req.method === 'HEAD') {
+                    res.end();
+                    return;
+                }
+                const stream = fs.createReadStream(wgtPath);
+                stream.pipe(res);
+                return;
+            } else {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('MatheusFlix.wgt not found');
+                return;
+            }
+        }
+
         // Status endpoint
         if (pathname === '/api/status' && req.method === 'GET') {
             let freeSpaceGB = null;
