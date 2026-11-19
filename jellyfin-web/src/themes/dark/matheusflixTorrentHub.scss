@@ -4743,14 +4743,15 @@ div[role="button"]:focus-visible {
     }
 }
 
-/* Botão de excluir arquivo local dentro da lista de fontes */
+/* Botão de 3 pontinhos / mais opções dentro da lista de fontes */
+.mf-btn-stream-more-local,
 .mf-btn-stream-delete-local {
     width: 42px !important;
     height: 42px !important;
     border-radius: 12px !important;
-    background: rgba(239, 68, 68, 0.12) !important;
-    border: 1px solid rgba(239, 68, 68, 0.3) !important;
-    color: #f87171 !important;
+    background: rgba(250, 249, 245, 0.08) !important;
+    border: 1px solid rgba(250, 249, 245, 0.15) !important;
+    color: #FAF9F5 !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -4760,9 +4761,9 @@ div[role="button"]:focus-visible {
     &:hover,
     &:focus,
     &:focus-visible {
-        background: #ef4444 !important;
-        color: #ffffff !important;
-        border-color: #ef4444 !important;
+        background: #FAF9F5 !important;
+        color: #141413 !important;
+        border-color: #FAF9F5 !important;
         transform: scale(1.05) !important;
         box-shadow: none !important;
     }

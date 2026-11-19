@@ -334,6 +334,7 @@ O MatheusFlix adota integralmente as diretrizes do **Cinelar TV Design System**:
 
 ### 6.2. Componentes e Controles
 - **Chips em Pilula:** Elementos com borda arredondada (`border-radius: 999px`), fundo transparente quando inativos e preenchimento total em `#FAF9F5` com tipografia escura `#141413` quando ativos.
+- **Menu de Ações Contextual (3 Pontinhos):** Botão discreto com ícone `more_vert` presente nos cartazes da Pasta Local, na lista de Downloads e na linha de arquivo local. Ao ser acionado, abre um menu modal em estilo Cinelar TV para renomear, excluir do disco ou remover do histórico, eliminando a poluição de botões múltiplos na interface.
 - **Indicador de Foco TV:** Contorno de alta visibilidade `outline: 3px solid #FAF9F5; outline-offset: 3px; transform: scale(1.04);` em qualquer elemento selecionado via controle remoto.
 - **Proporcao de Cartazes:** Cartazes de filmes mantem proporcao rigida `aspect-ratio: 2 / 3` com cantos arredondados em 14px.
 

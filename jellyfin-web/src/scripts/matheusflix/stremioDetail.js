@@ -3,9 +3,9 @@
  * Design System unificado, layout cinematográfico imersivo, botão de voltar e filtros de fontes.
  */
 
-import { checkIsFavorite, fetchDownloads, fetchSeriesMeta, searchTorrents, startDownload, toggleFavorite, deleteLocalMovie, deleteWatchHistory } from './api';
+import { checkIsFavorite, fetchDownloads, fetchSeriesMeta, searchTorrents, startDownload, toggleFavorite, deleteLocalMovie, deleteWatchHistory, renameLocalMovie } from './api';
 import { openCinemaPlayer, closeCinemaPlayer } from './cinemaPlayer';
-import { confirmDownloadModal, confirmDeleteFileModal } from './confirmModal';
+import { confirmDownloadModal, confirmDeleteFileModal, showActionMenuModal, promptTextModal } from './confirmModal';
 import { escapeHtml, normalizeMovie, normalizeStream, parseDuration, PLACEHOLDER_POSTER } from './utils';
 import toast from 'components/toast/toast';
 
@@ -666,27 +666,77 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                     <button type="button" class="mf-btn-stream-play mf-btn-stream-play-local focusable" title="Assistir arquivo local">
                         <span class="material-icons">play_arrow</span>
                     </button>
-                    <button type="button" class="mf-btn-stream-delete-local focusable" title="Excluir arquivo do computador">
-                        <span class="material-icons" style="font-size: 18px;">delete_outline</span>
+                    <button type="button" class="mf-btn-stream-more-local focusable" title="Mais opções" aria-label="Mais opções">
+                        <span class="material-icons" style="font-size: 20px;">more_vert</span>
                     </button>
                 </div>
             `;
-            const btnDelLocal = localItem.querySelector('.mf-btn-stream-delete-local');
-            if (btnDelLocal) {
-                btnDelLocal.addEventListener('click', async (e) => {
+            const btnMoreLocal = localItem.querySelector('.mf-btn-stream-more-local');
+            if (btnMoreLocal) {
+                btnMoreLocal.addEventListener('click', async (e) => {
                     e.stopPropagation();
-                    const confirmed = await confirmDeleteFileModal({ title: movie.title });
-                    if (confirmed) {
-                        btnDelLocal.disabled = true;
-                        try {
-                            await deleteLocalMovie(localFile.videoPath || localFile.path || localFile.file);
-                            toast(`"${movie.title}" foi excluído do computador.`);
-                            localFile = null;
-                            localItem.remove();
-                            updateStreamsList();
-                        } catch (err) {
-                            btnDelLocal.disabled = false;
-                            toast(`Erro ao excluir: ${err.message}`);
+                    const action = await showActionMenuModal({
+                        title: movie.title,
+                        subtitle: localFile.sizeFormatted ? `Arquivo salvo no disco • ${localFile.sizeFormatted}` : 'Arquivo salvo no computador',
+                        icon: 'folder',
+                        items: [
+                            {
+                                id: 'rename',
+                                label: 'Alterar nome / renomear',
+                                subtitle: 'Altera o nome do arquivo em disco e no acervo',
+                                icon: 'edit'
+                            },
+                            {
+                                id: 'delete',
+                                label: 'Excluir arquivo do computador',
+                                subtitle: 'Apaga permanentemente o arquivo de vídeo do disco',
+                                icon: 'delete_outline',
+                                danger: true
+                            }
+                        ]
+                    });
+
+                    if (action === 'rename') {
+                        const currentVideoPath = localFile.videoPath || localFile.path || localFile.file;
+                        const newTitle = await promptTextModal({
+                            title: 'Alterar nome do arquivo',
+                            subtitle: currentVideoPath,
+                            icon: 'edit',
+                            label: 'Novo título:',
+                            defaultValue: movie.title,
+                            placeholder: 'Ex: Interestelar (2014)',
+                            confirmText: 'Salvar',
+                            cancelText: 'Cancelar'
+                        });
+                        if (newTitle && newTitle !== movie.title) {
+                            try {
+                                const res = await renameLocalMovie(currentVideoPath, newTitle);
+                                toast('Arquivo renomeado com sucesso.');
+                                movie.title = newTitle;
+                                if (res?.newPath) {
+                                    localFile.videoPath = res.newPath;
+                                    localFile.path = res.newPath;
+                                }
+                                const titleHeader = modalEl.querySelector('.mf-movie-page-title');
+                                if (titleHeader) titleHeader.textContent = newTitle;
+                            } catch (err) {
+                                toast(`Erro ao renomear: ${err.message}`);
+                            }
+                        }
+                    } else if (action === 'delete') {
+                        const confirmed = await confirmDeleteFileModal({ title: movie.title });
+                        if (confirmed) {
+                            btnMoreLocal.disabled = true;
+                            try {
+                                await deleteLocalMovie(localFile.videoPath || localFile.path || localFile.file);
+                                toast(`"${movie.title}" foi excluído do computador.`);
+                                localFile = null;
+                                localItem.remove();
+                                updateStreamsList();
+                            } catch (err) {
+                                btnMoreLocal.disabled = false;
+                                toast(`Erro ao excluir: ${err.message}`);
+                            }
                         }
                     }
                 });

@@ -5,7 +5,7 @@
 
 import { cancelDownload, fetchDownloads, rescanLocalMovies, renameDownload, updateSavePath } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
-import { confirmDeleteModal, confirmDeleteFileModal, promptTextModal } from './confirmModal';
+import { confirmDeleteModal, confirmDeleteFileModal, promptTextModal, showActionMenuModal } from './confirmModal';
 import { escapeHtml } from './utils';
 import toast from 'components/toast/toast';
 
@@ -188,40 +188,72 @@ function renderLists(downloads, speedEl, diskEl, diskLabelEl, countEl, activeLis
                     <button type="button" class="btn f mf-btn-watch-dl focusable" style="border:0;border-radius:12px;height:44px;padding:0 20px;background:#E50914;color:#FAF9F5;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
                         <span class="material-icons" style="font-size:18px;">play_arrow</span> Assistir
                     </button>
-                    <button type="button" class="btn g mf-btn-rename-dl focusable" style="border:0;border-radius:12px;height:44px;padding:0 16px;background:rgba(250,249,245,0.1);color:#FAF9F5;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;" title="Alterar título">
-                        <span class="material-icons" style="font-size:17px;">edit</span> Alterar
-                    </button>
-                    <button type="button" class="btn g mf-btn-cancel-dl focusable" style="border:0;border-radius:12px;height:44px;padding:0 20px;background:rgba(250,249,245,0.12);color:#FAF9F5;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
-                        Cancelar
+                    <button type="button" class="btn g mf-btn-more-dl focusable" data-id="${escapeHtml(d.id)}" style="border:0;border-radius:12px;width:44px;min-width:44px;height:44px;padding:0;background:rgba(250,249,245,0.08);color:#FAF9F5;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;" title="Mais opções" aria-label="Mais opções">
+                        <span class="material-icons" style="font-size:20px;">more_vert</span>
                     </button>
                 </div>
             </div>
         `).join('');
 
-        activeList.querySelectorAll('.mf-btn-rename-dl').forEach(btn => {
+        activeList.querySelectorAll('.mf-btn-more-dl').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const id = btn.closest('.mf-dl-card').dataset.id;
+                const id = btn.dataset.id;
                 const d = active.find(item => item.id === id);
                 const currentTitle = d?.title || d?.name || 'Download';
-                const newTitle = await promptTextModal({
-                    title: 'Alterar nome do download',
-                    subtitle: 'Personalize o nome exibido para este download.',
-                    icon: 'edit',
-                    label: 'Novo título:',
-                    defaultValue: currentTitle,
-                    placeholder: 'Ex: Interestelar (2014)',
-                    confirmText: 'Salvar',
-                    cancelText: 'Cancelar'
+                const action = await showActionMenuModal({
+                    title: currentTitle,
+                    subtitle: `${d?.progress || 0}% concluído • ${d?.downloadSpeed || '0 B/s'}`,
+                    icon: 'downloading',
+                    items: [
+                        {
+                            id: 'rename',
+                            label: 'Alterar nome do download',
+                            subtitle: 'Personalize o nome exibido para este download',
+                            icon: 'edit'
+                        },
+                        {
+                            id: 'cancel',
+                            label: 'Cancelar download',
+                            subtitle: 'Interrompe a transferência e remove dados parciais',
+                            icon: 'close',
+                            danger: true
+                        }
+                    ]
                 });
-                if (newTitle && newTitle !== currentTitle) {
+
+                if (action === 'rename') {
+                    const newTitle = await promptTextModal({
+                        title: 'Alterar nome do download',
+                        subtitle: 'Personalize o nome exibido para este download.',
+                        icon: 'edit',
+                        label: 'Novo título:',
+                        defaultValue: currentTitle,
+                        placeholder: 'Ex: Interestelar (2014)',
+                        confirmText: 'Salvar',
+                        cancelText: 'Cancelar'
+                    });
+                    if (newTitle && newTitle !== currentTitle) {
+                        try {
+                            await renameDownload(id, newTitle);
+                            toast('Título alterado com sucesso.');
+                            if (d) d.title = newTitle;
+                            const titleEl = btn.closest('.mf-dl-card')?.querySelector('.mf-dl-name');
+                            if (titleEl) titleEl.textContent = newTitle;
+                        } catch (e) {
+                            toast('Erro ao renomear: ' + e.message);
+                        }
+                    }
+                } else if (action === 'cancel') {
+                    const confirmed = await confirmDeleteModal({ title: currentTitle, isCompleted: false });
+                    if (!confirmed) return;
                     try {
-                        await renameDownload(id, newTitle);
-                        toast('Título alterado com sucesso.');
-                        if (d) d.title = newTitle;
-                        const titleEl = btn.closest('.mf-dl-card').querySelector('.mf-dl-name');
-                        if (titleEl) titleEl.textContent = newTitle;
+                        await cancelDownload(id);
+                        toast(`Download de "${currentTitle}" cancelado.`);
+                        const card = btn.closest('.mf-dl-card');
+                        if (card) card.remove();
+                        setTimeout(loadDownloads, 1000);
                     } catch (e) {
-                        toast('Erro ao renomear: ' + e.message);
+                        toast('Erro ao cancelar: ' + e.message);
                     }
                 }
             });
@@ -242,24 +274,6 @@ function renderLists(downloads, speedEl, diskEl, diskLabelEl, countEl, activeLis
                 }
             });
         });
-
-        activeList.querySelectorAll('.mf-btn-cancel-dl').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const id = btn.closest('.mf-dl-card').dataset.id;
-                const d = active.find(item => item.id === id);
-                const title = d?.title || d?.name || 'este download';
-                const confirmed = await confirmDeleteModal({ title, isCompleted: false });
-                if (!confirmed) return;
-                try {
-                    await cancelDownload(id);
-                    toast('Download cancelado com sucesso.');
-                    const card = btn.closest('.mf-dl-card');
-                    if (card) card.remove();
-                } catch (e) {
-                    toast('Erro ao cancelar: ' + e.message);
-                }
-            });
-        });
     }
 
     if (completed.length === 0) {
@@ -273,86 +287,95 @@ function renderLists(downloads, speedEl, diskEl, diskLabelEl, countEl, activeLis
             <div class="card mf-dl-card" data-id="${escapeHtml(d.id)}" style="background:#1E1D1B;border:1px solid rgba(250,249,245,0.1);border-radius:20px;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;">
                 <div>
                     <div class="mf-dl-name" style="font-weight:600;font-size:17px;color:#FAF9F5;">${escapeHtml(d.title || d.name || 'Filme')}</div>
-                    <div class="m" style="color:#46d369;font-size:13px;margin-top:4px;">Salvo na pasta local</div>
+                    <div class="m" style="color:#22c55e;font-size:13px;margin-top:4px;">Salvo na pasta local</div>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
                     <button type="button" class="btn f mf-btn-watch-dl focusable" style="border:0;border-radius:12px;height:42px;padding:0 20px;background:#E50914;color:#FAF9F5;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
                         <span class="material-icons" style="font-size:18px;">play_arrow</span> Assistir
                     </button>
-                    <button type="button" class="btn g mf-btn-rename-dl focusable" style="border:0;border-radius:12px;height:42px;padding:0 16px;background:rgba(250,249,245,0.1);color:#FAF9F5;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;" title="Alterar título">
-                        <span class="material-icons" style="font-size:16px;">edit</span> Alterar
-                    </button>
-                    <button type="button" class="btn g mf-btn-delete-file-dl focusable" style="border:0;border-radius:12px;height:42px;padding:0 16px;background:rgba(229,9,20,0.18);color:#FAF9F5;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;" title="Excluir arquivo permanentemente do disco">
-                        <span class="material-icons" style="font-size:16px;">delete_outline</span> Excluir arquivo
-                    </button>
-                    <button type="button" class="btn g mf-btn-remove-completed-dl focusable" style="border:0;border-radius:12px;height:42px;padding:0 14px;background:rgba(250,249,245,0.08);color:#A8A59C;font-weight:500;font-size:13px;display:inline-flex;align-items:center;gap:4px;cursor:pointer;" title="Remover apenas da lista">
-                        Remover da lista
+                    <button type="button" class="btn g mf-btn-more-dl focusable" data-id="${escapeHtml(d.id)}" style="border:0;border-radius:12px;width:42px;min-width:42px;height:42px;padding:0;background:rgba(250,249,245,0.08);color:#FAF9F5;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;" title="Mais opções" aria-label="Mais opções">
+                        <span class="material-icons" style="font-size:20px;">more_vert</span>
                     </button>
                 </div>
             </div>
         `).join('');
 
-        completedList.querySelectorAll('.mf-btn-rename-dl').forEach(btn => {
+        completedList.querySelectorAll('.mf-btn-more-dl').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const id = btn.closest('.mf-dl-card').dataset.id;
+                const id = btn.dataset.id;
                 const d = completed.find(item => item.id === id);
-                const currentTitle = d?.title || d?.name || 'Filme';
-                const newTitle = await promptTextModal({
-                    title: 'Alterar nome do download',
-                    subtitle: 'Personalize o nome exibido para este download.',
-                    icon: 'edit',
-                    label: 'Novo título:',
-                    defaultValue: currentTitle,
-                    placeholder: 'Ex: Interestelar (2014)',
-                    confirmText: 'Salvar',
-                    cancelText: 'Cancelar'
+                const title = d?.title || d?.name || 'Filme';
+                const action = await showActionMenuModal({
+                    title,
+                    subtitle: d?.total ? `Arquivo salvo • ${d.total}` : 'Salvo na pasta local',
+                    icon: 'check_circle',
+                    items: [
+                        {
+                            id: 'rename',
+                            label: 'Alterar nome do download',
+                            subtitle: 'Personalize o nome exibido para este download',
+                            icon: 'edit'
+                        },
+                        {
+                            id: 'delete_file',
+                            label: 'Excluir arquivo do computador',
+                            subtitle: 'Apaga permanentemente o arquivo de vídeo do disco',
+                            icon: 'delete_outline',
+                            danger: true
+                        },
+                        {
+                            id: 'remove_list',
+                            label: 'Remover da lista',
+                            subtitle: 'Remove apenas o registro, mantendo o arquivo no disco',
+                            icon: 'playlist_remove'
+                        }
+                    ]
                 });
-                if (newTitle && newTitle !== currentTitle) {
-                    try {
-                        await renameDownload(id, newTitle);
-                        toast('Título alterado com sucesso.');
-                        if (d) d.title = newTitle;
-                        const titleEl = btn.closest('.mf-dl-card').querySelector('.mf-dl-name');
-                        if (titleEl) titleEl.textContent = newTitle;
-                    } catch (e) {
-                        toast('Erro ao renomear: ' + e.message);
+
+                if (action === 'rename') {
+                    const newTitle = await promptTextModal({
+                        title: 'Alterar nome do download',
+                        subtitle: 'Personalize o nome exibido para este download.',
+                        icon: 'edit',
+                        label: 'Novo título:',
+                        defaultValue: title,
+                        placeholder: 'Ex: Interestelar (2014)',
+                        confirmText: 'Salvar',
+                        cancelText: 'Cancelar'
+                    });
+                    if (newTitle && newTitle !== title) {
+                        try {
+                            await renameDownload(id, newTitle);
+                            toast('Título alterado com sucesso.');
+                            if (d) d.title = newTitle;
+                            const titleEl = btn.closest('.mf-dl-card')?.querySelector('.mf-dl-name');
+                            if (titleEl) titleEl.textContent = newTitle;
+                        } catch (e) {
+                            toast('Erro ao renomear: ' + e.message);
+                        }
                     }
-                }
-            });
-        });
-
-        completedList.querySelectorAll('.mf-btn-delete-file-dl').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const id = btn.closest('.mf-dl-card').dataset.id;
-                const d = completed.find(item => item.id === id);
-                const title = d?.title || d?.name || 'Filme';
-                const confirmed = await confirmDeleteFileModal({ title });
-                if (!confirmed) return;
-                try {
-                    await cancelDownload(id, true);
-                    toast(`"${title}" excluído do computador com sucesso.`);
-                    const card = btn.closest('.mf-dl-card');
-                    if (card) card.remove();
-                } catch (e) {
-                    toast('Erro ao excluir arquivo: ' + e.message);
-                }
-            });
-        });
-
-        completedList.querySelectorAll('.mf-btn-remove-completed-dl').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const id = btn.closest('.mf-dl-card').dataset.id;
-                const d = completed.find(item => item.id === id);
-                const title = d?.title || d?.name || 'Filme';
-                const confirmed = await confirmDeleteModal({ title, isCompleted: true });
-                if (!confirmed) return;
-                try {
-                    await cancelDownload(id, false);
-                    toast('Registro removido da lista.');
-                    const card = btn.closest('.mf-dl-card');
-                    if (card) card.remove();
-                } catch (e) {
-                    toast('Erro ao remover: ' + e.message);
+                } else if (action === 'delete_file') {
+                    const confirmed = await confirmDeleteFileModal({ title });
+                    if (!confirmed) return;
+                    try {
+                        await cancelDownload(id, true);
+                        toast(`"${title}" excluído do computador com sucesso.`);
+                        const card = btn.closest('.mf-dl-card');
+                        if (card) card.remove();
+                    } catch (e) {
+                        toast('Erro ao excluir arquivo: ' + e.message);
+                    }
+                } else if (action === 'remove_list') {
+                    const confirmed = await confirmDeleteModal({ title, isCompleted: true });
+                    if (!confirmed) return;
+                    try {
+                        await cancelDownload(id, false);
+                        toast('Registro removido da lista.');
+                        const card = btn.closest('.mf-dl-card');
+                        if (card) card.remove();
+                    } catch (e) {
+                        toast('Erro ao remover: ' + e.message);
+                    }
                 }
             });
         });

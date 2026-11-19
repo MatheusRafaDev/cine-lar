@@ -327,3 +327,118 @@ export function promptTextModal({
     });
 }
 
+/**
+ * Menu de Ações (3 Pontinhos) no Padrão Cinelar TV
+ * Exibe um menu de opções limpo, modal e navegável por controle remoto ou mouse.
+ */
+export function showActionMenuModal({
+    title = 'Opções',
+    subtitle = '',
+    icon = 'more_vert',
+    items = []
+}) {
+    return new Promise((resolve) => {
+        if (activeConfirmDialog) {
+            activeConfirmDialog.remove();
+            activeConfirmDialog = null;
+        }
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'mf-confirm-backdrop';
+        activeConfirmDialog = backdrop;
+
+        const itemsHtml = items.map((item) => `
+            <button type="button" class="mf-action-menu-item focusable ${item.danger ? 'mf-action-menu-danger' : ''}" data-action-id="${escapeHtml(item.id)}" tabindex="0">
+                <span class="material-icons mf-action-menu-icon">${escapeHtml(item.icon || 'chevron_right')}</span>
+                <div class="mf-action-menu-texts">
+                    <span class="mf-action-menu-label">${escapeHtml(item.label)}</span>
+                    ${item.subtitle ? `<span class="mf-action-menu-sub">${escapeHtml(item.subtitle)}</span>` : ''}
+                </div>
+            </button>
+        `).join('');
+
+        backdrop.innerHTML = `
+            <div class="mf-confirm-modal mf-action-menu-modal" role="dialog" aria-modal="true" aria-labelledby="mfActionMenuTitle">
+                <div class="mf-confirm-header" style="margin-bottom: 14px;">
+                    <div class="mf-confirm-icon-wrap" style="color: #FAF9F5; background: rgba(250, 249, 245, 0.08);">
+                        <span class="material-icons mf-confirm-icon">${escapeHtml(icon)}</span>
+                    </div>
+                    <div class="mf-confirm-header-text">
+                        <h3 id="mfActionMenuTitle" class="mf-confirm-title" style="font-size: 18px; margin: 0;">${escapeHtml(title)}</h3>
+                        ${subtitle ? `<p class="mf-confirm-subtitle" style="margin: 4px 0 0 0; color: #A8A59C; font-size: 13px;">${escapeHtml(subtitle)}</p>` : ''}
+                    </div>
+                    <button type="button" class="mf-confirm-close-btn focusable" title="Fechar (Esc)"><span class="material-icons" style="font-size: 18px;">close</span></button>
+                </div>
+
+                <div class="mf-action-menu-list">
+                    ${itemsHtml}
+                </div>
+
+                <div class="mf-confirm-footer" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(250, 249, 245, 0.08);">
+                    <button type="button" class="mf-confirm-btn-cancel focusable" style="width: 100%;">Fechar</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(backdrop);
+
+        let isClosed = false;
+        const cleanup = (result) => {
+            if (isClosed) return;
+            isClosed = true;
+            window.removeEventListener('keydown', handleKey);
+            backdrop.classList.add('mf-confirm-closing');
+            setTimeout(() => {
+                backdrop.remove();
+                if (activeConfirmDialog === backdrop) {
+                    activeConfirmDialog = null;
+                }
+                resolve(result);
+            }, 180);
+        };
+
+        const menuButtons = Array.from(backdrop.querySelectorAll('.mf-action-menu-item'));
+        let focusedIdx = 0;
+
+        const handleKey = (e) => {
+            if (e.key === 'Escape' || e.key === 'Backspace') {
+                e.stopPropagation();
+                cleanup(null);
+            } else if (e.key === 'ArrowDown') {
+                e.stopPropagation();
+                e.preventDefault();
+                focusedIdx = (focusedIdx + 1) % menuButtons.length;
+                menuButtons[focusedIdx]?.focus();
+            } else if (e.key === 'ArrowUp') {
+                e.stopPropagation();
+                e.preventDefault();
+                focusedIdx = (focusedIdx - 1 + menuButtons.length) % menuButtons.length;
+                menuButtons[focusedIdx]?.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handleKey);
+
+        backdrop.querySelector('.mf-confirm-close-btn')?.addEventListener('click', () => cleanup(null));
+        backdrop.querySelector('.mf-confirm-btn-cancel')?.addEventListener('click', () => cleanup(null));
+
+        menuButtons.forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const actionId = btn.getAttribute('data-action-id');
+                cleanup(actionId);
+            });
+        });
+
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) {
+                cleanup(null);
+            }
+        });
+
+        setTimeout(() => {
+            menuButtons[0]?.focus();
+        }, 60);
+    });
+}
+

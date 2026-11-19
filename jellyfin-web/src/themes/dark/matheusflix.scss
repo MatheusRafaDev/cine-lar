@@ -1059,7 +1059,7 @@ body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
     }
 }
 
-/* Ações superiores nos cartazes de filmes locais (Alterar e Deletar) */
+/* Ações superiores nos cartazes de filmes locais (Menu 3 Pontinhos) */
 .mf-card-top-actions {
     position: absolute !important;
     top: 8px !important;
@@ -1073,7 +1073,7 @@ body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
     button {
         width: 32px !important;
         height: 32px !important;
-        border-radius: 8px !important;
+        border-radius: 50% !important;
         border: 1px solid rgba(250, 249, 245, 0.2) !important;
         background: rgba(20, 20, 19, 0.85) !important;
         color: #FAF9F5 !important;
@@ -1086,26 +1086,14 @@ body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
         padding: 0 !important;
         transition: transform 0.2s, background 0.2s, color 0.2s !important;
 
-        &:hover {
-            transform: scale(1.1) !important;
-        }
-
-        &.mf-btn-rename-local:hover {
-            background: #FAF9F5 !important;
-            color: #141413 !important;
-        }
-
-        &.mf-btn-delete-local:hover {
-            background: #E50914 !important;
-            color: #FAF9F5 !important;
-        }
-
+        &:hover,
         &:focus,
         &:focus-visible {
+            background: #FAF9F5 !important;
+            color: #141413 !important;
             outline: 2px solid #FAF9F5 !important;
             outline-offset: 2px !important;
-            transform: scale(1.15) !important;
-            opacity: 1 !important;
+            transform: scale(1.1) !important;
         }
     }
 }
@@ -1113,6 +1101,86 @@ body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
 .mf-movie-card:hover .mf-card-top-actions,
 .mf-movie-card:focus-within .mf-card-top-actions {
     opacity: 1 !important;
+}
+
+/* Menu de Ações (3 Pontinhos) no Padrão Cinelar TV */
+.mf-action-menu-modal {
+    max-width: 440px !important;
+    width: 90% !important;
+}
+
+.mf-action-menu-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+}
+
+.mf-action-menu-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+    width: 100% !important;
+    padding: 12px 16px !important;
+    background: rgba(250, 249, 245, 0.04) !important;
+    border: 1px solid rgba(250, 249, 245, 0.08) !important;
+    border-radius: 12px !important;
+    color: #FAF9F5 !important;
+    cursor: pointer !important;
+    text-align: left !important;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease !important;
+    outline: none !important;
+
+    .mf-action-menu-icon {
+        font-size: 20px !important;
+        color: #A8A59C !important;
+        flex-shrink: 0 !important;
+    }
+
+    .mf-action-menu-texts {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+        flex-grow: 1 !important;
+    }
+
+    .mf-action-menu-label {
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        color: #FAF9F5 !important;
+        line-height: 1.2 !important;
+    }
+
+    .mf-action-menu-sub {
+        font-size: 12px !important;
+        color: #A8A59C !important;
+    }
+
+    &:hover,
+    &:focus,
+    &:focus-visible {
+        background: rgba(250, 249, 245, 0.12) !important;
+        border-color: #FAF9F5 !important;
+        transform: translateX(4px) !important;
+
+        .mf-action-menu-icon {
+            color: #FAF9F5 !important;
+        }
+    }
+
+    &.mf-action-menu-danger {
+        .mf-action-menu-icon {
+            color: #E50914 !important;
+        }
+        .mf-action-menu-label {
+            color: #FAF9F5 !important;
+        }
+        &:hover,
+        &:focus,
+        &:focus-visible {
+            background: rgba(229, 9, 20, 0.18) !important;
+            border-color: #E50914 !important;
+        }
+    }
 }
 
 /* Campo de entrada em modais Cinelar TV */

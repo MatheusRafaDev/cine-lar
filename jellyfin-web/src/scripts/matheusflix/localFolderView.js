@@ -6,7 +6,7 @@
 
 import { cancelDownload, fetchDownloads, fetchLocalMovies, rescanLocalMovies, deleteLocalMovie, renameLocalMovie, updateSavePath } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
-import { confirmDeleteModal, confirmDeleteFileModal, promptTextModal } from './confirmModal';
+import { confirmDeleteModal, confirmDeleteFileModal, promptTextModal, showActionMenuModal } from './confirmModal';
 import { escapeHtml, normalizeMovie, parseDuration, PLACEHOLDER_POSTER } from './utils';
 import toast from 'components/toast/toast';
 
@@ -311,11 +311,8 @@ function createMovieCard(m) {
         <div class="mf-poster-wrap">
             <img src="${escapeHtml(m.poster || PLACEHOLDER_POSTER)}" alt="Pôster de ${escapeHtml(m.title)}" loading="lazy" class="mf-poster-img" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" />
             <div class="mf-card-top-actions">
-                <button type="button" class="mf-btn-rename-local focusable" title="Alterar título ou renomear arquivo">
-                    <span class="material-icons" style="font-size: 15px;">edit</span>
-                </button>
-                <button type="button" class="mf-btn-delete-local focusable" title="Excluir arquivo do disco">
-                    <span class="material-icons" style="font-size: 15px;">delete_outline</span>
+                <button type="button" class="mf-btn-more-local focusable" title="Opções de ${escapeHtml(m.title)}" aria-label="Mais opções">
+                    <span class="material-icons" style="font-size: 18px;">more_vert</span>
                 </button>
             </div>
             <div class="mf-poster-play-hover"><span class="material-icons mf-play-icon-large">play_circle_filled</span></div>
@@ -330,55 +327,72 @@ function createMovieCard(m) {
         </div>
     `;
 
-    const btnRename = card.querySelector('.mf-btn-rename-local');
-    if (btnRename) {
-        btnRename.addEventListener('click', async (e) => {
+    const btnMore = card.querySelector('.mf-btn-more-local');
+    if (btnMore) {
+        btnMore.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const newTitle = await promptTextModal({
-                title: 'Alterar nome do filme',
-                subtitle: m.videoPath,
-                icon: 'edit',
-                label: 'Novo título para o filme:',
-                defaultValue: m.title,
-                placeholder: 'Ex: Interestelar (2014)',
-                confirmText: 'Salvar',
-                cancelText: 'Cancelar'
+            const action = await showActionMenuModal({
+                title: m.title,
+                subtitle: m.sizeFormatted ? `${m.year || ''} • ${m.sizeFormatted}` : (m.year ? String(m.year) : ''),
+                icon: 'movie',
+                items: [
+                    {
+                        id: 'rename',
+                        label: 'Alterar nome / renomear',
+                        subtitle: 'Altera o título e o arquivo de vídeo em disco',
+                        icon: 'edit'
+                    },
+                    {
+                        id: 'delete',
+                        label: 'Excluir arquivo do computador',
+                        subtitle: 'Apaga permanentemente o arquivo de vídeo do disco',
+                        icon: 'delete_outline',
+                        danger: true
+                    }
+                ]
             });
-            if (newTitle && newTitle !== m.title) {
-                btnRename.disabled = true;
-                try {
-                    const res = await renameLocalMovie(m.videoPath, newTitle);
-                    toast('Arquivo renomeado com sucesso.');
-                    m.title = newTitle;
-                    if (res?.newPath) m.videoPath = res.newPath;
-                    const titleEl = card.querySelector('.mf-movie-title');
-                    if (titleEl) titleEl.textContent = newTitle;
-                    card.title = `Assistir ${newTitle}`;
-                } catch (err) {
-                    toast(`Erro ao renomear: ${err.message}`);
-                } finally {
-                    btnRename.disabled = false;
-                }
-            }
-        });
-    }
 
-    const btnDel = card.querySelector('.mf-btn-delete-local');
-    if (btnDel) {
-        btnDel.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const confirmed = await confirmDeleteFileModal({ title: m.title });
-            if (confirmed) {
-                btnDel.disabled = true;
-                try {
-                    await deleteLocalMovie(m.videoPath);
-                    toast(`"${m.title}" excluído do disco.`);
-                    card.style.opacity = '0';
-                    card.style.transform = 'scale(0.85)';
-                    setTimeout(() => card.remove(), 250);
-                } catch (err) {
-                    btnDel.disabled = false;
-                    toast(`Erro ao excluir: ${err.message}`);
+            if (action === 'rename') {
+                const newTitle = await promptTextModal({
+                    title: 'Alterar nome do filme',
+                    subtitle: m.videoPath,
+                    icon: 'edit',
+                    label: 'Novo título para o filme:',
+                    defaultValue: m.title,
+                    placeholder: 'Ex: Interestelar (2014)',
+                    confirmText: 'Salvar',
+                    cancelText: 'Cancelar'
+                });
+                if (newTitle && newTitle !== m.title) {
+                    btnMore.disabled = true;
+                    try {
+                        const res = await renameLocalMovie(m.videoPath, newTitle);
+                        toast('Arquivo renomeado com sucesso.');
+                        m.title = newTitle;
+                        if (res?.newPath) m.videoPath = res.newPath;
+                        const titleEl = card.querySelector('.mf-movie-title');
+                        if (titleEl) titleEl.textContent = newTitle;
+                        card.title = `Assistir ${newTitle}`;
+                    } catch (err) {
+                        toast(`Erro ao renomear: ${err.message}`);
+                    } finally {
+                        btnMore.disabled = false;
+                    }
+                }
+            } else if (action === 'delete') {
+                const confirmed = await confirmDeleteFileModal({ title: m.title });
+                if (confirmed) {
+                    btnMore.disabled = true;
+                    try {
+                        await deleteLocalMovie(m.videoPath);
+                        toast(`"${m.title}" excluído do disco.`);
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.85)';
+                        setTimeout(() => card.remove(), 250);
+                    } catch (err) {
+                        btnMore.disabled = false;
+                        toast(`Erro ao excluir: ${err.message}`);
+                    }
                 }
             }
         });
