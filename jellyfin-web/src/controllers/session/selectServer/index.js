@@ -20,6 +20,7 @@ import Dashboard from '../../../utils/dashboard';
 import alert from '../../../components/alert';
 import { getDefaultBackgroundClass } from '../../../components/cardbuilder/cardBuilderUtils';
 import { ConnectionState, ServerConnections } from 'lib/jellyfin-apiclient';
+import { startQuickConnect } from '../../../scripts/matheusflix/quickConnectManager';
 
 const enableFocusTransform = !browser.slow && !browser.edge;
 
@@ -193,6 +194,22 @@ export default function (view, params) {
             loadServers();
         }
     });
+    view.querySelector('.btnQuickConnectServer')?.addEventListener('click', function () {
+        const target = (servers && servers.length > 0) ? servers[0] : null;
+        if (target) {
+            loading.show();
+            ServerConnections.connectToServer(target).then(function (result) {
+                loading.hide();
+                startQuickConnect(result.ApiClient || ServerConnections.currentApiClient(), 'home');
+            }).catch(function () {
+                loading.hide();
+                startQuickConnect(ServerConnections.currentApiClient(), 'home');
+            });
+        } else {
+            startQuickConnect(ServerConnections.currentApiClient(), 'home');
+        }
+    });
+
     view.querySelector('.servers').addEventListener('click', function (e) {
         const card = dom.parentWithClass(e.target, 'card');
 

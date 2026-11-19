@@ -8,8 +8,12 @@
                 <div is="emby-itemscontainer" class="scrollSlider focuscontainer-x servers flex-grow" style="display: block; text-align: center;" data-hovermenu="false" data-multiselect="false"></div>
             </div>
         </div>
-        <div class="padded-top padded-left padded-right flex flex-shrink-zero justify-content-center verticalSection flex-wrap-wrap margin-auto-x">
-            <a is="emby-linkbutton" href="#/addserver" class="raised cancel btnAddServer flex-shrink-zero" style="margin: .25em;">
+        <div class="padded-top padded-left padded-right flex flex-shrink-zero justify-content-center verticalSection flex-wrap-wrap margin-auto-x" style="gap: 0.5em;">
+            <button is="emby-button" type="button" class="raised btnQuickConnectServer flex-shrink-zero" style="margin: .25em; background: linear-gradient(135deg, #FF3847 0%, #E50914 50%, #B20710 100%); color: #FAF9F5; font-weight: 700; border-radius: 10px; padding: 0.8em 1.5em; box-shadow: 0 4px 14px rgba(229, 9, 20, 0.4);">
+                <span class="material-icons" aria-hidden="true" style="margin-right: .4em; font-size: 1.2em; vertical-align: middle;">phonelink</span>
+                <span>Conexão Rápida (TV)</span>
+            </button>
+            <a is="emby-linkbutton" href="#/addserver" class="raised cancel btnAddServer flex-shrink-zero" style="margin: .25em; border-radius: 10px; padding: 0.8em 1.5em;">
                 <span>${ButtonAddServer}</span>
             </a>
         </div>

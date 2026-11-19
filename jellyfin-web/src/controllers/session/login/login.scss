@@ -3,12 +3,29 @@
     margin-top: 2em;
 }
 
-/* MatheusFlix: Ocultar completamente o formulário de login para entrada direta */
+/* MatheusFlix: Estilos de login e Quick Connect */
 #loginPage {
-    .manualLoginForm,
-    .visualLoginForm,
-    .readOnlyContent {
-        display: none !important;
+    .btnQuick {
+        background: linear-gradient(135deg, #FF3847 0%, #E50914 50%, #B20710 100%) !important;
+        color: #FAF9F5 !important;
+        font-weight: 700 !important;
+        border-radius: 12px !important;
+        padding: 0.9em 1.5em !important;
+        margin-bottom: 1em !important;
+        border: none !important;
+        box-shadow: 0 4px 16px rgba(229, 9, 20, 0.4) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+
+        &:focus, &:hover {
+            transform: scale(1.03) !important;
+            box-shadow: 0 6px 24px rgba(229, 9, 20, 0.6) !important;
+            outline: 3px solid #FAF9F5 !important;
+        }
+    }
+
+    .btnManual, .btnSelectServer {
+        border-radius: 10px !important;
+        font-weight: 600 !important;
     }
 }
 

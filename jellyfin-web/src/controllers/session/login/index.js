@@ -17,6 +17,7 @@ import toast from '../../../components/toast/toast';
 import dialogHelper from '../../../components/dialogHelper/dialogHelper';
 import baseAlert from '../../../components/alert';
 import { getDefaultBackgroundClass } from '../../../components/cardbuilder/cardBuilderUtils';
+import { startQuickConnect } from '../../../scripts/matheusflix/quickConnectManager';
 
 import './login.scss';
 
@@ -45,11 +46,17 @@ function authenticateUserByName(page, apiClient, url, username, password) {
             }
             loading.hide();
             if (page) {
+                page.querySelector('.readOnlyContent')?.classList.remove('hide');
+                page.querySelector('.btnQuick')?.classList.remove('hide');
                 const manualName = page.querySelector('#txtManualName');
                 if (manualName) {
                     manualName.value = username || 'rafael';
                 }
                 showManualForm(page, false, true);
+
+                if (layoutManager.tv) {
+                    startQuickConnect(apiClient, url);
+                }
             }
         };
         tryNext();
@@ -57,67 +64,7 @@ function authenticateUserByName(page, apiClient, url, username, password) {
 }
 
 function authenticateQuickConnect(apiClient, targetUrl) {
-    const url = apiClient.getUrl('/QuickConnect/Initiate');
-    apiClient.ajax({ type: 'POST', url }, true).then(res => res.json()).then(function (json) {
-        if (!json.Secret || !json.Code) {
-            console.error('Malformed quick connect response', json);
-            return false;
-        }
-
-        baseAlert({
-            dialogOptions: {
-                id: 'quickConnectAlert'
-            },
-            title: globalize.translate('QuickConnect'),
-            text: globalize.translate('QuickConnectAuthorizeCode', json.Code)
-        });
-
-        const connectUrl = apiClient.getUrl('/QuickConnect/Connect?Secret=' + json.Secret);
-
-        const interval = setInterval(function() {
-            apiClient.getJSON(connectUrl).then(async function(data) {
-                if (!data.Authenticated) {
-                    return;
-                }
-
-                clearInterval(interval);
-
-                // Close the QuickConnect dialog
-                const dlg = document.getElementById('quickConnectAlert');
-                if (dlg) {
-                    dialogHelper.close(dlg);
-                }
-
-                const result = await apiClient.quickConnect(data.Secret);
-                onLoginSuccessful(result.User.Id, result.AccessToken, apiClient, targetUrl);
-            }, function (e) {
-                clearInterval(interval);
-
-                // Close the QuickConnect dialog
-                const dlg = document.getElementById('quickConnectAlert');
-                if (dlg) {
-                    dialogHelper.close(dlg);
-                }
-
-                Dashboard.alert({
-                    message: globalize.translate('QuickConnectDeactivated'),
-                    title: globalize.translate('HeaderError')
-                });
-
-                console.error('Unable to login with quick connect', e);
-            });
-        }, 5000, connectUrl);
-
-        return true;
-    }, function(e) {
-        Dashboard.alert({
-            message: globalize.translate('QuickConnectNotActive'),
-            title: globalize.translate('HeaderError')
-        });
-
-        console.error('Quick connect error: ', e);
-        return false;
-    });
+    return startQuickConnect(apiClient, targetUrl);
 }
 
 function onLoginSuccessful(id, accessToken, apiClient, url) {
@@ -274,13 +221,22 @@ export default function (view, params) {
 
         const apiClient = getApiClient();
 
-        // MatheusFlix: Auto-login sempre ativo
+        if (params && (params.quickconnect === '1' || params.quickconnect === 'true')) {
+            loading.hide();
+            view.querySelector('.visualLoginForm')?.classList.add('hide');
+            view.querySelector('.manualLoginForm')?.classList.add('hide');
+            view.querySelector('.readOnlyContent')?.classList.remove('hide');
+            view.querySelector('.btnQuick')?.classList.remove('hide');
+            startQuickConnect(apiClient, getTargetUrl());
+            return;
+        }
+
         view.querySelector('.visualLoginForm')?.classList.add('hide');
         view.querySelector('.manualLoginForm')?.classList.add('hide');
-        view.querySelector('.readOnlyContent')?.classList.add('hide');
+        view.querySelector('.readOnlyContent')?.classList.remove('hide');
+        view.querySelector('.btnQuick')?.classList.remove('hide');
 
         authenticateUserByName(view, apiClient, getTargetUrl(), 'rafael', '10092004');
-        return;
 
         apiClient.getQuickConnect('Enabled')
             .then(enabled => {

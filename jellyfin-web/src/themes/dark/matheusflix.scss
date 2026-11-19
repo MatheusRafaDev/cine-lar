@@ -1343,6 +1343,218 @@ button.mf-btn-hero-watch.mf-btn-play-local,
     color: #FAF9F5 !important;
 }
 
+/* ==========================================================================
+   MATHEUSFLIX QUICK CONNECT PARA SMART TV
+   ========================================================================== */
+
+.mf-quickconnect-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 100000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(5, 6, 8, 0.9) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    animation: mfFadeIn 0.25s ease-out !important;
+}
+
+.mf-qc-card {
+    background: linear-gradient(160deg, #18191E 0%, #101114 100%) !important;
+    border: 1px solid rgba(255, 56, 71, 0.35) !important;
+    border-radius: 20px !important;
+    padding: 2.2rem 2.8rem !important;
+    max-width: 600px !important;
+    width: 90% !important;
+    text-align: center !important;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85), 0 0 40px rgba(229, 9, 20, 0.15) !important;
+}
+
+.mf-qc-header {
+    margin-bottom: 1.5rem !important;
+
+    .mf-qc-logo {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-bottom: 0.8rem !important;
+
+        .mf-qc-logo-mark {
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 6px !important;
+            background: linear-gradient(135deg, #FF3847 0%, #B20710 100%) !important;
+            color: #FAF9F5 !important;
+            font-weight: 900 !important;
+            font-size: 16px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 2px 8px rgba(229, 9, 20, 0.4) !important;
+        }
+
+        .mf-qc-logo-title {
+            font-family: var(--font-display) !important;
+            font-weight: 900 !important;
+            font-size: 16px !important;
+            letter-spacing: 0.1em !important;
+            color: #FAF9F5 !important;
+
+            span {
+                color: #FF3847 !important;
+            }
+        }
+    }
+
+    .mf-qc-title {
+        font-family: var(--font-display) !important;
+        font-size: 24px !important;
+        font-weight: 700 !important;
+        color: #FAF9F5 !important;
+        margin: 0 0 0.4rem 0 !important;
+        letter-spacing: -0.02em !important;
+    }
+
+    .mf-qc-subtitle {
+        color: #A0A0A5 !important;
+        font-size: 14px !important;
+        margin: 0 !important;
+        line-height: 1.4 !important;
+    }
+}
+
+.mf-qc-steps {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.25rem !important;
+    margin: 1.75rem 0 !important;
+    text-align: left !important;
+}
+
+.mf-qc-step {
+    display: flex !important;
+    gap: 1rem !important;
+    align-items: flex-start !important;
+
+    .mf-qc-step-num {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, #FF3847 0%, #E50914 100%) !important;
+        color: #FAF9F5 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-weight: 800 !important;
+        font-size: 15px !important;
+        box-shadow: 0 4px 12px rgba(229, 9, 20, 0.4) !important;
+    }
+
+    .mf-qc-step-content {
+        flex: 1 !important;
+
+        .mf-qc-step-label {
+            font-size: 13.5px !important;
+            color: #D0D0D5 !important;
+            margin-bottom: 0.4rem !important;
+            font-weight: 500 !important;
+        }
+
+        .mf-qc-url-box {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 8px !important;
+            padding: 0.65rem 1rem !important;
+            font-family: monospace !important;
+            font-size: 15px !important;
+            color: #FF4D5A !important;
+            font-weight: 700 !important;
+            word-break: break-all !important;
+        }
+
+        .mf-qc-code-container {
+            display: flex !important;
+            gap: 0.5rem !important;
+            margin-top: 0.4rem !important;
+
+            .mf-qc-digit {
+                flex: 1 !important;
+                height: 58px !important;
+                max-width: 52px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background: #0A0B0E !important;
+                border: 2px solid #FF3847 !important;
+                border-radius: 10px !important;
+                font-family: monospace !important;
+                font-size: 28px !important;
+                font-weight: 900 !important;
+                color: #FAF9F5 !important;
+                box-shadow: 0 4px 14px rgba(229, 9, 20, 0.3) !important;
+            }
+        }
+    }
+}
+
+.mf-qc-footer {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    margin-top: 1rem !important;
+
+    .mf-qc-status {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.5rem !important;
+        color: #A0A0A5 !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+
+        .mf-qc-spinner {
+            width: 14px !important;
+            height: 14px !important;
+            border: 2px solid rgba(255, 56, 71, 0.2) !important;
+            border-top-color: #FF3847 !important;
+            border-radius: 50% !important;
+            animation: mfSpin 0.8s linear infinite !important;
+        }
+    }
+
+    .mf-qc-cancel-btn {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        border-radius: 10px !important;
+        color: #FAF9F5 !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        padding: 0.65rem 2.2rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        outline: none !important;
+
+        &:hover, &:focus {
+            background: rgba(255, 56, 71, 0.2) !important;
+            border-color: #FF3847 !important;
+            transform: scale(1.04) !important;
+            box-shadow: 0 0 0 3px rgba(255, 56, 71, 0.4) !important;
+        }
+    }
+}
+
+@keyframes mfSpin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes mfFadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
 
 
 
