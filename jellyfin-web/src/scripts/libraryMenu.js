@@ -215,7 +215,10 @@ function updateUserInHeader(user) {
 
 function updateHeaderActiveNavigation() {
     const hash = window.location.hash || '';
-    const isProfilePage = hash.includes('mypreferencesmenu') || hash.includes('/settings') || hash.includes('/user');
+    const isProfilePage = hash.includes('mypreferencesmenu') ||
+                          hash.includes('/settings') ||
+                          hash.includes('/user') ||
+                          Boolean(document.querySelector('#myPreferencesMenuPage, .userPreferencesPage'));
     if (headerUserButton) {
         if (isProfilePage) {
             headerUserButton.classList.add('headerUserButtonActive');

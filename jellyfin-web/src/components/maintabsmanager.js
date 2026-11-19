@@ -90,7 +90,11 @@ export function renderMatheusFlixDefaultTabs(activeIdx = null) {
     document.body.classList.add('withSectionTabs');
 
     const currentHash = window.location.hash || '';
-    const isProfile = currentHash.includes('mypreferencesmenu') || currentHash.includes('/settings') || currentHash.includes('/user');
+    const isProfile = currentHash.includes('mypreferencesmenu') ||
+                      currentHash.includes('/settings') ||
+                      currentHash.includes('/user') ||
+                      Boolean(document.querySelector('#myPreferencesMenuPage, .userPreferencesPage'));
+
     if (isProfile) {
         activeIdx = null;
     } else if (activeIdx == null) {
@@ -122,6 +126,18 @@ export function renderMatheusFlixDefaultTabs(activeIdx = null) {
         headerTabsContainer.querySelectorAll('.emby-tab-button').forEach(btn => {
             btn.classList.remove('emby-tab-button-active');
         });
+        if (tabsElem) {
+            tabsElem.selectedTabIndex = -1;
+        }
+    }
+
+    const userBtn = document.querySelector('.headerUserButton');
+    if (userBtn) {
+        if (isProfile) {
+            userBtn.classList.add('headerUserButtonActive');
+        } else {
+            userBtn.classList.remove('headerUserButtonActive');
+        }
     }
 
     headerTabsContainer.querySelectorAll('.emby-tab-button').forEach(btn => {

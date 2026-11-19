@@ -76,12 +76,22 @@ const UserSettingsPage: FC = () => {
             userBtn.classList.add('headerUserButtonActive');
         }
         const deactiveTabs = () => {
-            document.querySelectorAll('.skinHeader .emby-tab-button').forEach(t => t.classList.remove('emby-tab-button-active'));
+            document.querySelectorAll('.skinHeader .emby-tab-button').forEach(t => {
+                t.classList.remove('emby-tab-button-active');
+            });
+            const backBtn = document.querySelector('.headerBackButton');
+            if (backBtn) {
+                backBtn.classList.remove('hide');
+            }
         };
         deactiveTabs();
-        const timer = setTimeout(deactiveTabs, 150);
+        const timer1 = setTimeout(deactiveTabs, 50);
+        const timer2 = setTimeout(deactiveTabs, 200);
+        const timer3 = setTimeout(deactiveTabs, 600);
         return () => {
-            clearTimeout(timer);
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+            clearTimeout(timer3);
             if (userBtn) {
                 userBtn.classList.remove('headerUserButtonActive');
             }
@@ -232,15 +242,18 @@ const UserSettingsPage: FC = () => {
                     </div>
                 )}
 
-                {/* Card do Perfil Atual Padrão Netflix */}
+                {/* Card do Perfil Atual Estilo Cinelar */}
                 <div className='mf-settings-card mf-profile-card'>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 18, flex: 1, minWidth: 260 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1, minWidth: 260 }}>
                         <div className='mf-profile-avatar'>
                             {(user.Name || 'U').charAt(0).toUpperCase()}
                         </div>
                         <div style={{ flex: 1 }}>
+                            <div className='mf-profile-subtext' style={{ marginBottom: 4, color: '#A8A59C', fontSize: 16, fontWeight: 500 }}>
+                                Perfil ativo
+                            </div>
                             {isEditingName ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
                                     <input
                                         type='text'
                                         className='mf-settings-input focusable'
@@ -253,7 +266,7 @@ const UserSettingsPage: FC = () => {
                                         autoFocus
                                         maxLength={32}
                                         placeholder='Nome do perfil...'
-                                        style={{ maxWidth: 220 }}
+                                        style={{ maxWidth: 260 }}
                                     />
                                     <button
                                         type='button'
@@ -272,8 +285,8 @@ const UserSettingsPage: FC = () => {
                                     </button>
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                                    <h2 className='mf-profile-name'>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                                    <h2 className='mf-profile-name' style={{ fontFamily: 'Newsreader, Georgia, serif', fontSize: 44, fontWeight: 500 }}>
                                         {user.Name}
                                     </h2>
                                     {user.Policy?.IsAdministrator && (
@@ -283,9 +296,6 @@ const UserSettingsPage: FC = () => {
                                     )}
                                 </div>
                             )}
-                            <p className='mf-profile-subtext'>
-                                Perfil local
-                            </p>
                         </div>
                     </div>
 

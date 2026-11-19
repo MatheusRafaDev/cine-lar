@@ -337,10 +337,19 @@ button[aria-label*="Menu"],
 
 /* Quando estiver na tela de Perfil / Configurações, desativar destaque de qualquer aba */
 body:has(#myPreferencesMenuPage) .headerTabs .emby-tab-button,
-body:has(.userPreferencesPage) .headerTabs .emby-tab-button {
+body:has(.userPreferencesPage) .headerTabs .emby-tab-button,
+body:has([id*="mypreferencesmenu"]) .headerTabs .emby-tab-button,
+body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
     background: transparent !important;
     color: #A8A59C !important;
     font-weight: 500 !important;
+    box-shadow: none !important;
+    outline: none !important;
+
+    &::after {
+        display: none !important;
+        content: none !important;
+    }
 }
 
 .headerRight {
