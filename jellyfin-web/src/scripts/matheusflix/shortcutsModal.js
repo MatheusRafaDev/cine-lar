@@ -75,7 +75,11 @@ export function openShortcutsModal() {
     }, 50);
 
     const onKey = (e) => {
-        if (['Escape', 'Backspace'].includes(e.key)) {
+        const keyCode = e.keyCode || e.which || 0;
+        const key = e.key || '';
+        const isBack = ['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(key) || keyCode === 10009 || keyCode === 461 || keyCode === 27;
+
+        if (isBack) {
             e.preventDefault();
             closeShortcutsModal();
         }

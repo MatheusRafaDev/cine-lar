@@ -110,8 +110,11 @@ export function handleCommand(commandName, options) {
             appRouter.showSettings();
         },
         'back': () => {
-            // Se houver player de cinema ou diálogo de confirmação ativo, não interfere
-            if (document.querySelector('.mf-cinema-player') || document.querySelector('.mf-confirm-backdrop')) {
+            // Se houver player de cinema, modal stremio, atalhos ou diálogo de confirmação ativo, não interfere
+            if (document.querySelector('.mf-cinema-player') ||
+                document.querySelector('.mf-confirm-backdrop') ||
+                document.querySelector('.mf-stremio-modal') ||
+                document.querySelector('.mf-shortcuts-backdrop')) {
                 return;
             }
 

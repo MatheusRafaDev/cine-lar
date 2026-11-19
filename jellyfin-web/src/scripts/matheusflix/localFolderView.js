@@ -411,6 +411,10 @@ function createMovieCard(m) {
         });
     });
 
+    card.addEventListener('focus', () => {
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
     return card;
 }
 

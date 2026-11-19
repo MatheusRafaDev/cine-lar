@@ -190,7 +190,11 @@ export async function openStremioDetails(rawMovie) {
         btn.addEventListener('click', () => closeDetails(true));
     });
     activeKeyHandler = (e) => {
-        if (['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(e.key) && !document.querySelector('.mf-cinema-player') && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+        const keyCode = e.keyCode || e.which || 0;
+        const key = e.key || '';
+        const isBack = ['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(key) || keyCode === 10009 || keyCode === 461 || keyCode === 27;
+
+        if (isBack && !document.querySelector('.mf-cinema-player') && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
             closeDetails(true);
             return;
         }

@@ -165,7 +165,40 @@ export function isInteractiveElement(element) {
     return false;
 }
 
+function registerSamsungKeys() {
+    if (typeof window === 'undefined') return;
+    try {
+        const tvinput = window.tizen?.tvinputdevice || window.webapis?.tvinputdevice;
+        if (!tvinput || typeof tvinput.registerKey !== 'function') return;
+
+        const keysToRegister = [
+            'MediaPlay',
+            'MediaPause',
+            'MediaPlayPause',
+            'MediaStop',
+            'MediaFastForward',
+            'MediaRewind',
+            'MediaTrackPrevious',
+            'MediaTrackNext',
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+            'ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue'
+        ];
+
+        keysToRegister.forEach((keyName) => {
+            try {
+                tvinput.registerKey(keyName);
+            } catch {
+                // Algumas teclas podem não ser suportadas em modelos antigos, ignorar
+            }
+        });
+        console.info('[SamsungTizen] Chaves do controle remoto registradas com sucesso.');
+    } catch (e) {
+        console.warn('[SamsungTizen] Falha ao registrar chaves do controle Samsung:', e);
+    }
+}
+
 export function enable() {
+    registerSamsungKeys();
     const hasMediaSession = 'mediaSession' in navigator;
     window.addEventListener('keydown', function (e) {
         if (e.defaultPrevented) return;

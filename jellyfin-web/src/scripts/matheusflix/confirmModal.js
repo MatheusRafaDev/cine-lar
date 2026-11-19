@@ -76,13 +76,17 @@ export function showConfirmModal({
         };
 
         const handleKey = (e) => {
-            if (e.key === 'Escape' || e.key === 'Backspace') {
+            const keyCode = e.keyCode || e.which || 0;
+            const key = e.key || '';
+            const isBack = ['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(key) || keyCode === 10009 || keyCode === 461 || keyCode === 27;
+
+            if (isBack) {
                 e.stopPropagation();
                 cleanup(false);
-            } else if (e.key === 'ArrowLeft') {
+            } else if (key === 'ArrowLeft') {
                 e.stopPropagation();
                 backdrop.querySelector('.mf-confirm-btn-cancel')?.focus();
-            } else if (e.key === 'ArrowRight') {
+            } else if (key === 'ArrowRight') {
                 e.stopPropagation();
                 backdrop.querySelector('.mf-confirm-btn-action')?.focus();
             }
@@ -293,10 +297,14 @@ export function promptTextModal({
         };
 
         const handleKey = (e) => {
-            if (e.key === 'Escape') {
+            const keyCode = e.keyCode || e.which || 0;
+            const key = e.key || '';
+            const isBack = ['Escape', 'BrowserBack', 'Back'].includes(key) || keyCode === 10009 || keyCode === 461 || keyCode === 27;
+
+            if (isBack) {
                 e.preventDefault();
                 cleanup(null);
-            } else if (e.key === 'Enter') {
+            } else if (key === 'Enter') {
                 e.preventDefault();
                 const val = input.value.trim();
                 cleanup(val || defaultValue);
@@ -401,15 +409,19 @@ export function showActionMenuModal({
         let focusedIdx = 0;
 
         const handleKey = (e) => {
-            if (e.key === 'Escape' || e.key === 'Backspace') {
+            const keyCode = e.keyCode || e.which || 0;
+            const key = e.key || '';
+            const isBack = ['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(key) || keyCode === 10009 || keyCode === 461 || keyCode === 27;
+
+            if (isBack) {
                 e.stopPropagation();
                 cleanup(null);
-            } else if (e.key === 'ArrowDown') {
+            } else if (key === 'ArrowDown') {
                 e.stopPropagation();
                 e.preventDefault();
                 focusedIdx = (focusedIdx + 1) % menuButtons.length;
                 menuButtons[focusedIdx]?.focus();
-            } else if (e.key === 'ArrowUp') {
+            } else if (key === 'ArrowUp') {
                 e.stopPropagation();
                 e.preventDefault();
                 focusedIdx = (focusedIdx - 1 + menuButtons.length) % menuButtons.length;

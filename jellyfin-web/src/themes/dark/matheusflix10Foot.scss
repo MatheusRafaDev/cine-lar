@@ -1,14 +1,15 @@
 /* ==========================================================================
    MatheusFlix - Estilos de Layout e Legibilidade 10-Foot (TV)
-   Projetado para telas grandes, navegacao por controle remoto e safe area
+   Projetado para telas grandes, TVs Samsung (Tizen OS 3.0+),
+   navegacao por controle remoto e otimizacao extrema de performance GPU.
    ========================================================================== */
 
-/* 1. Safe Area / Overscan e Ocultacao de Barras de Rolagem */
+/* 1. Safe Area, Overscan e Ocultacao de Barras de Rolagem */
 html.layout-tv,
 .layout-tv {
-    --tv-safe-x: 4vw;
-    --tv-safe-y: 4vh;
-    --tv-base-font: 20px;
+    --tv-safe-x: 3.5vw;
+    --tv-safe-y: 3.5vh;
+    --tv-base-font: 18px;
 
     font-size: var(--tv-base-font) !important;
     scrollbar-width: none !important;
@@ -26,37 +27,94 @@ html.layout-tv,
     }
 }
 
-/* Escala para televisores 4K */
+/* Escala adaptativa para televisores 4K UHD (2160p) */
 @media (min-width: 2500px) {
     html.layout-tv,
     .layout-tv {
         --tv-base-font: 24px;
-        --tv-safe-x: 5vw;
-        --tv-safe-y: 5vh;
+        --tv-safe-x: 4.5vw;
+        --tv-safe-y: 4.5vh;
     }
 }
 
-/* 2. Margens Seguras (Safe Area 4%) nas Telas Principais */
+/* 2. Otimizacao Extrema de GPU para Smart TVs Samsung (Tizen)
+   Desativa backdrop-filter caro em SOCs de TV para manter 60 FPS estavel */
+.layout-tv {
+    .skinHeader,
+    .skinHeader.semiTransparent,
+    .skinHeader-withBackground,
+    .mainDrawer,
+    .dialog,
+    .mf-confirm-backdrop,
+    .mf-confirm-modal,
+    .mf-stremio-modal,
+    .mf-trailer-modal,
+    .mf-shortcuts-backdrop,
+    .mf-shortcuts-card,
+    .mf-action-menu-modal,
+    .mf-local-preview-modal,
+    .formDialogHeader,
+    .formDialogFooter {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    .skinHeader,
+    .skinHeader.semiTransparent,
+    .skinHeader-withBackground {
+        background: rgba(20, 20, 19, 0.98) !important;
+        border-bottom: 1px solid rgba(250, 249, 245, 0.1) !important;
+    }
+
+    .mainDrawer {
+        background: #141413 !important;
+        border-right: 1px solid rgba(250, 249, 245, 0.1) !important;
+    }
+
+    .mf-confirm-backdrop,
+    .mf-shortcuts-backdrop {
+        background: rgba(10, 10, 9, 0.9) !important;
+    }
+
+    .mf-confirm-modal,
+    .mf-shortcuts-card,
+    .mf-action-menu-modal {
+        background: #1E1D1B !important;
+        border: 1px solid rgba(250, 249, 245, 0.14) !important;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9) !important;
+    }
+}
+
+/* 3. Safe Area nas Telas Principais e Cabecalho */
 .layout-tv .mainAnimatedPage {
-    padding-left: var(--tv-safe-x, 4vw) !important;
-    padding-right: var(--tv-safe-x, 4vw) !important;
-    padding-bottom: max(var(--tv-safe-y, 4vh), 40px) !important;
+    padding-left: var(--tv-safe-x, 3.5vw) !important;
+    padding-right: var(--tv-safe-x, 3.5vw) !important;
+    padding-top: max(var(--tv-safe-y, 3.5vh), 16px) !important;
+    padding-bottom: max(var(--tv-safe-y, 3.5vh), 48px) !important;
+    box-sizing: border-box !important;
+}
+
+.layout-tv .skinHeader:not(.osdHeader) {
+    padding-left: var(--tv-safe-x, 3.5vw) !important;
+    padding-right: var(--tv-safe-x, 3.5vw) !important;
+    height: 72px !important;
     box-sizing: border-box !important;
 }
 
 .layout-tv .mf-home-sections-wrap {
-    padding-bottom: calc(var(--tv-safe-y, 4vh) + 40px);
+    padding-bottom: calc(var(--tv-safe-y, 3.5vh) + 32px);
 }
 
-/* 3. Hero do Streaming em Escala TV */
+/* 4. Hero do Streaming em Escala TV 10-Foot */
 .layout-tv .mf-home-hero {
-    margin-left: calc(-1 * var(--tv-safe-x, 4vw)) !important;
-    margin-right: calc(-1 * var(--tv-safe-x, 4vw)) !important;
-    padding-left: var(--tv-safe-x, 4vw) !important;
-    padding-right: var(--tv-safe-x, 4vw) !important;
-    min-height: 60vh !important;
+    margin-left: calc(-1 * var(--tv-safe-x, 3.5vw)) !important;
+    margin-right: calc(-1 * var(--tv-safe-x, 3.5vw)) !important;
+    padding-left: var(--tv-safe-x, 3.5vw) !important;
+    padding-right: var(--tv-safe-x, 3.5vw) !important;
+    min-height: 58vh !important;
 
     .mf-hero-title {
+        font-family: var(--font-display, 'Outfit', 'Inter', sans-serif) !important;
         font-size: 2.8rem !important;
         font-weight: 800 !important;
         line-height: 1.15 !important;
@@ -68,7 +126,7 @@ html.layout-tv,
     .mf-hero-desc {
         font-size: 1.15rem !important;
         line-height: 1.55 !important;
-        max-width: 680px !important;
+        max-width: 720px !important;
         color: #e2e8f0 !important;
         margin-bottom: 24px !important;
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9) !important;
@@ -78,7 +136,8 @@ html.layout-tv,
         height: 52px !important;
         padding: 0 32px !important;
         font-size: 1.15rem !important;
-        border-radius: 8px !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
         gap: 10px !important;
     }
 
@@ -93,22 +152,32 @@ html.layout-tv,
     }
 }
 
-/* 4. Escala e Proporcao dos Cards na TV */
+/* 5. Escala e Proporcao dos Cards na TV */
 .layout-tv .mf-home-section {
-    margin-bottom: 32px !important;
+    margin-bottom: 36px !important;
 
     .sectionTitle {
-        font-size: 1.55rem !important;
+        font-family: var(--font-display, 'Outfit', 'Inter', sans-serif) !important;
+        font-size: 1.6rem !important;
         font-weight: 700 !important;
         letter-spacing: -0.01em !important;
         margin-bottom: 14px !important;
     }
 }
 
+.layout-tv .mf-home-scroller {
+    padding-top: 10px !important;
+    padding-bottom: 22px !important;
+    padding-left: var(--tv-safe-x, 3.5vw) !important;
+    padding-right: var(--tv-safe-x, 3.5vw) !important;
+}
+
 .layout-tv .mf-home-card {
-    width: 210px !important;
-    min-width: 210px !important;
-    border-radius: 8px !important;
+    width: 215px !important;
+    min-width: 215px !important;
+    border-radius: 10px !important;
+    transform: translateZ(0);
+    will-change: transform;
 
     .mf-home-card-title {
         font-size: 1.05rem !important;
@@ -137,7 +206,7 @@ html.layout-tv,
     }
 }
 
-/* 5. Alvos de Toque e Navegacao Minimos (48px) */
+/* 6. Alvos de Controle Remoto Minimos (44px-48px) */
 .layout-tv button,
 .layout-tv a,
 .layout-tv .focusable,
@@ -154,24 +223,121 @@ html.layout-tv,
     border-radius: 9999px !important;
 }
 
-/* 6. Foco com Destaque e Aceleracao por Hardware */
+/* 7. Destaque de Foco Nítido para Controle Remoto Samsung (D-Pad) */
 .layout-tv .focusable:focus,
-.layout-tv .focusable:focus-visible {
-    outline: 3px solid #ffffff !important;
-    outline-offset: 2px !important;
-    transform: scale(1.08) !important;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9) !important;
-    z-index: 100 !important;
-    will-change: transform, box-shadow;
+.layout-tv .focusable:focus-visible,
+.layout-tv button:focus,
+.layout-tv a:focus {
+    outline: 3px solid #FAF9F5 !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9) !important;
+    z-index: 40 !important;
 }
 
-/* 7. Otimizacoes para Hardware Fraco e Reducao de Movimento */
+.layout-tv .mf-home-card:focus,
+.layout-tv .mf-movie-card:focus,
+.layout-tv .mf-local-card:focus {
+    outline: 3px solid #FAF9F5 !important;
+    outline-offset: 3px !important;
+    transform: scale(1.05) translateZ(0) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.95) !important;
+    z-index: 50 !important;
+    will-change: transform;
+}
+
+/* 8. Modal de Detalhes Stremio / Filme no Modo TV */
+.layout-tv .mf-stremio-modal {
+    padding: var(--tv-safe-y, 3.5vh) var(--tv-safe-x, 3.5vw) !important;
+    box-sizing: border-box !important;
+
+    .mf-stremio-title {
+        font-family: var(--font-display, 'Outfit', 'Inter', sans-serif) !important;
+        font-size: 2.6rem !important;
+        font-weight: 800 !important;
+        line-height: 1.15 !important;
+    }
+
+    .mf-stremio-synopsis {
+        font-size: 1.15rem !important;
+        line-height: 1.6 !important;
+        max-width: 760px !important;
+    }
+
+    .mf-btn-hero-watch {
+        height: 52px !important;
+        padding: 0 32px !important;
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+    }
+
+    .mf-stream-item {
+        min-height: 60px !important;
+        padding: 12px 18px !important;
+        font-size: 1.05rem !important;
+        border-radius: 8px !important;
+    }
+}
+
+/* 9. Player de Cinema na TV */
+.layout-tv .mf-cinema-player {
+    .mf-player-topbar {
+        padding: var(--tv-safe-y, 3.5vh) var(--tv-safe-x, 3.5vw) 16px var(--tv-safe-x, 3.5vw) !important;
+    }
+
+    .mf-player-bottom-bar {
+        padding: 16px var(--tv-safe-x, 3.5vw) var(--tv-safe-y, 3.5vh) var(--tv-safe-x, 3.5vw) !important;
+    }
+
+    .mf-ctrl-btn {
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 8px !important;
+
+        .material-icons {
+            font-size: 28px !important;
+        }
+    }
+
+    .mf-player-title {
+        font-size: 1.6rem !important;
+        font-weight: 700 !important;
+    }
+
+    .mf-player-sub {
+        font-size: 1rem !important;
+    }
+}
+
+/* 10. Grade de Filmes Locais e Downloads no Modo TV */
+.layout-tv .mf-local-grid,
+.layout-tv .mf-downloads-grid {
+    grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)) !important;
+    gap: 20px !important;
+}
+
+.layout-tv .mf-local-card {
+    border-radius: 10px !important;
+    transform: translateZ(0);
+    will-change: transform;
+
+    .mf-movie-title {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+    }
+
+    .mf-movie-meta-row {
+        font-size: 0.9rem !important;
+    }
+}
+
+/* 11. Otimizacoes para Hardware com Reducao de Movimento */
 @media (prefers-reduced-motion: reduce) {
     .layout-tv .focusable:focus,
     .layout-tv .focusable:focus-visible,
     .layout-tv .mf-home-card:focus,
-    .layout-tv .mf-search-card:focus {
+    .layout-tv .mf-movie-card:focus,
+    .layout-tv .mf-local-card:focus {
         transform: none !important;
-        box-shadow: 0 0 0 3px #ffffff !important;
+        box-shadow: 0 0 0 3px #FAF9F5 !important;
     }
 }

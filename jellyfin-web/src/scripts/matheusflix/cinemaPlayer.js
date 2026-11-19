@@ -862,69 +862,72 @@ export function openCinemaPlayer({
         }
     }, 7000);
 
-    // Keyboard Shortcuts
+    // Keyboard & Remote Control Shortcuts (Samsung Tizen, WebOS, Desktop)
     function handleKeyDown(e) {
         if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
         showControls();
 
-        if (e.key === ' ' || e.key === 'k' || e.key === 'MediaPlayPause') {
+        const keyCode = e.keyCode || e.which || 0;
+        const key = e.key || '';
+
+        if (key === ' ' || key === 'k' || key === 'MediaPlayPause' || keyCode === 10252) {
             e.preventDefault();
             togglePlay();
-        } else if (e.key === 'MediaPlay') {
+        } else if (key === 'MediaPlay' || keyCode === 415) {
             e.preventDefault();
             video.play().catch(noop);
-        } else if (e.key === 'MediaPause' || e.key === 'MediaStop') {
+        } else if (key === 'MediaPause' || key === 'MediaStop' || keyCode === 19 || keyCode === 413) {
             e.preventDefault();
             video.pause();
-        } else if (e.key === 'ArrowRight' || e.key === 'MediaFastForward') {
+        } else if (key === 'ArrowRight' || key === 'MediaFastForward' || keyCode === 417) {
             e.preventDefault();
             video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
             showSeekFeedback('+10s');
             showControls();
-        } else if (e.key === 'ArrowLeft' || e.key === 'MediaRewind') {
+        } else if (key === 'ArrowLeft' || key === 'MediaRewind' || keyCode === 412) {
             e.preventDefault();
             video.currentTime = Math.max(0, video.currentTime - 10);
             showSeekFeedback('-10s');
             showControls();
-        } else if (e.key === 'ArrowUp') {
+        } else if (key === 'ArrowUp') {
             e.preventDefault();
             video.volume = Math.min(1, video.volume + 0.1);
             volSlider.value = video.volume;
             updateVolIcon();
             showSeekFeedback(`Volume: ${Math.round(video.volume * 100)}%`);
             showControls();
-        } else if (e.key === 'ArrowDown') {
+        } else if (key === 'ArrowDown') {
             e.preventDefault();
             video.volume = Math.max(0, video.volume - 0.1);
             volSlider.value = video.volume;
             updateVolIcon();
             showSeekFeedback(`Volume: ${Math.round(video.volume * 100)}%`);
             showControls();
-        } else if (e.key === 'f' || e.key === 'F') {
+        } else if (key === 'f' || key === 'F') {
             e.preventDefault();
             toggleFullscreen();
-        } else if (e.key === 'm' || e.key === 'M') {
+        } else if (key === 'm' || key === 'M') {
             e.preventDefault();
             video.muted = !video.muted;
             updateVolIcon();
             showSeekFeedback(video.muted ? 'Mudo' : `Volume: ${Math.round(video.volume * 100)}%`);
             showControls();
-        } else if (e.key === 's' || e.key === 'S') {
+        } else if (key === 's' || key === 'S') {
             e.preventDefault();
             toggleSubtitles();
             showControls();
-        } else if (e.key === 'c' || e.key === 'C') {
+        } else if (key === 'c' || key === 'C') {
             e.preventDefault();
             cycleSpeed();
             showControls();
-        } else if (e.key === 'p' || e.key === 'P') {
+        } else if (key === 'p' || key === 'P') {
             e.preventDefault();
             togglePip();
             showControls();
-        } else if (e.key === '?' || e.key === 'h' || e.key === 'H') {
+        } else if (key === '?' || key === 'h' || key === 'H') {
             e.preventDefault();
             openShortcutsModal();
-        } else if (['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(e.key)) {
+        } else if (['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(key) || keyCode === 10009 || keyCode === 461 || keyCode === 27) {
             e.preventDefault();
             handleExit();
         }

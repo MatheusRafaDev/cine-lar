@@ -290,6 +290,9 @@ function appendCards(grid, movies) {
             </div>
         `;
         card.addEventListener('click', () => openStremioDetails(m));
+        card.addEventListener('focus', () => {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
         frag.appendChild(card);
     });
     grid.appendChild(frag);

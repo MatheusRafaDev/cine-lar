@@ -6,11 +6,22 @@ function isTv(userAgent) {
         return false;
     }
 
+    // Detect Samsung Smart TV (Tizen OS, SmartTV, SmartHub, Maple)
+    if (userAgent.includes('tizen') ||
+        userAgent.includes('smart-tv') ||
+        userAgent.includes('smarttv') ||
+        userAgent.includes('smarthub') ||
+        userAgent.includes('maple') ||
+        userAgent.includes('hbbtv') ||
+        (typeof window !== 'undefined' && (window.tizen != null || window.webapis != null))) {
+        return true;
+    }
+
     if (userAgent.includes('tv')) {
         return true;
     }
 
-    if (userAgent.includes('samsungbrowser')) {
+    if (userAgent.includes('samsungbrowser') && !isMobile(userAgent)) {
         return true;
     }
 
@@ -282,7 +293,7 @@ export const detectBrowser = (userAgent = navigator.userAgent) => {
 
     browser.animate = typeof document !== 'undefined' && document.documentElement.animate != null;
     browser.hisense = normalizedUA.includes('hisense');
-    browser.tizen = normalizedUA.includes('tizen') || window.tizen != null;
+    browser.tizen = normalizedUA.includes('tizen') || (typeof window !== 'undefined' && (window.tizen != null || window.webapis != null));
     browser.vega = normalizedUA.includes('kepler');
     browser.vidaa = normalizedUA.includes('vidaa');
     browser.web0s = isWeb0s(normalizedUA);
@@ -299,8 +310,12 @@ export const detectBrowser = (userAgent = navigator.userAgent) => {
         delete browser.chrome;
         delete browser.safari;
     } else if (browser.tizen) {
-        const v = RegExp(/Tizen (\d+).(\d+)/).exec(userAgent);
-        browser.tizenVersion = parseInt(v[1], 10) + parseInt(v[2], 10) / 10;
+        const v = RegExp(/Tizen (\d+).(\d+)/i).exec(userAgent);
+        if (v && v.length >= 3) {
+            browser.tizenVersion = parseInt(v[1], 10) + parseInt(v[2], 10) / 10;
+        } else {
+            browser.tizenVersion = 5.0;
+        }
 
         // UserAgent string contains 'Chrome' and 'Safari', but we only want 'tizen' to be true
         delete browser.chrome;

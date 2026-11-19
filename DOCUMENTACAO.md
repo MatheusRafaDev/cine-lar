@@ -409,3 +409,32 @@ O MatheusFlix oferece suporte de primeira classe para operacao por controle remo
 - **Miniplayer Picture-in-Picture (PiP):** Permite continuar acompanhando o conteudo em janela flutuante no sistema enquanto navega em outras aplicacoes.
 - **Filtro de Lançamentos em Tempo Real:** Na tela de detalhes (Cinelar Screen 2), chips permitem filtrar instantaneamente as fontes disponiveis por resolucao (4K UHD, 1080p), idioma dublado (PT-BR) ou maior numero de sementes ativas.
 - **Overlay de Guia do Controle Remoto:** Dialogo sob medida com design Cinelar destacando os atalhos de controle remoto e teclado para facil consulta a qualquer momento.
+
+---
+
+## 10. Otimizacao e Compatibilidade com Smart TVs Samsung (Tizen OS)
+
+O MatheusFlix foi otimizado para proporcionar uma experiencia fluida, nitida e nativa em televisores Samsung Smart TV executando o sistema operacional Tizen OS (versoes 3.0, 4.0, 5.0, 5.5, 6.0, 6.5, 7.0 e 8.0+), seja atraves do navegador Samsung Internet ou instalado como aplicativo Web Tizen (WGT).
+
+### 10.1. Deteccao de Plataforma e Ativacao Automatica
+- **Identificacao Rigorosa:** A deteccao de hardware identifica os padroes de User-Agent `tizen`, `smart-tv`, `smarttv`, `smarthub`, `maple`, alem da presenca dos objetos globais `window.tizen` e `window.webapis`.
+- **Ativacao do Modo 10-Foot (`layout-tv`):** Assim que identificado um televisor Samsung, a interface ativa automaticamente a classe `layout-tv`, ajustando tipografia, proporcoes e regras de controle sem necessidade de configuracao manual. Tambem pode ser forcado via parametro de URL `?tv=1` ou chave de armazenamento local.
+
+### 10.2. Margens Seguras de Transmissao (Safe Area & Overscan)
+- **Compensacao de Overscan:** Televisores antigos e modernos frequentemente aplicam corte de bordas (overscan de 2.5% a 5%) quando o modo 'Ajustar a Tela' nao esta configurado. O MatheusFlix define margens de seguranca padronizadas (`--tv-safe-x: 3.5vw; --tv-safe-y: 3.5vh;`), garantindo que nenhum cartaz, cabecalho ou botao fique oculto ou cortado.
+- **Escala 4K UHD:** Em telas de ultradefinicao (largura acima de 2500px), a safe area expande proporcionalmente para `4.5vw / 4.5vh`, e o tamanho base da fonte e elevado para 24px.
+
+### 10.3. Otimizacao de GPU e Desativacao de Filtros Pesados
+- **60 FPS Constantes:** Processadores embarcados de Smart TVs possuem capacidade limitada de preenchimento grafico (fillrate). Filtros Gaussianos em camadas continuas (`backdrop-filter: blur(...)`) provocam quedas severas de taxa de quadros e engasgos no controle remoto durante rolagem horizontal e vertical.
+- **Filtros Desativados na TV:** No modo `layout-tv`, `backdrop-filter` e completamente desativado no cabecalho fixo, menu gaveta e modais, substituido por cores solidas de alta densidade (`rgba(20, 20, 19, 0.98)` e `#1E1D1B`), eliminando 100% dos engasgos e liberando a GPU da TV.
+- **Composicao Acelerada por Hardware:** Cartazes e trilhos utilizam aceleracao por hardware (`transform: translateZ(0); will-change: transform;`), mantendo transicoes suaves e responsividade instantanea ao D-Pad.
+
+### 10.4. Registro e Suporte de Hardware para Controle Remoto Samsung
+- **Registro de Teclas no Tizen (`tvinputdevice`):** O sistema registra explicitamente atraves da API Samsung `window.tizen.tvinputdevice.registerKey(...)` as teclas multimidia e numericas: `MediaPlay`, `MediaPause`, `MediaPlayPause`, `MediaStop`, `MediaFastForward`, `MediaRewind`, `MediaTrackPrevious`, `MediaTrackNext`, 0 a 9 e teclas coloridas (`ColorF0Red` a `ColorF3Blue`).
+- **Tratamento da Tecla Return / Voltar (Keycode 10009):** O botao de retorno do controle remoto Samsung envia o codigo numerico `10009` (ou `461` em WebOS). O sistema intercepta o codigo em todos os modais (Detalhes Stremio, Menu 3 Pontinhos, Guia de Atalhos, Dialogo de Confirmacao e CinemaPlayer), garantindo que o retorno feche o componente atual sem fechar ou deslogar o aplicativo.
+- **Controles no Player de Cinema:** O `cinemaPlayer.js` reconhece nativamente os keycodes de Play (`415`), Pause (`19`), PlayPause (`10252`), Stop (`413`), FastForward (`417`), Rewind (`412`) e Return (`10009`).
+
+### 10.5. Ergonomia Visual 10-Foot e Foco de Alto Contraste
+- **Anel de Foco Nítido:** Qualquer elemento focado pelo controle remoto exibe um contorno de destaque branco puro `outline: 3px solid #FAF9F5; outline-offset: 3px;` acompanhado de elevacao tridimensional e escala `1.05`, assegurando visibilidade imediata mesmo a 3 ou 4 metros do sofa.
+- **Rolagem Automatica ao Focar:** Ao navegar entre cartazes com as setas do controle, o item em foco e centralizado suavemente na janela de visualizacao atraves de `scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })`.
+- **Tamanho Minimo de Alvo (44px a 48px):** Todos os botoes, chips e itens do menu de 3 pontinhos atendem ao padrao ergonomico minimo de televisores, prevenindo cliques acidentais e facilitando selecoes rapidas.
