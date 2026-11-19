@@ -562,20 +562,23 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
             });
         };
     } else if (localFile && localStatus) {
-        // Se o filme já existe salvo na pasta D:\filmes
+        // Se o filme já existe salvo na pasta local
         localStatus.innerHTML = `
             <div class="mf-local-alert-banner">
-                <span class="material-icons mf-local-alert-icon">folder_special</span>
+                <div class="mf-local-alert-pill">
+                    <span class="material-icons" style="font-size: 15px;">folder_special</span>
+                    <span>Acervo Local</span>
+                </div>
                 <div class="mf-local-alert-text">
-                    <strong>Disponível na sua pasta local</strong>
-                    <span>Reprodução local imediata • ${escapeHtml(localFile.quality)} • ${escapeHtml(localFile.sizeFormatted)}</span>
+                    <strong>Arquivo salvo no computador (${escapeHtml(localFile.quality)})</strong>
+                    <span>Reprodução instantânea de alta fidelidade sem internet · ${escapeHtml(localFile.sizeFormatted)}</span>
                 </div>
             </div>
         `;
 
         heroBtn.disabled = false;
         heroBtn.className = 'mf-btn-hero-watch mf-btn-play-local';
-        heroText.textContent = movie.resumePosition > 10 ? `Continuar da Pasta Local (${localFile.quality})` : `Assistir da Pasta Local (${localFile.quality})`;
+        heroText.textContent = movie.resumePosition > 10 ? `Continuar Assistindo (${localFile.quality})` : `Assistir Agora (${localFile.quality})`;
         heroBtn.onclick = () => {
             launchPlayer({
                 streamUrl: localFile.streamUrl,
@@ -652,18 +655,18 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 <div class="mf-stream-meta">
                     <div class="mf-stream-badges">
                         <span class="mf-badge-on-disk" style="position: static !important;">
-                            <span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta
+                            <span class="material-icons" style="font-size: 13px; vertical-align: middle;">download_done</span> Arquivo Salvo
                         </span>
                         <span class="mf-stream-quality q-local">${escapeHtml(localFile.quality)}</span>
                         <span class="mf-stream-size">${escapeHtml(localFile.sizeFormatted)}</span>
                     </div>
-                    <div class="mf-stream-title" style="color: #4ade80; font-weight: 700;">Reproduzir arquivo salvo no computador</div>
+                    <div class="mf-stream-title" style="color: #FAF9F5; font-weight: 600;">Reprodução direta do disco (Sem consumo de rede)</div>
                 </div>
                 <div class="mf-stream-actions">
-                    <button type="button" class="mf-btn-stream-play mf-btn-stream-play-local focusable" title="Assistir agora da pasta local">
+                    <button type="button" class="mf-btn-stream-play mf-btn-stream-play-local focusable" title="Assistir arquivo local">
                         <span class="material-icons">play_arrow</span>
                     </button>
-                    <button type="button" class="mf-btn-stream-delete-local focusable" title="Excluir arquivo da sua pasta">
+                    <button type="button" class="mf-btn-stream-delete-local focusable" title="Excluir arquivo do computador">
                         <span class="material-icons" style="font-size: 18px;">delete_outline</span>
                     </button>
                 </div>

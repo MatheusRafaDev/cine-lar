@@ -20,11 +20,20 @@ export function renderLocalFolderView(container) {
 
     container.innerHTML = `
         <div class="mf-local sp" style="padding: 36px 48px; max-width: 1600px; margin: 0 auto;">
-            <!-- Header Estilo Cinelar -->
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;margin-bottom:32px;">
+            <!-- Header Editorial Estilo Cinelar -->
+            <div class="mf-local-header-hero" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid rgba(250,249,245,0.08);">
                 <div>
-                    <div class="t" style="font-size:36px;font-weight:700;color:#FAF9F5;">Pasta Local</div>
-                    <div class="m mf-local-path-label" style="margin-top:6px;color:#A8A59C;font-size:15px;">${escapeHtml(savedPath)} · reprodução direta do disco</div>
+                    <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:rgba(250,249,245,0.06);border:1px solid rgba(250,249,245,0.1);font-size:12px;font-weight:600;color:#D97757;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px;">
+                        <span class="material-icons" style="font-size:14px;">folder_special</span>
+                        <span>Acervo em Disco</span>
+                    </div>
+                    <div class="t mf-local-main-title" style="font-size:40px;font-weight:600;letter-spacing:-0.5px;color:#FAF9F5;line-height:1.15;">Pasta Local</div>
+                    <div class="m mf-local-path-label" style="margin-top:8px;color:#A8A59C;font-size:14px;display:flex;align-items:center;gap:8px;">
+                        <span class="material-icons" style="font-size:15px;color:#FAF9F5;opacity:0.5;">folder</span>
+                        <span>${escapeHtml(savedPath)}</span>
+                        <span style="opacity:0.3;">•</span>
+                        <span>Reprodução direta de alta fidelidade</span>
+                    </div>
                 </div>
                 <div class="mf-local-category-bar" style="display:flex;gap:12px;flex-wrap:wrap;">
                     <button type="button" class="mf-category-chip c on focusable active" data-view="all">

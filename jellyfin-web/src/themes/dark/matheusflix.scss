@@ -1131,6 +1131,113 @@ body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
     }
 }
 
+/* Banner de Filme Local na Tela de Detalhes (Substitui verde por Cinelar Dark) */
+.mf-local-alert-banner {
+    background: #1E1D1B !important;
+    border: 1px solid rgba(250, 249, 245, 0.12) !important;
+    border-radius: 16px !important;
+    padding: 16px 22px !important;
+    margin-bottom: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+    color: #FAF9F5 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(12px) !important;
+
+    .mf-local-alert-pill {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        padding: 6px 14px !important;
+        border-radius: 999px !important;
+        background: rgba(250, 249, 245, 0.08) !important;
+        border: 1px solid rgba(250, 249, 245, 0.14) !important;
+        color: #D97757 !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+
+    .mf-local-alert-text {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 3px !important;
+
+        strong {
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            color: #FAF9F5 !important;
+        }
+
+        span {
+            font-size: 13px !important;
+            color: #A8A59C !important;
+        }
+    }
+}
+
+/* Botão Hero para Mídia Local (Padrão Cinelar Red) */
+button.mf-btn-hero-watch.mf-btn-play-local,
+.mf-btn-play-local {
+    background: #E50914 !important;
+    color: #FAF9F5 !important;
+    border: none !important;
+    box-shadow: 0 4px 16px rgba(229, 9, 20, 0.3) !important;
+    border-radius: 999px !important;
+    transition: transform 0.2s, background 0.2s !important;
+
+    &:hover {
+        background: #f6121d !important;
+        transform: scale(1.03) !important;
+        color: #FAF9F5 !important;
+    }
+
+    &:focus,
+    &:focus-visible {
+        outline: 3px solid #FAF9F5 !important;
+        outline-offset: 3px !important;
+        transform: scale(1.04) !important;
+    }
+}
+
+/* Badge 'Salvo' nos cartazes de filmes */
+.mf-badge-on-disk {
+    position: absolute !important;
+    top: 8px !important;
+    left: 8px !important;
+    background: rgba(20, 20, 19, 0.88) !important;
+    border: 1px solid rgba(250, 249, 245, 0.2) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    color: #FAF9F5 !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    padding: 4px 10px !important;
+    border-radius: 999px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    letter-spacing: 0.2px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+    z-index: 5 !important;
+
+    .material-icons {
+        font-size: 12px !important;
+        color: #D97757 !important;
+    }
+}
+
+/* Título e acabamento da Pasta Local */
+.mf-local-main-title {
+    font-family: var(--font-serif, 'Newsreader', serif) !important;
+    color: #FAF9F5 !important;
+}
+
+
 
 
 

@@ -195,7 +195,7 @@ export async function embedMatheusFlixHomeSections(view) {
 
         renderRow(wrap, {
             key: 'local',
-            title: 'Na sua pasta',
+            title: 'Biblioteca Local',
             linkText: 'Ver tudo',
             tabIndex: 2,
             targetHash: '#/home?tab=2',
@@ -584,7 +584,7 @@ function renderRow(container, { key, title, linkText, tabIndex, targetHash, movi
             <div class="mf-home-card-poster-wrap">
                 <img class="mf-home-card-poster" src="${escapeHtml(m.poster || PLACEHOLDER_POSTER)}" alt="Pôster de ${escapeHtml(m.title)}" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" />
                 <div class="mf-home-card-play-overlay"><span class="material-icons" style="font-size: 26px; color: #140a02;">play_arrow</span></div>
-                ${m.isLocal ? '<span class="mf-badge-on-disk"><span class="material-icons" style="font-size: 13px; vertical-align: middle;">check_circle</span> Na sua pasta</span>' : ''}
+                ${m.isLocal ? '<span class="mf-badge-on-disk"><span class="material-icons" style="font-size: 11px; vertical-align: middle;">download_done</span> Salvo</span>' : ''}
             </div>
             <div class="mf-home-card-info" style="padding: 8px 2px 4px 2px; text-align: left; background: transparent; width: 100%; box-sizing: border-box;">
                 <h4 class="mf-home-card-title" style="color: #ffffff !important; font-size: 13px; font-weight: 700; margin: 0 0 4px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(m.title)}</h4>
