@@ -181,9 +181,13 @@ function renderLists(downloads, speedEl, diskEl, diskLabelEl, countEl, activeLis
         activeList.querySelectorAll('.mf-btn-cancel-dl').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const id = btn.closest('.mf-dl-card').dataset.id;
+                const d = active.find(item => item.id === id);
+                const title = d?.title || d?.name || 'este download';
+                const confirmed = await confirmDeleteModal({ title, isCompleted: false });
+                if (!confirmed) return;
                 try {
                     await cancelDownload(id);
-                    toast('Download cancelado');
+                    toast('Download cancelado com sucesso.');
                     const card = btn.closest('.mf-dl-card');
                     if (card) card.remove();
                 } catch (e) {
@@ -206,11 +210,34 @@ function renderLists(downloads, speedEl, diskEl, diskLabelEl, countEl, activeLis
                     <div style="font-weight:600;font-size:17px;color:#FAF9F5;">${escapeHtml(d.title || d.name || 'Filme')}</div>
                     <div class="m" style="color:#46d369;font-size:13px;margin-top:4px;">Salvo na pasta local</div>
                 </div>
-                <button type="button" class="btn f mf-btn-watch-dl focusable" style="border:0;border-radius:12px;height:42px;padding:0 20px;background:#E50914;color:#FAF9F5;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
-                    <span class="material-icons" style="font-size:18px;">play_arrow</span> Assistir
-                </button>
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <button type="button" class="btn f mf-btn-watch-dl focusable" style="border:0;border-radius:12px;height:42px;padding:0 20px;background:#E50914;color:#FAF9F5;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+                        <span class="material-icons" style="font-size:18px;">play_arrow</span> Assistir
+                    </button>
+                    <button type="button" class="btn g mf-btn-remove-completed-dl focusable" style="border:0;border-radius:12px;height:42px;padding:0 18px;background:rgba(250,249,245,0.12);color:#FAF9F5;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;" title="Remover da lista">
+                        <span class="material-icons" style="font-size:16px;">close</span> Remover
+                    </button>
+                </div>
             </div>
         `).join('');
+
+        completedList.querySelectorAll('.mf-btn-remove-completed-dl').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.closest('.mf-dl-card').dataset.id;
+                const d = completed.find(item => item.id === id);
+                const title = d?.title || d?.name || 'Filme';
+                const confirmed = await confirmDeleteModal({ title, isCompleted: true });
+                if (!confirmed) return;
+                try {
+                    await cancelDownload(id);
+                    toast('Registro removido da lista.');
+                    const card = btn.closest('.mf-dl-card');
+                    if (card) card.remove();
+                } catch (e) {
+                    toast('Erro ao remover: ' + e.message);
+                }
+            });
+        });
 
         completedList.querySelectorAll('.mf-btn-watch-dl').forEach(btn => {
             btn.addEventListener('click', () => {
