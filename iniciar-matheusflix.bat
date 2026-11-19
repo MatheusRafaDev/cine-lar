@@ -4,8 +4,8 @@ echo ========================================================
 echo          Iniciando Servicos do MatheusFlix
 echo ========================================================
 
-echo [1/3] Iniciando Jellyfin Server em D:\jellyfin_data...
-start "Jellyfin Server" /min "C:\Program Files\Jellyfin\Server\jellyfin.exe" -d "D:\jellyfin_data\data" -c "D:\jellyfin_data\config" -C "D:\jellyfin_data\cache" -l "D:\jellyfin_data\log"
+echo [1/3] Iniciando Jellyfin Server com a interface MatheusFlix...
+start "Jellyfin Server" /min "C:\Program Files\Jellyfin\Server\jellyfin.exe" --datadir "C:\ProgramData\Jellyfin\Server" -w "%~dp0jellyfin-web\dist"
 
 echo [2/3] Iniciando Torrent & Discovery Service na porta 8085...
 cd /d "%~dp0torrent-service"
