@@ -190,10 +190,15 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
                     stat = fs.statSync(fullVideo);
                 } catch {}
                 if (stat) {
+                    let folderName = path.basename(dir);
+                    const parentDir = path.basename(path.dirname(dir));
+                    if (/^(temporada|season|s\d+)/i.test(folderName) && parentDir && !/^(series|filmes|matheusflix)$/i.test(parentDir)) {
+                        folderName = `${parentDir} ${folderName}`;
+                    }
                     items.push({
                         videoFile: fullVideo,
                         srtFile: srt ? path.join(dir, srt.name) : null,
-                        folderName: path.basename(dir),
+                        folderName,
                         fileName: vf.name,
                         stat
                     });
@@ -251,9 +256,16 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
 
         let movieData = null;
 
-        // Query Cinemeta with clean title
+        const seriesCheck = detectSeries(`${folderName} ${fileName}`);
+        const cinemetaType = seriesCheck.isSeries ? 'series' : 'movie';
+        const searchTitle = seriesCheck.isSeries ? (seriesCheck.seriesName || cleanName) : cleanName;
+
+        // Query Cinemeta with clean title (series or movie)
         try {
-            const searchRes = await fetchJson(`https://v3-cinemeta.strem.io/catalog/movie/top/search=${encodeURIComponent(cleanName)}.json`);
+            let searchRes = await fetchJson(`https://v3-cinemeta.strem.io/catalog/${cinemetaType}/top/search=${encodeURIComponent(searchTitle)}.json`);
+            if ((!searchRes?.metas || searchRes.metas.length === 0) && cinemetaType === 'series') {
+                searchRes = await fetchJson(`https://v3-cinemeta.strem.io/catalog/movie/top/search=${encodeURIComponent(cleanName)}.json`);
+            }
             if (searchRes?.metas && searchRes.metas.length > 0) {
                 // If year detected, find matching year meta, else fallback to top
                 let match = searchRes.metas[0];

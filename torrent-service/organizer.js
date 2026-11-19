@@ -106,15 +106,19 @@ export function detectSeries(name) {
  * - Franquias: D:\filmes\MatheusFlix\Franquias\<Nome da Franquia>\<Nome do Filme>
  * - Filmes avulsos: D:\filmes\MatheusFlix\<Nome do Filme>
  */
-export function getOrganizedDownloadPath(baseSavePath = path.join('D:\\filmes', 'MatheusFlix'), title = '', filename = '') {
+export function getOrganizedDownloadPath(baseSavePath = path.join('D:\\filmes', 'MatheusFlix'), title = '', filename = '', options = {}) {
     const raw = `${title} ${filename}`.trim();
     const seriesInfo = detectSeries(raw);
 
-    if (seriesInfo.isSeries) {
-        const cleanName = seriesInfo.seriesName
+    const isSeries = Boolean(options.isSeries || seriesInfo.isSeries);
+    const seriesName = options.seriesName || seriesInfo.seriesName;
+    const season = options.season || seriesInfo.season || 1;
+
+    if (isSeries && seriesName) {
+        const cleanName = seriesName
             .replace(/[\\/:*?"<>|]/g, '')
             .trim();
-        const seasonStr = `Temporada ${String(seriesInfo.season).padStart(2, '0')}`;
+        const seasonStr = `Temporada ${String(season).padStart(2, '0')}`;
         const targetPath = path.join(baseSavePath, 'Series', cleanName, seasonStr);
         return {
             targetPath,

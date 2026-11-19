@@ -267,6 +267,30 @@ function renderSeriesView(container, series, query) {
     const wrapper = document.createElement('div');
     wrapper.className = 'mf-series-container';
 
+    function playLocalSeriesEpisode(seriesItem, index) {
+        const cur = seriesItem.episodes[index];
+        if (!cur) return;
+        const next = seriesItem.episodes[index + 1];
+
+        openCinemaPlayer({
+            streamUrl: cur.streamUrl,
+            title: `${seriesItem.name} - ${cur.title}`,
+            subInfo: [seriesItem.name, cur.quality, cur.sizeFormatted].filter(Boolean).join(' • '),
+            quality: cur.quality || '',
+            isLocal: true,
+            movieId: cur.imdbId || cur.id,
+            poster: cur.poster || PLACEHOLDER_POSTER,
+            duration: parseDuration(cur),
+            seriesInfo: {
+                seriesName: seriesItem.name,
+                episodeName: cur.title,
+                hasNext: Boolean(next),
+                nextEpisode: next ? { name: next.title } : null,
+                onPlayNext: next ? () => playLocalSeriesEpisode(seriesItem, index + 1) : null
+            }
+        });
+    }
+
     filtered.forEach(s => {
         const block = document.createElement('div');
         block.className = 'mf-franchise-block mf-series-block';
@@ -284,8 +308,8 @@ function renderSeriesView(container, series, query) {
         `;
 
         const grid = block.querySelector('.mf-series-grid');
-        s.episodes.forEach(e => {
-            const card = createMovieCard(e);
+        s.episodes.forEach((e, idx) => {
+            const card = createMovieCard(e, () => playLocalSeriesEpisode(s, idx));
             grid.appendChild(card);
         });
 
@@ -296,7 +320,7 @@ function renderSeriesView(container, series, query) {
     container.appendChild(wrapper);
 }
 
-function createMovieCard(m) {
+function createMovieCard(m, onPlayOverride = null) {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'mf-movie-card mf-local-card focusable';
@@ -399,6 +423,10 @@ function createMovieCard(m) {
     }
 
     card.addEventListener('click', () => {
+        if (typeof onPlayOverride === 'function') {
+            onPlayOverride();
+            return;
+        }
         openCinemaPlayer({
             streamUrl: m.streamUrl,
             title: m.title,

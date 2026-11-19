@@ -438,3 +438,37 @@ O MatheusFlix foi otimizado para proporcionar uma experiencia fluida, nitida e n
 - **Anel de Foco Nítido:** Qualquer elemento focado pelo controle remoto exibe um contorno de destaque branco puro `outline: 3px solid #FAF9F5; outline-offset: 3px;` acompanhado de elevacao tridimensional e escala `1.05`, assegurando visibilidade imediata mesmo a 3 ou 4 metros do sofa.
 - **Rolagem Automatica ao Focar:** Ao navegar entre cartazes com as setas do controle, o item em foco e centralizado suavemente na janela de visualizacao atraves de `scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })`.
 - **Tamanho Minimo de Alvo (44px a 48px):** Todos os botoes, chips e itens do menu de 3 pontinhos atendem ao padrao ergonomico minimo de televisores, prevenindo cliques acidentais e facilitando selecoes rapidas.
+
+---
+
+## 11. Gestao de Series: Navegacao de Episodios, Download de Temporada e Organizacao em Pastas
+
+O MatheusFlix conta com suporte dedicado e completo a series de televisao e streaming, otimizando tanto a navegacao no catalogo quanto o armazenamento local organizado e a continuidade de reproducao.
+
+### 11.1. Navegacao Enriquecida por Temporadas e Episodios
+- **Abas de Temporadas em Pilulas (`mf-season-pill-btn`):** Substitui seletores suspensos comuns por abas horizontais com contagem de episodios, indicando claramente qual temporada esta ativa e permitindo alternancia instantanea via clique ou setas do controle remoto.
+- **Cards Ricos de Episodio (`mf-episode-card`):** Cada episodio e renderizado em um card independente contendo thumbnail em proporcao 16:9, indicador numerico (ex: `E01`), titulo oficial traduzido, sinopse descritiva e botoes de acao direta ("Assistir" e "Baixar").
+- **Barra de Navegacao de Episodios:** Botoes de acao rapida ("Episodio Anterior" e "Proximo Episodio") posicionados no topo da lista facilitam o avanco sequencial com rolagem suave automatica.
+- **Deteccao de Episodios Salvos Localmente:** Episodios ja presentes no disco do computador sao destacados com um badge verde "Disponivel Localmente", permitindo reproducao direta sem consumo de internet.
+
+### 11.2. Download de Temporada Completa
+- **Botao de Destaque por Temporada (`.mf-btn-download-season`):** Localizado acima do carrossel de episodios, exibe a acao "Baixar Temporada X Completa".
+- **Busca Especializada de Season Packs (`/api/series/season-torrents`):** O backend consulta indexadores de torrents e filtra pacotes completos da temporada utilizando algoritmos de deteccao de tamanho (>4 GB) e termos-chave como `completa`, `complete`, `season pack` e `s01-s0x`.
+- **Modal de Confirmacao Cinelar TV (`confirmSeasonDownloadModal`):** Antes de iniciar o download, uma janela sob medida apresenta os detalhes da operacao: seletor de Season Pack disponivel, qualidade, tamanho estimado, lista de episodios inclusos e o caminho exato de destino em disco.
+- **Fallback para Download em Lote (`/api/series/download-season`):** Quando nao ha um torrent unico contendo a temporada inteira empacotada, o servico enfileira automaticamente todos os episodios individuais da temporada, direcionando todos para a mesma pasta raiz da serie.
+
+### 11.3. Estrutura Rigorosa de Organizacao em Disco
+Todos os downloads de series sao rigorosamente agrupados pelo padrao oficial:
+```text
+D:\Filmes\MatheusFlix\Series\<Nome da Serie>\Temporada XX\<Arquivos de Video>
+```
+- **Limpeza de Nomes (`cleanDirName`):** Remove caracteres proibidos no Windows (`:`, `*`, `?`, `"`, `<`, `>`, `|`) e normaliza acentuacoes.
+- **Numeracao Formatada:** Temporadas sao formatadas com dois digitos (ex: `Temporada 01`, `Temporada 02`).
+- **Scanner Local Inteligente (`localScanner.js`):** Quando arquivos estao alocados em subpastas de temporada (`Temporada XX`), o scanner herda automaticamente o nome da serie a partir da pasta pai imediata, consultando metadados de series no Cinemeta (`catalog/series/top`) e agrupando todos os episodios na aba "Series" do Acervo Local.
+
+### 11.4. Continuidade de Reproducao no Player de Cinema (`cinemaPlayer.js`)
+- **Botao "Proximo Episodio" (`.mf-btn-next-ep`):** Integrado a barra de controles OSD inferior para transicao direta ao proximo capitulo.
+- **Card Flutuante Automático nos Ultimos 45 Segundos:** Quando a reproducao atinge os momentos finais do capitulo, um card flutuante surge no canto inferior direito informando o proximo episodio com contagem regressiva e botao "Assistir Agora".
+- **Autoplay ao Terminar:** Ao disparar o evento nativo `ended` do video, o player carrega e inicia o proximo episodio da serie de forma continua.
+- **Atalho de Teclado e Controle:** Pressionar `Shift + N` durante a reproducao avanca diretamente para o proximo episodio.
+- **Compatibilidade Local:** Ao reproduzir series salvas no computador a partir da aba "Pasta Local", a mesma sequencia de proximo episodio permanece ativa entre os arquivos do disco.

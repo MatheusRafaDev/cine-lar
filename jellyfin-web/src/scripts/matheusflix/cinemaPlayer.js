@@ -101,7 +101,8 @@ export function openCinemaPlayer({
     movieId = null,
     poster = null,
     resumePosition = 0,
-    duration = 0
+    duration = 0,
+    seriesInfo = null
 }) {
     if (document.activeElement && document.activeElement !== document.body) {
         lastFocusedBeforePlayer = document.activeElement;
@@ -183,6 +184,28 @@ export function openCinemaPlayer({
                     <span>Iniciar</span>
                 </button>
             </div>
+
+            ${seriesInfo && seriesInfo.hasNext ? `
+            <div class="mf-player-next-ep-card hide">
+                <div class="mf-next-ep-header">
+                    <span class="material-icons">skip_next</span>
+                    <span class="mf-next-ep-badge">SEGUIR</span>
+                </div>
+                <div class="mf-next-ep-content">
+                    <strong class="mf-next-ep-title">${escapeHtml(seriesInfo.nextEpisode?.name || 'Próximo Episódio')}</strong>
+                    <span class="mf-next-ep-timer">Iniciando em <span class="mf-next-ep-countdown">15</span>s</span>
+                </div>
+                <div class="mf-next-ep-actions">
+                    <button type="button" class="mf-btn-play-next-now focusable">
+                        <span class="material-icons">play_arrow</span>
+                        <span>Assistir</span>
+                    </button>
+                    <button type="button" class="mf-btn-dismiss-next focusable" title="Dispensar">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+            </div>
+            ` : ''}
         </div>
 
         <div class="mf-player-bottom-bar">
@@ -203,6 +226,12 @@ export function openCinemaPlayer({
                     <button type="button" class="mf-ctrl-btn mf-btn-ff focusable" title="Avançar 10s (→)">
                         <span class="material-icons">forward_10</span>
                     </button>
+                    ${seriesInfo && seriesInfo.hasNext ? `
+                    <button type="button" class="mf-ctrl-btn mf-btn-next-ep focusable" title="Próximo Episódio (Shift+N)">
+                        <span class="material-icons">skip_next</span>
+                        <span class="mf-btn-next-label">Próximo</span>
+                    </button>
+                    ` : ''}
 
                     <div class="mf-player-time">
                         <span class="mf-time-cur">00:00</span> <span class="mf-time-sep">/</span> <span class="mf-time-dur">00:00</span>
@@ -307,6 +336,56 @@ export function openCinemaPlayer({
             e.stopPropagation();
             hideOverlay();
             safePlay();
+        });
+    }
+
+    // Controle e navegacao de series (Proximo Episodio)
+    let nextCardShown = false;
+    let nextCountdownTimer = null;
+    let nextCountdownSec = 15;
+
+    function triggerNextEpisode() {
+        if (!seriesInfo || !seriesInfo.hasNext || typeof seriesInfo.onPlayNext !== 'function') return;
+        if (nextCountdownTimer) {
+            clearInterval(nextCountdownTimer);
+            nextCountdownTimer = null;
+        }
+        closeCinemaPlayer();
+        try {
+            seriesInfo.onPlayNext();
+        } catch (err) {
+            console.error('[CinemaPlayer] Erro ao reproduzir próximo episódio:', err);
+        }
+    }
+
+    const nextEpCard = playerEl.querySelector('.mf-player-next-ep-card');
+    const btnNextEp = playerEl.querySelector('.mf-btn-next-ep');
+    const btnPlayNextNow = playerEl.querySelector('.mf-btn-play-next-now');
+    const btnDismissNext = playerEl.querySelector('.mf-btn-dismiss-next');
+    const countdownEl = playerEl.querySelector('.mf-next-ep-countdown');
+
+    if (btnNextEp) {
+        btnNextEp.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerNextEpisode();
+        });
+    }
+
+    if (btnPlayNextNow) {
+        btnPlayNextNow.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerNextEpisode();
+        });
+    }
+
+    if (btnDismissNext && nextEpCard) {
+        btnDismissNext.addEventListener('click', (e) => {
+            e.stopPropagation();
+            nextEpCard.classList.add('hide');
+            if (nextCountdownTimer) {
+                clearInterval(nextCountdownTimer);
+                nextCountdownTimer = null;
+            }
         });
     }
 
@@ -693,6 +772,23 @@ export function openCinemaPlayer({
                 lastProgressSave = now;
                 persistCurrentProgress();
             }
+
+            // Exibe card flutuante de proximo episodio nos ultimos 45 segundos
+            if (seriesInfo && seriesInfo.hasNext && !nextCardShown && nextEpCard && dur > 60 && (dur - currentSec) <= 45 && (dur - currentSec) > 2) {
+                nextCardShown = true;
+                nextEpCard.classList.remove('hide');
+                nextCountdownSec = Math.min(30, Math.max(5, Math.round(dur - currentSec)));
+                if (countdownEl) countdownEl.textContent = String(nextCountdownSec);
+                nextCountdownTimer = setInterval(() => {
+                    nextCountdownSec--;
+                    if (countdownEl) countdownEl.textContent = String(Math.max(0, nextCountdownSec));
+                    if (nextCountdownSec <= 0) {
+                        clearInterval(nextCountdownTimer);
+                        nextCountdownTimer = null;
+                        triggerNextEpisode();
+                    }
+                }, 1000);
+            }
         } else {
             timeCur.textContent = formatSeconds(currentSec);
             timeDur.textContent = '--:--';
@@ -766,6 +862,10 @@ export function openCinemaPlayer({
         btnPlay.querySelector('.material-icons').textContent = 'replay';
         persistCurrentProgress();
         releaseWakeLock();
+
+        if (seriesInfo && seriesInfo.hasNext && typeof seriesInfo.onPlayNext === 'function') {
+            triggerNextEpisode();
+        }
     });
 
     video.addEventListener('loadedmetadata', () => {
@@ -927,6 +1027,11 @@ export function openCinemaPlayer({
         } else if (key === '?' || key === 'h' || key === 'H') {
             e.preventDefault();
             openShortcutsModal();
+        } else if ((key === 'n' || key === 'N') && (e.shiftKey || e.altKey)) {
+            e.preventDefault();
+            if (seriesInfo && seriesInfo.hasNext) {
+                triggerNextEpisode();
+            }
         } else if (['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(key) || keyCode === 10009 || keyCode === 461 || keyCode === 27) {
             e.preventDefault();
             handleExit();
@@ -967,6 +1072,10 @@ export function openCinemaPlayer({
         Events.off(playbackManager, 'playbackstart', handleNavAway);
 
         releaseWakeLock();
+        if (nextCountdownTimer) {
+            clearInterval(nextCountdownTimer);
+            nextCountdownTimer = null;
+        }
         if (statusInterval) {
             clearInterval(statusInterval);
             statusInterval = null;

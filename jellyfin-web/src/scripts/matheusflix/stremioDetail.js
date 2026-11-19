@@ -3,9 +3,9 @@
  * Design System unificado, layout cinematográfico imersivo, botão de voltar e filtros de fontes.
  */
 
-import { checkIsFavorite, fetchDownloads, fetchSeriesMeta, searchTorrents, startDownload, toggleFavorite, deleteLocalMovie, deleteWatchHistory, renameLocalMovie } from './api';
+import { checkIsFavorite, fetchDownloads, fetchSeriesMeta, fetchSeasonTorrents, downloadSeason, searchTorrents, startDownload, toggleFavorite, deleteLocalMovie, deleteWatchHistory, renameLocalMovie } from './api';
 import { openCinemaPlayer, closeCinemaPlayer } from './cinemaPlayer';
-import { confirmDownloadModal, confirmDeleteFileModal, showActionMenuModal, promptTextModal } from './confirmModal';
+import { confirmDownloadModal, confirmSeasonDownloadModal, confirmDeleteFileModal, showActionMenuModal, promptTextModal } from './confirmModal';
 import { escapeHtml, normalizeMovie, normalizeStream, parseDuration, PLACEHOLDER_POSTER } from './utils';
 import toast from 'components/toast/toast';
 
@@ -142,11 +142,37 @@ export async function openStremioDetails(rawMovie) {
                 <div class="mf-stremio-right">
                     <!-- Seção de Temporadas e Episódios (Para Séries) -->
                     <div class="mf-series-episodes-section hide">
-                        <div class="mf-series-season-bar">
-                            <span class="mf-series-label">Temporada:</span>
-                            <select class="mf-series-season-select focusable"></select>
+                        <div class="mf-series-top-nav">
+                            <div class="mf-series-seasons-scroll-wrap">
+                                <span class="mf-series-label">Temporadas:</span>
+                                <div class="mf-series-seasons-pills"></div>
+                            </div>
+                            <button type="button" class="mf-btn-download-season focusable" title="Baixar toda a temporada selecionada para o computador">
+                                <span class="material-icons">cloud_download</span>
+                                <span class="mf-dl-season-label">Baixar Temporada Completa</span>
+                            </button>
                         </div>
-                        <div class="mf-series-episodes-list"></div>
+
+                        <!-- Barra de Navegação do Episódio Atual -->
+                        <div class="mf-series-ep-nav-header">
+                            <div class="mf-series-cur-ep-info">
+                                <span class="mf-series-cur-ep-badge">Episódio</span>
+                                <span class="mf-series-cur-ep-title">Carregando episódios...</span>
+                            </div>
+                            <div class="mf-series-nav-arrows">
+                                <button type="button" class="mf-btn-prev-ep focusable" title="Episódio Anterior" disabled>
+                                    <span class="material-icons">skip_previous</span> <span>Anterior</span>
+                                </button>
+                                <button type="button" class="mf-btn-next-ep focusable" title="Próximo Episódio">
+                                    <span>Próximo</span> <span class="material-icons">skip_next</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Scroller com Cards Ricos de Episódios -->
+                        <div class="mf-series-episodes-scroller">
+                            <div class="mf-series-episodes-list"></div>
+                        </div>
                     </div>
 
                     <div class="mf-stremio-streams-header">
@@ -387,18 +413,88 @@ export async function openStremioDetails(rawMovie) {
                 });
 
                 const seasons = Array.from(seasonMap.keys()).sort((a, b) => a - b);
-                const seasonSelect = modalEl.querySelector('.mf-series-season-select');
+                const seasonsPills = modalEl.querySelector('.mf-series-seasons-pills');
                 const epList = modalEl.querySelector('.mf-series-episodes-list');
-
-                seasons.forEach((s) => {
-                    const opt = document.createElement('option');
-                    opt.value = String(s);
-                    opt.textContent = `Temporada ${s} (${seasonMap.get(s).length} eps)`;
-                    seasonSelect.appendChild(opt);
-                });
+                const btnDownloadSeason = modalEl.querySelector('.mf-btn-download-season');
+                const curEpTitle = modalEl.querySelector('.mf-series-cur-ep-title');
+                const btnPrevEp = modalEl.querySelector('.mf-btn-prev-ep');
+                const btnNextEp = modalEl.querySelector('.mf-btn-next-ep');
 
                 let currentSeason = seasons[0] || 1;
                 let currentEp = (seasonMap.get(currentSeason) || [])[0] || { season: 1, number: 1, episode: 1, name: 'Episódio 1' };
+
+                const updateSeasonPillsUI = () => {
+                    seasonsPills.innerHTML = '';
+                    seasons.forEach((s) => {
+                        const sEps = seasonMap.get(s) || [];
+                        const pill = document.createElement('button');
+                        pill.type = 'button';
+                        pill.className = `mf-season-pill-btn focusable ${s === currentSeason ? 'active' : ''}`;
+                        pill.innerHTML = `
+                            <span>Temporada ${s}</span>
+                            <span class="mf-season-ep-count">(${sEps.length} eps)</span>
+                        `;
+                        pill.addEventListener('click', () => {
+                            if (currentSeason === s) return;
+                            currentSeason = s;
+                            updateSeasonPillsUI();
+                            const eps = seasonMap.get(currentSeason) || [];
+                            currentEp = eps[0] || { season: currentSeason, number: 1, episode: 1, name: 'Episódio 1' };
+                            renderEpisodesBar(currentSeason);
+                            loadEpisodeTorrents(currentEp);
+                        });
+                        seasonsPills.appendChild(pill);
+                    });
+
+                    if (btnDownloadSeason) {
+                        const curEps = seasonMap.get(currentSeason) || [];
+                        const dlLabel = btnDownloadSeason.querySelector('.mf-dl-season-label');
+                        if (dlLabel) {
+                            dlLabel.textContent = `Baixar Temporada ${currentSeason} Completa (${curEps.length} eps)`;
+                        }
+                    }
+                };
+
+                const updateEpNavArrows = (eps) => {
+                    const epNum = currentEp.number || currentEp.episode || 1;
+                    const idx = eps.findIndex(e => (e.number || e.episode || 1) === epNum);
+                    if (btnPrevEp) {
+                        btnPrevEp.disabled = idx <= 0;
+                        btnPrevEp.onclick = () => {
+                            if (idx > 0) {
+                                selectEpisode(eps[idx - 1]);
+                            }
+                        };
+                    }
+                    if (btnNextEp) {
+                        btnNextEp.disabled = idx >= eps.length - 1;
+                        btnNextEp.onclick = () => {
+                            if (idx < eps.length - 1) {
+                                selectEpisode(eps[idx + 1]);
+                            }
+                        };
+                    }
+                    if (curEpTitle) {
+                        curEpTitle.textContent = `T${currentSeason}E${epNum}: ${currentEp.name || `Episódio ${epNum}`}`;
+                    }
+                };
+
+                const selectEpisode = (ep) => {
+                    currentEp = ep;
+                    const eps = seasonMap.get(currentSeason) || [];
+                    updateEpNavArrows(eps);
+
+                    epList.querySelectorAll('.mf-episode-card').forEach((c) => {
+                        const cardEpNum = parseInt(c.getAttribute('data-ep-num'), 10);
+                        const isMatch = cardEpNum === (ep.number || ep.episode || 1);
+                        c.classList.toggle('active', isMatch);
+                        if (isMatch) {
+                            c.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                        }
+                    });
+
+                    loadEpisodeTorrents(currentEp);
+                };
 
                 const loadEpisodeTorrents = async (ep) => {
                     const listEl = modalEl.querySelector('.mf-stremio-streams-list');
@@ -424,17 +520,20 @@ export async function openStremioDetails(rawMovie) {
                             || (d.title && movie.title && d.title.toLowerCase().includes(movie.title.toLowerCase()))
                         );
 
+                        const currentSeasonEps = seasonMap.get(ep.season) || [];
+
                         renderStreams(
                             (data.torrents || []).map(normalizeStream).filter((s) => s.magnet),
                             movie,
                             modalEl,
                             data.localFile,
                             activeDl,
-                            ep
+                            ep,
+                            currentSeasonEps
                         );
                     } catch {
                         if (activeModal !== modalEl) return;
-                        renderStreams([], movie, modalEl, null, null, ep);
+                        renderStreams([], movie, modalEl, null, null, ep, seasonMap.get(ep.season) || []);
                     }
                 };
 
@@ -443,36 +542,111 @@ export async function openStremioDetails(rawMovie) {
                     const eps = seasonMap.get(seasonNum) || [];
                     eps.sort((a, b) => (a.number || a.episode || 1) - (b.number || b.episode || 1));
 
+                    updateEpNavArrows(eps);
+
                     eps.forEach((ep) => {
                         const epNum = ep.number || ep.episode || 1;
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        const isCurrent = ep === currentEp || epNum === (currentEp.number || currentEp.episode);
-                        btn.className = `mf-episode-chip focusable ${isCurrent ? 'active' : ''}`;
-                        btn.innerHTML = `
-                            <span class="mf-ep-chip-badge">E${String(epNum).padStart(2, '0')}</span>
-                            <span class="mf-ep-chip-title">${escapeHtml(ep.name || `Episódio ${epNum}`)}</span>
+                        const card = document.createElement('div');
+                        const isCurrent = (currentEp.number || currentEp.episode) === epNum;
+                        card.className = `mf-episode-card focusable ${isCurrent ? 'active' : ''}`;
+                        card.setAttribute('tabindex', '0');
+                        card.setAttribute('role', 'button');
+                        card.setAttribute('data-ep-num', String(epNum));
+                        card.title = `T${seasonNum}E${epNum}: ${ep.name || `Episódio ${epNum}`}`;
+
+                        const thumbSrc = ep.thumbnail || movie.backdrop || movie.poster || PLACEHOLDER_POSTER;
+
+                        card.innerHTML = `
+                            <div class="mf-ep-card-thumb-wrap">
+                                <img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(ep.name || `Episódio ${epNum}`)}" class="mf-ep-card-thumb" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" loading="lazy" />
+                                <div class="mf-ep-card-play-overlay"><span class="material-icons">play_circle</span></div>
+                                <span class="mf-ep-card-badge">E${String(epNum).padStart(2, '0')}</span>
+                            </div>
+                            <div class="mf-ep-card-content">
+                                <h4 class="mf-ep-card-title">${escapeHtml(ep.name || `Episódio ${epNum}`)}</h4>
+                                ${ep.overview || ep.description ? `<p class="mf-ep-card-overview">${escapeHtml(ep.overview || ep.description)}</p>` : ''}
+                                <div class="mf-ep-card-meta-row">
+                                    <span class="mf-ep-card-tag">T${seasonNum} • Ep ${epNum}</span>
+                                </div>
+                            </div>
                         `;
-                        btn.addEventListener('click', () => {
-                            epList.querySelectorAll('.mf-episode-chip').forEach((c) => {
-                                c.classList.remove('active');
-                            });
-                            btn.classList.add('active');
-                            currentEp = ep;
-                            loadEpisodeTorrents(currentEp);
+
+                        card.addEventListener('click', () => {
+                            selectEpisode(ep);
                         });
-                        epList.appendChild(btn);
+
+                        card.addEventListener('focus', () => {
+                            card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                        });
+
+                        card.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                selectEpisode(ep);
+                            } else if (e.key === 'ArrowRight') {
+                                const nextCard = card.nextElementSibling;
+                                if (nextCard && nextCard.classList.contains('mf-episode-card')) {
+                                    e.preventDefault();
+                                    nextCard.focus();
+                                }
+                            } else if (e.key === 'ArrowLeft') {
+                                const prevCard = card.previousElementSibling;
+                                if (prevCard && prevCard.classList.contains('mf-episode-card')) {
+                                    e.preventDefault();
+                                    prevCard.focus();
+                                }
+                            }
+                        });
+
+                        epList.appendChild(card);
                     });
                 };
 
-                seasonSelect.addEventListener('change', () => {
-                    currentSeason = parseInt(seasonSelect.value, 10) || 1;
-                    const eps = seasonMap.get(currentSeason) || [];
-                    currentEp = eps[0] || { season: currentSeason, number: 1, episode: 1, name: 'Episódio 1' };
-                    renderEpisodesBar(currentSeason);
-                    loadEpisodeTorrents(currentEp);
-                });
+                // Configurar Ação de Baixar Temporada Completa
+                if (btnDownloadSeason) {
+                    btnDownloadSeason.addEventListener('click', async () => {
+                        const curEps = seasonMap.get(currentSeason) || [];
+                        btnDownloadSeason.disabled = true;
 
+                        let seasonPacks = [];
+                        try {
+                            const res = await fetchSeasonTorrents(movie.imdbId, currentSeason, movie.title);
+                            seasonPacks = res.seasonPacks || [];
+                        } catch (err) {
+                            console.warn('[MatheusFlix] Não foi possível obter pacotes de temporada:', err.message);
+                        } finally {
+                            btnDownloadSeason.disabled = false;
+                        }
+
+                        const modalRes = await confirmSeasonDownloadModal({
+                            seriesTitle: movie.title,
+                            season: currentSeason,
+                            episodeCount: curEps.length,
+                            seasonPacks
+                        });
+
+                        if (!modalRes || !modalRes.confirmed) return;
+
+                        btnDownloadSeason.disabled = true;
+                        try {
+                            const dlRes = await downloadSeason({
+                                imdbId: movie.imdbId,
+                                seriesName: movie.title,
+                                season: currentSeason,
+                                magnet: modalRes.magnet || '',
+                                episodes: curEps
+                            });
+
+                            toast(dlRes.message || `Download da Temporada ${currentSeason} de "${movie.title}" iniciado!`);
+                        } catch (dlErr) {
+                            toast(`Erro ao iniciar download da temporada: ${dlErr.message}`);
+                        } finally {
+                            btnDownloadSeason.disabled = false;
+                        }
+                    });
+                }
+
+                updateSeasonPillsUI();
                 renderEpisodesBar(currentSeason);
                 loadEpisodeTorrents(currentEp);
                 return;
@@ -508,7 +682,7 @@ export async function openStremioDetails(rawMovie) {
     }
 }
 
-function renderStreams(streams, movie, modalEl, localFile = null, activeDl = null, currentEp = null) {
+function renderStreams(streams, movie, modalEl, localFile = null, activeDl = null, currentEp = null, seasonEpisodes = []) {
     const listEl = modalEl.querySelector('.mf-stremio-streams-list');
     const countEl = modalEl.querySelector('.mf-streams-count');
     const heroBtn = modalEl.querySelector('.mf-btn-hero-watch');
@@ -623,7 +797,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
             `Assistir T${currentEp.season}E${currentEp.number || currentEp.episode} (${best.quality})` :
             `Assistir (${best.quality})`;
         heroText.textContent = movie.resumePosition > 10 ? `Continuar (${best.quality})` : watchLabel;
-        heroBtn.onclick = () => playStream(best, movie, currentEp);
+        heroBtn.onclick = () => playStream(best, movie, currentEp, seasonEpisodes);
     }
 
     let currentFilter = 'all';
@@ -814,10 +988,10 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
             // Clicar em qualquer lugar da linha do torrent inicia a reprodução imediata!
             item.addEventListener('click', (e) => {
                 if (e.target.closest('.mf-btn-stream-dl')) return;
-                playStream(stream, movie, currentEp);
+                playStream(stream, movie, currentEp, seasonEpisodes);
             });
 
-            item.querySelector('.mf-btn-stream-play').addEventListener('click', () => playStream(stream, movie, currentEp));
+            item.querySelector('.mf-btn-stream-play').addEventListener('click', () => playStream(stream, movie, currentEp, seasonEpisodes));
             const dlBtn = item.querySelector('.mf-btn-stream-dl');
             dlBtn?.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -835,7 +1009,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                 }
 
                 const confirmed = await confirmDownloadModal({
-                    title: movie.title,
+                    title: currentEp ? `${movie.title} S${String(currentEp.season || 1).padStart(2, '0')}E${String(currentEp.number || currentEp.episode || 1).padStart(2, '0')}` : movie.title,
                     quality: stream.quality,
                     size: stream.size,
                     destination: dest
@@ -849,7 +1023,11 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                         imdbId: movie.imdbId,
                         title: currentEp ? `${movie.title} S${String(currentEp.season || 1).padStart(2, '0')}E${String(currentEp.number || currentEp.episode || 1).padStart(2, '0')}` : movie.title,
                         quality: stream.quality,
-                        filename: stream.label
+                        filename: stream.label,
+                        isSeries: Boolean(currentEp || movie.isSeries),
+                        seriesName: movie.title,
+                        season: currentEp ? currentEp.season : 1,
+                        episode: currentEp ? (currentEp.number || currentEp.episode || 1) : null
                     });
                     if (btn) {
                         btn.innerHTML = '<span class="material-icons" style="color: #38bdf8;">sync</span>';
@@ -857,7 +1035,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
                         btn.disabled = false;
                         btn.onclick = (ev) => {
                             ev.stopPropagation();
-                            playStream(stream, movie, currentEp);
+                            playStream(stream, movie, currentEp, seasonEpisodes);
                         };
                     }
 
@@ -922,7 +1100,7 @@ function renderStreams(streams, movie, modalEl, localFile = null, activeDl = nul
     }, 150);
 }
 
-function playStream(stream, movie, currentEp = null) {
+function playStream(stream, movie, currentEp = null, seasonEpisodes = []) {
     const hashMatch = (stream.magnet || '').match(/btih:([a-f0-9]{40}|[a-z2-7]{32})/i);
     const infoHash = (stream.infoHash || (hashMatch && hashMatch[1]) || '').toLowerCase();
 
@@ -935,6 +1113,9 @@ function playStream(stream, movie, currentEp = null) {
         `${movie.title} - T${currentEp.season}E${currentEp.number || currentEp.episode}: ${currentEp.name || 'Episódio'}` :
         movie.title;
 
+    const currentEpNum = currentEp ? (currentEp.number || currentEp.episode || 1) : 1;
+    const nextEp = seasonEpisodes.find(e => (e.number || e.episode) === currentEpNum + 1);
+
     launchPlayer({
         streamUrl: `/api/stream/${infoHash}?magnet=${encodeURIComponent(stream.magnet)}&title=${encodeURIComponent(titleDisplay)}`,
         title: titleDisplay,
@@ -945,6 +1126,38 @@ function playStream(stream, movie, currentEp = null) {
         movieId: movie.imdbId || movie.id,
         poster: movie.poster,
         resumePosition: movie.resumePosition || 0,
-        duration: parseDuration(movie)
+        duration: parseDuration(movie),
+        seriesInfo: currentEp ? {
+            seriesName: movie.title,
+            season: currentEp.season,
+            episode: currentEpNum,
+            episodeName: currentEp.name || `Episódio ${currentEpNum}`,
+            hasNext: Boolean(nextEp),
+            nextEpisode: nextEp,
+            episodesList: seasonEpisodes,
+            onPlayNext: () => {
+                if (nextEp) {
+                    toast(`Carregando próximo episódio: E${nextEp.number || nextEp.episode}...`);
+                    searchTorrents(movie.imdbId, movie.title, {
+                        type: 'series',
+                        season: nextEp.season,
+                        episode: nextEp.number || nextEp.episode
+                    }).then((data) => {
+                        const streams = (data.torrents || []).map(normalizeStream).filter((s) => s.magnet);
+                        const nextBest = streams.find(s => s.isDubbed && /1080p/i.test(s.quality))
+                            || streams.find(s => s.isDubbed)
+                            || streams.find(s => /1080p/i.test(s.quality))
+                            || streams[0];
+                        if (nextBest) {
+                            playStream(nextBest, movie, nextEp, seasonEpisodes);
+                        } else {
+                            toast('Nenhuma fonte encontrada para o próximo episódio.');
+                        }
+                    }).catch(() => {
+                        toast('Erro ao buscar fontes do próximo episódio.');
+                    });
+                }
+            }
+        } : null
     });
 }

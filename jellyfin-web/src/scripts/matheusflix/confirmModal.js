@@ -112,6 +112,72 @@ export function showConfirmModal({
 }
 
 /**
+ * Modal de Confirmação para Download da Temporada Completa
+ */
+export async function confirmSeasonDownloadModal({ seriesTitle, season, episodeCount, destinationPath, seasonPacks = [] }) {
+    const sStr = String(season || 1).padStart(2, '0');
+    const dest = destinationPath || `MatheusFlix\\Series\\${seriesTitle}\\Temporada ${sStr}`;
+
+    const packsHtml = seasonPacks.length > 0 ? `
+        <div style="margin-top: 14px;">
+            <label style="display:block;font-size:12px;font-weight:700;color:#A8A59C;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Fontes Disponíveis de Temporada Completa:</label>
+            <div class="mf-season-pack-options" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;">
+                ${seasonPacks.slice(0, 4).map((p, idx) => `
+                    <label class="mf-season-pack-radio focusable" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(250,249,245,0.06);border:1px solid rgba(250,249,245,0.1);border-radius:8px;cursor:pointer;font-size:13px;color:#FAF9F5;">
+                        <input type="radio" name="seasonPackMagnet" value="${escapeHtml(p.magnet)}" ${idx === 0 ? 'checked' : ''} style="accent-color:var(--brand,#e50914);" />
+                        <span style="font-weight:700;color:var(--brand,#e50914);">${escapeHtml(p.quality)}</span>
+                        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.label || p.title)}</span>
+                        ${p.size ? `<span style="font-size:11px;color:#A8A59C;">${escapeHtml(p.size)}</span>` : ''}
+                    </label>
+                `).join('')}
+            </div>
+        </div>
+    ` : '';
+
+    const htmlBody = `
+        <div class="mf-confirm-info-box">
+            <h4 class="mf-confirm-movie-name">${escapeHtml(seriesTitle)} - Temporada ${season}</h4>
+            <div class="mf-confirm-meta-row">
+                <span class="mf-confirm-badge mf-badge-quality">${episodeCount} episódios</span>
+                <span class="mf-confirm-badge mf-badge-size">Temporada Completa</span>
+            </div>
+            <p class="mf-confirm-desc">
+                Todos os ${episodeCount} episódios serão salvos organizados em uma pasta exclusiva da série no seu computador.
+            </p>
+            <div style="background:rgba(0,0,0,0.4);padding:8px 12px;border-radius:6px;border:1px solid rgba(250,249,245,0.08);margin-top:10px;font-size:12px;color:#A8A59C;">
+                <span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;color:#FAF9F5;">folder</span>
+                Pasta: <strong style="color:#FAF9F5;">${escapeHtml(dest)}</strong>
+            </div>
+            ${packsHtml}
+        </div>
+    `;
+
+    return new Promise((resolve) => {
+        showConfirmModal({
+            title: `Baixar Temporada ${season} Completa`,
+            subtitle: `${seriesTitle} • ${episodeCount} episódios`,
+            icon: 'cloud_download',
+            iconColor: 'var(--brand, #e50914)',
+            htmlBody,
+            confirmText: 'Baixar Temporada',
+            cancelText: 'Cancelar',
+            confirmType: 'primary'
+        }).then((confirmed) => {
+            if (!confirmed) {
+                resolve(null);
+                return;
+            }
+            const selectedRadio = document.querySelector('input[name="seasonPackMagnet"]:checked');
+            const selectedMagnet = selectedRadio ? selectedRadio.value : '';
+            resolve({
+                confirmed: true,
+                magnet: selectedMagnet
+            });
+        });
+    });
+}
+
+/**
  * Modal de Confirmação para Início de Download
  */
 export async function confirmDownloadModal({ title, quality, size }) {

@@ -283,4 +283,29 @@ export async function searchCatalogMovies(query) {
     return res.json();
 }
 
+export async function fetchSeasonTorrents(imdbId, season, title = '') {
+    /* eslint-disable-next-line compat/compat */
+    const params = new URLSearchParams({
+        imdb: imdbId,
+        season: String(season),
+        title
+    });
+    const res = await fetch(`${API_BASE}/series/season-torrents?${params.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+export async function downloadSeason({ imdbId, seriesName, season, magnet, quality, episodes }) {
+    const res = await fetch(`${API_BASE}/series/download-season`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imdbId, seriesName, season, magnet, quality, episodes })
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
 

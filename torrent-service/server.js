@@ -957,6 +957,208 @@ const server = http.createServer(async (req, res) => {
             }
         }
 
+        // Torrents para Temporada Completa (Season Packs)
+        if (pathname === '/api/series/season-torrents' && req.method === 'GET') {
+            const imdb = urlObj.searchParams.get('imdb') || urlObj.searchParams.get('imdbId');
+            const season = urlObj.searchParams.get('season') || '1';
+            const sNum = parseInt(season, 10) || 1;
+            const titleParam = (urlObj.searchParams.get('title') || '').trim();
+
+            if (!imdb) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Parameter imdb is required' }));
+                return;
+            }
+
+            try {
+                const streamPath = `series/${imdb}:${sNum}:1`;
+                console.log(`[TorrentService] Buscando Season Packs e torrents para temporada ${sNum} da série: ${imdb}`);
+
+                const [allStreamsRes, ptStreamsRes] = await Promise.allSettled([
+                    fetchJson(`https://torrentio.strem.fun/stream/${streamPath}.json`),
+                    fetchJson(`https://torrentio.strem.fun/language=portuguese/stream/${streamPath}.json`)
+                ]);
+
+                const streamsMap = new Map();
+                const addStream = (s) => {
+                    const hashMatch = (s.infoHash || s.url || '').match(/([a-fA-F0-9]{40})/i);
+                    const hash = hashMatch ? hashMatch[1].toLowerCase() : (s.infoHash || '');
+                    if (!hash || streamsMap.has(hash)) return;
+
+                    const titleStr = s.title || '';
+                    const nameStr = s.name || '';
+                    const full = `${nameStr} ${titleStr}`;
+
+                    const isSeasonPack = /(completa|complete|temporada[\s\.\-_]*\d+|season[\s\.\-_]*\d+|\bS\d+[\s\.\-_]*complete)/i.test(full)
+                        || (/([0-9]+(\.[0-9]+)?\s*GB)/i.test(titleStr) && parseFloat(titleStr.match(/([0-9]+(\.[0-9]+)?)\s*GB/i)?.[1] || '0') > 3.5);
+
+                    let quality = '1080p';
+                    if (/4k|2160p|uhd/i.test(full)) quality = '4K UHD';
+                    else if (/720p/i.test(full)) quality = '720p HD';
+                    else if (/1080p/i.test(full)) quality = '1080p';
+
+                    const isPt = /dublado|dual|nacional|portuguese|português|brasil|pt-br/i.test(full) || /(?:\uD83C\uDDE7\uD83C\uDDF7|\uD83C\uDDF5\uD83C\uDDF9)/.test(full);
+
+                    let magnet = '';
+                    if (s.infoHash) {
+                        magnet = `magnet:?xt=urn:btih:${s.infoHash}&dn=${encodeURIComponent(titleParam ? `${titleParam} S${String(sNum).padStart(2, '0')}` : 'Temporada')}`;
+                    }
+
+                    streamsMap.set(hash, {
+                        id: hash,
+                        infoHash: hash,
+                        name: nameStr,
+                        title: titleStr,
+                        label: titleStr.split('\n')[0] || titleStr,
+                        size: titleStr.match(/([0-9]+(\.[0-9]+)?\s*(GB|MB))/i)?.[0] || '',
+                        quality,
+                        magnet,
+                        isPt,
+                        isDubbed: /dublado|dual/i.test(full),
+                        isSeasonPack
+                    });
+                };
+
+                if (ptStreamsRes.status === 'fulfilled' && ptStreamsRes.value?.streams) {
+                    ptStreamsRes.value.streams.forEach(addStream);
+                }
+                if (allStreamsRes.status === 'fulfilled' && allStreamsRes.value?.streams) {
+                    allStreamsRes.value.streams.forEach(addStream);
+                }
+
+                const all = Array.from(streamsMap.values());
+                const seasonPacks = all.filter(s => s.isSeasonPack);
+
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({
+                    season: sNum,
+                    seasonPacks: seasonPacks.length > 0 ? seasonPacks : all,
+                    allStreams: all,
+                    totalPacks: seasonPacks.length
+                }));
+                return;
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: err.message, seasonPacks: [] }));
+                return;
+            }
+        }
+
+        // Iniciar Download de Temporada Completa em Pasta Organizada da Série
+        if (pathname === '/api/series/download-season' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    const { imdbId, seriesName, season, magnet, quality, episodes } = data;
+                    const sNum = parseInt(season, 10) || 1;
+                    const cleanSeries = (seriesName || 'Série').replace(/[\\/:*?"<>|]/g, '').trim();
+                    const sStr = `Temporada ${String(sNum).padStart(2, '0')}`;
+                    const targetPath = path.join(PLATFORM_DOWNLOAD_PATH, 'Series', cleanSeries, sStr);
+
+                    if (!fs.existsSync(targetPath)) {
+                        fs.mkdirSync(targetPath, { recursive: true });
+                    }
+
+                    if (magnet) {
+                        const hashMatch = magnet.match(/btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})/i);
+                        const infoHash = hashMatch ? hashMatch[1].toLowerCase() : null;
+
+                        if (!infoHash) {
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ error: 'Invalid magnet link' }));
+                            return;
+                        }
+
+                        const existing = getActiveTorrent(infoHash);
+                        if (!existing) {
+                            const metaItem = {
+                                id: infoHash,
+                                imdbId: imdbId || '',
+                                title: `${cleanSeries} - Temporada ${sNum} Completa`,
+                                quality: quality || '1080p',
+                                magnet,
+                                category: 'series',
+                                groupName: cleanSeries,
+                                isSeries: true,
+                                seriesName: cleanSeries,
+                                season: sNum,
+                                destinationPath: `MatheusFlix\\Series\\${cleanSeries}\\${sStr}`,
+                                savePath: targetPath,
+                                status: 'downloading',
+                                createdAt: new Date().toISOString()
+                            };
+                            downloadsRegistry.set(infoHash, metaItem);
+                            persistDownloads();
+
+                            client.add(magnet, { path: targetPath }, (t) => {
+                                console.log(`[TorrentService] Season pack download iniciado: "${t.name}" (${formatBytes(t.length)})`);
+                            });
+                        }
+
+                        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                        res.end(JSON.stringify({
+                            success: true,
+                            message: `Download da Temporada ${sNum} de ${cleanSeries} iniciado!`,
+                            savePath: targetPath,
+                            destinationPath: `MatheusFlix\\Series\\${cleanSeries}\\${sStr}`
+                        }));
+                        return;
+                    }
+
+                    // Download em lote de episódios individuais
+                    let enqueued = 0;
+                    if (Array.isArray(episodes) && episodes.length > 0) {
+                        for (const ep of episodes) {
+                            if (ep.magnet) {
+                                const hashMatch = ep.magnet.match(/btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})/i);
+                                const epHash = hashMatch ? hashMatch[1].toLowerCase() : null;
+                                if (epHash && !getActiveTorrent(epHash)) {
+                                    const epNum = ep.number || ep.episode || 1;
+                                    const epTitle = `${cleanSeries} S${String(sNum).padStart(2, '0')}E${String(epNum).padStart(2, '0')}`;
+                                    const metaItem = {
+                                        id: epHash,
+                                        imdbId: imdbId || '',
+                                        title: epTitle,
+                                        quality: ep.quality || quality || '1080p',
+                                        magnet: ep.magnet,
+                                        category: 'series',
+                                        groupName: cleanSeries,
+                                        isSeries: true,
+                                        seriesName: cleanSeries,
+                                        season: sNum,
+                                        episode: epNum,
+                                        destinationPath: `MatheusFlix\\Series\\${cleanSeries}\\${sStr}`,
+                                        savePath: targetPath,
+                                        status: 'downloading',
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    downloadsRegistry.set(epHash, metaItem);
+                                    client.add(ep.magnet, { path: targetPath });
+                                    enqueued++;
+                                }
+                            }
+                        }
+                        persistDownloads();
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        enqueued,
+                        message: `${enqueued} episódios da Temporada ${sNum} colocados para download!`,
+                        savePath: targetPath,
+                        destinationPath: `MatheusFlix\\Series\\${cleanSeries}\\${sStr}`
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+            return;
+        }
+
         // Trending Movies (Backward-compatible, powered by SQLite)
         if (pathname === '/api/movies/trending' && req.method === 'GET') {
             const genre = urlObj.searchParams.get('genre') || 'all';
@@ -1619,7 +1821,7 @@ const server = http.createServer(async (req, res) => {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body);
-                    const { magnet, imdbId, title, quality, filename } = data;
+                    const { magnet, imdbId, title, quality, filename, isSeries, seriesName, season, episode } = data;
                     if (!magnet) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'magnet URL is required' }));
@@ -1642,7 +1844,7 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-                    const org = getOrganizedDownloadPath(PLATFORM_DOWNLOAD_PATH, title, filename);
+                    const org = getOrganizedDownloadPath(PLATFORM_DOWNLOAD_PATH, title, filename, { isSeries, seriesName, season, episode });
                     try {
                         if (!fs.existsSync(org.targetPath)) {
                             fs.mkdirSync(org.targetPath, { recursive: true });
@@ -1661,6 +1863,10 @@ const server = http.createServer(async (req, res) => {
                         magnet: magnet,
                         category: org.category,
                         groupName: org.groupName,
+                        isSeries: Boolean(isSeries || org.category === 'series'),
+                        seriesName: seriesName || org.groupName,
+                        season: season || null,
+                        episode: episode || null,
                         destinationPath: org.displayPath,
                         savePath: org.targetPath,
                         status: 'downloading',
