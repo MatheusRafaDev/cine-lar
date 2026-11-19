@@ -469,6 +469,45 @@ const UserSettingsPage: FC = () => {
                             )}
                         </div>
                     </div>
+
+                    {/* Conexão Rápida / Parear Smart TV */}
+                    <div className='mf-settings-card' style={{ gridColumn: 'span 2' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                                <span className='material-icons' style={{ color: '#FF3847', fontSize: 32 }} aria-hidden='true'>
+                                    phonelink
+                                </span>
+                                <div>
+                                    <h3 className='mf-settings-card-title' style={{ marginBottom: 4, margin: 0 }}>
+                                        Conexão Rápida (Smart TV)
+                                    </h3>
+                                    <div style={{ fontSize: 14, color: '#A8A59C' }}>
+                                        Autorize sua Smart TV inserindo o código de 6 dígitos exibido na tela da TV.
+                                    </div>
+                                </div>
+                            </div>
+                            <LinkButton
+                                href='#/quickconnect'
+                                className='mf-btn-action-outline focusable'
+                                style={{
+                                    background: 'linear-gradient(135deg, #FF3847 0%, #E50914 100%)',
+                                    color: '#FAF9F5',
+                                    border: 'none',
+                                    fontWeight: 700,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    padding: '10px 22px',
+                                    borderRadius: 10,
+                                    boxShadow: '0 4px 14px rgba(229, 9, 20, 0.4)',
+                                    textDecoration: 'none'
+                                }}
+                            >
+                                <span className='material-icons' style={{ fontSize: 18 }}>vpn_key</span>
+                                <span>Digitar Código da TV</span>
+                            </LinkButton>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Administração do Servidor (se for Admin) */}
