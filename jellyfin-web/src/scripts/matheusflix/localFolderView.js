@@ -4,9 +4,9 @@
  * Clique no pôster = assistir.
  */
 
-import { cancelDownload, fetchDownloads, fetchLocalMovies, rescanLocalMovies, deleteLocalMovie } from './api';
+import { cancelDownload, fetchDownloads, fetchLocalMovies, rescanLocalMovies, deleteLocalMovie, renameLocalMovie, updateSavePath } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
-import { confirmDeleteModal, confirmDeleteFileModal } from './confirmModal';
+import { confirmDeleteModal, confirmDeleteFileModal, promptTextModal } from './confirmModal';
 import { escapeHtml, normalizeMovie, parseDuration, PLACEHOLDER_POSTER } from './utils';
 import toast from 'components/toast/toast';
 
@@ -24,7 +24,7 @@ export function renderLocalFolderView(container) {
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;margin-bottom:32px;">
                 <div>
                     <div class="t" style="font-size:36px;font-weight:700;color:#FAF9F5;">Pasta Local</div>
-                    <div class="m" style="margin-top:6px;color:#A8A59C;font-size:15px;">${escapeHtml(savedPath)} · reprodução direta do disco</div>
+                    <div class="m mf-local-path-label" style="margin-top:6px;color:#A8A59C;font-size:15px;">${escapeHtml(savedPath)} · reprodução direta do disco</div>
                 </div>
                 <div class="mf-local-category-bar" style="display:flex;gap:12px;flex-wrap:wrap;">
                     <button type="button" class="mf-category-chip c on focusable active" data-view="all">
@@ -39,16 +39,22 @@ export function renderLocalFolderView(container) {
                 </div>
             </div>
 
-            <!-- Toolbar de Busca e Sincronizacao -->
+            <!-- Toolbar de Busca, Alterar Pasta e Sincronizacao -->
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:28px;">
                 <div class="mf-search-box" style="flex:1;max-width:440px;">
                     <span class="material-icons mf-search-icon">search</span>
                     <input type="search" class="mf-search-input mf-local-search-input focusable" placeholder="Filtrar arquivos locais..." />
                 </div>
-                <button type="button" class="btn g mf-btn-rescan-folder focusable" style="height:44px;padding:0 22px;border-radius:12px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
-                    <span class="material-icons" style="font-size:18px;">sync</span>
-                    Sincronizar pasta
-                </button>
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <button type="button" class="btn g mf-btn-change-folder focusable" style="height:44px;padding:0 20px;border-radius:12px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+                        <span class="material-icons" style="font-size:18px;">folder_open</span>
+                        Alterar pasta
+                    </button>
+                    <button type="button" class="btn g mf-btn-rescan-folder focusable" style="height:44px;padding:0 22px;border-radius:12px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+                        <span class="material-icons" style="font-size:18px;">sync</span>
+                        Sincronizar pasta
+                    </button>
+                </div>
             </div>
 
             <div class="mf-downloads-strip hide"></div>
@@ -132,6 +138,35 @@ export function renderLocalFolderView(container) {
                 toast(`Erro ao atualizar a pasta: ${err.message}`);
             } finally {
                 btnRescan.disabled = false;
+            }
+        });
+    }
+
+    const btnChangeFolder = container.querySelector('.mf-btn-change-folder');
+    if (btnChangeFolder) {
+        btnChangeFolder.addEventListener('click', async () => {
+            const current = localStorage.getItem('mf_save_path') || 'D:\\filmes';
+            const newPath = await promptTextModal({
+                title: 'Alterar pasta de filmes locais',
+                subtitle: 'Defina a pasta onde seus vídeos e downloads são armazenados no computador.',
+                icon: 'folder_open',
+                label: 'Caminho absoluto da pasta:',
+                defaultValue: current,
+                placeholder: 'D:\\filmes',
+                confirmText: 'Salvar pasta',
+                cancelText: 'Cancelar'
+            });
+            if (newPath && newPath !== current) {
+                try {
+                    await updateSavePath(newPath);
+                    localStorage.setItem('mf_save_path', newPath);
+                    toast(`Pasta alterada para: ${newPath}`);
+                    const pathLabel = container.querySelector('.mf-local-path-label');
+                    if (pathLabel) pathLabel.textContent = `${newPath} · reprodução direta do disco`;
+                    load(true);
+                } catch (err) {
+                    toast(`Erro ao alterar pasta: ${err.message}`);
+                }
             }
         });
     }
@@ -266,20 +301,58 @@ function createMovieCard(m) {
     card.innerHTML = `
         <div class="mf-poster-wrap">
             <img src="${escapeHtml(m.poster || PLACEHOLDER_POSTER)}" alt="Pôster de ${escapeHtml(m.title)}" loading="lazy" class="mf-poster-img" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" />
-            <button type="button" class="mf-btn-delete-local focusable" title="Excluir arquivo do disco">
-                <span class="material-icons" style="font-size: 17px;">delete_outline</span>
-            </button>
+            <div class="mf-card-top-actions">
+                <button type="button" class="mf-btn-rename-local focusable" title="Alterar título ou renomear arquivo">
+                    <span class="material-icons" style="font-size: 15px;">edit</span>
+                </button>
+                <button type="button" class="mf-btn-delete-local focusable" title="Excluir arquivo do disco">
+                    <span class="material-icons" style="font-size: 15px;">delete_outline</span>
+                </button>
+            </div>
             <div class="mf-poster-play-hover"><span class="material-icons mf-play-icon-large">play_circle_filled</span></div>
             ${franchiseTag}
         </div>
         <div class="mf-movie-info" style="padding: 8px 2px 4px 2px; text-align: left; background: transparent; width: 100%; box-sizing: border-box;">
             <h4 class="mf-movie-title" style="color: #ffffff !important; font-size: 13px; font-weight: 600; margin: 0 0 2px 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(m.title)}</h4>
             <div class="mf-movie-meta-row" style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #94a3b8; width: 100%;">
-                <span class="mf-meta-year" style="color: #cbd5e1 !important; font-weight: 500;">${escapeHtml(m.year)}</span>
-                <span class="mf-meta-genre" style="color: #22c55e !important; font-weight: 600;">${escapeHtml(m.sizeFormatted || '')}</span>
+                <span class="mf-meta-year" style="color: #FAF9F5 !important; font-weight: 500;">${escapeHtml(m.year)}</span>
+                <span class="mf-meta-genre" style="color: #D97757 !important; font-weight: 600;">${escapeHtml(m.sizeFormatted || '')}</span>
             </div>
         </div>
     `;
+
+    const btnRename = card.querySelector('.mf-btn-rename-local');
+    if (btnRename) {
+        btnRename.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const newTitle = await promptTextModal({
+                title: 'Alterar nome do filme',
+                subtitle: m.videoPath,
+                icon: 'edit',
+                label: 'Novo título para o filme:',
+                defaultValue: m.title,
+                placeholder: 'Ex: Interestelar (2014)',
+                confirmText: 'Salvar',
+                cancelText: 'Cancelar'
+            });
+            if (newTitle && newTitle !== m.title) {
+                btnRename.disabled = true;
+                try {
+                    const res = await renameLocalMovie(m.videoPath, newTitle);
+                    toast('Arquivo renomeado com sucesso.');
+                    m.title = newTitle;
+                    if (res?.newPath) m.videoPath = res.newPath;
+                    const titleEl = card.querySelector('.mf-movie-title');
+                    if (titleEl) titleEl.textContent = newTitle;
+                    card.title = `Assistir ${newTitle}`;
+                } catch (err) {
+                    toast(`Erro ao renomear: ${err.message}`);
+                } finally {
+                    btnRename.disabled = false;
+                }
+            }
+        });
+    }
 
     const btnDel = card.querySelector('.mf-btn-delete-local');
     if (btnDel) {

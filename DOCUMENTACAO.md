@@ -264,6 +264,30 @@ Inicia um download permanente via magnet link.
 
 #### `DELETE /api/downloads/:infoHash`
 Cancela um download ativo ou remove o registro da lista.
+- **Query Params:**
+  - `deleteFiles`: `true` (padrão) para apagar os arquivos baixados do computador; `false` para remover somente o registro da lista mantendo o arquivo no disco.
+
+#### `POST /api/downloads/rename`
+Altera o título de exibição de um download ativo ou concluído.
+- **Corpo:**
+```json
+{
+  "id": "infoHash",
+  "newTitle": "Novo Título do Filme (2024)"
+}
+```
+
+#### `GET /api/settings/save-path`
+Retorna a pasta configurada atualmente para downloads e vídeos locais.
+
+#### `POST /api/settings/save-path`
+Altera o diretório raiz de downloads e biblioteca local no computador.
+- **Corpo:**
+```json
+{
+  "savePath": "D:\\filmes"
+}
+```
 
 ---
 
@@ -275,12 +299,22 @@ Varre e lista todos os arquivos de video armazenados na pasta configurada.
 #### `POST /api/local-movies/rescan`
 Forca uma nova varredura completa do disco local.
 
-#### `DELETE /api/local/file`
-Exclui um arquivo de video do disco local.
+#### `POST /api/local/rename`
+Renomeia um arquivo de vídeo (e legendas pareadas) diretamente no disco.
 - **Corpo:**
 ```json
 {
-  "filePath": "D:\\filmes\\FilmeExemplo.mp4"
+  "filePath": "D:\\filmes\\Interestelar.2014.1080p.mp4",
+  "newTitle": "Interestelar (2014)"
+}
+```
+
+#### `DELETE /api/local/file`
+Exclui um arquivo de video do disco local, removendo legendas associadas e diretórios vazios.
+- **Corpo:**
+```json
+{
+  "path": "D:\\filmes\\FilmeExemplo.mp4"
 }
 ```
 

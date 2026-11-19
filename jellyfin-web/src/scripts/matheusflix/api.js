@@ -77,8 +77,8 @@ export async function fetchDownloads() {
     return res.json();
 }
 
-export async function cancelDownload(id) {
-    const res = await fetch(`${API_BASE}/downloads/${id}`, { method: 'DELETE' });
+export async function cancelDownload(id, deleteFiles = true) {
+    const res = await fetch(`${API_BASE}/downloads/${id}?deleteFiles=${deleteFiles ? 'true' : 'false'}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
 }
@@ -206,6 +206,51 @@ export async function deleteLocalMovie(filePath) {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: filePath })
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+export async function renameLocalMovie(filePath, newTitle) {
+    const res = await fetch(`${API_BASE}/local/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath, newTitle })
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+export async function renameDownload(id, newTitle) {
+    const res = await fetch(`${API_BASE}/downloads/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, newTitle })
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+export async function fetchSavePath() {
+    const res = await fetch(`${API_BASE}/settings/save-path`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+export async function updateSavePath(savePath) {
+    const res = await fetch(`${API_BASE}/settings/save-path`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ savePath })
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));

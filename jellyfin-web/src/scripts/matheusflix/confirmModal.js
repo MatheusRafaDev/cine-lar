@@ -221,3 +221,109 @@ export async function confirmDropMovieModal({ title }) {
     });
 }
 
+/**
+ * Modal de Entrada de Texto Estilo Cinelar TV para Renomear / Alterar
+ */
+export function promptTextModal({
+    title = 'Alterar',
+    subtitle = '',
+    icon = 'edit',
+    iconColor = '#FAF9F5',
+    label = 'Novo valor:',
+    defaultValue = '',
+    placeholder = '',
+    confirmText = 'Salvar',
+    cancelText = 'Cancelar'
+}) {
+    return new Promise((resolve) => {
+        if (activeConfirmDialog) {
+            activeConfirmDialog.remove();
+            activeConfirmDialog = null;
+        }
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'mf-confirm-backdrop';
+        activeConfirmDialog = backdrop;
+
+        backdrop.innerHTML = `
+            <div class="mf-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="mfPromptTitle">
+                <div class="mf-confirm-header">
+                    <div class="mf-confirm-icon-wrap" style="color: ${iconColor};">
+                        <span class="material-icons mf-confirm-icon">${icon}</span>
+                    </div>
+                    <div class="mf-confirm-header-text">
+                        <h3 id="mfPromptTitle" class="mf-confirm-title">${escapeHtml(title)}</h3>
+                        ${subtitle ? `<p class="mf-confirm-subtitle">${escapeHtml(subtitle)}</p>` : ''}
+                    </div>
+                    <button type="button" class="mf-confirm-close-btn focusable" title="Fechar (Esc)"><span class="material-icons" style="font-size: 18px;">close</span></button>
+                </div>
+
+                <div class="mf-confirm-body">
+                    ${label ? `<label class="mf-confirm-label" style="display:block;font-size:14px;color:#A8A59C;margin-bottom:8px;">${escapeHtml(label)}</label>` : ''}
+                    <input type="text" class="mf-confirm-input focusable" value="${escapeHtml(defaultValue)}" placeholder="${escapeHtml(placeholder)}" />
+                </div>
+
+                <div class="mf-confirm-footer">
+                    <button type="button" class="mf-confirm-btn-cancel focusable">${escapeHtml(cancelText)}</button>
+                    <button type="button" class="mf-confirm-btn-action mf-confirm-btn-primary focusable">${escapeHtml(confirmText)}</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(backdrop);
+
+        const input = backdrop.querySelector('.mf-confirm-input');
+        const btnCancel = backdrop.querySelector('.mf-confirm-btn-cancel');
+        const btnConfirm = backdrop.querySelector('.mf-confirm-btn-action');
+        const btnClose = backdrop.querySelector('.mf-confirm-close-btn');
+
+        let isClosed = false;
+        const cleanup = (result) => {
+            if (isClosed) return;
+            isClosed = true;
+            window.removeEventListener('keydown', handleKey);
+            backdrop.classList.add('mf-confirm-closing');
+            setTimeout(() => {
+                backdrop.remove();
+                if (activeConfirmDialog === backdrop) {
+                    activeConfirmDialog = null;
+                }
+            }, 180);
+            resolve(result);
+        };
+
+        const handleKey = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                cleanup(null);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = input.value.trim();
+                cleanup(val || defaultValue);
+            }
+        };
+
+        btnCancel.addEventListener('click', () => cleanup(null));
+        btnClose.addEventListener('click', () => cleanup(null));
+        btnConfirm.addEventListener('click', () => {
+            const val = input.value.trim();
+            cleanup(val || defaultValue);
+        });
+
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) {
+                cleanup(null);
+            }
+        });
+
+        window.addEventListener('keydown', handleKey);
+
+        setTimeout(() => {
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }, 100);
+    });
+}
+

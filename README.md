@@ -209,11 +209,13 @@ O backend expoe endpoints REST para integracao completa com o frontend:
 ### Gerenciador de Downloads
 - `GET /api/downloads` - Lista todos os downloads ativos e concluidos.
 - `POST /api/downloads/start` - Inicia um novo download via magnet link.
-- `DELETE /api/downloads/:infoHash` - Cancela o download e opcionalmente remove arquivos locais.
+- `POST /api/downloads/rename` - Altera o titulo exibido para um download.
+- `DELETE /api/downloads/:infoHash` - Cancela o download com opcao de exclusao de arquivos do computador (`deleteFiles=true|false`).
 
 ### Midia Local
 - `GET /api/local-movies` - Lista todos os filmes e series encontrados na pasta local.
 - `POST /api/local-movies/rescan` - Dispara uma nova varredura completa no disco.
+- `POST /api/local/rename` - Renomeia arquivos e legendas pareadas diretamente no disco.
 - `DELETE /api/local/file` - Exclui um arquivo do disco permanentemente.
 
 ---

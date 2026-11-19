@@ -604,7 +604,7 @@ export function invalidateLocalCache() {
     lastScanTime = 0;
 }
 
-export function deleteLocalFile(targetPath) {
+export function deleteLocalFile(targetPath, baseDir = 'D:\\filmes') {
     if (!fs.existsSync(targetPath)) return false;
 
     const stat = fs.statSync(targetPath);
@@ -620,9 +620,9 @@ export function deleteLocalFile(targetPath) {
             }
         }
 
-        // Se o diretório pai for uma pasta específica do filme dentro de D:\filmes e estiver vazia, remove a pasta
+        // Se o diretório pai for uma pasta específica do filme dentro da pasta base e estiver vazia, remove a pasta
         const parentDir = path.dirname(targetPath);
-        const allowedBase = path.resolve('D:\\filmes');
+        const allowedBase = path.resolve(baseDir);
         if (path.resolve(parentDir) !== allowedBase && path.resolve(parentDir).startsWith(allowedBase)) {
             try {
                 const remaining = fs.readdirSync(parentDir);
@@ -637,5 +637,44 @@ export function deleteLocalFile(targetPath) {
         return true;
     }
     return false;
+}
+
+export function renameLocalFile(targetPath, newName, baseDir = 'D:\\filmes') {
+    if (!fs.existsSync(targetPath)) {
+        throw new Error('Arquivo não encontrado no disco');
+    }
+    const cleanName = newName.replace(/[<>:"/\\|?*]/g, '').trim();
+    if (!cleanName) {
+        throw new Error('Novo nome inválido');
+    }
+
+    const stat = fs.statSync(targetPath);
+    if (!stat.isFile()) {
+        throw new Error('O caminho fornecido não é um arquivo');
+    }
+
+    const ext = path.extname(targetPath);
+    const parentDir = path.dirname(targetPath);
+    const newFileName = cleanName.toLowerCase().endsWith(ext.toLowerCase()) ? cleanName : `${cleanName}${ext}`;
+    const newFilePath = path.join(parentDir, newFileName);
+
+    if (fs.existsSync(newFilePath) && newFilePath.toLowerCase() !== targetPath.toLowerCase()) {
+        throw new Error('Já existe um arquivo com esse nome nesta pasta');
+    }
+
+    fs.renameSync(targetPath, newFilePath);
+
+    // Renomear também legendas associadas (.srt, .vtt) se existirem
+    const oldBase = targetPath.slice(0, -ext.length);
+    const newBase = newFilePath.slice(0, -ext.length);
+    for (const subExt of ['.srt', '.vtt', '.nfo']) {
+        const oldSub = oldBase + subExt;
+        const newSub = newBase + subExt;
+        if (fs.existsSync(oldSub)) {
+            try { fs.renameSync(oldSub, newSub); } catch {}
+        }
+    }
+
+    return newFilePath;
 }
 

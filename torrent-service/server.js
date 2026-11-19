@@ -8,7 +8,7 @@ import WebTorrent from 'webtorrent';
 import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites, isUserFavorite, toggleUserFavorite, updateWatchProgress, getWatchHistory, deleteWatchHistory } from './db.js';
 import { seedCatalog, scanLocalMovies } from './seeder.js';
 import { askAiMovieRecommendations } from './aiSearch.js';
-import { getLocalLibrary, streamLocalVideo, deleteLocalFile, invalidateLocalCache } from './localScanner.js';
+import { getLocalLibrary, streamLocalVideo, deleteLocalFile, renameLocalFile, invalidateLocalCache } from './localScanner.js';
 import { getOrganizedDownloadPath, groupMediaLibrary } from './organizer.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1299,12 +1299,55 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-                    deleteLocalFile(filePath);
+                    deleteLocalFile(filePath, SAVE_PATH);
                     invalidateLocalCache();
                     refreshJellyfinLibrary();
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     res.end(JSON.stringify({ success: true, message: 'Arquivo excluído do computador com sucesso' }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+            return;
+        }
+
+        // Rename local movie / video file
+        if (pathname === '/api/local/rename' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = body ? JSON.parse(body) : {};
+                    const { filePath, newTitle } = data;
+                    if (!filePath || !newTitle) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Parâmetros filePath e newTitle são obrigatórios' }));
+                        return;
+                    }
+
+                    const allowedBase = path.resolve(SAVE_PATH).toLowerCase();
+                    const targetPath = path.resolve(filePath).toLowerCase();
+
+                    if (!targetPath.startsWith(allowedBase)) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Acesso negado: só é permitido alterar arquivos da pasta de filmes' }));
+                        return;
+                    }
+
+                    const newPath = renameLocalFile(filePath, newTitle, SAVE_PATH);
+                    invalidateLocalCache();
+                    scanLocalMovies(SAVE_PATH);
+                    refreshJellyfinLibrary();
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        message: 'Arquivo renomeado com sucesso',
+                        oldPath: filePath,
+                        newPath
+                    }));
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: e.message }));
@@ -1682,23 +1725,71 @@ const server = http.createServer(async (req, res) => {
             const id = pathname.replace('/api/downloads/', '').trim().toLowerCase();
             const item = downloadsRegistry.get(id);
             const torrent = getActiveTorrent(id);
+            const deleteFiles = urlObj.searchParams.get('deleteFiles') !== 'false';
 
-            console.log(`[TorrentService] Cancelando download e removendo da pasta local: ${id} ("${item?.title || torrent?.name || 'desconhecido'}")`);
+            console.log(`[TorrentService] Removendo download: ${id} ("${item?.title || torrent?.name || 'desconhecido'}"), deleteFiles=${deleteFiles}`);
 
-            cleanupCancelledDownload(item, torrent, SAVE_PATH);
+            if (deleteFiles) {
+                cleanupCancelledDownload(item, torrent, SAVE_PATH);
+            } else if (torrent) {
+                try {
+                    torrent.destroy({ destroyStore: false });
+                } catch (_) {}
+            }
 
             downloadsRegistry.delete(id);
             persistDownloads();
 
-            invalidateLocalCache();
-            scanLocalMovies(SAVE_PATH);
-            refreshJellyfinLibrary();
+            if (deleteFiles) {
+                invalidateLocalCache();
+                scanLocalMovies(SAVE_PATH);
+                refreshJellyfinLibrary();
+            }
 
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({
                 success: true,
-                message: 'Download cancelado e removido da pasta local com sucesso'
+                message: deleteFiles ? 'Download e arquivos excluídos do computador com sucesso' : 'Registro removido da lista'
             }));
+            return;
+        }
+
+        // Rename download title
+        if (pathname === '/api/downloads/rename' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const data = body ? JSON.parse(body) : {};
+                    const { id, newTitle } = data;
+                    if (!id || !newTitle) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Parâmetros id e newTitle são obrigatórios' }));
+                        return;
+                    }
+
+                    const item = downloadsRegistry.get(id.toLowerCase());
+                    if (!item) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Download não encontrado' }));
+                        return;
+                    }
+
+                    item.title = newTitle.trim();
+                    persistDownloads();
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        message: 'Título do download alterado com sucesso',
+                        id,
+                        title: item.title
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
             return;
         }
 
