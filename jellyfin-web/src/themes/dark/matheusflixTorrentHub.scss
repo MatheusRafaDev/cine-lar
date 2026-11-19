@@ -5,38 +5,39 @@
 
 :root {
     /* 1. Cores Base (DESIGN.md) */
-    --bg-0: #141414;
-    --bg-1: #1f1f1f;
-    --bg-2: #2a2a2a;
-    --line: #3a3a3a;
-    --text-1: #ffffff;
-    --text-2: #b3b3b3;
-    --text-3: #808080;
+    --bg-0: #141413;
+    --bg-1: #1E1D1B;
+    --bg-2: #282724;
+    --line: rgba(250, 249, 245, 0.1);
+    --text-1: #FAF9F5;
+    --text-2: #A8A59C;
+    --text-3: #737067;
     --brand: #e50914;
     --brand-hover: #f6121d;
     --brand-press: #b20710;
-    --success: #46d369;
+    --accent-warm: #D97757;
+    --success: #22c55e;
     --warning: #f5a623;
-    --danger: #ff4d4f;
+    --danger: #e50914;
 
     /* 2. Tipografia Cinelar TV */
     --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
     --font-editorial: var(--font-serif);
-    --r-btn: 4px;
-    --r-card: 6px;
-    --r-modal: 8px;
-    --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.6);
+    --r-btn: 999px;
+    --r-card: 14px;
+    --r-modal: 20px;
+    --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.65);
 
     /* 3. Mapeamento de Compatibilidade para a Interface */
     --mf-bg-app: var(--bg-0);
     --mf-bg-surface: var(--bg-1);
     --mf-bg-card: var(--bg-1);
     --mf-bg-card-hover: var(--bg-2);
-    --mf-bg-glass: rgba(31, 31, 31, 0.85);
-    --mf-bg-glass-strong: rgba(20, 20, 20, 0.95);
-    --mf-bg-glass-card: rgba(255, 255, 255, 0.04);
-    --mf-bg-glass-card-hover: rgba(255, 255, 255, 0.08);
+    --mf-bg-glass: rgba(30, 29, 27, 0.85);
+    --mf-bg-glass-strong: rgba(20, 20, 19, 0.95);
+    --mf-bg-glass-card: rgba(250, 249, 245, 0.04);
+    --mf-bg-glass-card-hover: rgba(250, 249, 245, 0.08);
 
     --mf-accent: var(--brand);
     --mf-accent-light: var(--brand-hover);
@@ -46,10 +47,10 @@
     --mf-accent-gradient: linear-gradient(135deg, #b20710 0%, #e50914 100%);
 
     --mf-color-success: var(--success);
-    --mf-color-success-light: #5de47e;
+    --mf-color-success-light: #4ade80;
     --mf-color-success-glow: none;
-    --mf-color-success-gradient: linear-gradient(135deg, #2eb351 0%, #46d369 100%);
-    --mf-color-info: #38bdf8;
+    --mf-color-success-gradient: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    --mf-color-info: #D97757;
     --mf-color-warning: var(--warning);
     --mf-color-danger: var(--danger);
 
@@ -57,19 +58,19 @@
     --mf-text-primary: var(--text-1);
     --mf-text-secondary: var(--text-2);
     --mf-text-muted: var(--text-3);
-    --mf-text-dim: #666666;
+    --mf-text-dim: #737067;
 
-    --mf-border-subtle: rgba(255, 255, 255, 0.08);
-    --mf-border-medium: rgba(255, 255, 255, 0.12);
-    --mf-border-strong: rgba(255, 255, 255, 0.2);
+    --mf-border-subtle: rgba(250, 249, 245, 0.08);
+    --mf-border-medium: rgba(250, 249, 245, 0.12);
+    --mf-border-strong: rgba(250, 249, 245, 0.2);
     --mf-border-accent: rgba(229, 9, 20, 0.6);
-    --mf-border-success: rgba(70, 211, 105, 0.5);
+    --mf-border-success: rgba(34, 197, 94, 0.5);
 
-    --mf-radius-xs: var(--r-btn);
+    --mf-radius-xs: 6px;
     --mf-radius-sm: var(--r-card);
     --mf-radius-md: var(--r-modal);
-    --mf-radius-lg: 6px;
-    --mf-radius-xl: 8px;
+    --mf-radius-lg: 16px;
+    --mf-radius-xl: 20px;
     --mf-radius-pill: 9999px;
 
     --mf-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -612,7 +613,7 @@ button:has(.cloud_download),
 
 .mf-pill-pt {
     background: rgba(34, 197, 94, 0.15);
-    color: #46d369;
+    color: #22c55e;
     border: none;
 }
 
@@ -2775,7 +2776,7 @@ button:has(.cloud_download),
 .mf-profile-badge-current {
     position: absolute;
     bottom: -10px;
-    background: var(--success, #46d369);
+    background: var(--success, #22c55e);
     color: #fff;
     font-size: 10px;
     font-weight: 800;
@@ -3135,7 +3136,7 @@ button:has(.cloud_download),
 }
 
 .mf-netflix-match {
-    color: #46d369 !important;
+    color: #22c55e !important;
     font-size: 15px !important;
     font-weight: 800 !important;
     letter-spacing: 0.2px !important;
@@ -3408,9 +3409,9 @@ button:has(.cloud_download),
 }
 
 .mf-stream-quality.q-local {
-    background: rgba(70, 211, 105, 0.15) !important;
-    color: #46d369 !important;
-    border: 1px solid rgba(70, 211, 105, 0.3) !important;
+    background: rgba(34, 197, 94, 0.15) !important;
+    color: #22c55e !important;
+    border: 1px solid rgba(34, 197, 94, 0.3) !important;
 }
 
 .mf-stream-audio-dub {
@@ -3614,7 +3615,7 @@ button.mf-movie-card:hover .mf-movie-title {
 
 .mf-ai-reason {
     font-size: 11px !important;
-    color: #38bdf8 !important;
+    color: var(--accent-warm, #D97757) !important;
     margin: 2px 0 0 0 !important;
     line-height: 1.3 !important;
     white-space: nowrap !important;
@@ -3816,7 +3817,7 @@ button[aria-label*="Grupo"] {
 
 .mf-dl-spinning-icon {
     font-size: 24px;
-    color: #38bdf8;
+    color: var(--accent-warm, #D97757);
     animation: mfSpin 2s linear infinite;
 }
 
@@ -4836,9 +4837,9 @@ button[aria-label*="Menu"],
 }
 
 .mf-settings-saved-notice {
-    background: rgba(70, 211, 105, 0.15) !important;
-    border: 1px solid rgba(70, 211, 105, 0.4) !important;
-    color: #46d369 !important;
+    background: rgba(34, 197, 94, 0.15) !important;
+    border: 1px solid rgba(34, 197, 94, 0.4) !important;
+    color: #22c55e !important;
     padding: 14px 24px !important;
     border-radius: 12px !important;
     margin-bottom: 24px !important;
@@ -5121,11 +5122,11 @@ button[aria-label*="Menu"],
 .mf-settings-badge-success {
     font-size: 12px !important;
     font-weight: 600 !important;
-    color: #46d369 !important;
-    background: rgba(255, 255, 255, 0.08) !important;
+    color: #22c55e !important;
+    background: rgba(250, 249, 245, 0.08) !important;
     border: none !important;
     padding: 4px 12px !important;
-    border-radius: 4px !important;
+    border-radius: 999px !important;
 }
 
 .mf-settings-badge-info {

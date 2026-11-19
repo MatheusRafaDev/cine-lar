@@ -5,19 +5,20 @@
 
 :root {
     /* 1. Cores Base (DESIGN.md) */
-    --bg-0: #141414;
-    --bg-1: #1f1f1f;
-    --bg-2: #2a2a2a;
-    --line: #3a3a3a;
-    --text-1: #ffffff;
-    --text-2: #b3b3b3;
-    --text-3: #808080;
+    --bg-0: #141413;
+    --bg-1: #1E1D1B;
+    --bg-2: #282724;
+    --line: rgba(250, 249, 245, 0.1);
+    --text-1: #FAF9F5;
+    --text-2: #A8A59C;
+    --text-3: #737067;
     --brand: #e50914;
     --brand-hover: #f6121d;
     --brand-press: #b20710;
-    --success: #46d369;
+    --accent-warm: #D97757;
+    --success: #22c55e;
     --warning: #f5a623;
-    --danger: #ff4d4f;
+    --danger: #e50914;
 
     /* 2. Tipografia Cinelar TV */
     --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -34,11 +35,11 @@
     --s7: 48px;
     --s8: 64px;
 
-    /* 4. Raios e Sombras (DESIGN.md) */
-    --r-btn: 4px;
-    --r-card: 6px;
-    --r-modal: 8px;
-    --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.6);
+    /* 4. Raios e Sombras Cinelar TV */
+    --r-btn: 999px;
+    --r-card: 14px;
+    --r-modal: 20px;
+    --shadow-float: 0 16px 40px rgba(0, 0, 0, 0.65);
 
     /* Aliases de compatibilidade */
     --mf-bg-deep: var(--bg-0);
