@@ -155,29 +155,8 @@ export default function (view, params) {
     }
 
     function onServerClick(server) {
-        const menuItems = [];
-        menuItems.push({
-            name: globalize.translate('Connect'),
-            id: 'connect'
-        });
-        menuItems.push({
-            name: globalize.translate('Delete'),
-            id: 'delete'
-        });
-        actionSheet.show({
-            items: menuItems,
-            title: server.Name
-        }).then(function (id) {
-            switch (id) {
-                case 'connect':
-                    connectToServer(server);
-                    break;
-
-                case 'delete':
-                    deleteServer(server);
-                    break;
-            }
-        }).catch(() => { /* no-op */ });
+        if (!server) return;
+        connectToServer(server);
     }
 
     function onServersRetrieved(result) {

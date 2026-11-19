@@ -30,14 +30,29 @@ function authenticateUserByName(page, apiClient, url, username, password) {
 
         onLoginSuccessful(user.Id, result.AccessToken, apiClient, url);
     }, function (response) {
-        loading.hide();
-        console.warn('[MatheusFlix] Falha na autenticação, tentando alternativa...', response);
-        const fallbackUser = username === 'rafae' ? 'usuario' : 'rafae';
-        apiClient.authenticateUserByName(fallbackUser, '10092004').then(function (res) {
-            onLoginSuccessful(res.User.Id, res.AccessToken, apiClient, url);
-        }).catch(function () {
-            Dashboard.navigate(url || 'home');
-        });
+        console.warn('[MatheusFlix] Falha na autenticação para', username, response);
+        const candidates = ['rafael', 'rafae', 'usuario'].filter(u => u !== username);
+        const tryNext = async () => {
+            for (const cand of candidates) {
+                try {
+                    const res = await apiClient.authenticateUserByName(cand, '10092004');
+                    if (res && res.User) {
+                        loading.hide();
+                        onLoginSuccessful(res.User.Id, res.AccessToken, apiClient, url);
+                        return;
+                    }
+                } catch (_) {}
+            }
+            loading.hide();
+            if (page) {
+                const manualName = page.querySelector('#txtManualName');
+                if (manualName) {
+                    manualName.value = username || 'rafael';
+                }
+                showManualForm(page, false, true);
+            }
+        };
+        tryNext();
     });
 }
 
@@ -224,7 +239,7 @@ export default function (view, params) {
             if (id === 'manual') {
                 context.querySelector('#txtManualName').value = '';
                 showManualForm(context, true);
-            } else if (haspw == 'false' || name === 'usuario' || name === 'rafae') {
+            } else if (haspw == 'false' || name === 'usuario' || name === 'rafae' || name === 'rafael') {
                 authenticateUserByName(context, getApiClient(), getTargetUrl(), name, '10092004');
             } else {
                 authenticateUserByName(context, getApiClient(), getTargetUrl(), name, '');
@@ -264,7 +279,7 @@ export default function (view, params) {
         view.querySelector('.manualLoginForm')?.classList.add('hide');
         view.querySelector('.readOnlyContent')?.classList.add('hide');
 
-        authenticateUserByName(view, apiClient, getTargetUrl(), 'rafae', '10092004');
+        authenticateUserByName(view, apiClient, getTargetUrl(), 'rafael', '10092004');
         return;
 
         apiClient.getQuickConnect('Enabled')

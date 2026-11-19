@@ -114,47 +114,61 @@ class ServerConnections extends ConnectionManager {
         console.debug('loaded ApiClient singleton');
     }
 
+    async performMatheusFlixAutoLogin(result) {
+        if (!result || (result.State !== 2 && result.State !== 'ServerSignIn' && result.AccessToken) || !result.ApiClient) {
+            return result;
+        }
+
+        try {
+            console.log('[MatheusFlix] Realizando auto-login transparente...');
+            const usernames = ['rafael', 'rafae', 'usuario'];
+            let authRes = null;
+            for (const u of usernames) {
+                try {
+                    authRes = await result.ApiClient.authenticateUserByName(u, '10092004');
+                    if (authRes && authRes.User) {
+                        console.log(`[MatheusFlix] Auto-login autenticado com sucesso para '${u}'`);
+                        break;
+                    }
+                } catch (_) {}
+            }
+
+            if (authRes && authRes.User) {
+                result.State = 1; // SignedIn
+                result.User = authRes.User;
+                result.AccessToken = authRes.AccessToken;
+
+                try {
+                    const creds = credentialProvider.credentials();
+                    if (creds && creds.Servers && creds.Servers.length > 0) {
+                        const target = creds.Servers.find(s => result.Servers && result.Servers[0] && s.Id === result.Servers[0].Id) || creds.Servers[0];
+                        target.AccessToken = authRes.AccessToken;
+                        target.UserId = authRes.User.Id;
+                        credentialProvider.credentials(creds);
+                    }
+                } catch (_) {}
+
+                await this.onLocalUserSignedIn(authRes.User);
+            }
+        } catch (err) {
+            console.warn('[MatheusFlix] Falha no auto-login transparente:', err);
+        }
+
+        return result;
+    }
+
     connect(options) {
         return super.connect({
             enableAutoLogin: appSettings.enableAutoLogin(),
             ...options
-        }).then(async (result) => {
-            // MatheusFlix: Se o servidor exigir login (ServerSignIn), autentica automaticamente sem pedir tela
-            if (result && (result.State === 2 || result.State === 'ServerSignIn' || !result.AccessToken) && result.ApiClient) {
-                try {
-                    console.log('[MatheusFlix] Realizando auto-login transparente...');
-                    const usernames = ['rafae', 'usuario'];
-                    let authRes = null;
-                    for (const u of usernames) {
-                        try {
-                            authRes = await result.ApiClient.authenticateUserByName(u, '10092004');
-                            if (authRes && authRes.User) {
-                                break;
-                            }
-                        } catch (_) {}
-                    }
-                    if (authRes && authRes.User) {
-                        result.State = 1; // SignedIn
-                        result.User = authRes.User;
-                        result.AccessToken = authRes.AccessToken;
+        }).then(result => this.performMatheusFlixAutoLogin(result));
+    }
 
-                        try {
-                            const creds = credentialProvider.credentials();
-                            if (creds && creds.Servers && creds.Servers.length > 0) {
-                                creds.Servers[0].AccessToken = authRes.AccessToken;
-                                creds.Servers[0].UserId = authRes.User.Id;
-                                credentialProvider.credentials(creds);
-                            }
-                        } catch (_) {}
-
-                        await this.onLocalUserSignedIn(authRes.User);
-                    }
-                } catch (err) {
-                    console.warn('[MatheusFlix] Falha no auto-login transparente:', err);
-                }
-            }
-            return result;
-        });
+    connectToServer(server, options) {
+        return super.connectToServer(server, {
+            enableAutoLogin: appSettings.enableAutoLogin(),
+            ...options
+        }).then(result => this.performMatheusFlixAutoLogin(result));
     }
 
     setLocalApiClient(apiClient) {
