@@ -32,6 +32,7 @@ export function renderStreamingView(container, initialFilters = {}) {
         q: '',
         genre: hashGenre || 'all',
         sort: hashSort || 'trending',
+        release: 'all',
         offset: 0,
         requestId: 0
     };
@@ -57,6 +58,13 @@ export function renderStreamingView(container, initialFilters = {}) {
                     <option value="rating"${state.sort === 'rating' ? ' selected' : ''}>Melhor avaliados</option>
                     <option value="alpha"${state.sort === 'alpha' ? ' selected' : ''}>A–Z</option>
                 </select>
+            </div>
+            <div class="mf-cinelar-release-chips" style="display:flex;gap:12px;margin:14px 0 18px;overflow-x:auto;padding-bottom:4px;">
+                <button type="button" class="mf-release-chip c on focusable" data-release="all">Todos</button>
+                <button type="button" class="mf-release-chip c focusable" data-release="4k">4K UHD</button>
+                <button type="button" class="mf-release-chip c focusable" data-release="1080p">1080p</button>
+                <button type="button" class="mf-release-chip c focusable" data-release="dub">Dublados PT-BR</button>
+                <button type="button" class="mf-release-chip c focusable" data-release="seeds">Mais sementes</button>
             </div>
             <div class="mf-genre-bar"></div>
             <div class="mf-catalog-status"></div>
@@ -123,7 +131,14 @@ export function renderStreamingView(container, initialFilters = {}) {
                 offset: state.offset
             });
             if (requestId !== state.requestId) return; // resposta antiga, ignora
-            const movies = (data.movies || []).map(normalizeMovie);
+            let movies = (data.movies || []).map(normalizeMovie);
+            if (state.release === '4k') {
+                movies = movies.filter(m => /4k|2160p|uhd/i.test(`${m.title} ${m.genres || ''}`));
+            } else if (state.release === '1080p') {
+                movies = movies.filter(m => /1080p|fhd/i.test(`${m.title} ${m.genres || ''}`) || !m.isLocal);
+            } else if (state.release === 'dub') {
+                movies = movies.filter(m => m.isDubbed !== false);
+            }
             if (!append) grid.innerHTML = '';
             appendCards(grid, movies);
             state.offset += movies.length;
@@ -188,6 +203,19 @@ export function renderStreamingView(container, initialFilters = {}) {
                 genreBar.style.display = '';
             }
             load();
+        });
+    });
+
+    container.querySelectorAll('.mf-release-chip').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            container.querySelectorAll('.mf-release-chip').forEach(b => b.classList.remove('on'));
+            btn.classList.add('on');
+            state.release = btn.getAttribute('data-release') || 'all';
+            if (state.release === 'seeds') {
+                state.sort = 'trending';
+                if (sortSelect) sortSelect.value = 'trending';
+            }
+            load(false);
         });
     });
 

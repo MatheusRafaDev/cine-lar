@@ -47,6 +47,7 @@ function renderHeader() {
     html += '</div>';
     html += '<div class="headerRight">';
     html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton" aria-label="Buscar"><span class="material-icons search" aria-hidden="true"></span></button>';
+    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerHelpButton" aria-label="Atalhos" title="Atalhos do Controle e Teclado (?)"><span class="material-icons help_outline" aria-hidden="true"></span></button>';
     html += '<button is="paper-icon-button-light" class="headerButton headerButtonRight headerUserButton" aria-label="Perfil"></button>';
     html += '<div class="currentTimeText hide"></div>';
     html += '</div>';
@@ -290,7 +291,17 @@ function updateClock() {
 }
 
 function showSearch() {
-    inputManager.handleCommand('search');
+    if (typeof window !== 'undefined' && window.MatheusFlix?.closeCinema) {
+        window.MatheusFlix.closeCinema();
+    }
+    window.location.hash = '#/home?tab=1';
+    setTimeout(() => {
+        const input = document.querySelector('.mf-search-input');
+        if (input) {
+            input.focus();
+            input.select?.();
+        }
+    }, 180);
 }
 
 function onHeaderUserButtonClick() {
@@ -316,6 +327,13 @@ function bindMenuEvents() {
 
     if (headerSearchButton) {
         headerSearchButton.addEventListener('click', showSearch);
+    }
+
+    const headerHelpButton = skinHeader.querySelector('.headerHelpButton');
+    if (headerHelpButton) {
+        headerHelpButton.addEventListener('click', () => {
+            import('./matheusflix/shortcutsModal').then(m => m.openShortcutsModal());
+        });
     }
 
     if (headerUserButton) {
@@ -954,6 +972,12 @@ const LibraryMenu = {
 window.addEventListener('hashchange', updateHeaderActiveNavigation);
 
 window.LibraryMenu = LibraryMenu;
+window.addEventListener('keydown', (e) => {
+    if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) && !document.querySelector('.mf-cinema-player')) {
+        e.preventDefault();
+        showSearch();
+    }
+});
 renderHeader();
 
 export default LibraryMenu;

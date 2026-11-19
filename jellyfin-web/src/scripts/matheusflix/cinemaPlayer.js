@@ -6,6 +6,7 @@
 
 import { API_BASE, getStreamStatus, saveWatchProgress } from './api';
 import { escapeHtml, parseDuration } from './utils';
+import { openShortcutsModal } from './shortcutsModal';
 import toast from 'components/toast/toast';
 import { playbackManager } from 'components/playback/playbackmanager';
 import Events from 'utils/events';
@@ -217,8 +218,20 @@ export function openCinemaPlayer({
 
                     <span class="mf-player-quality-tag">${escapeHtml(quality)}</span>
 
+                    <button type="button" class="mf-ctrl-btn mf-btn-speed focusable" title="Velocidade (C)">
+                        <span class="mf-speed-badge">1.0x</span>
+                    </button>
+
+                    <button type="button" class="mf-ctrl-btn mf-btn-pip focusable" title="Miniplayer / PiP (P)">
+                        <span class="material-icons">picture_in_picture_alt</span>
+                    </button>
+
                     <button type="button" class="mf-ctrl-btn mf-btn-subtitles focusable" title="Legendas e Áudio (S)">
                         <span class="material-icons">subtitles</span>
+                    </button>
+
+                    <button type="button" class="mf-ctrl-btn mf-btn-shortcuts focusable" title="Atalhos e Controles (?)">
+                        <span class="material-icons">help_outline</span>
                     </button>
 
                     <button type="button" class="mf-ctrl-btn mf-btn-fullscreen focusable" title="Tela Cheia (F)">
@@ -528,6 +541,61 @@ export function openCinemaPlayer({
         });
     }
 
+    // Velocidade de reprodução (0.75x, 1x, 1.25x, 1.5x)
+    const speeds = [1.0, 1.25, 1.5, 0.75];
+    let speedIdx = 0;
+    const btnSpeed = playerEl.querySelector('.mf-btn-speed');
+    const speedBadge = playerEl.querySelector('.mf-speed-badge');
+
+    function cycleSpeed() {
+        speedIdx = (speedIdx + 1) % speeds.length;
+        const s = speeds[speedIdx];
+        video.playbackRate = s;
+        if (speedBadge) speedBadge.textContent = `${s}x`;
+        showSeekFeedback(`Velocidade: ${s}x`);
+    }
+
+    if (btnSpeed) {
+        btnSpeed.addEventListener('click', (e) => {
+            e.stopPropagation();
+            cycleSpeed();
+        });
+    }
+
+    // Miniplayer / Picture-in-Picture
+    const btnPip = playerEl.querySelector('.mf-btn-pip');
+    async function togglePip() {
+        try {
+            if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+            } else if (video && video.requestPictureInPicture) {
+                await video.requestPictureInPicture();
+            }
+        } catch (_) {
+            toast('Miniplayer indisponível no momento.');
+        }
+    }
+
+    if (btnPip) {
+        if (!document.pictureInPictureEnabled) {
+            btnPip.classList.add('hide');
+        } else {
+            btnPip.addEventListener('click', (e) => {
+                e.stopPropagation();
+                togglePip();
+            });
+        }
+    }
+
+    // Modal de atalhos e controle remoto
+    const btnShortcuts = playerEl.querySelector('.mf-btn-shortcuts');
+    if (btnShortcuts) {
+        btnShortcuts.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openShortcutsModal();
+        });
+    }
+
     // Seek controls robustos com suporte a tempo total e transcoder
     let seekDebounce = null;
     seekSlider.addEventListener('input', () => {
@@ -828,6 +896,17 @@ export function openCinemaPlayer({
             e.preventDefault();
             toggleSubtitles();
             showControls();
+        } else if (e.key === 'c' || e.key === 'C') {
+            e.preventDefault();
+            cycleSpeed();
+            showControls();
+        } else if (e.key === 'p' || e.key === 'P') {
+            e.preventDefault();
+            togglePip();
+            showControls();
+        } else if (e.key === '?' || e.key === 'h' || e.key === 'H') {
+            e.preventDefault();
+            openShortcutsModal();
         } else if (['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(e.key)) {
             e.preventDefault();
             handleExit();
