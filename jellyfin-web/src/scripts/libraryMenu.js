@@ -39,7 +39,7 @@ function renderHeader() {
     html += '<div class="headerLeft">';
     html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonLeft headerBackButton hide" aria-label="Voltar"><span class="material-icons ' + (browser.safari ? 'chevron_left' : 'arrow_back') + '" aria-hidden="true"></span></button>';
     html += '<div class="mf-header-logo focusable" role="button" tabindex="0" title="MatheusFlix - Início" aria-label="MatheusFlix">';
-    html += '<svg class="mf-logo-badge" width="36" height="36" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="hdrLogoG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E50914" /><stop offset="100%" stop-color="#D97757" /></linearGradient></defs><rect width="92" height="92" x="4" y="4" rx="26" fill="url(#hdrLogoG)" /><path d="M 28 25 L 40 25 L 50 47 L 60 25 L 72 25 L 72 75 L 61 75 L 61 41 L 54 57 L 46 57 L 39 41 L 39 75 L 28 75 Z" fill="#141413" /></svg>';
+    html += '<svg class="mf-logo-badge" width="24" height="24" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="hdrLogoG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E50914" /><stop offset="100%" stop-color="#D97757" /></linearGradient></defs><rect width="92" height="92" x="4" y="4" rx="26" fill="url(#hdrLogoG)" /><path d="M 28 25 L 40 25 L 50 47 L 60 25 L 72 25 L 72 75 L 61 75 L 61 41 L 54 57 L 46 57 L 39 41 L 39 75 L 28 75 Z" fill="#141413" /></svg>';
     html += '<span class="mf-logo-wordmark">MATHEUS<b>FLIX</b></span>';
     html += '</div>';
     html += '<h3 class="pageTitle hide" aria-hidden="true"></h3>';

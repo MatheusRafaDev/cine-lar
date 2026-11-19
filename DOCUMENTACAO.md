@@ -337,13 +337,13 @@ O MatheusFlix adota integralmente as diretrizes do **Cinelar TV Design System**:
 - **Indicador de Foco TV:** Contorno de alta visibilidade `outline: 3px solid #FAF9F5; outline-offset: 3px; transform: scale(1.04);` em qualquer elemento selecionado via controle remoto.
 - **Proporcao de Cartazes:** Cartazes de filmes mantem proporcao rigida `aspect-ratio: 2 / 3` com cantos arredondados em 14px.
 
-### 6.3. Tipografia Editorial
-- **Newsreader (Display Serif):** Utilizada em títulos de destaque hero, nomes de obras cinematográficas, cabeçalhos de modais e no wordmark da marca (`MATHEUSFLIX`), conferindo sofisticação editorial e acabamento de cinema.
-- **Inter (Interface Sans-serif):** Utilizada em todos os rótulos de navegação, metadados (resolução, ano, duração, sementes), tabelas de downloads, chips e controles funcionais para máxima legibilidade a distância na TV.
+### 6.3. Tipografia Moderna de Streaming
+- **Outfit (Display & Brand Sans-serif):** Tipografia geométrica moderna e arrojada (estilo Netflix Sans / modern cinema) utilizada no logotipo compacto (`MATHEUSFLIX`), títulos de destaque hero e seções principais, proporcionando acabamento contemporâneo e máxima nitidez em televisores e monitores.
+- **Inter (Interface Sans-serif):** Utilizada em todos os rótulos de navegação, abas, metadados (resolução, ano, duração, sementes), tabelas de downloads, chips e controles funcionais para máxima legibilidade a distância na TV.
 
 ### 6.4. Identidade Visual e Favicons
-- **Emblema do Sistema:** Insígnia em formato squircle (cantos suavizados) com gradiente vermelho cinematográfico `#E50914` a terracota `#D97757` e monograma 'M' estilizado em corte geométrico.
-- **Wordmark da Barra Superior:** Componente `.mf-header-logo` com transição suave, hover dinâmico e foco via D-Pad para retorno instantâneo à página inicial.
+- **Emblema do Sistema:** Insígnia compacta em formato squircle (cantos suavizados) com gradiente vermelho cinematográfico `#E50914` a terracota `#D97757` e monograma 'M' estilizado em corte geométrico.
+- **Wordmark da Barra Superior:** Componente `.mf-header-logo` refinado e compacto (16px, proporção equilibrada), com transição suave, hover dinâmico e foco via D-Pad para retorno instantâneo à página inicial.
 - **Favicons e PWA:** Conjunto completo de ícones incluindo `favicon.svg` vetorial, `favicon.ico` multi-resolução (16x16 e 32x32), ícones de toque Apple (180x180, 144x144, 114x114, 72x72) e manifest para Smart TVs e PWA (192x192 e 512x512).
 
 ---
