@@ -286,6 +286,13 @@ export async function embedMatheusFlixHomeSections(view) {
             movies: uniqueAnim,
             onClick: openStremioDetails
         });
+
+        // Auto-foco inteligente no primeiro elemento para navegacao via controle remoto na TV
+        setTimeout(() => {
+            import('./tvExperience').then(({ autoFocusCurrentView }) => {
+                autoFocusCurrentView();
+            }).catch(() => {});
+        }, 350);
     } finally {
         inFlight.delete(view);
     }
@@ -562,7 +569,7 @@ function renderRow(container, { key, title, linkText, tabIndex, targetHash, movi
             <button type="button" class="mf-slider-btn mf-slider-prev focusable" aria-label="Voltar" title="Voltar títulos">
                 <span class="material-icons">chevron_left</span>
             </button>
-            <div class="mf-home-scroller"></div>
+            <div class="mf-home-scroller focuscontainer-x"></div>
             <button type="button" class="mf-slider-btn mf-slider-next focusable" aria-label="Avançar" title="Avançar títulos">
                 <span class="material-icons">chevron_right</span>
             </button>
@@ -653,7 +660,7 @@ function renderHistoryRow(container, { key, title, movies }) {
             <button type="button" class="mf-slider-btn mf-slider-prev focusable" aria-label="Voltar" title="Voltar títulos">
                 <span class="material-icons">chevron_left</span>
             </button>
-            <div class="mf-home-scroller"></div>
+            <div class="mf-home-scroller focuscontainer-x"></div>
             <button type="button" class="mf-slider-btn mf-slider-next focusable" aria-label="Avançar" title="Avançar títulos">
                 <span class="material-icons">chevron_right</span>
             </button>

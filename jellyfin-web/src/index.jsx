@@ -40,6 +40,7 @@ import './scripts/mouseManager';
 import './scripts/screensavermanager';
 import './scripts/autoMetadataFetcher';
 import './scripts/matheusflixTorrentHub';
+import './scripts/matheusflix/tvExperience';
 
 // Import site styles
 import './styles/site.scss';

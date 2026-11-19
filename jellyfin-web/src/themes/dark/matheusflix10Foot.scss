@@ -230,19 +230,33 @@ html.layout-tv,
 .layout-tv a:focus {
     outline: 3px solid #FAF9F5 !important;
     outline-offset: 3px !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9) !important;
+    box-shadow: 0 0 0 3px #FAF9F5, 0 8px 30px rgba(229, 9, 20, 0.7) !important;
     z-index: 40 !important;
 }
 
 .layout-tv .mf-home-card:focus,
 .layout-tv .mf-movie-card:focus,
 .layout-tv .mf-local-card:focus {
-    outline: 3px solid #FAF9F5 !important;
+    outline: 3.5px solid #FAF9F5 !important;
     outline-offset: 3px !important;
-    transform: scale(1.05) translateZ(0) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.95) !important;
+    transform: scale(1.08) translateZ(0) !important;
+    box-shadow: 0 0 0 3.5px #FAF9F5, 0 16px 40px rgba(0, 0, 0, 0.95), 0 0 30px rgba(229, 9, 20, 0.6) !important;
     z-index: 50 !important;
     will-change: transform;
+}
+
+/* Oculta botões de mouse/seta de hover em modo TV (usuário navega via controle remoto) */
+.layout-tv .mf-slider-btn,
+.layout-tv .mf-hero-nav {
+    display: none !important;
+}
+
+/* Ocultação inteligente do ponteiro de mouse na TV */
+html.mf-cursor-hidden,
+html.mf-cursor-hidden *,
+.layout-tv.mf-cursor-hidden,
+.layout-tv.mf-cursor-hidden * {
+    cursor: none !important;
 }
 
 /* 8. Modal de Detalhes Stremio / Filme no Modo TV */
