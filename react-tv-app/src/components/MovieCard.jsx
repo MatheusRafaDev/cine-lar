@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import { getSavedProgress } from '../services/api';
 
 function MovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
   const cardRef = useRef(null);
   const pointerTimerRef = useRef(null);
+  const [imgFailed, setImgFailed] = useState(false);
 
   // Quando o card ganha foco, garante que o scroll horizontal do carrossel o mantenha visível sem atraso
   useEffect(() => {
@@ -16,9 +17,13 @@ function MovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
     }
   }, [isFocused]);
 
+  useEffect(() => {
+    setImgFailed(false);
+  }, [movie?.poster, movie?.thumbnail, movie?.id]);
+
   if (!movie) return null;
 
-  const poster = movie.poster || movie.thumbnail || 'https://via.placeholder.com/300x450/1c1c1a/ffffff?text=Sem+Poster';
+  const poster = movie.poster || movie.thumbnail || '';
   const title = movie.title || movie.name || 'Sem título';
   const year = movie.year || (movie.releaseDate ? String(movie.releaseDate).slice(0, 4) : '');
   const rating = movie.imdbRating || movie.rating || null;
@@ -64,17 +69,23 @@ function MovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
       onPointerCancel={handlePointerClear}
     >
       <div className="tv-card-poster-wrap">
-        <img
-          src={poster}
-          alt={title}
-          className="tv-card-poster"
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = 'https://via.placeholder.com/300x450/1c1c1a/ffffff?text=Sem+Poster';
-          }}
-        />
+        {poster && !imgFailed ? (
+          <img
+            src={poster}
+            alt={title}
+            className="tv-card-poster"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <div className="tv-card-poster-fallback">
+            <span className="material-icons" style={{ fontSize: '42px', color: 'rgba(255, 255, 255, 0.25)' }}>
+              movie
+            </span>
+            <span className="tv-card-fallback-title">{title}</span>
+          </div>
+        )}
 
         {rating && (
           <div className="tv-card-rating">

@@ -1,11 +1,12 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import { getSavedProgress } from '../services/api';
 
 function LocalMovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
   const cardRef = useRef(null);
   const pointerTimerRef = useRef(null);
+  const [imgFailed, setImgFailed] = useState(false);
 
-  // Auto-scroll vertical instantaneo para manter o card sempre visivel na TV sem atraso
+  // Auto-scroll vertical instantâneo para manter o card sempre visível na TV sem atraso
   useEffect(() => {
     if (isFocused && cardRef.current) {
       cardRef.current.scrollIntoView({
@@ -16,9 +17,13 @@ function LocalMovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
     }
   }, [isFocused]);
 
+  useEffect(() => {
+    setImgFailed(false);
+  }, [movie?.poster, movie?.thumbnail, movie?.id]);
+
   if (!movie) return null;
 
-  const poster = movie.poster || movie.thumbnail || 'https://via.placeholder.com/300x450/1c1c1a/ffffff?text=Sem+Poster';
+  const poster = movie.poster || movie.thumbnail || '';
   const title = movie.title || movie.name || movie.cleanName || 'Sem título';
   const year = movie.year || '';
   const size = movie.sizeFormatted || '';
@@ -63,17 +68,23 @@ function LocalMovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
       onPointerCancel={handlePointerClear}
     >
       <div className="tv-card-poster-wrap">
-        <img
-          src={poster}
-          alt={title}
-          className="tv-card-poster"
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = 'https://via.placeholder.com/300x450/1c1c1a/ffffff?text=Sem+Poster';
-          }}
-        />
+        {poster && !imgFailed ? (
+          <img
+            src={poster}
+            alt={title}
+            className="tv-card-poster"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <div className="tv-card-poster-fallback">
+            <span className="material-icons" style={{ fontSize: '42px', color: 'rgba(255, 255, 255, 0.25)' }}>
+              movie
+            </span>
+            <span className="tv-card-fallback-title">{title}</span>
+          </div>
+        )}
 
         {franchise && (
           <div className="tv-card-badge-franchise" title={`Franquia ${franchise}`}>

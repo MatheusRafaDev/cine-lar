@@ -1620,24 +1620,120 @@ body.tv-body {
   border-color: #FFFFFF;
 }
 
-/* Full-Page Grid Layout (8 colunas na TV 1080p/4K) */
+/* Full-Page Grid Layout Rigorosamente Padronizado para Smart TV (8 colunas) */
 .tv-fullpage-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   gap: 16px;
   width: 100%;
   padding-bottom: 30px;
+  box-sizing: border-box;
 }
 
-.tv-fullpage-grid .tv-card {
-  width: 100%;
-  flex: none;
+.tv-fullpage-grid .tv-card,
+.tv-local-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
 }
 
-.tv-fullpage-grid .tv-card-poster-wrap {
+.tv-fullpage-grid .tv-card-poster-wrap,
+.tv-local-card .tv-card-poster-wrap {
+  width: 100% !important;
+  height: 295px !important;
+  min-height: 295px !important;
+  max-height: 295px !important;
+  border-radius: var(--radius-sm) !important;
+  overflow: hidden !important;
+  position: relative !important;
+  background-color: #11141e !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  box-sizing: border-box !important;
+}
+
+.tv-fullpage-grid .tv-card-poster,
+.tv-local-card .tv-card-poster {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  display: block !important;
+}
+
+/* Fallback interno para cards sem imagem de poster ou erro de carregamento */
+.tv-card-poster-fallback {
   width: 100%;
-  height: auto;
-  aspect-ratio: 2 / 3;
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+  background: linear-gradient(145deg, #181d2a 0%, #0d0f16 100%);
+  text-align: center;
+}
+
+.tv-card-fallback-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+/* Padronização rigorosa do bloco de informações e metadados */
+.tv-fullpage-grid .tv-card-info,
+.tv-local-card .tv-card-info {
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  gap: 3px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.tv-fullpage-grid .tv-card-title,
+.tv-local-card .tv-card-title {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--text-main) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+}
+
+.tv-fullpage-grid .tv-card-meta,
+.tv-local-card .tv-local-meta-row {
+  height: 18px !important;
+  min-height: 18px !important;
+  max-height: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 11px !important;
+  color: var(--text-muted) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 !important;
 }
 
 /* Badges e Overlays para Filmes Locais */
