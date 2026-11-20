@@ -204,7 +204,7 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
                 if (stat) {
                     let folderName = path.basename(dir);
                     const parentDir = path.basename(path.dirname(dir));
-                    if (/^(temporada|season|s\d+)/i.test(folderName) && parentDir && !/^(series|filmes|matheusflix)$/i.test(parentDir)) {
+                    if (/^(temporada|season|s\d+)/i.test(folderName) && parentDir && !/^(series|filmes|matheusflix|cinelar)$/i.test(parentDir)) {
                         folderName = `${parentDir} ${folderName}`;
                     }
                     items.push({
@@ -549,14 +549,18 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
 export function streamLocalVideo(filePath, req, res) {
     let targetFile = filePath;
     if (!fs.existsSync(targetFile)) {
-        // Tenta encontrar caso o arquivo tenha sido movido para MatheusFlix ou vice-versa
+        // Tenta encontrar caso o arquivo esteja em Cinelar, MatheusFlix ou direto no disco
         const baseName = path.basename(targetFile);
         const dirName = path.basename(path.dirname(targetFile));
         const candidates = [
+            path.join('D:\\filmes', 'Cinelar', dirName, baseName),
+            path.join('D:\\filmes', 'Cinelar', baseName),
             path.join('D:\\filmes', 'MatheusFlix', dirName, baseName),
             path.join('D:\\filmes', dirName, baseName),
             path.join('D:\\filmes', 'MatheusFlix', baseName),
             path.join('D:\\filmes', baseName),
+            path.join('D:\\Cinelar', dirName, baseName),
+            path.join('D:\\Cinelar', baseName),
             path.join('D:\\MatheusFlix', dirName, baseName),
             path.join('D:\\MatheusFlix', baseName)
         ];

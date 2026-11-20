@@ -102,11 +102,11 @@ export function detectSeries(name) {
 
 /**
  * Retorna o caminho de pasta específico e organizado para um download da plataforma.
- * - Séries: D:\filmes\MatheusFlix\Series\<Nome da Série>\Temporada XX
- * - Franquias: D:\filmes\MatheusFlix\Franquias\<Nome da Franquia>\<Nome do Filme>
- * - Filmes avulsos: D:\filmes\MatheusFlix\<Nome do Filme>
+ * - Séries: D:\filmes\Cinelar\Series\<Nome da Série>\Temporada XX
+ * - Franquias: D:\filmes\Cinelar\Franquias\<Nome da Franquia>\<Nome do Filme>
+ * - Filmes avulsos: D:\filmes\Cinelar\<Nome do Filme>
  */
-export function getOrganizedDownloadPath(baseSavePath = path.join('D:\\filmes', 'MatheusFlix'), title = '', filename = '', options = {}) {
+export function getOrganizedDownloadPath(baseSavePath = path.join('D:\\filmes', 'Cinelar'), title = '', filename = '', options = {}) {
     const raw = `${title} ${filename}`.trim();
     const seriesInfo = detectSeries(raw);
 
@@ -125,7 +125,7 @@ export function getOrganizedDownloadPath(baseSavePath = path.join('D:\\filmes', 
             category: 'series',
             groupName: cleanName,
             icon: 'tv',
-            displayPath: `MatheusFlix\\Series\\${cleanName}\\${seasonStr}`
+            displayPath: `Cinelar\\Series\\${cleanName}\\${seasonStr}`
         };
     }
 
@@ -140,7 +140,7 @@ export function getOrganizedDownloadPath(baseSavePath = path.join('D:\\filmes', 
             category: 'franchise',
             groupName: franchise.name,
             icon: franchise.icon || 'movie',
-            displayPath: `MatheusFlix\\Franquias\\${franchise.name}\\${cleanMovieName}`
+            displayPath: `Cinelar\\Franquias\\${franchise.name}\\${cleanMovieName}`
         };
     }
 
@@ -153,7 +153,7 @@ export function getOrganizedDownloadPath(baseSavePath = path.join('D:\\filmes', 
         category: 'movie',
         groupName: null,
         icon: 'movie',
-        displayPath: `MatheusFlix\\${cleanMovieName}`
+        displayPath: `Cinelar\\${cleanMovieName}`
     };
 }
 

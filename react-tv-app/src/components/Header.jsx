@@ -14,8 +14,13 @@ function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex }
   return (
     <header className="tv-header">
       <div className="tv-logo-box">
-        <span className="tv-logo-text">MATHEUSFLIX</span>
-        <span className="tv-logo-dot" />
+        <div className="tv-logo-icon">
+          <span className="material-icons" style={{ fontSize: '20px', color: '#FAF9F5' }}>movie</span>
+        </div>
+        <div className="tv-logo-text-group">
+          <span className="tv-logo-text">CINE<span className="tv-logo-accent">LAR</span></span>
+          <span className="tv-logo-badge">TV</span>
+        </div>
       </div>
 
       <nav className="tv-nav-items">

@@ -5,7 +5,7 @@ import { getDb, upsertMovie, searchCatalog } from './db.js';
 function fetchJson(url) {
     return new Promise((resolve, reject) => {
         const client = url.startsWith('https') ? https : http;
-        const req = client.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 MatheusFlix/2.0' } }, (res) => {
+        const req = client.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 CinelarTV/2.0' } }, (res) => {
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
                 return fetchJson(res.headers.location).then(resolve).catch(reject);
             }
@@ -31,7 +31,7 @@ function fetchJson(url) {
 }
 
 export async function askAiMovieRecommendations(userPrompt) {
-    const promptText = `Voce e o MatheusFlix AI, um recomendador de filmes genial. O usuario pediu: "${userPrompt}". Recomende exatamente 4 filmes incriveis que combinem com esse gosto ou tema. Retorne em formato JSON valido contendo uma lista: [{"title":"Nome do Filme","year":2014,"reason":"Por que voce vai amar esse filme"}]. Responda APENAS o JSON.`;
+    const promptText = `Voce e o Cinelar AI, um recomendador de filmes genial. O usuario pediu: "${userPrompt}". Recomende exatamente 4 filmes incriveis que combinem com esse gosto ou tema. Retorne em formato JSON valido contendo uma lista: [{"title":"Nome do Filme","year":2014,"reason":"Por que voce vai amar esse filme"}]. Responda APENAS o JSON.`;
 
     const encoded = encodeURIComponent(promptText);
     const aiUrl = `https://text.pollinations.ai/${encoded}?model=openai&json=true`;

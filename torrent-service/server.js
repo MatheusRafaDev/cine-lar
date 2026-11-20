@@ -46,7 +46,7 @@ try {
     console.warn('[TorrentService] Could not load config.json:', e.message);
 }
 
-let PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'MatheusFlix');
+let PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'Cinelar');
 const JELLYFIN_URL = process.env.JELLYFIN_URL || 'http://localhost:8096';
 const JELLYFIN_USER = process.env.JELLYFIN_USER || 'usuario';
 const JELLYFIN_PW = process.env.JELLYFIN_PW || '10092004';
@@ -430,7 +430,7 @@ function fetchJson(url, customTtl = 0) {
 
     return new Promise((resolve, reject) => {
         const clientLib = url.startsWith('https') ? https : http;
-        const req = clientLib.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 MatheusFlix/2.0' } }, (res) => {
+        const req = clientLib.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 CinelarTV/2.0' } }, (res) => {
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
                 return fetchJson(res.headers.location, ttl).then(resolve).catch(reject);
             }
@@ -472,7 +472,7 @@ async function refreshJellyfinLibrary() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Emby-Authorization': 'MediaBrowser Client="MatheusFlix TorrentService", Device="Node", DeviceId="matheusflix_torrent", Version="2.0.0"'
+                    'X-Emby-Authorization': 'MediaBrowser Client="Cinelar TorrentService", Device="Node", DeviceId="cinelar_torrent", Version="2.0.0"'
                 }
             }, (res) => {
                 let data = '';
@@ -521,7 +521,7 @@ async function getJellyfinAdminToken() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Emby-Authorization': 'MediaBrowser Client="MatheusFlix Backend", Device="Node", DeviceId="matheusflix_backend", Version="2.0.0"'
+                    'X-Emby-Authorization': 'MediaBrowser Client="Cinelar Backend", Device="Node", DeviceId="cinelar_backend", Version="2.0.0"'
                 }
             }, (res) => {
                 let data = '';
@@ -671,15 +671,20 @@ const server = http.createServer(async (req, res) => {
     const pathname = urlObj.pathname;
 
     try {
-        // Download MatheusFlix.wgt for Smart TV
-        if (pathname === '/download/MatheusFlix.wgt' && (req.method === 'GET' || req.method === 'HEAD')) {
-            const wgtPath = path.resolve(__dirname, '..', 'MatheusFlix.wgt');
-            if (fs.existsSync(wgtPath)) {
+        // Download Cinelar.wgt (ou MatheusFlix.wgt) for Smart TV
+        if ((pathname === '/download/Cinelar.wgt' || pathname === '/download/MatheusFlix.wgt') && (req.method === 'GET' || req.method === 'HEAD')) {
+            const wgtPath = [
+                path.resolve(__dirname, '..', 'Cinelar.wgt'),
+                path.resolve(__dirname, '..', 'MatheusFlix-signed.wgt'),
+                path.resolve(__dirname, '..', 'MatheusFlix.wgt')
+            ].find(p => fs.existsSync(p));
+
+            if (wgtPath) {
                 const stat = fs.statSync(wgtPath);
                 res.writeHead(200, {
                     'Content-Type': 'application/vnd.tizen.wgt',
                     'Content-Length': stat.size,
-                    'Content-Disposition': 'attachment; filename="MatheusFlix.wgt"',
+                    'Content-Disposition': 'attachment; filename="Cinelar.wgt"',
                     'Access-Control-Allow-Origin': '*'
                 });
                 if (req.method === 'HEAD') {
@@ -691,7 +696,7 @@ const server = http.createServer(async (req, res) => {
                 return;
             } else {
                 res.writeHead(404, { 'Content-Type': 'text/plain' });
-                res.end('MatheusFlix.wgt not found');
+                res.end('Cinelar.wgt not found');
                 return;
             }
         }
@@ -741,7 +746,7 @@ const server = http.createServer(async (req, res) => {
                         fs.mkdirSync(newPath, { recursive: true });
                     }
                     SAVE_PATH = newPath;
-                    PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'MatheusFlix');
+                    PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'Cinelar');
                     if (!fs.existsSync(PLATFORM_DOWNLOAD_PATH)) {
                         fs.mkdirSync(PLATFORM_DOWNLOAD_PATH, { recursive: true });
                     }
@@ -844,7 +849,7 @@ const server = http.createServer(async (req, res) => {
                 const profiles = (publicUsers || []).map(u => ({
                     id: u.Id,
                     name: u.Name,
-                    hasPassword: false, // Perfis no MatheusFlix são 100% livres de senhas
+                    hasPassword: false, // Perfis no Cinelar são 100% livres de senhas
                     isAdmin: Boolean(u.Policy?.IsAdministrator)
                 }));
                 res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -880,7 +885,7 @@ const server = http.createServer(async (req, res) => {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-Emby-Authorization': 'MediaBrowser Client="MatheusFlix Web", Device="Browser", DeviceId="matheusflix_client", Version="2.0.0"'
+                                'X-Emby-Authorization': 'MediaBrowser Client="Cinelar Web", Device="Browser", DeviceId="cinelar_client", Version="2.0.0"'
                             }
                         }, (r) => {
                             let d = '';
@@ -1233,7 +1238,7 @@ const server = http.createServer(async (req, res) => {
                                 isSeries: true,
                                 seriesName: cleanSeries,
                                 season: sNum,
-                                destinationPath: `MatheusFlix\\Series\\${cleanSeries}\\${sStr}`,
+                                destinationPath: `Cinelar\\Series\\${cleanSeries}\\${sStr}`,
                                 savePath: targetPath,
                                 status: 'downloading',
                                 createdAt: new Date().toISOString()
@@ -1251,7 +1256,7 @@ const server = http.createServer(async (req, res) => {
                             success: true,
                             message: `Download da Temporada ${sNum} de ${cleanSeries} iniciado!`,
                             savePath: targetPath,
-                            destinationPath: `MatheusFlix\\Series\\${cleanSeries}\\${sStr}`
+                            destinationPath: `Cinelar\\Series\\${cleanSeries}\\${sStr}`
                         }));
                         return;
                     }
@@ -1278,7 +1283,7 @@ const server = http.createServer(async (req, res) => {
                                         seriesName: cleanSeries,
                                         season: sNum,
                                         episode: epNum,
-                                        destinationPath: `MatheusFlix\\Series\\${cleanSeries}\\${sStr}`,
+                                        destinationPath: `Cinelar\\Series\\${cleanSeries}\\${sStr}`,
                                         savePath: targetPath,
                                         status: 'downloading',
                                         createdAt: new Date().toISOString()
@@ -1298,7 +1303,7 @@ const server = http.createServer(async (req, res) => {
                         enqueued,
                         message: `${enqueued} episódios da Temporada ${sNum} colocados para download!`,
                         savePath: targetPath,
-                        destinationPath: `MatheusFlix\\Series\\${cleanSeries}\\${sStr}`
+                        destinationPath: `Cinelar\\Series\\${cleanSeries}\\${sStr}`
                     }));
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1850,7 +1855,7 @@ const server = http.createServer(async (req, res) => {
                         canPlay: Boolean(torrent.ready || isDone),
                         streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || torrent.magnetURI || '')}&title=${encodeURIComponent(meta.title)}`,
                         magnet: meta.magnet || torrent.magnetURI || '',
-                        destinationPath: meta.destinationPath || `MatheusFlix\\${meta.title}`,
+                        destinationPath: meta.destinationPath || `Cinelar\\${meta.title}`,
                         savePath: meta.savePath || '',
                         category: meta.category || 'movie',
                         groupName: meta.groupName || null,
@@ -1888,7 +1893,7 @@ const server = http.createServer(async (req, res) => {
                     canPlay: isDone,
                     streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || '')}&title=${encodeURIComponent(meta.title)}`,
                     magnet: meta.magnet || '',
-                    destinationPath: meta.destinationPath || `MatheusFlix\\${meta.title}`,
+                    destinationPath: meta.destinationPath || `Cinelar\\${meta.title}`,
                     savePath: meta.savePath || '',
                     category: meta.category || 'movie',
                     groupName: meta.groupName || null,
@@ -2699,7 +2704,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
     console.log(`=======================================================`);
-    console.log(`MatheusFlix Torrent & Discovery Service iniciado!`);
+    console.log(`Cinelar Torrent & Discovery Service iniciado!`);
     console.log(`Porta: http://localhost:${PORT}`);
     console.log(`Pasta de Destino: ${SAVE_PATH}`);
     console.log(`Jellyfin Server: ${JELLYFIN_URL}`);

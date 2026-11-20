@@ -1,7 +1,7 @@
 {
-  "name": "matheusflix-torrent-service",
+  "name": "cinelar-torrent-service",
   "version": "1.0.0",
-  "description": "Companion service for MatheusFlix: Movie discovery and Torrent downloader",
+  "description": "Companion service for Cinelar TV: Movie discovery and Torrent downloader",
   "type": "module",
   "main": "server.js",
   "scripts": {

@@ -1,4 +1,4 @@
-// MatheusFlix API Client - Conecta diretamente ao torrent-service local
+// Cinelar API Client - Conecta diretamente ao torrent-service local
 const DEFAULT_HOST = '192.168.15.9';
 const DEFAULT_PORT = 8085;
 

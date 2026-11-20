@@ -1,4 +1,4 @@
-/* MatheusFlix Smart TV 10-Foot Design System */
+/* Cinelar Smart TV 10-Foot Design System */
 :root {
   --bg-base: #0B0B0A;
   --bg-surface: #141413;
@@ -74,23 +74,54 @@ body.tv-body {
 .tv-logo-box {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  user-select: none;
+}
+
+.tv-logo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #D97757 0%, #B85838 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(217, 119, 87, 0.45);
+}
+
+.tv-logo-text-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .tv-logo-text {
   font-size: 22px;
   font-weight: 900;
   letter-spacing: 2px;
-  color: var(--primary);
+  color: #FAF9F5;
   text-transform: uppercase;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
 }
 
-.tv-logo-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--primary);
-  box-shadow: 0 0 8px var(--primary);
+.tv-logo-accent {
+  color: #D97757;
+  font-weight: 900;
+}
+
+.tv-logo-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #FAF9F5;
+  background: rgba(217, 119, 87, 0.25);
+  border: 1px solid rgba(217, 119, 87, 0.5);
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-top: 1px;
 }
 
 .tv-nav-items {
