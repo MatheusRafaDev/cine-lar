@@ -140,8 +140,10 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
               <span className="material-icons" style={{ fontSize: '12px' }}>schedule</span>
               <span>Restam {remainingMin} min</span>
             </span>
+          ) : year ? (
+            <span className="tv-card-meta">{year}</span>
           ) : (
-            year && <span className="tv-card-meta">{year}</span>
+            <span className="tv-card-meta">Local</span>
           )}
           {size && <span className="tv-meta-separator">•</span>}
           {size && <span className="tv-card-badge-size">{size}</span>}

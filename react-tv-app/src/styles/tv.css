@@ -1779,6 +1779,9 @@ body.tv-body {
 .tv-local-card {
   width: 100% !important;
   max-width: 100% !important;
+  height: 350px !important;
+  min-height: 350px !important;
+  max-height: 350px !important;
   flex: none !important;
   display: flex !important;
   flex-direction: column !important;
@@ -1943,10 +1946,14 @@ body.tv-body {
 }
 
 .tv-local-meta-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 11px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  max-height: 18px !important;
+  overflow: hidden !important;
 }
 
 .tv-meta-separator {
@@ -1962,8 +1969,6 @@ body.tv-body {
 .tv-franchise-section {
   margin-bottom: 40px;
   width: 100%;
-  content-visibility: auto;
-  contain-intrinsic-size: 0 380px;
 }
 
 .tv-franchise-section.tv-franchise-continuation {

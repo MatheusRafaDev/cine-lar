@@ -147,13 +147,13 @@ export function cleanMovieName(raw) {
 
     let name = raw.replace(/\.(mkv|mp4|avi|ts|mov)$/i, '');
     name = name.replace(/\(?www\.[^\)]+\)?/gi, '');
-    name = name.replace(/\b(thepiratefilmes|bludv|wolverdonfilmes|totti9|andretpf|comandotorrents)\b/gi, '');
+    name = name.replace(/\b(thepiratefilmes|bludv|wolverdonfilmes|totti9|andretpf|comandotorrents|cinecombo)\b/gi, '');
     name = name.replace(/\[ACESSE\.\.\.[^\]]+\]/gi, '');
     name = name.replace(/\((19\d\d|20\d\d)\)/g, '');
     name = name.replace(/\b(19\d\d|20\d\d)\b.*/, '');
     name = name.replace(/(\.|\_)/g, ' ');
     name = name.replace(/\[[^\]]+\]/g, ' ');
-    name = name.replace(/\b(1080p|720p|2160p|4k|bluray|bdrip|web-dl|webrip|dual|dublado|nacional|ac3|aac|x264|x265|hevc|h264|imax|open matte|fullhd|ch|edition|proper|remux|dts-hd|ma|5\.1|7\.1)\b.*/i, '');
+    name = name.replace(/\b(1080p|720p|2160p|4k|bluray|bdrip|dvdrip|web-dl|webrip|web|hdtv|dual|dualaudio|dublado|legendado|nacional|ac3|aac|x264|x265|hevc|h264|imax|open matte|fullhd|ch|edition|proper|remux|dts-hd|ma|5\.1|7\.1)\b.*/i, '');
     name = name.replace(/[\(\)\[\]\-]/g, ' ');
     name = name.replace(/\b(com|net|org|br)\b/gi, '');
     // Remove trailing "1" if like "Carros 1", "Toy Story 1"
@@ -188,7 +188,8 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
         const videoFiles = entries.filter(e => e.isFile() && /\.(mp4|mkv|avi|webm|ts)$/i.test(e.name));
         const srtFiles = entries.filter(e => e.isFile() && /\.(srt|vtt)$/i.test(e.name));
 
-        if (videoFiles.length > 0 && currentDepth > 0) {
+        // 1. Processa vídeos encontrados no diretório atual
+        if (videoFiles.length > 0) {
             for (const vf of videoFiles) {
                 const fullVideo = path.join(dir, vf.name);
                 const resolvedVideo = path.resolve(fullVideo).toLowerCase();
@@ -204,7 +205,10 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
                 if (stat) {
                     let folderName = path.basename(dir);
                     const parentDir = path.basename(path.dirname(dir));
-                    if (/^(temporada|season|s\d+)/i.test(folderName) && parentDir && !/^(series|filmes|matheusflix|cinelar)$/i.test(parentDir)) {
+                    const isGenericFolder = /^(filmes|matheusflix|cinelar|downloads|videos|movies)$/i.test(folderName);
+                    if (isGenericFolder || currentDepth === 0) {
+                        folderName = vf.name.replace(/\.[^.]+$/, '');
+                    } else if (/^(temporada|season|s\d+)/i.test(folderName) && parentDir && !/^(series|filmes|matheusflix|cinelar)$/i.test(parentDir)) {
                         folderName = `${parentDir} ${folderName}`;
                     }
                     items.push({
@@ -216,31 +220,17 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
                     });
                 }
             }
-        } else {
-            for (const entry of entries) {
-                const full = path.join(dir, entry.name);
-                const resolvedFull = path.resolve(full).toLowerCase();
-                if (downloadingPaths && downloadingPaths.some(dp => resolvedFull.startsWith(dp))) {
-                    continue;
-                }
-                if (entry.isDirectory()) {
-                    items = items.concat(collectLocalVideos(full, maxDepth, currentDepth + 1, downloadingPaths));
-                } else if (entry.isFile() && /\.(mp4|mkv|avi|webm|ts)$/i.test(entry.name) && currentDepth === 0) {
-                    let stat = null;
-                    try {
-                        stat = fs.statSync(full);
-                    } catch {}
-                    if (stat) {
-                        items.push({
-                            videoFile: full,
-                            srtFile: null,
-                            folderName: '',
-                            fileName: entry.name,
-                            stat
-                        });
-                    }
-                }
+        }
+
+        // 2. Sempre pesquisa subdiretórios recursivamente até o limite de profundidade
+        const subDirs = entries.filter(e => e.isDirectory());
+        for (const sd of subDirs) {
+            const fullSub = path.join(dir, sd.name);
+            const resolvedSub = path.resolve(fullSub).toLowerCase();
+            if (downloadingPaths && downloadingPaths.some(dp => resolvedSub.startsWith(dp))) {
+                continue;
             }
+            items = items.concat(collectLocalVideos(fullSub, maxDepth, currentDepth + 1, downloadingPaths));
         }
     } catch (e) {}
     return items;
