@@ -3,8 +3,14 @@
  * Comunicação com o backend de torrents, catálogo SQLite, Cinemeta e arquivos locais.
  */
 
-// Usa o mesmo host da página: funciona tanto em localhost quanto acessando pelo IP da rede (TV, celular).
-const API_HOST = (typeof window !== 'undefined' && window.location.hostname) || 'localhost';
+// Determina o host da API:
+// Se estiver rodando dentro da Smart TV Samsung (onde protocolo e file:// ou sem hostname),
+// conecta diretamente no IP do computador do servidor (192.168.15.9).
+// Caso acesse pelo navegador web no PC ou celular, usa o IP da barra de endereços.
+const SERVER_PC_IP = '192.168.15.9';
+const API_HOST = (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.protocol !== 'file:')
+    ? window.location.hostname
+    : SERVER_PC_IP;
 export const API_BASE = `http://${API_HOST}:8085/api`;
 
 export async function fetchLocalMovies(force = false) {

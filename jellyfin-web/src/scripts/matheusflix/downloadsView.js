@@ -3,7 +3,7 @@
  * Suporte a streaming progressivo: assista enquanto o filme baixa para D:\filmes!
  */
 
-import { cancelDownload, fetchDownloads, rescanLocalMovies, renameDownload, updateSavePath } from './api';
+import { cancelDownload, fetchDownloads, rescanLocalMovies, renameDownload, updateSavePath, API_BASE } from './api';
 import { openCinemaPlayer } from './cinemaPlayer';
 import { confirmDeleteModal, confirmDeleteFileModal, promptTextModal, showActionMenuModal } from './confirmModal';
 import { escapeHtml } from './utils';
@@ -61,7 +61,7 @@ export function renderDownloadsView(container) {
     let cachedStatus = null;
     async function fetchStatus() {
         try {
-            const res = await fetch('http://localhost:8085/api/status');
+            const res = await fetch(`${API_BASE}/status`);
             if (res.ok) {
                 cachedStatus = await res.json();
             }

@@ -57,6 +57,15 @@ export default function(view) {
     view.querySelector('.addServerForm').addEventListener('submit', onServerSubmit);
     view.querySelector('.btnCancel').addEventListener('click', goBack);
 
+    // MatheusFlix: Auto-preenche e conecta ao IP do servidor local automaticamente
+    const hostInput = view.querySelector('#txtServerHost');
+    if (hostInput && !hostInput.value) {
+        hostInput.value = 'http://192.168.15.9:8096';
+        setTimeout(() => {
+            submitServer(view);
+        }, 150);
+    }
+
     import('../../../components/autoFocuser').then(({ default: autoFocuser }) => {
         autoFocuser.autoFocus(view);
     });

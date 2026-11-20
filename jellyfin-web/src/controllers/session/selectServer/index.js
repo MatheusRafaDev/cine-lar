@@ -168,13 +168,24 @@ export default function (view, params) {
             focusManager.autoFocus(view);
         }
 
-        // MatheusFlix: Auto-conectar diretamente quando houver apenas 1 servidor configurado
-        if (servers && servers.length === 1 && !window._mfAutoConnectingServer) {
+        // MatheusFlix: Auto-conectar diretamente sem exigir clique ou digitacao
+        if (servers && servers.length >= 1 && !window._mfAutoConnectingServer) {
             window._mfAutoConnectingServer = true;
             setTimeout(() => {
                 window._mfAutoConnectingServer = false;
-                connectToServer(servers[0]);
-            }, 250);
+                const target = servers.find(s => s.ManualAddress?.includes('192.168.15.9') || s.LocalAddress?.includes('192.168.15.9')) || servers[0];
+                connectToServer(target);
+            }, 200);
+        } else if ((!servers || servers.length === 0) && !window._mfAutoConnectingServer) {
+            window._mfAutoConnectingServer = true;
+            ServerConnections.connectToAddress('http://192.168.15.9:8096').then(function (res) {
+                window._mfAutoConnectingServer = false;
+                if (res && res.Servers && res.Servers.length > 0) {
+                    connectToServer(res.Servers[0]);
+                }
+            }).catch(function () {
+                window._mfAutoConnectingServer = false;
+            });
         }
     }
 
