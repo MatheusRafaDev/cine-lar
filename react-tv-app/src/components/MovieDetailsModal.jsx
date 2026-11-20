@@ -17,7 +17,8 @@ export function MovieDetailsModal({
   focusedIndex,
   onClose,
   onPlayStream,
-  modalActionRef
+  modalActionRef,
+  onToggleFavorite
 }) {
   const [details, setDetails] = useState(movie);
   const [loading, setLoading] = useState(false);
@@ -48,7 +49,8 @@ export function MovieDetailsModal({
 
   useEffect(() => {
     if (!movie) return;
-    setFavorite(isFavorite(movie.id, movie.imdbId));
+    const target = details || movie;
+    setFavorite(isFavorite(target.id || target.movieId || movie.id, target.imdbId || movie.imdbId, target.title || movie.title));
 
     let isMounted = true;
     setLoading(true);
@@ -437,10 +439,12 @@ export function MovieDetailsModal({
 
   // Ação 3: Favoritos
   const handleToggleFav = useCallback(() => {
-    const next = toggleFavorite(details);
+    const target = details || movie;
+    const next = toggleFavorite(target);
     setFavorite(next);
     showToast(next ? 'Adicionado à sua lista de Favoritos!' : 'Removido dos seus Favoritos.');
-  }, [details]);
+    onToggleFavorite?.(next, target);
+  }, [details, movie, onToggleFavorite]);
 
   // Ação 4: Remover de Continuar Assistindo
   const handleRemoveHistory = useCallback(() => {

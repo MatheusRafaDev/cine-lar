@@ -352,14 +352,16 @@ export function getUserFavorites(userId) {
 export function isUserFavorite(userId, movieId) {
     if (!userId || !movieId) return false;
     const database = getDb();
-    const row = database.prepare('SELECT 1 FROM user_favorites WHERE user_id = ? AND movie_id = ?').get(userId, movieId);
+    const mid = String(movieId).trim();
+    const row = database.prepare('SELECT 1 FROM user_favorites WHERE user_id = ? AND movie_id = ?').get(userId, mid);
     return Boolean(row);
 }
 
 export function toggleUserFavorite(userId, movie) {
-    if (!userId || !movie || !movie.id) return { favorite: false };
+    if (!userId || !movie) return { favorite: false };
     const database = getDb();
-    const movieId = movie.id;
+    const movieId = String(movie.id || movie.imdbId || movie.movieId || movie.filePath || movie.title || '').trim();
+    if (!movieId) return { favorite: false };
     const exists = isUserFavorite(userId, movieId);
 
     if (exists) {

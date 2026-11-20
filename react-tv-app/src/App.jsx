@@ -20,6 +20,7 @@ import {
   getWatchHistory,
   getSavedProgress,
   getFavorites,
+  syncFavoritesWithServer,
   getMovieDetails,
   deleteDownload
 } from './services/api';
@@ -59,6 +60,9 @@ export function App() {
 
   useEffect(() => {
     refreshUserData();
+    syncFavoritesWithServer().then(favs => {
+      if (favs && favs.length > 0) setFavorites(favs);
+    });
 
     // Trending & Destaque
     getTrendingMovies().then(movies => {
@@ -657,6 +661,7 @@ export function App() {
           isZoneFocused={nav.activeZone === 'modal'}
           focusedIndex={nav.modalIndex}
           modalActionRef={modalActionRef}
+          onToggleFavorite={refreshUserData}
           onClose={() => {
             setSelectedMovie(null);
             refreshUserData();

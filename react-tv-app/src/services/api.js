@@ -508,9 +508,24 @@ export function clearWatchProgress(id) {
   } catch (_) {}
 }
 
-// 13. Minha Lista (Favoritos) com Cache em Memoria
+// 13. Minha Lista (Favoritos) com Cache em Memoria e Sincronizacao
 let _cachedFavorites = null;
 let _cachedFavoritesSet = new Set();
+
+function buildFavoritesSet(favs) {
+  const set = new Set();
+  for (const f of favs) {
+    if (!f) continue;
+    if (f.id) set.add(String(f.id).toLowerCase().trim());
+    if (f.imdbId) set.add(String(f.imdbId).toLowerCase().trim());
+    if (f.movieId) set.add(String(f.movieId).toLowerCase().trim());
+    if (f.filePath) set.add(String(f.filePath).toLowerCase().trim());
+    if (f.videoPath) set.add(String(f.videoPath).toLowerCase().trim());
+    if (f.title) set.add(String(f.title).toLowerCase().trim());
+    if (f.cleanName) set.add(String(f.cleanName).toLowerCase().trim());
+  }
+  return set;
+}
 
 export function getFavorites() {
   if (_cachedFavorites !== null) {
@@ -519,13 +534,8 @@ export function getFavorites() {
   try {
     const raw = localStorage.getItem('mf_favorites');
     const items = raw ? JSON.parse(raw) : [];
-    _cachedFavorites = items.map(normalizeMovie);
-    _cachedFavoritesSet = new Set();
-    for (const f of _cachedFavorites) {
-      if (f.id) _cachedFavoritesSet.add(String(f.id).toLowerCase().trim());
-      if (f.imdbId) _cachedFavoritesSet.add(String(f.imdbId).toLowerCase().trim());
-      if (f.movieId) _cachedFavoritesSet.add(String(f.movieId).toLowerCase().trim());
-    }
+    _cachedFavorites = items.filter(Boolean).map(normalizeMovie);
+    _cachedFavoritesSet = buildFavoritesSet(_cachedFavorites);
     return _cachedFavorites;
   } catch (_) {
     _cachedFavorites = [];
@@ -534,40 +544,112 @@ export function getFavorites() {
   }
 }
 
-export function toggleFavorite(movie) {
-  if (!movie || !movie.id) return false;
+// Sincroniza favoritos com o servidor SQLite em background
+export async function syncFavoritesWithServer() {
   try {
-    const favs = getFavorites();
-    const idx = favs.findIndex(f => f.id === movie.id || (movie.imdbId && f.imdbId === movie.imdbId));
+    const res = await request('/api/user/favorites?userId=default');
+    if (res && Array.isArray(res.favorites)) {
+      const serverFavs = res.favorites.map(normalizeMovie);
+      const localFavs = getFavorites();
+      const mergedMap = new Map();
+
+      for (const f of serverFavs) {
+        if (!f) continue;
+        const key = String(f.id || f.imdbId || f.movieId || f.filePath || f.title).toLowerCase().trim();
+        if (key) mergedMap.set(key, f);
+      }
+      for (const f of localFavs) {
+        if (!f) continue;
+        const key = String(f.id || f.imdbId || f.movieId || f.filePath || f.title).toLowerCase().trim();
+        if (key) mergedMap.set(key, f);
+      }
+
+      const merged = Array.from(mergedMap.values());
+      _cachedFavorites = merged;
+      _cachedFavoritesSet = buildFavoritesSet(merged);
+      try {
+        localStorage.setItem('mf_favorites', JSON.stringify(merged));
+      } catch (_) {}
+      return merged;
+    }
+  } catch (_) {}
+  return getFavorites();
+}
+
+export function toggleFavorite(movie) {
+  if (!movie) return false;
+  const norm = normalizeMovie(movie);
+  if (!norm) return false;
+
+  const targetId = String(norm.id || norm.imdbId || norm.movieId || norm.filePath || norm.title || '').toLowerCase().trim();
+  const targetImdb = String(norm.imdbId || '').toLowerCase().trim();
+  const targetPath = String(norm.filePath || norm.videoPath || '').toLowerCase().trim();
+  const targetTitle = String(norm.title || norm.name || norm.cleanName || '').toLowerCase().trim();
+
+  if (!targetId && !targetTitle) return false;
+
+  try {
+    const favs = [...getFavorites()];
+    const idx = favs.findIndex(f => {
+      if (!f) return false;
+      const fId = String(f.id || f.movieId || '').toLowerCase().trim();
+      const fImdb = String(f.imdbId || '').toLowerCase().trim();
+      const fPath = String(f.filePath || f.videoPath || '').toLowerCase().trim();
+      const fTitle = String(f.title || f.name || f.cleanName || '').toLowerCase().trim();
+
+      if (targetId && fId && targetId === fId) return true;
+      if (targetImdb && fImdb && targetImdb === fImdb) return true;
+      if (targetPath && fPath && (targetPath === fPath || targetPath.endsWith(fPath) || fPath.endsWith(targetPath))) return true;
+      if (targetTitle && fTitle && (targetTitle === fTitle || targetTitle.includes(fTitle) || fTitle.includes(targetTitle))) return true;
+      return false;
+    });
+
     let isFav = false;
     if (idx !== -1) {
       favs.splice(idx, 1);
       isFav = false;
     } else {
-      favs.unshift(normalizeMovie(movie));
+      favs.unshift(norm);
       isFav = true;
     }
+
     _cachedFavorites = favs;
-    _cachedFavoritesSet = new Set();
-    for (const f of _cachedFavorites) {
-      if (f.id) _cachedFavoritesSet.add(String(f.id).toLowerCase().trim());
-      if (f.imdbId) _cachedFavoritesSet.add(String(f.imdbId).toLowerCase().trim());
-      if (f.movieId) _cachedFavoritesSet.add(String(f.movieId).toLowerCase().trim());
-    }
+    _cachedFavoritesSet = buildFavoritesSet(favs);
+
     try {
       localStorage.setItem('mf_favorites', JSON.stringify(favs));
     } catch (_) {}
+
+    // Sincroniza em background com o servidor SQLite
+    try {
+      fetch(`${getServerUrl()}/api/user/favorites/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: 'default',
+          movie: {
+            id: norm.id || norm.imdbId || targetId,
+            title: norm.title,
+            poster: norm.poster,
+            year: norm.year,
+            rating: norm.imdbRating || norm.rating
+          }
+        })
+      }).catch(() => {});
+    } catch (_) {}
+
     return isFav;
   } catch (_) {
     return false;
   }
 }
 
-export function isFavorite(movieId, imdbId) {
+export function isFavorite(movieId, imdbId, title = '') {
   if (_cachedFavorites === null) {
     getFavorites();
   }
   if (movieId && _cachedFavoritesSet.has(String(movieId).toLowerCase().trim())) return true;
   if (imdbId && _cachedFavoritesSet.has(String(imdbId).toLowerCase().trim())) return true;
+  if (title && _cachedFavoritesSet.has(String(title).toLowerCase().trim())) return true;
   return false;
 }
