@@ -245,10 +245,13 @@ export function enable() {
                 break;
 
             case 'Enter':
-                if (!isInteractiveElement(document.activeElement) && document.activeElement && document.activeElement !== document.body) {
-                    if (document.activeElement.tagName !== 'BUTTON' && document.activeElement.tagName !== 'A') {
+                if (!isInteractiveElement(document.activeElement) && document.activeElement && document.activeElement !== document.body && document.activeElement !== document.documentElement) {
+                    if (typeof document.activeElement.click === 'function') {
+                        document.activeElement.click();
+                    } else {
                         inputManager.handleCommand('select');
                     }
+                    capture = true;
                 } else {
                     capture = false;
                 }
