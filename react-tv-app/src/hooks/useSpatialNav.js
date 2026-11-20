@@ -118,18 +118,84 @@ export function useSpatialNav({
     }
   }, []);
 
-  // 2. Transições automáticas de zona para Modal, Player e Menu de Ações
+  // Memória persistente de foco para restauração 100% fiel ao voltar de modal, player ou troca de abas
+  const savedFocusBeforeOverlayRef = useRef(null);
+  const prevTabRef = useRef(activeTab);
+  const tabPositionsRef = useRef({
+    home: { activeZone: 'hero', heroIndex: 0, rowIndex: 0, colIndex: 0 },
+    movies: { activeZone: 'rows', rowIndex: 0, colIndex: 0 },
+    series: { activeZone: 'rows', rowIndex: 0, colIndex: 0 },
+    favorites: { activeZone: 'rows', rowIndex: 0, colIndex: 0 },
+    local: { activeZone: 'rows', rowIndex: 0, colIndex: 0, localFilterIndex: 0 },
+    downloads: { activeZone: 'rows', rowIndex: 0, colIndex: 0 },
+    search: { activeZone: 'search-keyboard', searchRowIndex: 0, searchColIndex: 0, resultsColIndex: 0 }
+  });
+
+  // 2. Transições de zona para Modal, Player e Menu de Ações (com memória cirúrgica da posição exata)
   useEffect(() => {
-    if (isPlayerOpen) {
-      setActiveZone('player');
-    } else if (isModalOpen) {
-      setActiveZone('modal');
-      setModalIndex(0);
-      stateRef.current.modalIndex = 0;
+    const isOverlayActive = isPlayerOpen || isModalOpen;
+
+    if (isOverlayActive) {
+      // Salva snapshot da posição exata do card antes de abrir modal ou player
+      if (!savedFocusBeforeOverlayRef.current) {
+        const curZone = stateRef.current.activeZone;
+        const validZone = (curZone === 'modal' || curZone === 'player') ? 'rows' : curZone;
+        savedFocusBeforeOverlayRef.current = {
+          activeZone: validZone,
+          heroIndex: stateRef.current.heroIndex,
+          rowIndex: stateRef.current.rowIndex,
+          colIndex: stateRef.current.colIndex,
+          localFilterIndex: stateRef.current.localFilterIndex,
+          searchRowIndex: stateRef.current.searchRowIndex,
+          searchColIndex: stateRef.current.searchColIndex,
+          resultsColIndex: stateRef.current.resultsColIndex
+        };
+      }
+
+      if (isPlayerOpen) {
+        setActiveZone('player');
+        stateRef.current.activeZone = 'player';
+      } else if (isModalOpen) {
+        setActiveZone('modal');
+        stateRef.current.activeZone = 'modal';
+        setModalIndex(0);
+        stateRef.current.modalIndex = 0;
+      }
     } else {
-      setActiveZone(prev => (prev === 'modal' || prev === 'player') ? 'rows' : prev);
+      // Quando AMBOS fecham (voltar do modal ou voltar do player), restaura exatamente o card onde o usuário estava
+      const saved = savedFocusBeforeOverlayRef.current || tabPositionsRef.current[activeTab];
+      savedFocusBeforeOverlayRef.current = null;
+
+      if (saved) {
+        const targetZone = (saved.activeZone === 'modal' || saved.activeZone === 'player') ? 'rows' : (saved.activeZone || 'rows');
+        setActiveZone(targetZone);
+        stateRef.current.activeZone = targetZone;
+
+        setRowIndex(saved.rowIndex || 0);
+        stateRef.current.rowIndex = saved.rowIndex || 0;
+
+        setColIndex(saved.colIndex || 0);
+        stateRef.current.colIndex = saved.colIndex || 0;
+
+        setHeroIndex(saved.heroIndex || 0);
+        stateRef.current.heroIndex = saved.heroIndex || 0;
+
+        setLocalFilterIndex(saved.localFilterIndex || 0);
+        stateRef.current.localFilterIndex = saved.localFilterIndex || 0;
+
+        setSearchRowIndex(saved.searchRowIndex || 0);
+        stateRef.current.searchRowIndex = saved.searchRowIndex || 0;
+
+        setSearchColIndex(saved.searchColIndex || 0);
+        stateRef.current.searchColIndex = saved.searchColIndex || 0;
+
+        setResultsColIndex(saved.resultsColIndex || 0);
+        stateRef.current.resultsColIndex = saved.resultsColIndex || 0;
+      } else {
+        setActiveZone(prev => (prev === 'modal' || prev === 'player') ? 'rows' : prev);
+      }
     }
-  }, [isPlayerOpen, isModalOpen]);
+  }, [isPlayerOpen, isModalOpen, activeTab]);
 
   useEffect(() => {
     if (isQuickMenuOpen) {
@@ -138,9 +204,68 @@ export function useSpatialNav({
     }
   }, [isQuickMenuOpen]);
 
-  // 3. Sincronização de zona ao trocar de aba (mantém no header se estiver navegando o header)
+  // 2.5. Salva continuamente a posição exata da navegação enquanto o usuário percorre o conteúdo
   useEffect(() => {
-    if (isModalOpen || isPlayerOpen) return;
+    if (activeZone !== 'modal' && activeZone !== 'player' && activeZone !== 'header') {
+      tabPositionsRef.current[activeTab] = {
+        activeZone,
+        heroIndex,
+        rowIndex,
+        colIndex,
+        localFilterIndex,
+        searchRowIndex,
+        searchColIndex,
+        resultsColIndex
+      };
+    }
+  }, [activeZone, activeTab, heroIndex, rowIndex, colIndex, localFilterIndex, searchRowIndex, searchColIndex, resultsColIndex]);
+
+  // Função centralizada para descer do header direto para a posição exata salva naquela aba
+  const descendFromHeader = useCallback(() => {
+    const s = stateRef.current;
+    const savedTab = tabPositionsRef.current[s.activeTab];
+    if (s.activeTab === 'home' && s.hasHero && (!savedTab || savedTab.activeZone === 'hero')) {
+      setActiveZone('hero');
+      stateRef.current.activeZone = 'hero';
+    } else if (s.activeTab === 'search') {
+      const targetZone = savedTab?.activeZone || 'search-keyboard';
+      setActiveZone(targetZone);
+      stateRef.current.activeZone = targetZone;
+    } else if (s.activeTab === 'local' && (!savedTab || savedTab.activeZone === 'local-filters')) {
+      setActiveZone('local-filters');
+      stateRef.current.activeZone = 'local-filters';
+    } else {
+      setActiveZone('rows');
+      stateRef.current.activeZone = 'rows';
+      const r = savedTab ? Math.min(Math.max(0, s.rowCount - 1), savedTab.rowIndex || 0) : 0;
+      const maxC = s.getColCount ? s.getColCount(r) : 1;
+      const c = savedTab ? Math.min(Math.max(0, maxC - 1), savedTab.colIndex || 0) : 0;
+      setRowIndex(r);
+      setColIndex(c);
+      stateRef.current.rowIndex = r;
+      stateRef.current.colIndex = c;
+    }
+  }, []);
+
+  // 3. Sincronização de zona ao trocar de aba (somente quando a aba realmente muda, preservando posições)
+  useEffect(() => {
+    if (prevTabRef.current === activeTab) return;
+
+    // Salva a posição exata da aba anterior para restauração futura
+    const oldTab = prevTabRef.current;
+    if (oldTab) {
+      tabPositionsRef.current[oldTab] = {
+        activeZone: stateRef.current.activeZone,
+        heroIndex: stateRef.current.heroIndex,
+        rowIndex: stateRef.current.rowIndex,
+        colIndex: stateRef.current.colIndex,
+        localFilterIndex: stateRef.current.localFilterIndex,
+        searchRowIndex: stateRef.current.searchRowIndex,
+        searchColIndex: stateRef.current.searchColIndex,
+        resultsColIndex: stateRef.current.resultsColIndex
+      };
+    }
+    prevTabRef.current = activeTab;
 
     // Sincroniza o índice do header com a tab atual
     const tabIdx = NAV_ITEMS.findIndex(item => item.id === activeTab);
@@ -149,30 +274,42 @@ export function useSpatialNav({
       stateRef.current.headerIndex = tabIdx;
     }
 
-    setActiveZone(currentZone => {
-      if (currentZone === 'header') return 'header';
+    if (stateRef.current.activeZone === 'header') return;
 
+    // Restaura a posição salva para a nova aba
+    const saved = tabPositionsRef.current[activeTab];
+    if (saved) {
+      setActiveZone(saved.activeZone);
+      stateRef.current.activeZone = saved.activeZone;
+
+      setRowIndex(saved.rowIndex || 0);
+      stateRef.current.rowIndex = saved.rowIndex || 0;
+
+      setColIndex(saved.colIndex || 0);
+      stateRef.current.colIndex = saved.colIndex || 0;
+
+      setHeroIndex(saved.heroIndex || 0);
+      stateRef.current.heroIndex = saved.heroIndex || 0;
+
+      setLocalFilterIndex(saved.localFilterIndex || 0);
+      stateRef.current.localFilterIndex = saved.localFilterIndex || 0;
+    } else {
       if (activeTab === 'search') {
         setSearchRowIndex(0);
         setSearchColIndex(0);
-        return 'search-keyboard';
-      }
-      if (activeTab === 'home' && hasHero) {
+        setActiveZone('search-keyboard');
+      } else if (activeTab === 'home' && hasHero) {
         setHeroIndex(0);
         setRowIndex(0);
         setColIndex(0);
-        return 'hero';
-      }
-      if (activeTab === 'local') {
+        setActiveZone('hero');
+      } else {
         setRowIndex(0);
         setColIndex(0);
-        return 'rows';
+        setActiveZone('rows');
       }
-      setRowIndex(0);
-      setColIndex(0);
-      return 'rows';
-    });
-  }, [activeTab, hasHero, isModalOpen, isPlayerOpen]);
+    }
+  }, [activeTab, hasHero]);
 
   // 4. Manipulador global persistente de teclas (SINGLE LISTENER - ZERO GC CHURN)
   const handleKeyDown = useCallback((e) => {
@@ -385,8 +522,22 @@ export function useSpatialNav({
       }
 
       // 2. Se o foco está em qualquer área de conteúdo (rows, local-filters, hero, busca):
-      // Joga SEMPRE o foco para o header, sincronizado com a tab atual, para navegar dentro dele
       if (s.activeZone !== 'header') {
+        const handled = s.onBack?.();
+        if (handled) return;
+
+        // Salva a posição exata antes de subir para o header
+        tabPositionsRef.current[s.activeTab] = {
+          activeZone: s.activeZone,
+          heroIndex: s.heroIndex,
+          rowIndex: s.rowIndex,
+          colIndex: s.colIndex,
+          localFilterIndex: s.localFilterIndex,
+          searchRowIndex: s.searchRowIndex,
+          searchColIndex: s.searchColIndex,
+          resultsColIndex: s.resultsColIndex
+        };
+
         const tabIdx = NAV_ITEMS.findIndex(item => item.id === s.activeTab);
         const targetHeaderIdx = tabIdx >= 0 ? tabIdx : 0;
         setHeaderIndex(targetHeaderIdx);
@@ -566,37 +717,30 @@ export function useSpatialNav({
     if (isDown) {
       e.preventDefault();
       if (s.activeZone === 'header') {
-        if (s.activeTab === 'home' && s.hasHero) {
-          setActiveZone('hero');
-          stateRef.current.activeZone = 'hero';
-        } else if (s.activeTab === 'search') {
-          setActiveZone('search-keyboard');
-          stateRef.current.activeZone = 'search-keyboard';
-        } else if (s.activeTab === 'local') {
-          setActiveZone('local-filters');
-          stateRef.current.activeZone = 'local-filters';
-        } else {
-          setActiveZone('rows');
-          stateRef.current.activeZone = 'rows';
-          setRowIndex(0);
-          setColIndex(0);
-          stateRef.current.rowIndex = 0;
-          stateRef.current.colIndex = 0;
-        }
+        descendFromHeader();
+        return;
       } else if (s.activeZone === 'local-filters') {
         setActiveZone('rows');
         stateRef.current.activeZone = 'rows';
-        setRowIndex(0);
-        setColIndex(0);
-        stateRef.current.rowIndex = 0;
-        stateRef.current.colIndex = 0;
+        const savedTab = tabPositionsRef.current.local;
+        const r = (savedTab && savedTab.activeZone === 'rows') ? Math.min(Math.max(0, s.rowCount - 1), savedTab.rowIndex || 0) : 0;
+        const maxC = s.getColCount ? s.getColCount(r) : 1;
+        const c = (savedTab && savedTab.activeZone === 'rows') ? Math.min(Math.max(0, maxC - 1), savedTab.colIndex || 0) : 0;
+        setRowIndex(r);
+        setColIndex(c);
+        stateRef.current.rowIndex = r;
+        stateRef.current.colIndex = c;
       } else if (s.activeZone === 'hero') {
         setActiveZone('rows');
         stateRef.current.activeZone = 'rows';
-        setRowIndex(0);
-        setColIndex(0);
-        stateRef.current.rowIndex = 0;
-        stateRef.current.colIndex = 0;
+        const savedTab = tabPositionsRef.current.home;
+        const r = (savedTab && savedTab.activeZone === 'rows') ? Math.min(Math.max(0, s.rowCount - 1), savedTab.rowIndex || 0) : 0;
+        const maxC = s.getColCount ? s.getColCount(r) : 1;
+        const c = (savedTab && savedTab.activeZone === 'rows') ? Math.min(Math.max(0, maxC - 1), savedTab.colIndex || 0) : 0;
+        setRowIndex(r);
+        setColIndex(c);
+        stateRef.current.rowIndex = r;
+        stateRef.current.colIndex = c;
       } else if (s.activeZone === 'rows') {
         setRowIndex(r => {
           const nextR = Math.min(Math.max(0, s.rowCount - 1), r + 1);
@@ -806,6 +950,7 @@ export function useSpatialNav({
     searchColIndex,
     setSearchColIndex,
     resultsColIndex,
-    setResultsColIndex
+    setResultsColIndex,
+    descendFromHeader
   };
 }

@@ -723,7 +723,15 @@ export function App() {
         }
         setSelectedMovie(null);
         refreshUserData();
-        return false; // Modal fechado
+        return true; // Modal fechado: useSpatialNav restaura o foco exato do card de origem
+      }
+      // Se estiver na aba local e com filtro de coleção/franquia ativo, voltar desfaz o filtro antes de sair
+      if (activeTab === 'local' && localFilterId !== 'all') {
+        setLocalFilterId('all');
+        nav.setLocalFilterIndex(0);
+        nav.setRowIndex(0);
+        nav.setColIndex(0);
+        return true;
       }
       // Se já está no header da página inicial e pressionou voltar novamente, sai do aplicativo Tizen
       if (typeof window !== 'undefined' && window.tizen && window.tizen.application) {
@@ -731,6 +739,7 @@ export function App() {
           window.tizen.application.getCurrentApplication().exit();
         } catch (_) {}
       }
+      return false;
     },
     onEnter: ({ zone, index, headerIndex, heroIndex, rowIndex, colIndex, filterIndex, searchRowIndex, searchColIndex, resultsColIndex, isPlayKey }) => {
       if (zone === 'modal') {
@@ -741,18 +750,8 @@ export function App() {
       }
 
       if (zone === 'header') {
-        // Confirma tab e desce para o conteúdo
-        if (activeTab === 'home' && heroMovie) {
-          nav.setActiveZone('hero');
-        } else if (activeTab === 'local') {
-          nav.setActiveZone('local-filters');
-        } else if (activeTab === 'search') {
-          nav.setActiveZone('search-keyboard');
-        } else {
-          nav.setActiveZone('rows');
-          nav.setRowIndex(0);
-          nav.setColIndex(0);
-        }
+        // Confirma tab e desce diretamente para a posição exata salva naquela aba
+        nav.descendFromHeader?.();
         return;
       }
 

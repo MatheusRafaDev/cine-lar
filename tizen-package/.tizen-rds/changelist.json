@@ -19,18 +19,6 @@
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/config.xml",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/icon.png",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/index.html",
-        "type": "add"
-      },
-      {
         "path": "Debug/projects/tizen-package/assets/index-69IVX0Mm.css",
         "type": "add"
       },
@@ -59,11 +47,23 @@
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-DAtoMzzr.js",
+        "path": "Debug/projects/tizen-package/config.xml",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-legacy-j9E8vnXf.js",
+        "path": "Debug/projects/tizen-package/icon.png",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/index.html",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-h7ch4CoG.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-legacy-DGoJufnJ.js",
         "type": "add"
       }
     ]

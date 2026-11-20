@@ -28,8 +28,8 @@ trust_anchor: []
 # list of files in web project (.html,.css etc) and resources
 files:
   - assets/index-CvfY5KrR.css
-  - assets/index-DAtoMzzr.js
-  - assets/index-legacy-j9E8vnXf.js
+  - assets/index-h7ch4CoG.js
+  - assets/index-legacy-DGoJufnJ.js
   - assets/polyfills-legacy-CoKm92xK.js
   - icon.png
   - index.html
