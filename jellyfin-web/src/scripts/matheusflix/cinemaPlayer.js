@@ -12,6 +12,7 @@ import { playbackManager } from 'components/playback/playbackmanager';
 import Events from 'utils/events';
 
 let activePlayerInstance = null;
+let activeStreamHash = null;
 let lastFocusedBeforePlayer = null;
 const noop = () => {
     // Intentionally empty no-op handler
@@ -131,6 +132,7 @@ export function openCinemaPlayer({
             currentHash = hashMatch[1].toLowerCase();
         }
     }
+    activeStreamHash = currentHash || null;
 
     const progressStorageKey = 'mf_resume_' + (currentHash || movieId || encodeURIComponent(title || ''));
     if (!resumePosition || resumePosition <= 0) {
@@ -439,9 +441,21 @@ export function openCinemaPlayer({
         if (isDestroyed) return;
         if (video.paused) {
             safePlay();
+            showSeekFeedback('Reproduzindo');
         } else {
             video.pause();
+            showControls();
+            showSeekFeedback('Pausado');
+            if (btnPlay) {
+                btnPlay.focus();
+            }
         }
+    }
+
+    playerEl.togglePlay = togglePlay;
+    if (typeof window !== 'undefined') {
+        window.MatheusFlix = window.MatheusFlix || {};
+        window.MatheusFlix.togglePlay = togglePlay;
     }
 
     function toggleFullscreen() {
@@ -857,6 +871,9 @@ export function openCinemaPlayer({
         playerEl.classList.add('controls-visible');
         persistCurrentProgress();
         releaseWakeLock();
+        if (window.MatheusFlix && window.MatheusFlix.togglePlay === togglePlay) {
+            delete window.MatheusFlix.togglePlay;
+        }
     });
 
     video.addEventListener('ended', () => {
@@ -869,6 +886,9 @@ export function openCinemaPlayer({
         btnPlay.querySelector('.material-icons').textContent = 'replay';
         persistCurrentProgress();
         releaseWakeLock();
+        if (window.MatheusFlix && window.MatheusFlix.togglePlay === togglePlay) {
+            delete window.MatheusFlix.togglePlay;
+        }
 
         if (seriesInfo && seriesInfo.hasNext && typeof seriesInfo.onPlayNext === 'function') {
             triggerNextEpisode();
@@ -977,15 +997,22 @@ export function openCinemaPlayer({
         const keyCode = e.keyCode || e.which || 0;
         const key = e.key || '';
 
-        if (key === ' ' || key === 'k' || key === 'MediaPlayPause' || keyCode === 10252) {
+        if (key === ' ' || key === 'k' || key === 'MediaPlayPause' || keyCode === 10252 || keyCode === 13 || key === 'Enter') {
+            const active = document.activeElement;
+            if ((keyCode === 13 || key === 'Enter') && active && active !== document.body && active.closest && active.closest('.mf-cinema-player') && !active.classList.contains('mf-btn-play') && (active.tagName === 'BUTTON' || active.getAttribute('role') === 'button')) {
+                // Deixa o botão focado executar seu clique
+                return;
+            }
             e.preventDefault();
             togglePlay();
         } else if (key === 'MediaPlay' || keyCode === 415) {
             e.preventDefault();
-            video.play().catch(noop);
+            if (video.paused) togglePlay();
+            else showSeekFeedback('Reproduzindo');
         } else if (key === 'MediaPause' || key === 'MediaStop' || keyCode === 19 || keyCode === 413) {
             e.preventDefault();
-            video.pause();
+            if (!video.paused) togglePlay();
+            else { showControls(); showSeekFeedback('Pausado'); }
         } else if (key === 'ArrowRight' || key === 'MediaFastForward' || keyCode === 417) {
             e.preventDefault();
             video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
@@ -1056,6 +1083,12 @@ export function openCinemaPlayer({
         }
     };
 
+    if (typeof window !== 'undefined' && window.tizen && window.tizen.tvinputdevice) {
+        ['MediaPlay', 'MediaPause', 'MediaStop', 'MediaPlayPause', 'MediaRewind', 'MediaFastForward'].forEach(k => {
+            try { window.tizen.tvinputdevice.registerKey(k); } catch (_) {}
+        });
+    }
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('popstate', handleNavAway);
     window.addEventListener('hashchange', handleNavAway);
@@ -1079,6 +1112,9 @@ export function openCinemaPlayer({
         Events.off(playbackManager, 'playbackstart', handleNavAway);
 
         releaseWakeLock();
+        if (window.MatheusFlix && window.MatheusFlix.togglePlay === togglePlay) {
+            delete window.MatheusFlix.togglePlay;
+        }
         if (nextCountdownTimer) {
             clearInterval(nextCountdownTimer);
             nextCountdownTimer = null;
@@ -1111,6 +1147,13 @@ export function openCinemaPlayer({
 export function closeCinemaPlayer() {
     const playerEl = activePlayerInstance;
     activePlayerInstance = null;
+
+    if (activeStreamHash) {
+        try {
+            fetch(`${API_BASE}/stream/${activeStreamHash}/stop`, { method: 'POST' }).catch(noop);
+        } catch (_) {}
+        activeStreamHash = null;
+    }
 
     if (document.fullscreenElement) {
         document.exitFullscreen?.().catch(noop);

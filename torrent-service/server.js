@@ -76,12 +76,12 @@ client.on('error', (err) => {
 const downloadsRegistry = new Map();
 const DOWNLOADS_FILE = path.join(__dirname, 'downloads.json');
 
-// Load saved downloads history if available
+// Load saved downloads history if available (apenas downloads permanentes, nunca streams temporarios)
 try {
     if (fs.existsSync(DOWNLOADS_FILE)) {
         const saved = JSON.parse(fs.readFileSync(DOWNLOADS_FILE, 'utf8'));
         if (Array.isArray(saved)) {
-            saved.forEach(item => {
+            saved.filter(item => item.quality !== 'Streaming').forEach(item => {
                 downloadsRegistry.set(item.id, item);
             });
         }
@@ -92,21 +92,57 @@ try {
 
 function persistDownloads() {
     try {
-        const list = Array.from(downloadsRegistry.values()).map(d => ({
-            id: d.id,
-            imdbId: d.imdbId,
-            title: d.title,
-            quality: d.quality,
-            status: d.status,
-            downloaded: d.downloaded || '0 MB',
-            total: d.total || '0 MB',
-            progress: d.progress || 0,
-            completedAt: d.completedAt || null,
-            createdAt: d.createdAt || new Date().toISOString()
-        }));
+        const list = Array.from(downloadsRegistry.values())
+            .filter(d => d.quality !== 'Streaming')
+            .map(d => ({
+                id: d.id,
+                imdbId: d.imdbId,
+                title: d.title,
+                quality: d.quality,
+                status: d.status,
+                downloaded: d.downloaded || '0 MB',
+                total: d.total || '0 MB',
+                progress: d.progress || 0,
+                completedAt: d.completedAt || null,
+                createdAt: d.createdAt || new Date().toISOString()
+            }));
         fs.writeFileSync(DOWNLOADS_FILE, JSON.stringify(list, null, 2), 'utf8');
     } catch (e) {
         console.error('[TorrentService] Error persisting downloads:', e.message);
+    }
+}
+
+// Gerenciamento de streaming sob demanda e liberacao automatica de recursos em segundo plano
+const activeStreamClients = new Map(); // infoHash -> count
+const streamIdleTimers = new Map(); // infoHash -> timeoutId
+
+function stopStreamingTorrent(infoHash) {
+    if (streamIdleTimers.has(infoHash)) {
+        clearTimeout(streamIdleTimers.get(infoHash));
+        streamIdleTimers.delete(infoHash);
+    }
+    activeStreamClients.delete(infoHash);
+
+    const meta = downloadsRegistry.get(infoHash);
+    // Se o usuario solicitou download permanente (/api/downloads/start), mantem o torrent
+    if (meta && meta.quality !== 'Streaming') {
+        return;
+    }
+
+    const torrent = getActiveTorrent(infoHash);
+    if (torrent) {
+        console.log(`[Streaming] Encerrando torrent sob demanda inativo: "${torrent.name}" (${infoHash})`);
+        try {
+            torrent.destroy({ destroyStore: false }, () => {
+                console.log(`[Streaming] Recursos do torrent liberados: ${infoHash}`);
+            });
+        } catch (err) {
+            console.warn(`[Streaming] Erro ao liberar torrent:`, err.message);
+        }
+    }
+
+    if (meta && meta.quality === 'Streaming') {
+        downloadsRegistry.delete(infoHash);
     }
 }
 
@@ -494,6 +530,14 @@ async function createJellyfinUserProfile(name) {
     return newUser;
 }
 
+let cachedLocalSets = null;
+let cachedLocalSetsTimestamp = 0;
+
+export function invalidateLocalSetsCache() {
+    cachedLocalSets = null;
+    cachedLocalSetsTimestamp = 0;
+}
+
 /**
  * Cruza a lista de filmes do catálogo com a biblioteca local (D:\filmes)
  * garantindo que qualquer filme já baixado seja sinalizado com is_local: 1
@@ -501,15 +545,22 @@ async function createJellyfinUserProfile(name) {
 async function markLocalMoviesInList(movieList) {
     if (!movieList || !movieList.length) return;
     try {
-        const localMovies = await getLocalLibrary(SAVE_PATH, false, getActiveDownloadingPaths());
-        const localImdbSet = new Set(localMovies.map(m => m.imdbId).filter(Boolean));
-        const localTitlesSet = new Set(
-            localMovies.flatMap(m => [
-                (m.cleanName || '').toLowerCase().trim(),
-                (m.title || '').toLowerCase().trim(),
-                (m.originalTitle || m.original_title || '').toLowerCase().trim()
-            ]).filter(Boolean)
-        );
+        const now = Date.now();
+        if (!cachedLocalSets || (now - cachedLocalSetsTimestamp > 60000)) {
+            const localMovies = await getLocalLibrary(SAVE_PATH, false, getActiveDownloadingPaths());
+            const localImdbSet = new Set(localMovies.map(m => m.imdbId).filter(Boolean));
+            const localTitlesSet = new Set(
+                localMovies.flatMap(m => [
+                    (m.cleanName || '').toLowerCase().trim(),
+                    (m.title || '').toLowerCase().trim(),
+                    (m.originalTitle || m.original_title || '').toLowerCase().trim()
+                ]).filter(Boolean)
+            );
+            cachedLocalSets = { localImdbSet, localTitlesSet };
+            cachedLocalSetsTimestamp = now;
+        }
+
+        const { localImdbSet, localTitlesSet } = cachedLocalSets;
 
         movieList.forEach(m => {
             const id = m.imdb_id || m.imdbId || m.id;
@@ -628,6 +679,7 @@ const server = http.createServer(async (req, res) => {
                     fs.writeFileSync(CONFIG_FILE, JSON.stringify({ savePath: SAVE_PATH }, null, 2), 'utf8');
                     try {
                         invalidateLocalCache();
+                        invalidateLocalSetsCache();
                         scanLocalMovies(SAVE_PATH);
                     } catch (_) {}
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1528,6 +1580,7 @@ const server = http.createServer(async (req, res) => {
 
                     deleteLocalFile(filePath, SAVE_PATH);
                     invalidateLocalCache();
+                    invalidateLocalSetsCache();
                     refreshJellyfinLibrary();
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1565,6 +1618,7 @@ const server = http.createServer(async (req, res) => {
 
                     const newPath = renameLocalFile(filePath, newTitle, SAVE_PATH);
                     invalidateLocalCache();
+                    invalidateLocalSetsCache();
                     scanLocalMovies(SAVE_PATH);
                     refreshJellyfinLibrary();
 
@@ -1709,10 +1763,47 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        // Interrompe streaming sob demanda
+        if (pathname.startsWith('/api/stream/') && pathname.endsWith('/stop')) {
+            const infoHash = pathname.replace('/api/stream/', '').replace('/stop', '').trim().toLowerCase();
+            console.log(`[Streaming] Solicitacao para interromper streaming sob demanda: ${infoHash}`);
+            stopStreamingTorrent(infoHash);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: true, message: 'Streaming sob demanda encerrado.' }));
+            return;
+        }
+
         // Live Torrent Streaming endpoint (Range / 206 Partial Content com fallback de transcode)
         if (pathname.startsWith('/api/stream/') && (req.method === 'GET' || req.method === 'HEAD')) {
             const infoHash = pathname.replace('/api/stream/', '').trim().toLowerCase();
             let torrent = getActiveTorrent(infoHash);
+
+            // Registra cliente de streaming ativo e cancela timer de inatividade
+            if (streamIdleTimers.has(infoHash)) {
+                clearTimeout(streamIdleTimers.get(infoHash));
+                streamIdleTimers.delete(infoHash);
+            }
+            activeStreamClients.set(infoHash, (activeStreamClients.get(infoHash) || 0) + 1);
+
+            const handleStreamDisconnect = () => {
+                const count = (activeStreamClients.get(infoHash) || 1) - 1;
+                if (count <= 0) {
+                    activeStreamClients.delete(infoHash);
+                    const meta = downloadsRegistry.get(infoHash);
+                    if (!meta || meta.quality === 'Streaming') {
+                        if (!streamIdleTimers.has(infoHash)) {
+                            const timer = setTimeout(() => {
+                                streamIdleTimers.delete(infoHash);
+                                stopStreamingTorrent(infoHash);
+                            }, 35000);
+                            streamIdleTimers.set(infoHash, timer);
+                        }
+                    }
+                } else {
+                    activeStreamClients.set(infoHash, count);
+                }
+            };
+            req.on('close', handleStreamDisconnect);
 
             if (!torrent) {
                 const magnet = urlObj.searchParams.get('magnet');
@@ -1732,7 +1823,6 @@ const server = http.createServer(async (req, res) => {
                     createdAt: new Date().toISOString()
                 };
                 downloadsRegistry.set(infoHash, metaItem);
-                persistDownloads();
 
                 torrent = client.add(magnet, { path: PLATFORM_DOWNLOAD_PATH });
 
@@ -1748,13 +1838,15 @@ const server = http.createServer(async (req, res) => {
 
                 torrent.on('done', () => {
                     console.log(`[Streaming] Stream completely downloaded: "${torrent.name}"!`);
-                    metaItem.status = 'completed';
-                    metaItem.progress = 100;
-                    metaItem.downloaded = formatBytes(torrent.length);
-                    metaItem.total = formatBytes(torrent.length);
-                    persistDownloads();
-                    scanLocalMovies(SAVE_PATH);
-                    refreshJellyfinLibrary();
+                    if (metaItem.quality !== 'Streaming') {
+                        metaItem.status = 'completed';
+                        metaItem.progress = 100;
+                        metaItem.downloaded = formatBytes(torrent.length);
+                        metaItem.total = formatBytes(torrent.length);
+                        persistDownloads();
+                        scanLocalMovies(SAVE_PATH);
+                        refreshJellyfinLibrary();
+                    }
                 });
             }
 
@@ -2149,6 +2241,7 @@ const server = http.createServer(async (req, res) => {
 
             if (deleteFiles) {
                 invalidateLocalCache();
+                invalidateLocalSetsCache();
                 scanLocalMovies(SAVE_PATH);
                 refreshJellyfinLibrary();
             }

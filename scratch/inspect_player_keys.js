@@ -1,0 +1,6 @@
+const fs = require('fs');
+const content = fs.readFileSync('c:/Users/rafae/Documents/GitHub/jellyfin-tizen/www/main.jellyfin.bundle.js', 'utf8');
+const idx = content.indexOf('10252===n?');
+if (idx !== -1) {
+    console.log(content.substring(idx - 60, idx + 300));
+}

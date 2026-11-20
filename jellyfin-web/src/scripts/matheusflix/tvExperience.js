@@ -59,34 +59,28 @@ function registerSamsungTvKeys() {
 }
 
 /**
- * Rolagem suave de card e centralizacao no carrossel e na tela
+ * Rolagem suave de card e centralizacao no carrossel e na tela (Zero Reflow Engine)
  */
 export function smoothScrollCard(target) {
     if (!target) return;
 
-    // 1. Rolagem horizontal no carrossel
+    // 1. Rolagem horizontal no carrossel sem reflow
     const scroller = target.closest('.mf-home-scroller, .mf-row-slider-container');
     if (scroller) {
-        const scrollerRect = scroller.getBoundingClientRect();
-        const targetRect = target.getBoundingClientRect();
-        const scrollTarget = scroller.scrollLeft + (targetRect.left - scrollerRect.left) - (scroller.clientWidth / 2) + (targetRect.width / 2);
-        try {
-            scroller.scrollTo({ left: Math.max(0, scrollTarget), behavior: 'smooth' });
-        } catch (_) {
-            scroller.scrollLeft = Math.max(0, scrollTarget);
-        }
+        const targetLeft = target.offsetLeft;
+        const targetWidth = target.offsetWidth || 215;
+        const scrollerWidth = scroller.clientWidth || window.innerWidth;
+        const scrollTarget = targetLeft - (scrollerWidth / 2) + (targetWidth / 2);
+        scroller.scrollLeft = Math.max(0, scrollTarget);
     }
 
     // 2. Rolagem vertical da pagina para centralizar a fileira na TV
     const section = target.closest('.mf-home-section, .verticalSection');
     if (section) {
-        const secRect = section.getBoundingClientRect();
-        const desiredTop = (window.pageYOffset || document.documentElement.scrollTop || 0) + secRect.top - (window.innerHeight / 2) + (secRect.height / 2);
-        try {
-            window.scrollTo({ top: Math.max(0, desiredTop), behavior: 'smooth' });
-        } catch (_) {
-            window.scrollTo(0, Math.max(0, desiredTop));
-        }
+        const secTop = section.offsetTop;
+        const secHeight = section.offsetHeight || 300;
+        const desiredTop = secTop - (window.innerHeight / 2) + (secHeight / 2);
+        window.scrollTo(0, Math.max(0, desiredTop));
     }
 }
 
@@ -369,42 +363,39 @@ function handleHeroNavigation(e, active, isLeft, isUp, isRight, isDown) {
 }
 
 /**
- * Navegacao horizontal e vertical deterministica nos carrosseis da Home
+ * Navegacao horizontal e vertical deterministica nos carrosseis da Home (O(1) Zero Reflow)
  */
 function handleHomeCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
     const scroller = card.closest('.mf-home-scroller');
     const section = card.closest('.mf-home-section, .verticalSection');
+    if (!scroller) return false;
+
+    const cards = Array.from(scroller.children).filter(c => c.classList.contains('mf-home-card'));
+    const idx = cards.indexOf(card);
 
     if (isRight) {
-        if (scroller) {
-            const cards = Array.from(scroller.querySelectorAll('.mf-home-card'));
-            const idx = cards.indexOf(card);
-            if (idx >= 0 && idx < cards.length - 1) {
-                const nextCard = cards[idx + 1];
-                nextCard.focus();
-                smoothScrollCard(nextCard);
-                e.preventDefault(); e.stopPropagation(); return true;
-            }
+        if (idx >= 0 && idx < cards.length - 1) {
+            const nextCard = cards[idx + 1];
+            nextCard.focus();
+            smoothScrollCard(nextCard);
+            e.preventDefault(); e.stopPropagation(); return true;
         }
         e.preventDefault(); e.stopPropagation(); return true;
     }
 
     if (isLeft) {
-        if (scroller) {
-            const cards = Array.from(scroller.querySelectorAll('.mf-home-card'));
-            const idx = cards.indexOf(card);
-            if (idx > 0) {
-                const prevCard = cards[idx - 1];
-                prevCard.focus();
-                smoothScrollCard(prevCard);
-                e.preventDefault(); e.stopPropagation(); return true;
-            }
+        if (idx > 0) {
+            const prevCard = cards[idx - 1];
+            prevCard.focus();
+            smoothScrollCard(prevCard);
+            e.preventDefault(); e.stopPropagation(); return true;
         }
         e.preventDefault(); e.stopPropagation(); return true;
     }
 
     if (isDown) {
-        const allSections = Array.from(document.querySelectorAll('.mf-home-section, .verticalSection')).filter(sec => {
+        const wrap = section.parentElement || document.body;
+        const allSections = Array.from(wrap.querySelectorAll('.mf-home-section, .verticalSection')).filter(sec => {
             return sec.offsetParent !== null && sec.querySelector('.mf-home-card');
         });
         const secIdx = allSections.indexOf(section);
@@ -412,21 +403,9 @@ function handleHomeCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
             const nextSec = allSections[secIdx + 1];
             const nextCards = Array.from(nextSec.querySelectorAll('.mf-home-card'));
             if (nextCards.length > 0) {
-                const activeRect = card.getBoundingClientRect();
-                const activeMidX = activeRect.left + (activeRect.width / 2);
-                let closestCard = nextCards[0];
-                let minDiff = Infinity;
-                for (const c of nextCards) {
-                    const r = c.getBoundingClientRect();
-                    const midX = r.left + (r.width / 2);
-                    const diff = Math.abs(activeMidX - midX);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        closestCard = c;
-                    }
-                }
-                closestCard.focus();
-                smoothScrollCard(closestCard);
+                const targetCard = nextCards[Math.min(idx, nextCards.length - 1)];
+                targetCard.focus();
+                smoothScrollCard(targetCard);
                 e.preventDefault(); e.stopPropagation(); return true;
             }
         }
@@ -434,7 +413,8 @@ function handleHomeCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
     }
 
     if (isUp) {
-        const allSections = Array.from(document.querySelectorAll('.mf-home-section, .verticalSection')).filter(sec => {
+        const wrap = section.parentElement || document.body;
+        const allSections = Array.from(wrap.querySelectorAll('.mf-home-section, .verticalSection')).filter(sec => {
             return sec.offsetParent !== null && sec.querySelector('.mf-home-card');
         });
         const secIdx = allSections.indexOf(section);
@@ -442,35 +422,23 @@ function handleHomeCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
             const prevSec = allSections[secIdx - 1];
             const prevCards = Array.from(prevSec.querySelectorAll('.mf-home-card'));
             if (prevCards.length > 0) {
-                const activeRect = card.getBoundingClientRect();
-                const activeMidX = activeRect.left + (activeRect.width / 2);
-                let closestCard = prevCards[0];
-                let minDiff = Infinity;
-                for (const c of prevCards) {
-                    const r = c.getBoundingClientRect();
-                    const midX = r.left + (r.width / 2);
-                    const diff = Math.abs(activeMidX - midX);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        closestCard = c;
-                    }
-                }
-                closestCard.focus();
-                smoothScrollCard(closestCard);
+                const targetCard = prevCards[Math.min(idx, prevCards.length - 1)];
+                targetCard.focus();
+                smoothScrollCard(targetCard);
                 e.preventDefault(); e.stopPropagation(); return true;
             }
         } else {
-            // Primeira fileira: sobe para o Hero Banner ou Cabecalho
+            // Sobe para o Hero Banner ou Cabecalho
             const heroBtn = document.querySelector('.mf-btn-hero-play, .mf-btn-hero-primary');
             if (heroBtn && heroBtn.offsetParent !== null) {
                 heroBtn.focus();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                window.scrollTo(0, 0);
                 e.preventDefault(); e.stopPropagation(); return true;
             }
             const headerBtn = document.querySelector('.skinHeader .emby-tab-button-active, .skinHeader .emby-tab-button, .skinHeader .headerSearchButton');
             if (headerBtn && headerBtn.offsetParent !== null) {
                 headerBtn.focus();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                window.scrollTo(0, 0);
                 e.preventDefault(); e.stopPropagation(); return true;
             }
         }
@@ -481,7 +449,7 @@ function handleHomeCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
 }
 
 /**
- * Navegacao em grade (Catalogo, Series, Pasta Local)
+ * Navegacao em grade (Catalogo, Series, Pasta Local) - O(1) Index Math
  */
 function handleGridCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
     let grid = card.closest('.mf-catalog-grid, .mf-movie-grid, .mf-local-grid, .itemsContainer, .verticalSection');
@@ -490,10 +458,23 @@ function handleGridCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
     const idx = cards.indexOf(card);
     if (idx === -1) return false;
 
+    // Detectar colunas da grade por comparacao simples de offsetTop
+    let cols = 4;
+    if (cards.length > 1) {
+        const top0 = cards[0].offsetTop;
+        for (let i = 1; i < Math.min(cards.length, 12); i++) {
+            if (cards[i].offsetTop > top0 + 10) {
+                cols = i;
+                break;
+            }
+        }
+    }
+
     if (isRight) {
         if (idx < cards.length - 1) {
-            cards[idx + 1].focus();
-            cards[idx + 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            const next = cards[idx + 1];
+            next.focus();
+            next.scrollIntoView({ behavior: 'auto', block: 'nearest' });
             e.preventDefault(); e.stopPropagation(); return true;
         }
         e.preventDefault(); e.stopPropagation(); return true;
@@ -501,55 +482,42 @@ function handleGridCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
 
     if (isLeft) {
         if (idx > 0) {
-            cards[idx - 1].focus();
-            cards[idx - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            const prev = cards[idx - 1];
+            prev.focus();
+            prev.scrollIntoView({ behavior: 'auto', block: 'nearest' });
             e.preventDefault(); e.stopPropagation(); return true;
         }
         e.preventDefault(); e.stopPropagation(); return true;
     }
 
-    const activeRect = card.getBoundingClientRect();
-    const activeMidX = activeRect.left + (activeRect.width / 2);
-
     if (isDown) {
-        const below = cards.filter(c => c.getBoundingClientRect().top > activeRect.bottom - 10);
-        if (below.length > 0) {
-            const firstRowTop = below[0].getBoundingClientRect().top;
-            const sameRow = below.filter(c => Math.abs(c.getBoundingClientRect().top - firstRowTop) < 35);
-            let closest = sameRow[0];
-            let minDiff = Infinity;
-            for (const c of sameRow) {
-                const r = c.getBoundingClientRect();
-                const diff = Math.abs(activeMidX - (r.left + r.width / 2));
-                if (diff < minDiff) { minDiff = diff; closest = c; }
-            }
-            closest.focus();
-            closest.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const nextIdx = idx + cols;
+        if (nextIdx < cards.length) {
+            const target = cards[nextIdx];
+            target.focus();
+            target.scrollIntoView({ behavior: 'auto', block: 'center' });
+            e.preventDefault(); e.stopPropagation(); return true;
+        } else if (idx < cards.length - 1) {
+            const last = cards[cards.length - 1];
+            last.focus();
+            last.scrollIntoView({ behavior: 'auto', block: 'center' });
             e.preventDefault(); e.stopPropagation(); return true;
         }
         e.preventDefault(); e.stopPropagation(); return true;
     }
 
     if (isUp) {
-        const above = cards.filter(c => c.getBoundingClientRect().bottom < activeRect.top + 10);
-        if (above.length > 0) {
-            const lastRowBottom = above[above.length - 1].getBoundingClientRect().bottom;
-            const sameRow = above.filter(c => Math.abs(c.getBoundingClientRect().bottom - lastRowBottom) < 35);
-            let closest = sameRow[0];
-            let minDiff = Infinity;
-            for (const c of sameRow) {
-                const r = c.getBoundingClientRect();
-                const diff = Math.abs(activeMidX - (r.left + r.width / 2));
-                if (diff < minDiff) { minDiff = diff; closest = c; }
-            }
-            closest.focus();
-            closest.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const prevIdx = idx - cols;
+        if (prevIdx >= 0) {
+            const target = cards[prevIdx];
+            target.focus();
+            target.scrollIntoView({ behavior: 'auto', block: 'center' });
             e.preventDefault(); e.stopPropagation(); return true;
         } else {
             const headerBtn = document.querySelector('.skinHeader .emby-tab-button-active, .skinHeader .emby-tab-button, .skinHeader .headerSearchButton');
             if (headerBtn && headerBtn.offsetParent !== null) {
                 headerBtn.focus();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                window.scrollTo(0, 0);
                 e.preventDefault(); e.stopPropagation(); return true;
             }
         }
@@ -559,8 +527,10 @@ function handleGridCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
     return false;
 }
 
+let lastSpatialNavTime = 0;
+
 /**
- * Navegacao Espacial D-Pad inteligente entre linhas e elementos
+ * Navegacao Espacial D-Pad inteligente entre linhas e elementos (Ultra-Fast 60FPS)
  */
 function handleSpatialNavigation(e) {
     const key = e.key || '';
@@ -572,6 +542,20 @@ function handleSpatialNavigation(e) {
     const isDown = keyCode === 40 || key === 'ArrowDown';
 
     if (!isLeft && !isUp && !isRight && !isDown) return;
+
+    // Se o player de cinema estiver aberto, deixa o controle direto com o cinemaPlayer
+    if (document.querySelector('.mf-cinema-player')) {
+        return;
+    }
+
+    // Throttle de 50ms para evitar engasgo e acumulo de buffer no controle remoto
+    const now = Date.now();
+    if (now - lastSpatialNavTime < 50) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
+    lastSpatialNavTime = now;
 
     const active = document.activeElement;
 
@@ -629,10 +613,37 @@ function handleSpatialNavigation(e) {
     }
 }
 
+let lastBackPressTime = 0;
+let backToastTimer = null;
+
+function showTvToast(msg) {
+    try {
+        const existing = document.getElementById('mf-tv-exit-toast');
+        if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+        const toast = document.createElement('div');
+        toast.id = 'mf-tv-exit-toast';
+        toast.textContent = msg;
+        toast.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(20,20,19,0.95);color:#FAF9F5;padding:14px 28px;border-radius:30px;border:1.5px solid rgba(250,249,245,0.25);box-shadow:0 12px 32px rgba(0,0,0,0.95);font-size:16px;font-weight:600;z-index:999999;pointer-events:none;transition:opacity 0.25s ease;text-align:center;letter-spacing:0.3px;';
+        document.body.appendChild(toast);
+
+        clearTimeout(backToastTimer);
+        backToastTimer = setTimeout(() => {
+            if (toast && toast.parentNode) {
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 300);
+            }
+        }, 2500);
+    } catch (_) {}
+}
+
 /**
  * Tratamento global do botao Voltar do controle remoto (Tizen 10009, WebOS 461, Esc 27)
+ * Retorna passo a passo dentro do app: player -> modal -> busca -> abas -> topo -> sair
  */
-function handleTvBackButton(e) {
+export function handleTvBackButton(e) {
     const key = e.key || '';
     const keyCode = e.keyCode || e.which || 0;
     const isBack = ['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(key)
@@ -644,61 +655,187 @@ function handleTvBackButton(e) {
         return;
     }
 
-    if (document.querySelector('.mf-cinema-player')) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // 1. Fechar Cinema Player se estiver aberto
+    const cinemaPlayer = document.querySelector('.mf-cinema-player');
+    if (cinemaPlayer || (window.MatheusFlix && typeof window.MatheusFlix.closeCinema === 'function' && document.querySelector('video'))) {
+        if (window.MatheusFlix && typeof window.MatheusFlix.closeCinema === 'function') {
+            window.MatheusFlix.closeCinema();
+            return;
+        }
+        if (window.MatheusFlix && typeof window.MatheusFlix.stopAllMedia === 'function') {
+            window.MatheusFlix.stopAllMedia();
+            return;
+        }
+        const closeBtn = cinemaPlayer?.querySelector('.mf-player-close-btn, .mf-player-back-nav-btn, .mf-player-btn-close, .mf-player-close');
+        if (closeBtn) {
+            closeBtn.click();
+            return;
+        }
+        if (cinemaPlayer) {
+            cinemaPlayer.querySelectorAll('video, audio').forEach(v => {
+                try {
+                    v.pause();
+                    v.muted = true;
+                    v.volume = 0;
+                    v.removeAttribute('src');
+                    v.src = '';
+                    v.load();
+                } catch (_) {}
+            });
+            cinemaPlayer.remove();
+        }
         return;
     }
 
+    // Se estiver em rota de reproducao nativa Jellyfin (#/video, #/nowplaying)
+    const currentHash = window.location.hash || '';
+    if (currentHash.includes('/video') || currentHash.includes('/nowplaying')) {
+        if (window.MatheusFlix && typeof window.MatheusFlix.stopAllMedia === 'function') {
+            window.MatheusFlix.stopAllMedia();
+        }
+        document.querySelectorAll('video, audio').forEach(v => {
+            try {
+                v.pause();
+                v.muted = true;
+                v.volume = 0;
+                v.removeAttribute('src');
+                v.src = '';
+                v.load();
+            } catch (_) {}
+        });
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.hash = '#/home?tab=0';
+        }
+        return;
+    }
+
+    // 2. Fechar modal de detalhes Stremio ou pagina de filme
     const modal = document.querySelector('.mf-stremio-modal, .mf-movie-page');
     if (modal) {
-        e.preventDefault();
         const closeBtn = modal.querySelector('.mf-movie-page-back-btn, .mf-stremio-close-btn');
         if (closeBtn) closeBtn.click();
         else modal.remove();
         return;
     }
 
+    // 3. Fechar modal de confirmacao
     const confirmModal = document.querySelector('.mf-confirm-backdrop');
     if (confirmModal) {
-        e.preventDefault();
-        const cancelBtn = confirmModal.querySelector('.mf-btn-confirm-no');
+        const cancelBtn = confirmModal.querySelector('.mf-confirm-btn-cancel, .mf-btn-confirm-no');
         if (cancelBtn) cancelBtn.click();
         else confirmModal.remove();
         return;
     }
 
+    // 4. Fechar atalhos
     const shortcutsModal = document.querySelector('.mf-shortcuts-backdrop');
     if (shortcutsModal) {
-        e.preventDefault();
         shortcutsModal.remove();
         return;
     }
 
-    const currentHash = window.location.hash || '';
-    if (currentHash && !currentHash.startsWith('#/home') && currentHash !== '#/') {
-        e.preventDefault();
-        window.location.hash = '#/home?tab=0';
+    // 5. Fechar qualquer dialog nativo
+    const dialog = document.querySelector('.dialogContainer .dialog.opened, dialog[open]');
+    if (dialog) {
+        const dClose = dialog.querySelector('.button-close, [data-action="close"], .btnCancel');
+        if (dClose) dClose.click();
+        else dialog.remove();
         return;
     }
 
-    e.preventDefault();
-    import('./confirmModal').then(({ showConfirmModal }) => {
-        showConfirmModal({
-            title: 'Sair do MatheusFlix',
-            subtitle: 'Deseja encerrar o aplicativo na sua Smart TV?',
-            icon: 'exit_to_app',
-            confirmText: 'Sair da TV',
-            cancelText: 'Continuar Assistindo',
-            confirmType: 'danger'
-        }).then(confirmed => {
-            if (confirmed) {
-                if (window.tizen?.application?.getCurrentApplication) {
-                    window.tizen.application.getCurrentApplication().exit();
-                } else if (window.close) {
-                    window.close();
-                }
+    // 6. Limpar busca ativa
+    const searchInput = document.querySelector('input[type="search"], input.searchfields');
+    if (searchInput && (document.activeElement === searchInput || searchInput.value)) {
+        searchInput.value = '';
+        searchInput.blur();
+        const searchBtn = document.querySelector('.headerSearchButton');
+        if (searchBtn) searchBtn.focus();
+        else window.location.hash = '#/home?tab=0';
+        return;
+    }
+
+    // 7. Se estiver em pagina secundaria diferente da Home
+    const currentHash = window.location.hash || '';
+    if (currentHash && !currentHash.startsWith('#/home') && currentHash !== '#/') {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.hash = '#/home?tab=0';
+        }
+        return;
+    }
+
+    // 8. Se estiver em uma aba DIFERENTE da aba 0 (Torrents, Pasta Local, Downloads)
+    let isNotTab0 = false;
+    try {
+        if (currentHash.includes('tab=1') || currentHash.includes('tab=2') || currentHash.includes('tab=3')) {
+            isNotTab0 = true;
+        } else {
+            const activeTabBtn = document.querySelector('.skinHeader .emby-tab-button-active');
+            if (activeTabBtn && activeTabBtn.getAttribute('data-index') && activeTabBtn.getAttribute('data-index') !== '0') {
+                isNotTab0 = true;
             }
-        });
-    });
+        }
+    } catch (_) {}
+
+    if (isNotTab0) {
+        const homeTabBtn = document.querySelector('.skinHeader .emby-tab-button[data-index="0"], .skinHeader .emby-tab-button');
+        if (homeTabBtn) {
+            homeTabBtn.click();
+        } else {
+            window.location.hash = '#/home?tab=0';
+        }
+        setTimeout(() => {
+            const firstCard = document.querySelector('.mf-btn-hero-play, .mf-home-section .mf-home-card');
+            if (firstCard) firstCard.focus();
+        }, 250);
+        return;
+    }
+
+    // 9. Se estiver na aba Inicio, mas a tela foi rolada para baixo
+    const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    if (scrollY > 150) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const heroPlay = document.querySelector('.mf-btn-hero-play, .mf-btn-hero-primary');
+        if (heroPlay) {
+            heroPlay.focus();
+        } else {
+            const firstCard = document.querySelector('.mf-home-section .mf-home-card');
+            if (firstCard) firstCard.focus();
+        }
+        return;
+    }
+
+    // 10. Mover foco para o cabecalho
+    const headerActive = document.activeElement && document.activeElement.closest('.skinHeader');
+    if (!headerActive) {
+        const topHeaderBtn = document.querySelector('.skinHeader .emby-tab-button-active, .skinHeader .emby-tab-button, .skinHeader .headerSearchButton');
+        if (topHeaderBtn) {
+            topHeaderBtn.focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+    }
+
+    // 11. Raiz absoluta: duplo clique para sair do aplicativo
+    const now = Date.now();
+    if (now - lastBackPressTime < 2500) {
+        if (window.tizen?.application?.getCurrentApplication) {
+            window.tizen.application.getCurrentApplication().exit();
+        } else if (window.close) {
+            window.close();
+        }
+    } else {
+        lastBackPressTime = now;
+        showTvToast('Pressione Voltar novamente para sair do aplicativo');
+    }
 }
 
 /**
@@ -717,8 +854,14 @@ export function initTvExperience() {
         console.info('[MatheusFlix] Modo Smart TV 10-Foot ativado com sucesso.');
     }
 
-    window.addEventListener('keydown', handleSpatialNavigation, true);
-    window.addEventListener('keydown', handleTvBackButton, false);
+    if (!window.__mfSpatialNavRegistered) {
+        window.__mfSpatialNavRegistered = true;
+        window.addEventListener('keydown', handleSpatialNavigation, true);
+    }
+    if (!window.__mfBackRegistered) {
+        window.__mfBackRegistered = true;
+        window.addEventListener('keydown', handleTvBackButton, false);
+    }
 
     // Auto-foco repetido em intervalos para garantir deteccao apos carregamento de rede
     [150, 400, 800, 1500, 2500].forEach(ms => {
@@ -726,7 +869,26 @@ export function initTvExperience() {
     });
 
     window.addEventListener('hashchange', () => {
+        if (!window.location.hash.startsWith('#/video') && !document.querySelector('.mf-cinema-player')) {
+            if (window.MatheusFlix && typeof window.MatheusFlix.stopAllMedia === 'function') {
+                window.MatheusFlix.stopAllMedia();
+            }
+            document.querySelectorAll('video, audio').forEach(v => {
+                try { v.pause(); v.muted = true; v.volume = 0; v.removeAttribute('src'); v.src = ''; v.load(); } catch (_) {}
+            });
+        }
         [150, 400, 800].forEach(ms => setTimeout(autoFocusCurrentView, ms));
+    });
+
+    window.addEventListener('popstate', () => {
+        if (!window.location.hash.startsWith('#/video') && !document.querySelector('.mf-cinema-player')) {
+            if (window.MatheusFlix && typeof window.MatheusFlix.stopAllMedia === 'function') {
+                window.MatheusFlix.stopAllMedia();
+            }
+            document.querySelectorAll('video, audio').forEach(v => {
+                try { v.pause(); v.muted = true; v.volume = 0; v.removeAttribute('src'); v.src = ''; v.load(); } catch (_) {}
+            });
+        }
     });
 
     document.addEventListener('viewshow', () => {

@@ -90,13 +90,13 @@ export async function embedMatheusFlixHomeSections(view) {
             historyRes,
             favsRes
         ] = await Promise.allSettled([
-            fetchCatalog({ limit: 60, sort: 'trending' }),
-            fetchCatalog({ limit: 60, sort: 'newest' }),
-            fetchCatalog({ limit: 60, genre: 'Action' }),
-            fetchCatalog({ limit: 60, genre: 'Adventure' }),
-            fetchCatalog({ limit: 60, genre: 'Comedy' }),
-            fetchCatalog({ limit: 60, genre: 'Sci-Fi' }),
-            fetchCatalog({ limit: 60, genre: 'Animation' }),
+            fetchCatalog({ limit: 25, sort: 'trending' }),
+            fetchCatalog({ limit: 25, sort: 'newest' }),
+            fetchCatalog({ limit: 25, genre: 'Action' }),
+            fetchCatalog({ limit: 25, genre: 'Adventure' }),
+            fetchCatalog({ limit: 25, genre: 'Comedy' }),
+            fetchCatalog({ limit: 25, genre: 'Sci-Fi' }),
+            fetchCatalog({ limit: 25, genre: 'Animation' }),
             fetchLocalMovies(),
             fetchWatchHistory(),
             fetchUserFavorites()
@@ -589,7 +589,7 @@ function renderRow(container, { key, title, linkText, tabIndex, targetHash, movi
         card.style.cssText = 'color: #ffffff !important; text-align: left !important;';
         card.innerHTML = `
             <div class="mf-home-card-poster-wrap">
-                <img class="mf-home-card-poster" src="${escapeHtml(m.poster || PLACEHOLDER_POSTER)}" alt="Pôster de ${escapeHtml(m.title)}" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" />
+                <img class="mf-home-card-poster" src="${escapeHtml(m.poster || PLACEHOLDER_POSTER)}" alt="Pôster de ${escapeHtml(m.title)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${PLACEHOLDER_POSTER}';" />
                 <div class="mf-home-card-play-overlay"><span class="material-icons" style="font-size: 26px; color: #140a02;">play_arrow</span></div>
                 ${m.isLocal ? '<span class="mf-badge-on-disk"><span class="material-icons" style="font-size: 11px; vertical-align: middle;">download_done</span> Salvo</span>' : ''}
             </div>
@@ -599,9 +599,6 @@ function renderRow(container, { key, title, linkText, tabIndex, targetHash, movi
             </div>
         `;
         card.addEventListener('click', () => onClick(m));
-        card.addEventListener('focus', () => {
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        });
         scroller.appendChild(card);
     });
 
@@ -629,9 +626,6 @@ function renderRow(container, { key, title, linkText, tabIndex, targetHash, movi
         `;
         seeMoreCard.addEventListener('click', () => {
             window.location.hash = finalHash;
-        });
-        seeMoreCard.addEventListener('focus', () => {
-            seeMoreCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         });
         scroller.appendChild(seeMoreCard);
     }
@@ -719,9 +713,6 @@ function renderHistoryRow(container, { key, title, movies }) {
         }
 
         card.addEventListener('click', () => openStremioDetails({ ...m, resumePosition: m.position }));
-        card.addEventListener('focus', () => {
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        });
         scroller.appendChild(card);
     });
 
@@ -749,9 +740,6 @@ function renderHistoryRow(container, { key, title, movies }) {
         `;
         seeMoreCard.addEventListener('click', () => {
             window.location.hash = finalHash;
-        });
-        seeMoreCard.addEventListener('focus', () => {
-            seeMoreCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         });
         scroller.appendChild(seeMoreCard);
     }

@@ -100,6 +100,7 @@ export function getVideoDuration(filePath) {
 
 let localCache = null;
 let lastScanTime = 0;
+let inFlightScanPromise = null;
 
 function fetchJson(url) {
     return new Promise((resolve, reject) => {
@@ -240,84 +241,116 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
         return localCache;
     }
 
-    if (!fs.existsSync(savePath)) {
-        return [];
+    if (!force && inFlightScanPromise) {
+        return inFlightScanPromise;
     }
 
-    const db = getDb();
-    const results = [];
-    const collected = collectLocalVideos(savePath, 4, 0, downloadingPaths);
-
-    for (const item of collected) {
-        const { videoFile, srtFile, stat, folderName, fileName } = item;
-        const rawName = folderName || fileName;
-        const { title: cleanName, year: detectedYear } = cleanMovieName(rawName);
-        if (cleanName.length < 2) continue;
-
-        let movieData = null;
-
-        const seriesCheck = detectSeries(`${folderName} ${fileName}`);
-        const cinemetaType = seriesCheck.isSeries ? 'series' : 'movie';
-        const searchTitle = seriesCheck.isSeries ? (seriesCheck.seriesName || cleanName) : cleanName;
-
-        // Query Cinemeta with clean title (series or movie)
+    inFlightScanPromise = (async () => {
         try {
-            let searchRes = await fetchJson(`https://v3-cinemeta.strem.io/catalog/${cinemetaType}/top/search=${encodeURIComponent(searchTitle)}.json`);
-            if ((!searchRes?.metas || searchRes.metas.length === 0) && cinemetaType === 'series') {
-                searchRes = await fetchJson(`https://v3-cinemeta.strem.io/catalog/movie/top/search=${encodeURIComponent(cleanName)}.json`);
+            if (!fs.existsSync(savePath)) {
+                localCache = [];
+                lastScanTime = Date.now();
+                return [];
             }
-            if (searchRes?.metas && searchRes.metas.length > 0) {
-                // If year detected, find matching year meta, else fallback to top
-                let match = searchRes.metas[0];
-                if (detectedYear) {
-                    const yearMatch = searchRes.metas.find(m => {
-                        const mYear = parseInt(m.releaseInfo || m.year, 10);
-                        return mYear === detectedYear || Math.abs(mYear - detectedYear) <= 1;
-                    });
-                    if (yearMatch) match = yearMatch;
-                }
 
-                let titleBr = '';
-                let descBr = '';
-                if (match.imdb_id) {
+            const db = getDb();
+            const results = [];
+            const collected = collectLocalVideos(savePath, 4, 0, downloadingPaths);
+
+            for (const item of collected) {
+                const { videoFile, srtFile, stat, folderName, fileName } = item;
+                const rawName = folderName || fileName;
+                const { title: cleanName, year: detectedYear } = cleanMovieName(rawName);
+                if (cleanName.length < 2) continue;
+
+                let movieData = null;
+
+                // 1. OTIMIZACAO EXTREMA: Verificar primeiro no banco SQLite local antes de fazer requisicao web
+                try {
+                    const row = db.prepare(`
+                        SELECT * FROM movies 
+                        WHERE (title LIKE ? OR original_title LIKE ?) 
+                        LIMIT 1
+                    `).get(`%${cleanName}%`, `%${cleanName}%`);
+
+                    if (row && row.imdb_id) {
+                        movieData = {
+                            imdb_id: row.imdb_id,
+                            title: row.title || cleanName,
+                            original_title: row.original_title || cleanName,
+                            year: row.year || detectedYear,
+                            genres: row.genres ? row.genres.split(', ') : [],
+                            rating: row.rating || 8.0,
+                            poster: row.poster || '',
+                            backdrop: row.backdrop || row.poster || '',
+                            description: row.description || 'Filme salvo na sua biblioteca local.'
+                        };
+                    }
+                } catch (_) {}
+
+                // 2. Se nao encontrou no banco local, busca na internet via Cinemeta
+                if (!movieData) {
+                    const seriesCheck = detectSeries(`${folderName} ${fileName}`);
+                    const cinemetaType = seriesCheck.isSeries ? 'series' : 'movie';
+                    const searchTitle = seriesCheck.isSeries ? (seriesCheck.seriesName || cleanName) : cleanName;
+
                     try {
-                        const existingRow = db.prepare('SELECT title, description FROM movies WHERE imdb_id = ?').get(match.imdb_id);
-                        if (existingRow && existingRow.title) {
-                            titleBr = existingRow.title;
-                            descBr = existingRow.description;
+                        let searchRes = await fetchJson(`https://v3-cinemeta.strem.io/catalog/${cinemetaType}/top/search=${encodeURIComponent(searchTitle)}.json`);
+                        if ((!searchRes?.metas || searchRes.metas.length === 0) && cinemetaType === 'series') {
+                            searchRes = await fetchJson(`https://v3-cinemeta.strem.io/catalog/movie/top/search=${encodeURIComponent(cleanName)}.json`);
                         }
-                    } catch (e) {}
-                }
-                if (!titleBr && match.imdb_id) {
-                    try {
-                        const tmdb = await fetchPtBrMetadata(match.imdb_id);
-                        if (tmdb?.titleBr) {
-                            titleBr = tmdb.titleBr;
-                            descBr = tmdb.overviewBr;
+                        if (searchRes?.metas && searchRes.metas.length > 0) {
+                            let match = searchRes.metas[0];
+                            if (detectedYear) {
+                                const yearMatch = searchRes.metas.find(m => {
+                                    const mYear = parseInt(m.releaseInfo || m.year, 10);
+                                    return mYear === detectedYear || Math.abs(mYear - detectedYear) <= 1;
+                                });
+                                if (yearMatch) match = yearMatch;
+                            }
+
+                            let titleBr = '';
+                            let descBr = '';
+                            if (match.imdb_id) {
+                                try {
+                                    const existingRow = db.prepare('SELECT title, description FROM movies WHERE imdb_id = ?').get(match.imdb_id);
+                                    if (existingRow && existingRow.title) {
+                                        titleBr = existingRow.title;
+                                        descBr = existingRow.description;
+                                    }
+                                } catch (e) {}
+                            }
+                            if (!titleBr && match.imdb_id) {
+                                try {
+                                    const tmdb = await fetchPtBrMetadata(match.imdb_id);
+                                    if (tmdb?.titleBr) {
+                                        titleBr = tmdb.titleBr;
+                                        descBr = tmdb.overviewBr;
+                                    }
+                                } catch (e) {}
+                            }
+
+                            const finalTitle = titleBr || cleanName || match.name;
+                            match.title = finalTitle;
+                            match.original_title = match.name;
+                            match.is_local = 1;
+                            if (descBr) match.description = descBr;
+                            upsertMovie(match);
+
+                            movieData = {
+                                imdb_id: match.imdb_id,
+                                title: finalTitle,
+                                original_title: match.name,
+                                year: parseInt(match.releaseInfo || match.year, 10) || detectedYear,
+                                genres: translateGenres(match.genres),
+                                rating: parseFloat(match.imdbRating) || 8.0,
+                                poster: match.poster || '',
+                                backdrop: match.background || match.backdrop || '',
+                                description: descBr || match.description || 'Filme salvo na sua biblioteca local.'
+                            };
                         }
-                    } catch (e) {}
+                    } catch (err) {}
                 }
-
-                const finalTitle = titleBr || cleanName || match.name;
-                match.title = finalTitle;
-                match.original_title = match.name;
-                match.is_local = 1;
-                if (descBr) match.description = descBr;
-                upsertMovie(match);
-
-                movieData = {
-                    imdb_id: match.imdb_id,
-                    title: finalTitle,
-                    original_title: match.name,
-                    year: parseInt(match.releaseInfo || match.year, 10) || detectedYear,
-                    genres: translateGenres(match.genres),
-                    rating: parseFloat(match.imdbRating) || 8.0,
-                    poster: match.poster || '',
-                    backdrop: match.background || match.backdrop || '',
-                    description: descBr || match.description || 'Filme salvo na sua biblioteca local.'
-                };
-            }
-        } catch (err) {}
 
         // Fallback to SQLite DB if Cinemeta search failed or was rate-limited
         if (!movieData) {
@@ -410,12 +443,18 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
         });
     }
 
-    // Sort alphabetically by title
-    results.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
+            // Sort alphabetically by title
+            results.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
 
-    localCache = results;
-    lastScanTime = now;
-    return results;
+            localCache = results;
+            lastScanTime = Date.now();
+            return results;
+        } finally {
+            inFlightScanPromise = null;
+        }
+    })();
+
+    return inFlightScanPromise;
 }
 
 export function streamLocalVideo(filePath, req, res) {
