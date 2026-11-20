@@ -33,6 +33,7 @@ export function HomeView({
       <div className="tv-sections-container">
         {sections.map((section, idx) => {
           const isCurrentRowFocused = isRowsFocused && rowIndex === idx;
+          const isContinue = section.id === 'continue-watching';
           return (
             <CarouselRow
               key={section.id || idx}
@@ -40,8 +41,8 @@ export function HomeView({
               movies={section.movies}
               isRowFocused={isCurrentRowFocused}
               focusedColIndex={colIndex}
-              onSelectMovie={onSelectMovie}
-              onContextMenuMovie={onContextMenuMovie}
+              onSelectMovie={(mov) => onSelectMovie?.(mov, isContinue)}
+              onContextMenuMovie={(mov) => onContextMenuMovie?.(mov, isContinue)}
             />
           );
         })}

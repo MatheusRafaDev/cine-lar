@@ -123,7 +123,18 @@ export const QuickActionsModal = memo(function QuickActionsModal({
       highlight: true
     });
 
-    // 2. Ver Detalhes
+    // 2. Tirar de Continuar Assistindo (posicionado logo após Assistir para acesso imediato com 1 clique para baixo)
+    if (isInContinueWatching) {
+      actions.push({
+        id: 'remove_history',
+        title: 'Tirar de Continuar Assistindo',
+        subtitle: 'Limpar progresso salvo e retirar da tela inicial',
+        icon: 'history_toggle_off',
+        warning: true
+      });
+    }
+
+    // 3. Ver Detalhes
     actions.push({
       id: 'details',
       title: 'Ver Detalhes',
@@ -131,7 +142,7 @@ export const QuickActionsModal = memo(function QuickActionsModal({
       icon: 'info'
     });
 
-    // 3. Adicionar / Remover da Lista (Favoritos)
+    // 4. Adicionar / Remover da Lista (Favoritos)
     actions.push({
       id: 'favorite',
       title: isFav ? 'Remover de Minha Lista' : 'Adicionar a Minha Lista',
@@ -140,24 +151,13 @@ export const QuickActionsModal = memo(function QuickActionsModal({
       iconColor: isFav ? '#F5C518' : 'inherit'
     });
 
-    // 4. Baixar para o Computador (apenas para títulos online)
+    // 5. Baixar para o Computador (apenas para títulos online)
     if (!isLocal && !movie.isLocal) {
       actions.push({
         id: 'download',
         title: 'Baixar para o Computador',
         subtitle: 'Salvar em D:\\Filmes para assistir offline',
         icon: 'file_download'
-      });
-    }
-
-    // 5. Remover de Continuar Assistindo (se estiver no histórico ou seção continuar assistindo)
-    if (isInContinueWatching) {
-      actions.push({
-        id: 'remove_history',
-        title: 'Remover de Continuar Assistindo',
-        subtitle: 'Limpar progresso e retirar da lista inicial',
-        icon: 'history_toggle_off',
-        warning: true
       });
     }
 

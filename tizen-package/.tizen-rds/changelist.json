@@ -101,6 +101,18 @@
       {
         "path": "Debug/projects/tizen-package/assets/index-rAji3uQx.css",
         "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-BF6H6Mio.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-CcfUEsVU.css",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-legacy-IGyL2LWG.js",
+        "type": "add"
       }
     ]
   }

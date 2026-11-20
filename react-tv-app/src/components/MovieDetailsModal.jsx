@@ -10,6 +10,7 @@ import {
   toggleFavorite,
   startDownload,
   getSavedProgress,
+  isInWatchHistory,
   clearWatchProgress,
   formatTime
 } from '../services/api';
@@ -143,7 +144,7 @@ export function MovieDetailsModal({
 
   const hasResume = Boolean(savedProgress && savedProgress.position > 10 && (!savedProgress.duration || (savedProgress.position / savedProgress.duration) < 0.92));
   const resumePos = hasResume ? savedProgress.position : (details?.position || movie?.position || 0);
-  const streamBaseIndex = hasResume ? (isSeries ? 6 : 5) : (isSeries ? 4 : 3);
+  const isInHistory = Boolean(hasResume || savedProgress || isInWatchHistory(details || movie));
 
   // Ação 1: Assistir (com retomada ou do início)
   const handlePlay = useCallback((customPos) => {
@@ -358,12 +359,10 @@ export function MovieDetailsModal({
 
   // Ação 4: Remover de Continuar Assistindo
   const handleRemoveHistory = useCallback(() => {
-    const idToClear = details?.id || movie?.id || details?.filePath || movie?.filePath || title;
-    if (idToClear) {
-      clearWatchProgress(idToClear);
-      showToast('Removido de Continuar Assistindo.');
-      onClose?.();
-    }
+    const target = { ...movie, ...details };
+    clearWatchProgress(target);
+    showToast(`"${title}" removido de Continuar Assistindo.`);
+    onClose?.();
   }, [details, movie, title, onClose]);
 
   // Abre o diálogo para baixar temporada ou toda a série
@@ -459,6 +458,114 @@ export function MovieDetailsModal({
       setSeriesDownloadModalOpen(false);
     }
   }, [details, movie, title, seriesMeta, selectedSeason]);
+
+  // Botões de ação principais do modal
+  const actionButtons = useMemo(() => {
+    const list = [];
+
+    // 1. Assistir ou Continuar
+    list.push({
+      id: 'play',
+      primary: true,
+      icon: 'play_arrow',
+      label: hasResume
+        ? `Continuar (${formatTime(resumePos)})`
+        : isLocal
+        ? 'Assistir do Disco Local'
+        : isSeries
+        ? `Assistir Episódio ${selectedEpisode?.episode || selectedEpisode?.number || 1}`
+        : loading
+        ? 'Buscando Fontes...'
+        : streams.length > 0
+        ? `Assistir Agora (${streams[0].quality || '1080p Full HD'})`
+        : 'Assistir',
+      action: () => handlePlay(hasResume ? resumePos : 0)
+    });
+
+    // 2. Do Início (quando houver progresso prévio)
+    if (hasResume) {
+      list.push({
+        id: 'restart',
+        icon: 'replay',
+        label: 'Do Início',
+        action: () => handlePlay(0)
+      });
+    }
+
+    // 3. Baixar para o PC / Episódio
+    list.push({
+      id: 'download',
+      icon: isLocal
+        ? 'check_circle'
+        : downloadSuccess
+        ? 'cloud_done'
+        : downloading
+        ? 'sync'
+        : 'file_download',
+      label: isLocal
+        ? 'Salvo no PC (D:\\Filmes)'
+        : downloadSuccess
+        ? 'Download Iniciado!'
+        : downloading
+        ? 'Baixando para o PC...'
+        : isSeries
+        ? `Baixar Episódio ${selectedEpisode?.episode || selectedEpisode?.number || 1}`
+        : 'Baixar para o PC (D:\\Filmes)',
+      isDownload: true,
+      action: handleDownload
+    });
+
+    // 4. Baixar Todos os Episódios (Apenas Séries online)
+    if (isSeries && !isLocal) {
+      list.push({
+        id: 'download_all',
+        icon: 'cloud_download',
+        label: 'Baixar Todos os Episódios',
+        isDownloadAll: true,
+        action: () => handleOpenSeriesDownloadDialog(false)
+      });
+    }
+
+    // 5. Minha Lista (Favoritos)
+    list.push({
+      id: 'fav',
+      icon: favorite ? 'check' : 'add',
+      label: favorite ? 'Na Minha Lista' : 'Minha Lista',
+      action: handleToggleFav
+    });
+
+    // 6. Tirar de Continuar Assistindo (quando estiver no histórico)
+    if (isInHistory) {
+      list.push({
+        id: 'remove_history',
+        icon: 'history_toggle_off',
+        label: 'Tirar de Continuar',
+        warning: true,
+        action: handleRemoveHistory
+      });
+    }
+
+    return list;
+  }, [
+    hasResume,
+    resumePos,
+    isLocal,
+    isSeries,
+    selectedEpisode,
+    loading,
+    streams,
+    downloadSuccess,
+    downloading,
+    favorite,
+    isInHistory,
+    handlePlay,
+    handleDownload,
+    handleOpenSeriesDownloadDialog,
+    handleToggleFav,
+    handleRemoveHistory
+  ]);
+
+  const streamBaseIndex = actionButtons.length;
 
   // Vincula controlador de ações e sub-diálogos com prioridade total para o controle remoto da TV
   useEffect(() => {
@@ -569,47 +676,16 @@ export function MovieDetailsModal({
         triggerAction: (idx, isPlayKey) => {
           if (downloadPickerOpen || streamActionTarget || seriesDownloadModalOpen) return;
 
-          if (hasResume) {
-            if (idx === 0) {
-              handlePlay(resumePos);
-            } else if (idx === 1) {
-              handlePlay(0);
-            } else if (idx === 2) {
-              handleDownload();
-            } else if (isSeries && idx === 3) {
-              handleOpenSeriesDownloadDialog(false);
-            } else if (isSeries ? idx === 4 : idx === 3) {
-              handleToggleFav();
-            } else if (isSeries ? idx === 5 : idx === 4) {
-              handleRemoveHistory();
-            } else {
-              const streamIdx = idx - (isSeries ? 6 : 5);
-              const target = isSeries ? episodeStreams[streamIdx] : streams[streamIdx];
-              if (isPlayKey) {
-                handleStreamSelect(streamIdx);
-              } else if (target) {
-                setStreamActionTarget(target);
-                setStreamActionIndex(0);
-              }
-            }
+          if (idx < actionButtons.length) {
+            actionButtons[idx].action();
           } else {
-            if (idx === 0) {
-              handlePlay(0);
-            } else if (idx === 1) {
-              handleDownload();
-            } else if (isSeries && idx === 2) {
-              handleOpenSeriesDownloadDialog(false);
-            } else if (isSeries ? idx === 3 : idx === 2) {
-              handleToggleFav();
-            } else {
-              const streamIdx = idx - (isSeries ? 4 : 3);
-              const target = isSeries ? episodeStreams[streamIdx] : streams[streamIdx];
-              if (isPlayKey) {
-                handleStreamSelect(streamIdx);
-              } else if (target) {
-                setStreamActionTarget(target);
-                setStreamActionIndex(0);
-              }
+            const streamIdx = idx - actionButtons.length;
+            const target = isSeries ? episodeStreams[streamIdx] : streams[streamIdx];
+            if (isPlayKey) {
+              handleStreamSelect(streamIdx);
+            } else if (target) {
+              setStreamActionTarget(target);
+              setStreamActionIndex(0);
             }
           }
         }
@@ -630,7 +706,6 @@ export function MovieDetailsModal({
     handleSelectSeasonPacksStep,
     handleExecuteSeasonPackDownload,
     handleExecuteDownloadAllSeasons,
-    handleOpenSeriesDownloadDialog,
     isSeries,
     selectedEpisode,
     selectedSeason,
@@ -640,12 +715,8 @@ export function MovieDetailsModal({
     poster,
     resumePos,
     onPlayStream,
-    handlePlay,
-    handleDownload,
-    handleToggleFav,
-    handleRemoveHistory,
+    actionButtons,
     handleStreamSelect,
-    hasResume,
     episodeStreams,
     streams
   ]);
@@ -659,19 +730,6 @@ export function MovieDetailsModal({
   const currentEpisodes = (seriesMeta?.videos || [])
     .filter(v => v.season === selectedSeason)
     .sort((a, b) => (a.episode || a.number || 0) - (b.episode || b.number || 0));
-
-  const isPlayFocused = isZoneFocused && focusedIndex === 0;
-  const isRestartFocused = isZoneFocused && hasResume && focusedIndex === 1;
-  const isDownloadEpFocused = isZoneFocused && (hasResume ? focusedIndex === 2 : focusedIndex === 1);
-  const isDownloadAllFocused = isZoneFocused && isSeries && (hasResume ? focusedIndex === 3 : focusedIndex === 2);
-  const isFavFocused = isZoneFocused && (
-    hasResume
-      ? (isSeries ? focusedIndex === 4 : focusedIndex === 3)
-      : (isSeries ? focusedIndex === 3 : focusedIndex === 2)
-  );
-  const isRemoveHistoryFocused = isZoneFocused && hasResume && (
-    isSeries ? focusedIndex === 5 : focusedIndex === 4
-  );
 
   return (
     <div className="tv-modal-backdrop" onClick={onClose}>
@@ -724,102 +782,35 @@ export function MovieDetailsModal({
 
               {/* Botões Principais de Ação */}
               <div className="tv-hero-actions">
-                {/* 1. Botão Assistir ou Continuar */}
-                <button
-                  type="button"
-                  className={`tv-btn tv-btn-primary ${isPlayFocused ? 'focused' : ''}`}
-                  onClick={() => handlePlay(hasResume ? resumePos : 0)}
-                >
-                  <span className="material-icons">play_arrow</span>
-                  <span>
-                    {hasResume
-                      ? `Continuar (${formatTime(resumePos)})`
-                      : isLocal
-                      ? 'Assistir do Disco Local'
-                      : isSeries
-                      ? `Assistir Episódio ${selectedEpisode?.episode || selectedEpisode?.number || 1}`
-                      : loading
-                      ? 'Buscando Fontes...'
-                      : streams.length > 0
-                      ? `Assistir Agora (${streams[0].quality || '1080p Full HD'})`
-                      : 'Assistir'}
-                  </span>
-                </button>
+                {actionButtons.map((btn, idx) => {
+                  const isFocused = isZoneFocused && focusedIndex === idx;
+                  let btnClass = 'tv-btn';
+                  if (btn.primary) btnClass += ' tv-btn-primary';
+                  else if (btn.isDownload) btnClass += ` tv-btn-download ${isLocal ? 'already-local' : ''}`;
+                  else if (btn.isDownloadAll) btnClass += ' tv-btn-download-all';
+                  else if (btn.warning) btnClass += ' tv-btn-warning';
+                  else btnClass += ' tv-btn-secondary';
 
-                {/* 2. Botão Assistir do Início (quando houver progresso prévio) */}
-                {hasResume && (
-                  <button
-                    type="button"
-                    className={`tv-btn tv-btn-secondary ${isRestartFocused ? 'focused' : ''}`}
-                    onClick={() => handlePlay(0)}
-                  >
-                    <span className="material-icons">replay</span>
-                    <span>Do Início</span>
-                  </button>
-                )}
+                  if (isFocused) btnClass += ' focused';
 
-                {/* 3. Botão Baixar para o PC / Episódio */}
-                <button
-                  type="button"
-                  className={`tv-btn tv-btn-download ${isDownloadEpFocused ? 'focused' : ''} ${isLocal ? 'already-local' : ''}`}
-                  onClick={handleDownload}
-                >
-                  <span className="material-icons">
-                    {isLocal
-                      ? 'check_circle'
-                      : downloadSuccess
-                      ? 'cloud_done'
-                      : downloading
-                      ? 'sync'
-                      : 'file_download'}
-                  </span>
-                  <span>
-                    {isLocal
-                      ? 'Salvo no PC (D:\\Filmes)'
-                      : downloadSuccess
-                      ? 'Download Iniciado!'
-                      : downloading
-                      ? 'Baixando para o PC...'
-                      : isSeries
-                      ? `Baixar Episódio ${selectedEpisode?.episode || selectedEpisode?.number || 1}`
-                      : 'Baixar para o PC (D:\\Filmes)'}
-                  </span>
-                </button>
-
-                {/* 4. Botão Baixar Todos os Episódios (Apenas para Séries) */}
-                {isSeries && !isLocal && (
-                  <button
-                    type="button"
-                    className={`tv-btn tv-btn-download-all ${isDownloadAllFocused ? 'focused' : ''}`}
-                    onClick={() => handleOpenSeriesDownloadDialog(false)}
-                  >
-                    <span className="material-icons">cloud_download</span>
-                    <span>Baixar Todos os Episódios</span>
-                  </button>
-                )}
-
-                {/* 5. Botão Minha Lista (Favoritos) */}
-                <button
-                  type="button"
-                  className={`tv-btn tv-btn-secondary ${isFavFocused ? 'focused' : ''}`}
-                  onClick={handleToggleFav}
-                >
-                  <span className="material-icons">{favorite ? 'check' : 'add'}</span>
-                  <span>{favorite ? 'Na Minha Lista' : 'Minha Lista'}</span>
-                </button>
-
-                {/* 6. Botão Remover do Histórico (quando aplicável) */}
-                {hasResume && (
-                  <button
-                    type="button"
-                    className={`tv-btn tv-btn-secondary ${isRemoveHistoryFocused ? 'focused' : ''}`}
-                    onClick={handleRemoveHistory}
-                    title="Remover de Continuar Assistindo"
-                  >
-                    <span className="material-icons">close</span>
-                    <span>Remover</span>
-                  </button>
-                )}
+                  return (
+                    <button
+                      key={btn.id}
+                      type="button"
+                      className={btnClass}
+                      onClick={btn.action}
+                      title={btn.id === 'remove_history' ? 'Remover de Continuar Assistindo' : btn.label}
+                    >
+                      <span
+                        className="material-icons"
+                        style={btn.warning ? { color: '#EF4444', fontSize: '18px' } : undefined}
+                      >
+                        {btn.icon}
+                      </span>
+                      <span>{btn.label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Notificação Toast dentro do Modal */}

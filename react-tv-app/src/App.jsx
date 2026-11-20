@@ -30,6 +30,7 @@ import {
   toggleFavorite,
   isFavorite,
   clearWatchProgress,
+  isInWatchHistory,
   deleteLocalFile
 } from './services/api';
 import { useSpatialNav } from './hooks/useSpatialNav';
@@ -467,11 +468,16 @@ export function App() {
   const modalItemsCount = useMemo(() => {
     if (!selectedMovie) return 3;
     const isSeries = Boolean(selectedMovie.isSeries || selectedMovie.type === 'series' || (selectedMovie.year && String(selectedMovie.year).includes('–')));
+    const isLocal = Boolean(selectedMovie.isLocal || selectedMovie.filePath || selectedMovie.videoPath);
     const saved = getSavedProgress(selectedMovie);
     const hasResume = Boolean(saved && saved.position > 10 && (!saved.duration || saved.position / saved.duration < 0.92));
-    let baseButtons = 3;
-    if (hasResume) baseButtons += 2;
-    if (isSeries) baseButtons += 1;
+    const isInHistory = Boolean(hasResume || saved || isInWatchHistory(selectedMovie));
+
+    let baseButtons = 3; // Assistir, Baixar, Favoritos
+    if (hasResume) baseButtons += 1; // Do Início
+    if (isSeries && !isLocal) baseButtons += 1; // Baixar Série Completa
+    if (isInHistory) baseButtons += 1; // Tirar de Continuar Assistindo
+
     const streamsCount = selectedMovie.streams ? selectedMovie.streams.length : 5;
     return baseButtons + streamsCount;
   }, [selectedMovie]);
@@ -479,11 +485,16 @@ export function App() {
   const modalStreamBaseIndex = useMemo(() => {
     if (!selectedMovie) return 3;
     const isSeries = Boolean(selectedMovie.isSeries || selectedMovie.type === 'series' || (selectedMovie.year && String(selectedMovie.year).includes('–')));
+    const isLocal = Boolean(selectedMovie.isLocal || selectedMovie.filePath || selectedMovie.videoPath);
     const saved = getSavedProgress(selectedMovie);
     const hasResume = Boolean(saved && saved.position > 10 && (!saved.duration || saved.position / saved.duration < 0.92));
-    let baseButtons = 3;
-    if (hasResume) baseButtons += 2;
-    if (isSeries) baseButtons += 1;
+    const isInHistory = Boolean(hasResume || saved || isInWatchHistory(selectedMovie));
+
+    let baseButtons = 3; // Assistir, Baixar, Favoritos
+    if (hasResume) baseButtons += 1; // Do Início
+    if (isSeries && !isLocal) baseButtons += 1; // Baixar Série Completa
+    if (isInHistory) baseButtons += 1; // Tirar de Continuar Assistindo
+
     return baseButtons;
   }, [selectedMovie]);
 
@@ -499,12 +510,14 @@ export function App() {
         ? ['play', 'details', 'delete_download']
         : ['play', 'pause_resume', 'details', 'delete_download'];
     }
-    const list = ['play', 'details', 'favorite'];
-    if (!quickMenuContext.isLocal && !quickMenuMovie.isLocal) {
-      list.push('download');
-    }
+    const list = ['play'];
     if (quickMenuContext.isInContinueWatching) {
       list.push('remove_history');
+    }
+    list.push('details');
+    list.push('favorite');
+    if (!quickMenuContext.isLocal && !quickMenuMovie.isLocal) {
+      list.push('download');
     }
     if (quickMenuContext.isLocal || quickMenuMovie.isLocal || quickMenuMovie.filePath) {
       list.push('delete_local');
@@ -618,8 +631,9 @@ export function App() {
       case 'remove_history':
         clearWatchProgress(target);
         refreshUserData();
-        showToast('Removido de Continuar Assistindo');
+        showToast(`"${target.title || target.name || 'Título'}" removido de Continuar Assistindo`);
         setQuickMenuMovie(null);
+        nav.setColIndex(c => Math.max(0, c - 1));
         break;
 
       case 'delete_local':
@@ -638,15 +652,14 @@ export function App() {
         setQuickMenuMovie(null);
         break;
     }
-  }, [quickMenuMovie, handlePlayMovieDirect, showToast, refreshUserData, handleConfirmDelete, handleResumeDownload, handlePauseDownload, handleCancelDownload]);
+  }, [quickMenuMovie, handlePlayMovieDirect, showToast, refreshUserData, handleConfirmDelete, handleResumeDownload, handlePauseDownload, handleCancelDownload, nav]);
 
   // Abertura centralizada do menu de opções do título
-  const handleOpenQuickMenuForMovie = useCallback((target) => {
+  const handleOpenQuickMenuForMovie = useCallback((target, forceContinueWatching = false) => {
     if (!target) return;
     let isLocal = Boolean(target.isLocal || target.filePath || activeTab === 'local');
     const isDownload = Boolean(activeTab === 'downloads' || target.progress !== undefined || target.status === 'downloading' || target.status === 'completed');
-    const saved = getSavedProgress(target);
-    const isContinueWatching = Boolean(saved && saved.position > 10);
+    const isContinueWatching = Boolean(forceContinueWatching || isInWatchHistory(target) || (target.position && target.position > 10));
 
     setConfirmDeleteMode(false);
     setQuickMenuContext({ isInContinueWatching: isContinueWatching, isLocal, isDownload, downloadItem: target });
@@ -669,6 +682,8 @@ export function App() {
         const sec = currentSections[rowIndex];
         if (sec && sec.movies && sec.movies[colIndex]) {
           target = sec.movies[colIndex];
+          handleOpenQuickMenuForMovie(target, sec.id === 'continue-watching');
+          return;
         }
       }
     } else if (zone === 'search-results') {
@@ -826,7 +841,13 @@ export function App() {
         const sec = currentSections[rowIndex];
         if (sec && sec.movies && sec.movies[colIndex]) {
           const mov = sec.movies[colIndex];
-          if (sec.id === 'continue-watching' || isPlayKey) {
+          if (sec.id === 'continue-watching') {
+            if (isPlayKey) {
+              handlePlayMovieDirect(mov);
+            } else {
+              handleOpenQuickMenuForMovie(mov, true);
+            }
+          } else if (isPlayKey) {
             handlePlayMovieDirect(mov);
           } else {
             setSelectedMovie(mov);
@@ -878,8 +899,14 @@ export function App() {
             heroIndex={nav.heroIndex}
             rowIndex={nav.rowIndex}
             colIndex={nav.colIndex}
-            onSelectMovie={setSelectedMovie}
-            onContextMenuMovie={handleOpenQuickMenuForMovie}
+            onSelectMovie={(mov, isContinue) => {
+              if (isContinue) {
+                handleOpenQuickMenuForMovie(mov, true);
+              } else {
+                setSelectedMovie(mov);
+              }
+            }}
+            onContextMenuMovie={(mov) => handleOpenQuickMenuForMovie(mov, true)}
             onPlayHero={() => handlePlayMovieDirect(heroMovie)}
             onInfoHero={() => setSelectedMovie(heroMovie)}
           />
