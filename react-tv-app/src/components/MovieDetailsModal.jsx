@@ -177,6 +177,7 @@ export function MovieDetailsModal({
         streamUrl: sUrl,
         title,
         poster,
+        quality: details.quality || movie.quality || '1080p Full HD',
         isLocal: true,
         filePath,
         resumePosition: posToResume
@@ -194,7 +195,7 @@ export function MovieDetailsModal({
         title,
         poster,
         infoHash: best.infoHash,
-        quality: best.quality,
+        quality: best.quality || '1080p Full HD',
         isLocal: false,
         resumePosition: posToResume
       });
@@ -217,7 +218,7 @@ export function MovieDetailsModal({
           title: `${title} - T${selectedSeason}E${epNum}: ${selectedEpisode?.name || 'Episódio'}`,
           poster: selectedEpisode?.thumbnail || poster,
           infoHash: s.infoHash,
-          quality: s.quality,
+          quality: s.quality || '1080p Full HD',
           isLocal: false,
           isSeries: true,
           season: selectedSeason,
@@ -234,10 +235,10 @@ export function MovieDetailsModal({
           movieId: details.id || movie.id,
           imdbId: details.imdbId || movie.imdbId,
           streamUrl: s.streamUrl || `/api/stream/${s.infoHash}?magnet=${encodeURIComponent(s.magnet)}`,
-          title: `${title} - ${s.quality || '1080p'}`,
+          title: `${title} - ${s.quality || '1080p Full HD'}`,
           poster,
           infoHash: s.infoHash,
-          quality: s.quality,
+          quality: s.quality || '1080p Full HD',
           isLocal: false,
           resumePosition: resumePos
         });
@@ -577,7 +578,7 @@ export function MovieDetailsModal({
                       : loading
                       ? 'Buscando Fontes...'
                       : streams.length > 0
-                      ? `Assistir Agora (${streams[0].quality || '1080p'})`
+                      ? `Assistir Agora (${streams[0].quality || '1080p Full HD'})`
                       : 'Assistir'}
                   </span>
                 </button>
@@ -746,7 +747,9 @@ export function MovieDetailsModal({
                             </div>
                           </div>
                         </div>
-                        <span className="tv-stream-badge">{stream.quality || '1080p'}</span>
+                        <span className={`tv-stream-badge ${String(stream.quality || '').includes('4K') ? 'q-4k' : String(stream.quality || '').toLowerCase().includes('cam') ? 'q-cam' : ''}`}>
+                          {stream.quality || '1080p Full HD'}
+                        </span>
                       </div>
                     );
                   })}
@@ -769,6 +772,8 @@ export function MovieDetailsModal({
               {streams.map((stream, idx) => {
                 const streamFocusIndex = streamBaseIndex + idx;
                 const isStreamFocused = isZoneFocused && focusedIndex === streamFocusIndex;
+                const is4K = String(stream.quality || '').includes('4K');
+                const isCam = String(stream.quality || '').toLowerCase().includes('cam');
                 return (
                   <div
                     key={stream.infoHash || idx}
@@ -788,7 +793,9 @@ export function MovieDetailsModal({
                       </div>
                     </div>
 
-                    <span className="tv-stream-badge">{stream.quality || '1080p'}</span>
+                    <span className={`tv-stream-badge ${is4K ? 'q-4k' : isCam ? 'q-cam' : ''}`}>
+                      {stream.quality || '1080p Full HD'}
+                    </span>
                   </div>
                 );
               })}
@@ -812,6 +819,7 @@ export function MovieDetailsModal({
               {currentAvailableStreams.map((st, sIdx) => {
                 const isSelected = downloadPickerIndex === sIdx;
                 const is4K = String(st.quality || '').toLowerCase().includes('4k') || String(st.title || '').toLowerCase().includes('2160p');
+                const isCam = String(st.quality || '').toLowerCase().includes('cam') || String(st.title || '').toLowerCase().includes('cam');
                 return (
                   <div
                     key={st.infoHash || sIdx}
@@ -823,7 +831,7 @@ export function MovieDetailsModal({
                       <div className="tv-version-item-info">
                         <div className="tv-version-title">{st.title || st.name || title}</div>
                         <div className="tv-version-meta-row">
-                          <span className={`tv-version-badge-quality ${is4K ? 'q-4k' : ''}`}>{st.quality || '1080p'}</span>
+                          <span className={`tv-version-badge-quality ${is4K ? 'q-4k' : isCam ? 'q-cam' : ''}`}>{st.quality || '1080p Full HD'}</span>
                           {st.size && <span className="tv-version-badge-size">• {st.size}</span>}
                           {st.audio && <span style={{ color: 'var(--text-subtle)' }}>• {st.audio}</span>}
                         </div>

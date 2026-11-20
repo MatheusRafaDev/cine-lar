@@ -1069,10 +1069,13 @@ const server = http.createServer(async (req, res) => {
                     const isSeasonPack = /(completa|complete|temporada[\s\.\-_]*\d+|season[\s\.\-_]*\d+|\bS\d+[\s\.\-_]*complete)/i.test(full)
                         || (/([0-9]+(\.[0-9]+)?\s*GB)/i.test(titleStr) && parseFloat(titleStr.match(/([0-9]+(\.[0-9]+)?)\s*GB/i)?.[1] || '0') > 3.5);
 
-                    let quality = '1080p';
-                    if (/4k|2160p|uhd/i.test(full)) quality = '4K UHD';
+                    let quality = '1080p Full HD';
+                    const isCam = /\b(cam|hdcam|camrip|telesync|ts|telecine|tc|screener|scr|dvdscr)\b/i.test(full);
+                    if (isCam) quality = 'HDCAM (Cinema)';
+                    else if (/4k|2160p|uhd/i.test(full)) quality = '4K UHD';
+                    else if (/1080p|fhd/i.test(full)) quality = '1080p Full HD';
                     else if (/720p/i.test(full)) quality = '720p HD';
-                    else if (/1080p/i.test(full)) quality = '1080p';
+                    else if (/480p|sd/i.test(full)) quality = '480p SD';
 
                     const isPt = /dublado|dual|nacional|portuguese|português|brasil|pt-br/i.test(full) || /(?:\uD83C\uDDE7\uD83C\uDDF7|\uD83C\uDDF5\uD83C\uDDF9)/.test(full);
 
@@ -1379,6 +1382,48 @@ const server = http.createServer(async (req, res) => {
                     return { isPt: false, isDubbed: false };
                 }
 
+                function isTorrentCam(fullText) {
+                    return /\b(cam|hdcam|camrip|telesync|ts|telecine|tc|screener|scr|dvdscr)\b/i.test(fullText);
+                }
+
+                function detectTorrentQuality(fullText) {
+                    if (isTorrentCam(fullText)) return 'HDCAM (Cinema)';
+                    if (/\b(4k|2160p|uhd)\b/i.test(fullText)) return '4K UHD';
+                    if (/\b(1080p|fhd|full[\s\-\.]*hd)\b/i.test(fullText)) return '1080p Full HD';
+                    if (/\b(720p|hd)\b/i.test(fullText)) return '720p HD';
+                    if (/\b(480p|sd|dvdrip)\b/i.test(fullText)) return '480p SD';
+                    return '1080p Full HD';
+                }
+
+                function getTorrentStreamScore(s) {
+                    let score = 0;
+                    // 1. Prioridade máxima para Dublado / Dual Áudio
+                    if (s.isDubbed) score += 10000;
+                    else if (s.isPortuguese) score += 5000;
+
+                    // 2. Penalidade drástica para CAM (gravação de cinema)
+                    if (s.isCam) {
+                        score -= 20000;
+                    }
+
+                    // 3. Resolução de imagem digital
+                    if (s.quality === '1080p Full HD') score += 3000;
+                    else if (s.quality === '4K UHD') score += 2800;
+                    else if (s.quality === '720p HD') score += 1000;
+                    else if (s.quality === '480p SD') score += 300;
+                    else score += 1500;
+
+                    // 4. Tipo de release (BluRay e WEB-DL têm bitrates superiores)
+                    const text = `${s.filename || ''} ${s.rawTitle || ''}`.toLowerCase();
+                    if (/bluray|remux|bdrip/i.test(text)) score += 500;
+                    else if (/web-dl|webdl/i.test(text)) score += 400;
+                    else if (/webrip/i.test(text)) score += 300;
+
+                    // 5. Seeders para desempate entre torrents da mesma qualidade
+                    score += Math.min(s.seeders || 0, 500);
+                    return score;
+                }
+
                 const streamMap = new Map();
 
                 const processStreams = (streams) => {
@@ -1405,10 +1450,8 @@ const server = http.createServer(async (req, res) => {
                         const firstLine = (s.title || '').split('\n')[0].trim();
                         const filename = s.behaviorHints?.filename || firstLine;
 
-                        let quality = 'HD';
-                        if (/4k|2160p/i.test(fullText)) quality = '4K UHD';
-                        else if (/1080p/i.test(fullText)) quality = '1080p Full HD';
-                        else if (/720p/i.test(fullText)) quality = '720p HD';
+                        const isCam = isTorrentCam(fullText);
+                        const quality = detectTorrentQuality(fullText);
 
                         const audio = isDubbed ? 'Dublado / Dual Áudio' : 'Legenda PT-BR';
 
@@ -1430,6 +1473,7 @@ const server = http.createServer(async (req, res) => {
                             audio,
                             isPortuguese: true,
                             isDubbed,
+                            isCam,
                             seeders,
                             size,
                             provider,
@@ -1473,10 +1517,8 @@ const server = http.createServer(async (req, res) => {
                         const firstLine = (s.title || '').split('\n')[0].trim();
                         const filename = s.behaviorHints?.filename || firstLine;
 
-                        let quality = 'HD';
-                        if (/4k|2160p/i.test(fullText)) quality = '4K UHD';
-                        else if (/1080p/i.test(fullText)) quality = '1080p Full HD';
-                        else if (/720p/i.test(fullText)) quality = '720p HD';
+                        const isCam = isTorrentCam(fullText);
+                        const quality = detectTorrentQuality(fullText);
 
                         const streamTrackers = [];
                         if (Array.isArray(s.sources)) {
@@ -1495,6 +1537,7 @@ const server = http.createServer(async (req, res) => {
                             audio: 'Áudio Original / Legenda',
                             isPortuguese: false,
                             isDubbed: false,
+                            isCam,
                             seeders,
                             size,
                             provider,
@@ -1510,14 +1553,7 @@ const server = http.createServer(async (req, res) => {
                 }
 
                 const torrents = Array.from(streamMap.values()).sort((a, b) => {
-                    // 1. Dublado / Dual Áudio sempre no topo absoluto
-                    if (a.isDubbed && !b.isDubbed) return -1;
-                    if (!a.isDubbed && b.isDubbed) return 1;
-                    // 2. Português antes de internacional
-                    if (a.isPortuguese && !b.isPortuguese) return -1;
-                    if (!a.isPortuguese && b.isPortuguese) return 1;
-                    // 3. Mais seeders primeiro
-                    return b.seeders - a.seeders;
+                    return getTorrentStreamScore(b) - getTorrentStreamScore(a);
                 });
 
                 // Verifica se o filme já existe salvo na pasta D:\filmes
@@ -1979,14 +2015,21 @@ const server = http.createServer(async (req, res) => {
                         args.push('-i', 'pipe:0');
                     }
 
-                    const isH264 = !isAviOrIncompatible && file.name.endsWith('.mp4');
-                    const isAac = !isAviOrIncompatible && file.name.endsWith('.mp4');
+                    // Preserva 100% da qualidade original se o vídeo já for compatível (H.264 / HEVC em MP4 ou MKV)
+                    const isVideoH264OrHevc = !isAviOrIncompatible || /\.(mp4|mkv|mov|m4v)$/i.test(file.name);
+                    const vArgs = isVideoH264OrHevc
+                        ? ['-c:v', 'copy']
+                        : ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-maxrate', '12M', '-bufsize', '24M'];
+
+                    // Áudio: copia se for mp4/aac nativo, caso contrário codifica em AAC 256k estéreo cristalino
+                    const isAudioAac = file.name.endsWith('.mp4');
+                    const aArgs = isAudioAac
+                        ? ['-c:a', 'copy']
+                        : ['-c:a', 'aac', '-b:a', '256k', '-ac', '2'];
 
                     args.push(
-                        '-c:v', isH264 ? 'copy' : 'libx264',
-                        ...(isH264 ? [] : ['-preset', 'ultrafast', '-tune', 'zerolatency', '-crf', '22']),
-                        '-c:a', isAac ? 'copy' : 'aac',
-                        ...(isAac ? [] : ['-b:a', '192k', '-ac', '2']),
+                        ...vArgs,
+                        ...aArgs,
                         '-sn',
                         '-f', 'mp4',
                         '-movflags', 'frag_keyframe+empty_moov+default_base_moof',

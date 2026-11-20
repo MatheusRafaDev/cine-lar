@@ -56,6 +56,9 @@ export function getMediaInfo(filePath) {
         duration: 0,
         videoCodec: '',
         audioCodec: '',
+        width: 0,
+        height: 0,
+        quality: '1080p Full HD',
         isDirectPlayable: filePath.toLowerCase().endsWith('.mp4')
     };
     if (!RESOLVED_FFPROBE || !fs.existsSync(filePath)) return defaultInfo;
@@ -63,7 +66,7 @@ export function getMediaInfo(filePath) {
     try {
         const stdout = execFileSync(RESOLVED_FFPROBE, [
             '-v', 'error',
-            '-show_entries', 'stream=index,codec_name,codec_type',
+            '-show_entries', 'stream=index,codec_name,codec_type,width,height',
             '-show_entries', 'format=duration',
             '-of', 'json',
             filePath
@@ -78,6 +81,14 @@ export function getMediaInfo(filePath) {
 
         const videoCodec = (vStream?.codec_name || '').toLowerCase();
         const audioCodec = (aStream?.codec_name || '').toLowerCase();
+        const width = parseInt(vStream?.width, 10) || 0;
+        const height = parseInt(vStream?.height, 10) || 0;
+
+        let quality = '1080p Full HD';
+        if (height >= 2160 || width >= 3840) quality = '4K UHD';
+        else if (height >= 1080 || width >= 1920) quality = '1080p Full HD';
+        else if (height >= 720 || width >= 1280) quality = '720p HD';
+        else if (height > 0 && height < 720) quality = '480p SD';
 
         const isMp4 = filePath.toLowerCase().endsWith('.mp4');
         const isH264 = videoCodec === 'h264' || videoCodec === 'avc1';
@@ -86,7 +97,7 @@ export function getMediaInfo(filePath) {
         // Arquivo direto sem transcode apenas se for container MP4 com vídeo H264 e áudio AAC
         const isDirectPlayable = isMp4 && isH264 && isAac;
 
-        const info = { duration, videoCodec, audioCodec, isDirectPlayable };
+        const info = { duration, videoCodec, audioCodec, width, height, quality, isDirectPlayable };
         mediaInfoCache.set(filePath, info);
         return info;
     } catch {
@@ -436,12 +447,15 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
             } catch (e) {}
         }
 
-        // Quality detection from filename/folder
-        let quality = '1080p';
-        if (/2160p|4k/i.test(rawName)) quality = '4K Ultra HD';
-        else if (/720p/i.test(rawName)) quality = '720p HD';
-        else if (/bluray|bdrip/i.test(rawName)) quality = '1080p BluRay';
-        else if (/web-dl|webrip/i.test(rawName)) quality = '1080p WEB-DL';
+        // Detecção precisa de resolução a partir do mediaInfo / ffprobe
+        const mediaInfo = getMediaInfo(videoFile);
+        let quality = mediaInfo.quality || '1080p Full HD';
+        if (!mediaInfo.width) {
+            if (/2160p|4k/i.test(rawName)) quality = '4K UHD';
+            else if (/720p/i.test(rawName)) quality = '720p HD';
+            else if (/bluray|bdrip/i.test(rawName)) quality = '1080p BluRay';
+            else if (/web-dl|webrip/i.test(rawName)) quality = '1080p Full HD';
+        }
 
         const ext = path.extname(videoFile).replace('.', '').toUpperCase();
 
@@ -599,17 +613,26 @@ export function streamLocalVideo(filePath, req, res) {
         }
 
         const isH264 = mediaInfo.videoCodec === 'h264' || mediaInfo.videoCodec === 'avc1';
+        const isHevc = mediaInfo.videoCodec === 'hevc' || mediaInfo.videoCodec === 'h265';
         const isAac = mediaInfo.audioCodec === 'aac' || mediaInfo.audioCodec === 'mp4a';
+
+        // Cópia direta do vídeo preservando 100% da qualidade original se for H.264 ou HEVC
+        const canCopyVideo = isH264 || isHevc;
+        const vArgs = canCopyVideo
+            ? ['-c:v', 'copy', ...(isHevc ? ['-tag:v', 'hvc1'] : [])]
+            : ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-maxrate', '12M', '-bufsize', '24M'];
+
+        const aArgs = isAac
+            ? ['-c:a', 'copy']
+            : ['-c:a', 'aac', '-b:a', '256k', '-ac', '2'];
 
         args.push(
             '-i', targetFile,
-            '-c:v', isH264 ? 'copy' : 'libx264',
-            ...(isH264 ? [] : ['-preset', 'ultrafast', '-crf', '22']),
-            '-c:a', isAac ? 'copy' : 'aac',
-            ...(isAac ? [] : ['-b:a', '192k', '-ac', '2']),
+            ...vArgs,
+            ...aArgs,
             '-sn',
             '-f', 'mp4',
-            '-movflags', 'frag_keyframe+default_base_moof',
+            '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
             'pipe:1'
         );
 

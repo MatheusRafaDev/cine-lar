@@ -50,6 +50,11 @@ export function CinemaPlayer({
   const [isBuffering, setIsBuffering] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [effectiveQuality, setEffectiveQuality] = useState(quality);
+
+  useEffect(() => {
+    setEffectiveQuality(quality);
+  }, [quality]);
 
   const controlsTimeoutRef = useRef(null);
   const osdTimeoutRef = useRef(null);
@@ -257,6 +262,21 @@ export function CinemaPlayer({
       if (dur && !isNaN(dur) && isFinite(dur)) {
         setDuration(dur);
       }
+
+      // Detecção de hardware da resolução decodificada real
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      if (vh > 0) {
+        let detected = '';
+        if (vh >= 2160 || vw >= 3840) detected = '4K UHD';
+        else if (vh >= 1080 || vw >= 1920) detected = '1080p Full HD';
+        else if (vh >= 720 || vw >= 1280) detected = '720p HD';
+        else if (vh >= 480 || vw >= 640) detected = '480p SD';
+        if (detected) {
+          setEffectiveQuality(detected);
+        }
+      }
+
       if (!hasResumedRef.current && resumePosition > 10 && dur && resumePosition < (dur - 15)) {
         try {
           video.currentTime = resumePosition;
@@ -467,8 +487,11 @@ export function CinemaPlayer({
             <div>
               <h2 className="tv-player-movie-title">{title}</h2>
               <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                <span className="tv-badge-pill" style={{ fontSize: '11px', background: 'rgba(255,255,255,0.18)' }}>
-                  {quality}
+                <span
+                  className={`tv-badge-pill ${effectiveQuality.includes('4K') ? 'q-4k' : effectiveQuality.toLowerCase().includes('cam') ? 'q-cam' : ''}`}
+                  style={{ fontSize: '11px', background: 'rgba(255,255,255,0.18)' }}
+                >
+                  {effectiveQuality}
                 </span>
                 {isLocal ? (
                   <span className="tv-badge-pill" style={{ fontSize: '11px', background: '#22c55e', color: '#000' }}>

@@ -351,6 +351,7 @@ export function App() {
         title: movie.title || movie.name || movie.cleanName || 'Filme Local',
         poster: movie.poster,
         backdrop: movie.backdrop || movie.poster,
+        quality: movie.quality || '1080p Full HD',
         isLocal: true,
         filePath,
         resumePosition: resumePos
@@ -369,7 +370,7 @@ export function App() {
         poster: movie.poster,
         backdrop: movie.backdrop || movie.poster,
         infoHash: movie.infoHash,
-        quality: movie.quality || '1080p',
+        quality: movie.quality || '1080p Full HD',
         isLocal: false,
         resumePosition: resumePos
       });
@@ -389,7 +390,7 @@ export function App() {
         poster: full.poster,
         backdrop: full.backdrop || full.poster,
         infoHash: best.infoHash,
-        quality: best.quality,
+        quality: best.quality || '1080p Full HD',
         isLocal: false,
         resumePosition: resumePos
       });

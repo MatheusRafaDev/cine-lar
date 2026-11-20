@@ -585,6 +585,22 @@ body.tv-body {
   border: 1px solid rgba(229, 9, 20, 0.4);
 }
 
+.tv-stream-badge.q-4k,
+.tv-version-badge-quality.q-4k,
+.tv-badge-pill.q-4k {
+  background: rgba(245, 197, 24, 0.25) !important;
+  color: #F5C518 !important;
+  border-color: rgba(245, 197, 24, 0.6) !important;
+}
+
+.tv-stream-badge.q-cam,
+.tv-version-badge-quality.q-cam,
+.tv-badge-pill.q-cam {
+  background: rgba(249, 115, 22, 0.25) !important;
+  color: #FB923C !important;
+  border-color: rgba(249, 115, 22, 0.7) !important;
+}
+
 /* 6. Video Player Fullscreen (10-Foot UI) */
 .tv-player-wrap {
   position: fixed;
