@@ -374,7 +374,13 @@ export function App() {
     }
   }, []);
 
-  // 4. Integração do Hook Espacial
+  const modalItemsCount = useMemo(() => {
+    if (!selectedMovie) return 3;
+    const streamsCount = selectedMovie.streams ? selectedMovie.streams.length : 5;
+    return 3 + streamsCount;
+  }, [selectedMovie]);
+
+  // 4. Integração do Hook Espacial Ultra-Rápido
   const nav = useSpatialNav({
     isPlayerOpen: Boolean(activeStream),
     isModalOpen: Boolean(selectedMovie),
@@ -384,7 +390,13 @@ export function App() {
     getColCount,
     headerCount: NAV_ITEMS.length,
     localFilterCount: localFilters.length,
-    modalItemsCount: 5,
+    modalItemsCount,
+    onTabChange: (newHeaderIdx) => {
+      const item = NAV_ITEMS[newHeaderIdx];
+      if (item && item.id !== activeTab) {
+        setActiveTab(item.id);
+      }
+    },
     onBack: () => {
       // Hierarquia estrita do botão Voltar (Tizen / Esc)
       if (activeStream) {
@@ -397,12 +409,13 @@ export function App() {
         refreshUserData();
         return;
       }
-      if (activeTab !== 'home') {
-        setActiveTab('home');
-        return;
-      }
       if (nav.activeZone !== 'header') {
         nav.setActiveZone('header');
+        return;
+      }
+      if (activeTab !== 'home') {
+        setActiveTab('home');
+        nav.setHeaderIndex(0);
         return;
       }
       // Se já está no header da página inicial, sai do aplicativo Tizen
@@ -421,9 +434,17 @@ export function App() {
       }
 
       if (zone === 'header') {
-        const item = NAV_ITEMS[headerIndex];
-        if (item) {
-          setActiveTab(item.id);
+        // Confirma tab e desce para o conteúdo
+        if (activeTab === 'home' && heroMovie) {
+          nav.setActiveZone('hero');
+        } else if (activeTab === 'local') {
+          nav.setActiveZone('local-filters');
+        } else if (activeTab === 'search') {
+          nav.setActiveZone('search-keyboard');
+        } else {
+          nav.setActiveZone('rows');
+          nav.setRowIndex(0);
+          nav.setColIndex(0);
         }
         return;
       }

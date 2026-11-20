@@ -27,9 +27,10 @@ export function useSpatialNav({
   getColCount = null,
   headerCount = 7,
   localFilterCount = 0,
-  modalItemsCount = 2,
+  modalItemsCount = 3,
   onBack = null,
   onEnter = null,
+  onTabChange = null,
   onPlayPause = null,
   onSeek = null,
   onVolume = null
@@ -47,9 +48,39 @@ export function useSpatialNav({
   const [searchColIndex, setSearchColIndex] = useState(0);
   const [resultsColIndex, setResultsColIndex] = useState(0);
 
-  const lastKeyTimeRef = useRef(0);
+  // Ref persistente com todo o estado e props para acesso O(1) no event listener sem recriar
+  const stateRef = useRef({});
+  stateRef.current = {
+    isPlayerOpen,
+    isModalOpen,
+    activeZone,
+    activeTab,
+    hasHero,
+    rowCount,
+    getColCount,
+    headerCount,
+    localFilterCount,
+    modalItemsCount,
+    headerIndex,
+    heroIndex,
+    rowIndex,
+    colIndex,
+    modalIndex,
+    localFilterIndex,
+    searchRowIndex,
+    searchColIndex,
+    resultsColIndex,
+    onBack,
+    onEnter,
+    onTabChange,
+    onPlayPause,
+    onSeek,
+    onVolume
+  };
 
-  // Registro permanente de teclas de mídia no sistema Tizen da Samsung
+  const lastKeyRef = useRef({ code: 0, time: 0 });
+
+  // 1. Registro permanente de teclas de mídia no sistema Tizen da Samsung
   useEffect(() => {
     if (typeof window !== 'undefined' && window.tizen && window.tizen.tvinputdevice) {
       const tvKeys = [
@@ -64,277 +95,413 @@ export function useSpatialNav({
     }
   }, []);
 
-  // Quando muda a aba, reseta o foco para a área adequada
+  // 2. Transições automáticas de zona para Modal e Player
   useEffect(() => {
-    if (activeTab === 'search') {
-      setActiveZone('search-keyboard');
-      setSearchRowIndex(0);
-      setSearchColIndex(0);
-    } else if (activeTab === 'home' && hasHero) {
-      setActiveZone('hero');
-      setHeroIndex(0);
-      setRowIndex(0);
-      setColIndex(0);
+    if (isPlayerOpen) {
+      setActiveZone('player');
+    } else if (isModalOpen) {
+      setActiveZone('modal');
+      setModalIndex(0);
+      stateRef.current.modalIndex = 0;
     } else {
-      setActiveZone('rows');
+      setActiveZone(prev => (prev === 'modal' || prev === 'player') ? 'rows' : prev);
+    }
+  }, [isPlayerOpen, isModalOpen]);
+
+  // 3. Sincronização de zona ao trocar de aba (mantém no header se estiver navegando o header)
+  useEffect(() => {
+    if (isModalOpen || isPlayerOpen) return;
+
+    setActiveZone(currentZone => {
+      if (currentZone === 'header') return 'header';
+
+      if (activeTab === 'search') {
+        setSearchRowIndex(0);
+        setSearchColIndex(0);
+        return 'search-keyboard';
+      }
+      if (activeTab === 'home' && hasHero) {
+        setHeroIndex(0);
+        setRowIndex(0);
+        setColIndex(0);
+        return 'hero';
+      }
+      if (activeTab === 'local') {
+        setRowIndex(0);
+        setColIndex(0);
+        return 'rows';
+      }
       setRowIndex(0);
       setColIndex(0);
-    }
-  }, [activeTab, hasHero]);
+      return 'rows';
+    });
+  }, [activeTab, hasHero, isModalOpen, isPlayerOpen]);
 
+  // 4. Manipulador global persistente de teclas (SINGLE LISTENER - ZERO GC CHURN)
   const handleKeyDown = useCallback((e) => {
+    const s = stateRef.current;
     const code = e.keyCode || e.which || 0;
     const key = e.key || '';
 
-    // Throttle de 40ms para fluidez estrita sem perda de frames
+    // Debounce inteligente de 30ms apenas para repetição contínua da mesma tecla
     const now = Date.now();
-    if (now - lastKeyTimeRef.current < 40) {
+    if (lastKeyRef.current.code === code && now - lastKeyRef.current.time < 30) {
       e.preventDefault();
       return;
     }
-    lastKeyTimeRef.current = now;
+    lastKeyRef.current = { code, time: now };
 
     const isBack = code === KEYS.BACK_TIZEN || code === KEYS.BACK_ESC || code === KEYS.BACKSPACE || key === 'Back' || key === 'Escape';
     const isEnter = code === KEYS.ENTER || key === 'Enter';
     const isPlayPause = code === KEYS.MEDIA_PLAY_PAUSE || code === KEYS.MEDIA_PLAY || code === KEYS.MEDIA_PAUSE || code === KEYS.MEDIA_STOP || key === 'MediaPlayPause' || key === ' ';
+    const isLeft = code === KEYS.LEFT || key === 'ArrowLeft';
+    const isRight = code === KEYS.RIGHT || key === 'ArrowRight';
+    const isUp = code === KEYS.UP || key === 'ArrowUp';
+    const isDown = code === KEYS.DOWN || key === 'ArrowDown';
 
-    // 1. Prioridade Máxima: Botão Voltar (Tizen / Esc)
+    // A. Prioridade Máxima: Botão Voltar (Tizen / Esc)
     if (isBack) {
       e.preventDefault();
       e.stopPropagation();
-      if (onBack) onBack();
+      if (s.onBack) s.onBack();
       return;
     }
 
-    // 2. Player em tela cheia: todo controle vai exclusivamente para a reprodução
-    if (isPlayerOpen) {
+    // B. Player Fullscreen aberto
+    if (s.isPlayerOpen) {
       if (isEnter || isPlayPause) {
         e.preventDefault();
-        if (onPlayPause) onPlayPause();
+        s.onPlayPause?.();
         return;
       }
-      if (code === KEYS.LEFT || code === KEYS.MEDIA_RW || key === 'ArrowLeft') {
+      if (isLeft || code === KEYS.MEDIA_RW) {
         e.preventDefault();
-        if (onSeek) onSeek(-10);
+        s.onSeek?.(-10);
         return;
       }
-      if (code === KEYS.RIGHT || code === KEYS.MEDIA_FF || key === 'ArrowRight') {
+      if (isRight || code === KEYS.MEDIA_FF) {
         e.preventDefault();
-        if (onSeek) onSeek(10);
+        s.onSeek?.(10);
         return;
       }
-      if (code === KEYS.UP || key === 'ArrowUp') {
+      if (isUp) {
         e.preventDefault();
-        if (onVolume) onVolume(0.1);
+        s.onVolume?.(0.1);
         return;
       }
-      if (code === KEYS.DOWN || key === 'ArrowDown') {
+      if (isDown) {
         e.preventDefault();
-        if (onVolume) onVolume(-0.1);
+        s.onVolume?.(-0.1);
         return;
       }
       return;
     }
 
-    // 3. Modal aberto
-    if (isModalOpen) {
+    // C. Modal de Detalhes aberto (Ações: Assistir, Baixar, Favoritos, Streams)
+    if (s.isModalOpen) {
       if (isEnter) {
         e.preventDefault();
-        if (onEnter) onEnter({ zone: 'modal', index: modalIndex });
+        s.onEnter?.({ zone: 'modal', index: s.modalIndex, isPlayKey: false });
         return;
       }
-      if (code === KEYS.LEFT || key === 'ArrowLeft') {
+      if (isPlayPause) {
         e.preventDefault();
-        setModalIndex(prev => Math.max(0, prev - 1));
+        s.onEnter?.({ zone: 'modal', index: 0, isPlayKey: true });
         return;
       }
-      if (code === KEYS.RIGHT || key === 'ArrowRight') {
+      if (isLeft) {
         e.preventDefault();
-        setModalIndex(prev => Math.min(modalItemsCount - 1, prev + 1));
+        setModalIndex(prev => {
+          const next = Math.max(0, prev - 1);
+          stateRef.current.modalIndex = next;
+          return next;
+        });
         return;
       }
-      if (code === KEYS.UP || key === 'ArrowUp') {
+      if (isRight) {
         e.preventDefault();
-        setModalIndex(prev => Math.max(0, prev - 1));
+        setModalIndex(prev => {
+          const next = Math.min(s.modalItemsCount - 1, prev + 1);
+          stateRef.current.modalIndex = next;
+          return next;
+        });
         return;
       }
-      if (code === KEYS.DOWN || key === 'ArrowDown') {
+      if (isUp) {
         e.preventDefault();
-        setModalIndex(prev => Math.min(modalItemsCount - 1, prev + 1));
+        setModalIndex(prev => {
+          const next = Math.max(0, prev - 1);
+          stateRef.current.modalIndex = next;
+          return next;
+        });
+        return;
+      }
+      if (isDown) {
+        e.preventDefault();
+        setModalIndex(prev => {
+          const next = Math.min(s.modalItemsCount - 1, prev + 1);
+          stateRef.current.modalIndex = next;
+          return next;
+        });
         return;
       }
       return;
     }
 
-    // 4. Tecla Play/Pause dedicada fora do player
+    // D. Tecla Play/Pause dedicada fora do player
     if (isPlayPause) {
       e.preventDefault();
-      if (onEnter) {
-        onEnter({
-          zone: activeZone,
-          headerIndex,
-          heroIndex,
-          rowIndex,
-          colIndex,
-          searchRowIndex,
-          searchColIndex,
-          resultsColIndex,
-          isPlayKey: true
-        });
-      }
+      s.onEnter?.({
+        zone: s.activeZone,
+        headerIndex: s.headerIndex,
+        heroIndex: s.heroIndex,
+        rowIndex: s.rowIndex,
+        colIndex: s.colIndex,
+        filterIndex: s.localFilterIndex,
+        searchRowIndex: s.searchRowIndex,
+        searchColIndex: s.searchColIndex,
+        resultsColIndex: s.resultsColIndex,
+        isPlayKey: true
+      });
       return;
     }
 
-    // 5. Botão Enter (OK central do controle Samsung)
+    // E. Botão Enter (OK central)
     if (isEnter) {
       e.preventDefault();
-      if (onEnter) {
-        onEnter({
-          zone: activeZone,
-          headerIndex,
-          heroIndex,
-          rowIndex,
-          colIndex,
-          filterIndex: localFilterIndex,
-          searchRowIndex,
-          searchColIndex,
-          resultsColIndex,
-          isPlayKey: false
-        });
-      }
+      s.onEnter?.({
+        zone: s.activeZone,
+        headerIndex: s.headerIndex,
+        heroIndex: s.heroIndex,
+        rowIndex: s.rowIndex,
+        colIndex: s.colIndex,
+        filterIndex: s.localFilterIndex,
+        searchRowIndex: s.searchRowIndex,
+        searchColIndex: s.searchColIndex,
+        resultsColIndex: s.resultsColIndex,
+        isPlayKey: false
+      });
       return;
     }
 
-    // 6. Navegação D-Pad - SETA PARA CIMA
-    if (code === KEYS.UP || key === 'ArrowUp') {
+    // F. D-Pad SETA PARA CIMA
+    if (isUp) {
       e.preventDefault();
-      if (activeZone === 'rows') {
-        if (rowIndex > 0) {
+      if (s.activeZone === 'rows') {
+        if (s.rowIndex > 0) {
           setRowIndex(r => {
             const nextR = r - 1;
-            if (getColCount) {
-              const maxC = getColCount(nextR);
-              setColIndex(c => Math.min(Math.max(0, maxC - 1), c));
+            stateRef.current.rowIndex = nextR;
+            if (s.getColCount) {
+              const maxC = s.getColCount(nextR);
+              setColIndex(c => {
+                const nextC = Math.min(Math.max(0, maxC - 1), c);
+                stateRef.current.colIndex = nextC;
+                return nextC;
+              });
             }
             return nextR;
           });
-        } else if (activeTab === 'local') {
+        } else if (s.activeTab === 'local') {
           setActiveZone('local-filters');
-        } else if (activeTab === 'home' && hasHero) {
+          stateRef.current.activeZone = 'local-filters';
+        } else if (s.activeTab === 'home' && s.hasHero) {
           setActiveZone('hero');
+          stateRef.current.activeZone = 'hero';
         } else {
           setActiveZone('header');
+          stateRef.current.activeZone = 'header';
         }
-      } else if (activeZone === 'local-filters') {
+      } else if (s.activeZone === 'local-filters') {
         setActiveZone('header');
-      } else if (activeZone === 'hero') {
+        stateRef.current.activeZone = 'header';
+      } else if (s.activeZone === 'hero') {
         setActiveZone('header');
-      } else if (activeZone === 'search-keyboard') {
-        if (searchRowIndex > 0) {
-          setSearchRowIndex(r => r - 1);
+        stateRef.current.activeZone = 'header';
+      } else if (s.activeZone === 'search-keyboard') {
+        if (s.searchRowIndex > 0) {
+          setSearchRowIndex(r => {
+            const next = r - 1;
+            stateRef.current.searchRowIndex = next;
+            return next;
+          });
         } else {
           setActiveZone('header');
+          stateRef.current.activeZone = 'header';
         }
-      } else if (activeZone === 'search-results') {
-        setActiveZone('header');
+      } else if (s.activeZone === 'search-results') {
+        setActiveZone('search-keyboard');
+        stateRef.current.activeZone = 'search-keyboard';
       }
       return;
     }
 
-    // 7. Navegação D-Pad - SETA PARA BAIXO
-    if (code === KEYS.DOWN || key === 'ArrowDown') {
+    // G. D-Pad SETA PARA BAIXO
+    if (isDown) {
       e.preventDefault();
-      if (activeZone === 'header') {
-        if (activeTab === 'home' && hasHero) {
+      if (s.activeZone === 'header') {
+        if (s.activeTab === 'home' && s.hasHero) {
           setActiveZone('hero');
-        } else if (activeTab === 'search') {
+          stateRef.current.activeZone = 'hero';
+        } else if (s.activeTab === 'search') {
           setActiveZone('search-keyboard');
-        } else if (activeTab === 'local') {
+          stateRef.current.activeZone = 'search-keyboard';
+        } else if (s.activeTab === 'local') {
           setActiveZone('local-filters');
+          stateRef.current.activeZone = 'local-filters';
         } else {
           setActiveZone('rows');
+          stateRef.current.activeZone = 'rows';
           setRowIndex(0);
+          setColIndex(0);
+          stateRef.current.rowIndex = 0;
+          stateRef.current.colIndex = 0;
         }
-      } else if (activeZone === 'local-filters') {
+      } else if (s.activeZone === 'local-filters') {
         setActiveZone('rows');
+        stateRef.current.activeZone = 'rows';
         setRowIndex(0);
         setColIndex(0);
-      } else if (activeZone === 'hero') {
+        stateRef.current.rowIndex = 0;
+        stateRef.current.colIndex = 0;
+      } else if (s.activeZone === 'hero') {
         setActiveZone('rows');
+        stateRef.current.activeZone = 'rows';
         setRowIndex(0);
-      } else if (activeZone === 'rows') {
+        setColIndex(0);
+        stateRef.current.rowIndex = 0;
+        stateRef.current.colIndex = 0;
+      } else if (s.activeZone === 'rows') {
         setRowIndex(r => {
-          const nextR = Math.min(Math.max(0, rowCount - 1), r + 1);
-          if (getColCount) {
-            const maxC = getColCount(nextR);
-            setColIndex(c => Math.min(Math.max(0, maxC - 1), c));
+          const nextR = Math.min(Math.max(0, s.rowCount - 1), r + 1);
+          stateRef.current.rowIndex = nextR;
+          if (s.getColCount) {
+            const maxC = s.getColCount(nextR);
+            setColIndex(c => {
+              const nextC = Math.min(Math.max(0, maxC - 1), c);
+              stateRef.current.colIndex = nextC;
+              return nextC;
+            });
           }
           return nextR;
         });
-      } else if (activeZone === 'search-keyboard') {
-        if (searchRowIndex < 3) {
-          setSearchRowIndex(r => r + 1);
+      } else if (s.activeZone === 'search-keyboard') {
+        if (s.searchRowIndex < 3) {
+          setSearchRowIndex(r => {
+            const next = r + 1;
+            stateRef.current.searchRowIndex = next;
+            return next;
+          });
         } else {
           setActiveZone('search-results');
+          stateRef.current.activeZone = 'search-results';
         }
       }
       return;
     }
 
-    // 8. Navegação D-Pad - SETA PARA ESQUERDA
-    if (code === KEYS.LEFT || key === 'ArrowLeft') {
+    // H. D-Pad SETA PARA ESQUERDA
+    if (isLeft) {
       e.preventDefault();
-      if (activeZone === 'header') {
-        setHeaderIndex(i => Math.max(0, i - 1));
-      } else if (activeZone === 'local-filters') {
-        setLocalFilterIndex(i => Math.max(0, i - 1));
-      } else if (activeZone === 'hero') {
-        setHeroIndex(i => Math.max(0, i - 1));
-      } else if (activeZone === 'rows') {
-        setColIndex(c => Math.max(0, c - 1));
-      } else if (activeZone === 'search-keyboard') {
-        setSearchColIndex(c => Math.max(0, c - 1));
-      } else if (activeZone === 'search-results') {
-        if (resultsColIndex > 0) {
-          setResultsColIndex(c => c - 1);
+      if (s.activeZone === 'header') {
+        setHeaderIndex(i => {
+          const next = Math.max(0, i - 1);
+          stateRef.current.headerIndex = next;
+          s.onTabChange?.(next);
+          return next;
+        });
+      } else if (s.activeZone === 'local-filters') {
+        setLocalFilterIndex(i => {
+          const next = Math.max(0, i - 1);
+          stateRef.current.localFilterIndex = next;
+          return next;
+        });
+      } else if (s.activeZone === 'hero') {
+        setHeroIndex(i => {
+          const next = Math.max(0, i - 1);
+          stateRef.current.heroIndex = next;
+          return next;
+        });
+      } else if (s.activeZone === 'rows') {
+        setColIndex(c => {
+          const next = Math.max(0, c - 1);
+          stateRef.current.colIndex = next;
+          return next;
+        });
+      } else if (s.activeZone === 'search-keyboard') {
+        setSearchColIndex(c => {
+          const next = Math.max(0, c - 1);
+          stateRef.current.searchColIndex = next;
+          return next;
+        });
+      } else if (s.activeZone === 'search-results') {
+        if (s.resultsColIndex > 0) {
+          setResultsColIndex(c => {
+            const next = c - 1;
+            stateRef.current.resultsColIndex = next;
+            return next;
+          });
         } else {
           setActiveZone('search-keyboard');
+          stateRef.current.activeZone = 'search-keyboard';
         }
       }
       return;
     }
 
-    // 9. Navegação D-Pad - SETA PARA DIREITA
-    if (code === KEYS.RIGHT || key === 'ArrowRight') {
+    // I. D-Pad SETA PARA DIREITA
+    if (isRight) {
       e.preventDefault();
-      if (activeZone === 'header') {
-        setHeaderIndex(i => Math.min(headerCount - 1, i + 1));
-      } else if (activeZone === 'local-filters') {
-        setLocalFilterIndex(i => Math.min(Math.max(0, localFilterCount - 1), i + 1));
-      } else if (activeZone === 'hero') {
-        setHeroIndex(i => Math.min(1, i + 1));
-      } else if (activeZone === 'rows') {
-        const curColCount = getColCount ? getColCount(rowIndex) : 30;
-        setColIndex(c => Math.min(Math.max(0, curColCount - 1), c + 1));
-      } else if (activeZone === 'search-keyboard') {
-        const maxCol = searchRowIndex === 3 ? 8 : 9;
-        if (searchColIndex < maxCol) {
-          setSearchColIndex(c => c + 1);
+      if (s.activeZone === 'header') {
+        setHeaderIndex(i => {
+          const next = Math.min(s.headerCount - 1, i + 1);
+          stateRef.current.headerIndex = next;
+          s.onTabChange?.(next);
+          return next;
+        });
+      } else if (s.activeZone === 'local-filters') {
+        setLocalFilterIndex(i => {
+          const next = Math.min(Math.max(0, s.localFilterCount - 1), i + 1);
+          stateRef.current.localFilterIndex = next;
+          return next;
+        });
+      } else if (s.activeZone === 'hero') {
+        setHeroIndex(i => {
+          const next = Math.min(1, i + 1);
+          stateRef.current.heroIndex = next;
+          return next;
+        });
+      } else if (s.activeZone === 'rows') {
+        const curColCount = s.getColCount ? s.getColCount(s.rowIndex) : 30;
+        setColIndex(c => {
+          const next = Math.min(Math.max(0, curColCount - 1), c + 1);
+          stateRef.current.colIndex = next;
+          return next;
+        });
+      } else if (s.activeZone === 'search-keyboard') {
+        const maxCol = s.searchRowIndex === 3 ? 8 : 9;
+        if (s.searchColIndex < maxCol) {
+          setSearchColIndex(c => {
+            const next = c + 1;
+            stateRef.current.searchColIndex = next;
+            return next;
+          });
         } else {
           setActiveZone('search-results');
+          stateRef.current.activeZone = 'search-results';
         }
-      } else if (activeZone === 'search-results') {
-        setResultsColIndex(c => c + 1);
+      } else if (s.activeZone === 'search-results') {
+        setResultsColIndex(c => {
+          const next = c + 1;
+          stateRef.current.resultsColIndex = next;
+          return next;
+        });
       }
       return;
     }
-  }, [
-    isPlayerOpen, isModalOpen, activeZone, activeTab, hasHero, rowCount, getColCount, headerCount, localFilterCount,
-    modalItemsCount, headerIndex, heroIndex, rowIndex, colIndex, modalIndex, localFilterIndex,
-    searchRowIndex, searchColIndex, resultsColIndex,
-    onBack, onEnter, onPlayPause, onSeek, onVolume
-  ]);
+  }, []); // Montado uma única vez - listener permanente sem recriação
 
+  // 5. Adiciona o listener uma única vez na inicialização
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);

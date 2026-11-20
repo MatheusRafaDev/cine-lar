@@ -110,24 +110,42 @@ body.tv-body {
   font-family: inherit;
   font-size: 16px;
   font-weight: 600;
-  padding: 10px 20px;
+  padding: 10px 22px;
   border-radius: var(--radius-md);
   cursor: pointer;
   outline: none;
-  transition: color 0.15s ease, transform 0.15s ease;
+  transition: all 0.15s ease;
+  position: relative;
 }
 
 .tv-nav-btn.active {
-  color: var(--text-main);
-  background: rgba(250, 249, 245, 0.1);
+  color: #FFFFFF !important;
+  font-weight: 700;
+}
+
+.tv-nav-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 20%;
+  right: 20%;
+  height: 3.5px;
+  background: var(--primary);
+  border-radius: 999px;
+  box-shadow: 0 0 10px rgba(229, 9, 20, 0.8);
 }
 
 .tv-nav-btn.focused {
-  background: var(--text-main) !important;
-  color: #000 !important;
-  font-weight: 700;
-  transform: scale(1.06);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  transform: scale(1.08) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85) !important;
+  z-index: 5;
+}
+
+.tv-nav-btn.focused::after {
+  display: none;
 }
 
 /* 2. Hero Banner (Filme em Destaque) */
