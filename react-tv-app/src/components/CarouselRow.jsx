@@ -38,7 +38,7 @@ function CarouselRowComponent({
               key={movie.id || movie.imdbId || `${title}-${idx}`}
               movie={movie}
               isFocused={isCardFocused}
-              onClick={() => onSelectMovie(movie)}
+              onSelect={onSelectMovie}
               onContextMenu={onContextMenuMovie}
             />
           );

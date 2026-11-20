@@ -302,6 +302,8 @@ body.tv-body {
   flex-direction: column;
   gap: 12px;
   padding: 0 48px;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 340px;
 }
 
 .tv-row-title-box {
@@ -347,6 +349,8 @@ body.tv-body {
   cursor: pointer;
   outline: none;
   contain: layout style;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   transition: transform 0.15s cubic-bezier(0.2, 0, 0.2, 1);
   will-change: transform;
 }
@@ -437,7 +441,7 @@ body.tv-body {
 
 /* Estado focado do Card */
 .tv-card.focused {
-  transform: scale(1.08) !important;
+  transform: scale(1.08) translateZ(0) !important;
   z-index: 10;
 }
 
@@ -1639,6 +1643,8 @@ body.tv-body {
   flex-direction: column !important;
   gap: 8px !important;
   box-sizing: border-box !important;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .tv-fullpage-grid .tv-card-poster-wrap,
@@ -1810,6 +1816,8 @@ body.tv-body {
 .tv-franchise-section {
   margin-bottom: 40px;
   width: 100%;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 380px;
 }
 
 .tv-franchise-section.tv-franchise-continuation {

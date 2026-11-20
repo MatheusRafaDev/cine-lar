@@ -45,7 +45,7 @@ export function FavoritesView({
                   key={movie.id || `${rIdx}-${cIdx}`}
                   movie={movie}
                   isFocused={isItemFocused}
-                  onClick={() => onSelectMovie(movie)}
+                  onSelect={onSelectMovie}
                   onContextMenu={onContextMenuMovie}
                 />
               );

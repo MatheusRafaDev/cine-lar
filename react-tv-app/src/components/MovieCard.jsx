@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
 import { getSavedProgress } from '../services/api';
 
-function MovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
+function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu }) {
   const cardRef = useRef(null);
   const pointerTimerRef = useRef(null);
   const [imgFailed, setImgFailed] = useState(false);
@@ -22,6 +22,14 @@ function MovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
   }, [movie?.poster, movie?.thumbnail, movie?.id]);
 
   if (!movie) return null;
+
+  const handleClick = (e) => {
+    if (onSelect) {
+      onSelect(movie);
+    } else if (onClick) {
+      onClick(e);
+    }
+  };
 
   const poster = movie.poster || movie.thumbnail || '';
   const title = movie.title || movie.name || 'Sem título';
@@ -55,7 +63,7 @@ function MovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
     <div
       ref={cardRef}
       className={`tv-card ${isFocused ? 'focused' : ''}`}
-      onClick={onClick}
+      onClick={handleClick}
       onContextMenu={(e) => {
         if (onContextMenu) {
           e.preventDefault();
@@ -125,4 +133,16 @@ function MovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
   );
 }
 
-export const MovieCard = memo(MovieCardComponent);
+export const MovieCard = memo(MovieCardComponent, (prevProps, nextProps) => {
+  if (prevProps.isFocused !== nextProps.isFocused) return false;
+  if (prevProps.movie !== nextProps.movie) {
+    if (prevProps.movie?.id !== nextProps.movie?.id) return false;
+    if (prevProps.movie?.progress !== nextProps.movie?.progress) return false;
+    if (prevProps.movie?.poster !== nextProps.movie?.poster) return false;
+    if (prevProps.movie?.title !== nextProps.movie?.title) return false;
+  }
+  if (prevProps.onSelect !== nextProps.onSelect) return false;
+  if (prevProps.onClick !== nextProps.onClick) return false;
+  if (prevProps.onContextMenu !== nextProps.onContextMenu) return false;
+  return true;
+});

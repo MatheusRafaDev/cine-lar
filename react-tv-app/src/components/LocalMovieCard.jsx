@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
 import { getSavedProgress } from '../services/api';
 
-function LocalMovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
+function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu }) {
   const cardRef = useRef(null);
   const pointerTimerRef = useRef(null);
   const [imgFailed, setImgFailed] = useState(false);
@@ -22,6 +22,14 @@ function LocalMovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
   }, [movie?.poster, movie?.thumbnail, movie?.id]);
 
   if (!movie) return null;
+
+  const handleClick = (e) => {
+    if (onSelect) {
+      onSelect(movie);
+    } else if (onClick) {
+      onClick(e);
+    }
+  };
 
   const poster = movie.poster || movie.thumbnail || '';
   const title = movie.title || movie.name || movie.cleanName || 'Sem título';
@@ -54,7 +62,7 @@ function LocalMovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
     <div
       ref={cardRef}
       className={`tv-card tv-local-card ${isFocused ? 'focused' : ''}`}
-      onClick={onClick}
+      onClick={handleClick}
       onContextMenu={(e) => {
         if (onContextMenu) {
           e.preventDefault();
@@ -136,4 +144,16 @@ function LocalMovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
   );
 }
 
-export const LocalMovieCard = memo(LocalMovieCardComponent);
+export const LocalMovieCard = memo(LocalMovieCardComponent, (prevProps, nextProps) => {
+  if (prevProps.isFocused !== nextProps.isFocused) return false;
+  if (prevProps.movie !== nextProps.movie) {
+    if (prevProps.movie?.id !== nextProps.movie?.id) return false;
+    if (prevProps.movie?.progress !== nextProps.movie?.progress) return false;
+    if (prevProps.movie?.poster !== nextProps.movie?.poster) return false;
+    if (prevProps.movie?.sizeFormatted !== nextProps.movie?.sizeFormatted) return false;
+  }
+  if (prevProps.onSelect !== nextProps.onSelect) return false;
+  if (prevProps.onClick !== nextProps.onClick) return false;
+  if (prevProps.onContextMenu !== nextProps.onContextMenu) return false;
+  return true;
+});

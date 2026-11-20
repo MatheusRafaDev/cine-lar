@@ -388,13 +388,51 @@ function formatTime(ms) {
     return `${seconds}s`;
 }
 
-// HTTP request helper
-function fetchJson(url) {
+// Cache em memória de alta performance para chamadas externas (Cinemeta, Torrentio, Metadados)
+const apiCache = new Map(); // url -> { data, expiresAt }
+
+function getCachedJson(url) {
+    const item = apiCache.get(url);
+    if (!item) return null;
+    if (Date.now() > item.expiresAt) {
+        apiCache.delete(url);
+        return null;
+    }
+    return item.data;
+}
+
+function setCachedJson(url, data, ttlMs = 30 * 60 * 1000) {
+    if (apiCache.size > 800) {
+        // Evicção dos 200 itens mais antigos
+        const keys = Array.from(apiCache.keys()).slice(0, 200);
+        keys.forEach(k => apiCache.delete(k));
+    }
+    apiCache.set(url, { data, expiresAt: Date.now() + ttlMs });
+}
+
+// HTTP request helper com cache transparente
+function fetchJson(url, customTtl = 0) {
+    let ttl = customTtl;
+    if (ttl === 0) {
+        if (url.includes('strem.io') || url.includes('cinemeta') || url.includes('metahub')) {
+            ttl = 60 * 60 * 1000; // 1 hora de cache para catalogos e metadados
+        } else if (url.includes('torrentio')) {
+            ttl = 10 * 60 * 1000; // 10 minutos de cache para streams torrentio
+        }
+    }
+
+    if (ttl > 0) {
+        const cached = getCachedJson(url);
+        if (cached) {
+            return Promise.resolve(cached);
+        }
+    }
+
     return new Promise((resolve, reject) => {
         const clientLib = url.startsWith('https') ? https : http;
         const req = clientLib.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 MatheusFlix/2.0' } }, (res) => {
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-                return fetchJson(res.headers.location).then(resolve).catch(reject);
+                return fetchJson(res.headers.location, ttl).then(resolve).catch(reject);
             }
             if (res.statusCode !== 200) {
                 return reject(new Error(`HTTP ${res.statusCode} for ${url}`));
@@ -403,7 +441,11 @@ function fetchJson(url) {
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
                 try {
-                    resolve(JSON.parse(data));
+                    const parsed = JSON.parse(data);
+                    if (ttl > 0) {
+                        setCachedJson(url, parsed, ttl);
+                    }
+                    resolve(parsed);
                 } catch (e) {
                     reject(e);
                 }

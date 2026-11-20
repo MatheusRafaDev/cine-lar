@@ -53,6 +53,18 @@
       {
         "path": "Debug/projects/tizen-package/assets/index-legacy-CvQps1Lt.js",
         "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-BHwtl5FJ.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-legacy-BnOnxjlw.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-UeusLWrg.css",
+        "type": "add"
       }
     ]
   }

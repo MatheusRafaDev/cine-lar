@@ -71,12 +71,16 @@ export function App() {
   const searchInputRef = useRef({ handleKeyPress: null });
   const modalActionRef = useRef({});
 
-  // 1. Carrega dados iniciais do backend
+  // 1. Carrega dados de usuário (sem disparar requisições pesadas de catálogo)
   const refreshUserData = useCallback(() => {
     setWatchHistory(getWatchHistory());
     setFavorites(getFavorites());
   }, []);
 
+  const [loadedAllMovies, setLoadedAllMovies] = useState(false);
+  const [loadedAllSeries, setLoadedAllSeries] = useState(false);
+
+  // Inicialização leve e ultrarrápida da Home (executa apenas uma vez no mount)
   useEffect(() => {
     refreshUserData();
     syncFavoritesWithServer().then(favs => {
@@ -101,11 +105,11 @@ export function App() {
       if (data.stats) setDownloadsStats(data.stats);
     });
 
-    // Gêneros de filmes e séries carregados em paralelo para inicialização ultrarrápida
+    // Carrega apenas 4 gêneros essenciais de filmes e 1 de séries para a Home ser ultrarrápida
     getGenres().then(async genres => {
-      const topGenres = genres.filter(g => g.id !== 'all').slice(0, 8);
+      const topMovieGenres = genres.filter(g => g.id !== 'all').slice(0, 4);
 
-      const mPromises = topGenres.map(async g => {
+      const mPromises = topMovieGenres.map(async g => {
         try {
           const list = await getMovies({ genre: g.id, limit: 15 });
           return list.length > 0 ? { id: g.id, title: g.name, movies: list } : null;
@@ -114,7 +118,51 @@ export function App() {
         }
       });
 
-      const sPromises = topGenres.map(async g => {
+      const sPromise = getSeries({ limit: 15 }).then(list => {
+        return list && list.length > 0 ? [{ id: 'series-popular', title: 'Séries em Destaque', movies: list }] : [];
+      }).catch(() => []);
+
+      const [mSections, sSections] = await Promise.all([
+        Promise.all(mPromises),
+        sPromise
+      ]);
+
+      setGenreSections(mSections.filter(Boolean));
+      if (sSections && sSections.length > 0) {
+        setSeriesGenreSections(sSections);
+      }
+    });
+  }, []);
+
+  // Lazy loading sob demanda para a aba Filmes
+  useEffect(() => {
+    if (activeTab !== 'movies' || loadedAllMovies) return;
+
+    getGenres().then(async genres => {
+      const allGenres = genres.filter(g => g.id !== 'all').slice(0, 10);
+      const mPromises = allGenres.map(async g => {
+        try {
+          const list = await getMovies({ genre: g.id, limit: 15 });
+          return list.length > 0 ? { id: g.id, title: g.name, movies: list } : null;
+        } catch (_) {
+          return null;
+        }
+      });
+      const mSections = (await Promise.all(mPromises)).filter(Boolean);
+      if (mSections.length > 0) {
+        setGenreSections(mSections);
+      }
+      setLoadedAllMovies(true);
+    });
+  }, [activeTab, loadedAllMovies]);
+
+  // Lazy loading sob demanda para a aba Séries
+  useEffect(() => {
+    if (activeTab !== 'series' || loadedAllSeries) return;
+
+    getGenres().then(async genres => {
+      const allGenres = genres.filter(g => g.id !== 'all').slice(0, 8);
+      const sPromises = allGenres.map(async g => {
         try {
           const sList = await getSeries({ genre: g.id, limit: 15 });
           return sList.length > 0 ? { id: `series-${g.id}`, title: `Séries de ${g.name}`, movies: sList } : null;
@@ -122,16 +170,13 @@ export function App() {
           return null;
         }
       });
-
-      const [mSections, sSections] = await Promise.all([
-        Promise.all(mPromises),
-        Promise.all(sPromises)
-      ]);
-
-      setGenreSections(mSections.filter(Boolean));
-      setSeriesGenreSections(sSections.filter(Boolean));
+      const sSections = (await Promise.all(sPromises)).filter(Boolean);
+      if (sSections.length > 0) {
+        setSeriesGenreSections(sSections);
+      }
+      setLoadedAllSeries(true);
     });
-  }, [refreshUserData]);
+  }, [activeTab, loadedAllSeries]);
 
   // Função centralizada para atualizar lista e métricas de downloads
   const refreshDownloadsInfo = useCallback(async () => {

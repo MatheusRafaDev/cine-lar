@@ -104,7 +104,7 @@ export function LocalFolderView({
                       key={movie.id || `${rIdx}-${cIdx}`}
                       movie={movie}
                       isFocused={isCurrentRowFocused && colIndex === cIdx}
-                      onClick={() => onSelectMovie(movie)}
+                      onSelect={onSelectMovie}
                       onContextMenu={onContextMenuMovie}
                     />
                   ))}
@@ -134,7 +134,7 @@ export function LocalFolderView({
                     key={movie.id || `${rIdx}-${cIdx}`}
                     movie={movie}
                     isFocused={isItemFocused}
-                    onClick={() => onSelectMovie(movie)}
+                    onSelect={onSelectMovie}
                     onContextMenu={onContextMenuMovie}
                   />
                 );
