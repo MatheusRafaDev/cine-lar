@@ -1286,11 +1286,11 @@ body.tv-body {
   border-color: #FFFFFF;
 }
 
-/* Full-Page Grid Layout (6 colunas na TV 1080p/4K) */
+/* Full-Page Grid Layout (8 colunas na TV 1080p/4K) */
 .tv-fullpage-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 16px;
   width: 100%;
   padding-bottom: 30px;
 }
@@ -1309,33 +1309,37 @@ body.tv-body {
 /* Badges e Overlays para Filmes Locais */
 .tv-card-badge-franchise {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 6px;
+  left: 6px;
+  max-width: 65%;
   background: rgba(217, 119, 87, 0.95);
-  color: #FFFFFF;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  z-index: 2;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  letter-spacing: 0.3px;
-}
-
-.tv-card-badge-quality {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #FFFFFF;
   font-size: 10px;
   font-weight: 800;
   padding: 2px 6px;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-card-badge-quality {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 3px;
   z-index: 2;
   text-transform: uppercase;
 }
@@ -1359,8 +1363,8 @@ body.tv-body {
 .tv-local-meta-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 5px;
+  font-size: 11px;
 }
 
 .tv-meta-separator {
@@ -1376,6 +1380,10 @@ body.tv-body {
 .tv-franchise-section {
   margin-bottom: 40px;
   width: 100%;
+}
+
+.tv-franchise-section.tv-franchise-continuation {
+  margin-top: -24px;
 }
 
 .tv-franchise-section-header {

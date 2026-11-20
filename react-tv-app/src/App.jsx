@@ -180,9 +180,9 @@ export function App() {
     ];
   }, []);
 
-  // Seções e linhas em grid full-page (6 colunas) para a visualização Local
+  // Seções e linhas em grid full-page (8 colunas) para a visualização Local
   const localGridRows = useMemo(() => {
-    const COL_COUNT = 6;
+    const COL_COUNT = 8;
     if (!localLibrary || !localLibrary.movies) return [];
 
     // 1. Modo Franquias (Coleções Agrupadas)
@@ -230,9 +230,9 @@ export function App() {
     return rows;
   }, [localLibrary, localFilterId]);
 
-  // Seções e linhas em grade full-page (6 colunas) para a visualização de Favoritos
+  // Seções e linhas em grade full-page (8 colunas) para a visualização de Favoritos
   const favoritesGridRows = useMemo(() => {
-    const COL_COUNT = 6;
+    const COL_COUNT = 8;
     if (!favorites || favorites.length === 0) return [];
     const rows = [];
     for (let i = 0; i < favorites.length; i += COL_COUNT) {

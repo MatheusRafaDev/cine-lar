@@ -87,7 +87,7 @@ export function LocalFolderView({
           {gridRows.map((row, rIdx) => {
             const isCurrentRowFocused = isRowsFocused && rowIndex === rIdx;
             return (
-              <div key={row.id || rIdx} className="tv-franchise-section">
+              <div key={row.id || rIdx} className={`tv-franchise-section ${!row.title ? 'tv-franchise-continuation' : ''}`}>
                 {row.title && (
                   <div className="tv-franchise-section-header">
                     <div className="tv-franchise-title-row">
