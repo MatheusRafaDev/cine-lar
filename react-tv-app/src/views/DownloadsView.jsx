@@ -43,7 +43,6 @@ export function DownloadsView({
                       <span className="tv-badge-pill" style={{ fontSize: '11px' }}>
                         {isDone ? 'Concluído' : item.downloadSpeed || 'Baixando...'}
                       </span>
-                      <span>Sementes: {item.peers || item.numPeers || 0}</span>
                       {item.totalSize && <span>Tamanho: {item.totalSize}</span>}
                     </div>
                   </div>

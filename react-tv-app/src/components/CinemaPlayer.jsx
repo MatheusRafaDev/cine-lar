@@ -425,22 +425,18 @@ export function CinemaPlayer({
         </div>
       )}
 
-      {/* Overlay de Buffer e Conexão ao Enxame */}
+      {/* Overlay de Buffer */}
       {isBuffering && !hasError && (
         <div className="tv-buffer-overlay">
           <div className="tv-spinner" />
           <h3 style={{ fontSize: '22px', fontWeight: 800, marginTop: '8px' }}>
-            {isLocal ? 'Carregando arquivo local...' : 'Conectando ao enxame de sementes...'}
+            {isLocal ? 'Carregando arquivo local...' : 'Preparando reprodução...'}
           </h3>
           {streamStats && (
             <div className="tv-buffer-stats-box">
               <div className="tv-buffer-stats-item">
                 <span className="material-icons" style={{ fontSize: '18px', color: 'var(--primary)' }}>speed</span>
                 <span>{streamStats.downloadSpeed || '0 KB/s'}</span>
-              </div>
-              <div className="tv-buffer-stats-item">
-                <span className="material-icons" style={{ fontSize: '18px', color: 'var(--accent)' }}>group</span>
-                <span>{streamStats.numPeers || 0} sementes</span>
               </div>
               <div className="tv-buffer-stats-item">
                 <span className="material-icons" style={{ fontSize: '18px', color: '#22c55e' }}>data_usage</span>
@@ -480,7 +476,7 @@ export function CinemaPlayer({
                   </span>
                 ) : (
                   <span className="tv-badge-pill" style={{ fontSize: '11px', background: 'rgba(229, 9, 20, 0.25)', color: 'var(--primary)', borderColor: 'rgba(229, 9, 20, 0.5)' }}>
-                    Torrent Streaming
+                    Transmissão Online
                   </span>
                 )}
               </div>
@@ -489,8 +485,6 @@ export function CinemaPlayer({
 
           {streamStats && (
             <div className="tv-player-telemetry-badge">
-              <span style={{ color: 'var(--accent)' }}>{streamStats.numPeers || 0} sementes</span>
-              <span>•</span>
               <span style={{ color: '#22c55e' }}>{streamStats.downloadSpeed}</span>
               <span>•</span>
               <span>Buffer {streamStats.progress}%</span>

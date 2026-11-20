@@ -253,7 +253,7 @@ export function MovieDetailsModal({
   // Executa o download da versão específica selecionada
   const executeDownloadStream = useCallback(async (streamToDownload) => {
     if (!streamToDownload || !streamToDownload.magnet) {
-      showToast('Fonte torrent inválida para download.');
+      showToast('Opção inválida para download.');
       return;
     }
     setDownloading(true);
@@ -317,7 +317,7 @@ export function MovieDetailsModal({
 
     const avail = isSeries ? episodeStreams : streams;
     if (avail.length === 0) {
-      showToast(isSeries ? 'Buscando fontes do episódio para download...' : 'Buscando fontes torrent para download...');
+      showToast(isSeries ? 'Buscando opções do episódio para download...' : 'Buscando opções de qualidade para download...');
       return;
     }
 
@@ -743,7 +743,7 @@ export function MovieDetailsModal({
                   </h3>
 
                   {loadingStreams && (
-                    <div style={{ color: 'var(--text-muted)' }}>Buscando torrents disponíveis para o episódio...</div>
+                    <div style={{ color: 'var(--text-muted)' }}>Buscando opções disponíveis para o episódio...</div>
                   )}
 
                   {!loadingStreams && episodeStreams.length === 0 && (
@@ -767,7 +767,7 @@ export function MovieDetailsModal({
                           <div>
                             <div className="tv-stream-title">{stream.title || stream.name || title}</div>
                             <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '2px' }}>
-                              Sementes: {stream.seeders || stream.seeds || 0} • Tamanho: {stream.size || 'HD'} {stream.audio ? `• ${stream.audio}` : ''}
+                              Tamanho: {stream.size || 'HD'} {stream.audio ? `• ${stream.audio}` : ''}
                             </div>
                           </div>
                         </div>
@@ -780,15 +780,15 @@ export function MovieDetailsModal({
             </div>
           )}
 
-          {/* Seção de Filmes: Opções de Transmissão (Torrents) */}
+          {/* Seção de Filmes: Opções de Transmissão */}
           {!isSeries && !isLocal && (
             <div className="tv-streams-section">
               <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-                Opções de Transmissão (Torrents Disponíveis):
+                Opções de Transmissão e Qualidade:
               </h3>
 
               {loading && streams.length === 0 && (
-                <div style={{ color: 'var(--text-muted)' }}>Buscando melhores fontes e sementes...</div>
+                <div style={{ color: 'var(--text-muted)' }}>Buscando melhores opções de transmissão...</div>
               )}
 
               {streams.map((stream, idx) => {
@@ -808,7 +808,7 @@ export function MovieDetailsModal({
                       <div>
                         <div className="tv-stream-title">{stream.title || stream.name || title}</div>
                         <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '2px' }}>
-                          Sementes: {stream.seeders || stream.seeds || 0} • Tamanho: {stream.size || 'HD'} {stream.audio ? `• ${stream.audio}` : ''}
+                          Tamanho: {stream.size || 'HD'} {stream.audio ? `• ${stream.audio}` : ''}
                         </div>
                       </div>
                     </div>
@@ -837,7 +837,6 @@ export function MovieDetailsModal({
               {currentAvailableStreams.map((st, sIdx) => {
                 const isSelected = downloadPickerIndex === sIdx;
                 const is4K = String(st.quality || '').toLowerCase().includes('4k') || String(st.title || '').toLowerCase().includes('2160p');
-                const seeds = st.seeders || st.seeds || 0;
                 return (
                   <div
                     key={st.infoHash || sIdx}
@@ -851,7 +850,6 @@ export function MovieDetailsModal({
                         <div className="tv-version-meta-row">
                           <span className={`tv-version-badge-quality ${is4K ? 'q-4k' : ''}`}>{st.quality || '1080p'}</span>
                           {st.size && <span className="tv-version-badge-size">• {st.size}</span>}
-                          <span className="tv-version-badge-seeds">• {seeds} sementes</span>
                           {st.audio && <span style={{ color: 'var(--text-subtle)' }}>• {st.audio}</span>}
                         </div>
                       </div>
@@ -883,7 +881,7 @@ export function MovieDetailsModal({
               <h2 className="tv-stream-action-title">Opções para esta Versão</h2>
               <p className="tv-stream-action-subtitle">{streamActionTarget.title || streamActionTarget.name || title}</p>
               <div style={{ fontSize: '13px', color: 'var(--text-subtle)', marginTop: '2px' }}>
-                Tamanho: {streamActionTarget.size || 'HD'} • {streamActionTarget.seeders || streamActionTarget.seeds || 0} sementes {streamActionTarget.audio ? `• ${streamActionTarget.audio}` : ''}
+                Tamanho: {streamActionTarget.size || 'HD'} {streamActionTarget.audio ? `• ${streamActionTarget.audio}` : ''}
               </div>
             </div>
 
