@@ -428,6 +428,9 @@ export function App() {
         return;
       }
       if (selectedMovie) {
+        if (modalActionRef.current && modalActionRef.current.handleBack && modalActionRef.current.handleBack()) {
+          return;
+        }
         setSelectedMovie(null);
         refreshUserData();
         return;

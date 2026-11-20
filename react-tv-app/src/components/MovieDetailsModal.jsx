@@ -33,6 +33,12 @@ export function MovieDetailsModal({
   const [episodeStreams, setEpisodeStreams] = useState([]);
   const [loadingStreams, setLoadingStreams] = useState(false);
 
+  // Estados para escolha de versão de download e ação de stream
+  const [downloadPickerOpen, setDownloadPickerOpen] = useState(false);
+  const [downloadPickerIndex, setDownloadPickerIndex] = useState(0);
+  const [streamActionTarget, setStreamActionTarget] = useState(null);
+  const [streamActionIndex, setStreamActionIndex] = useState(0);
+
   const isSeries = Boolean(details?.isSeries || details?.type === 'series' || movie?.isSeries || movie?.type === 'series');
 
   const showToast = (msg) => {
@@ -237,8 +243,66 @@ export function MovieDetailsModal({
     }
   }, [isSeries, episodeStreams, selectedEpisode, selectedSeason, details, movie, title, poster, streams, resumePos, onPlayStream]);
 
-  // Ação 2: Download para o PC
-  const handleDownload = useCallback(async () => {
+  // Fontes disponíveis no momento (para série ou filme)
+  const currentAvailableStreams = useMemo(() => {
+    return isSeries ? episodeStreams : streams;
+  }, [isSeries, episodeStreams, streams]);
+
+  // Executa o download da versão específica selecionada
+  const executeDownloadStream = useCallback(async (streamToDownload) => {
+    if (!streamToDownload || !streamToDownload.magnet) {
+      showToast('Fonte torrent inválida para download.');
+      return;
+    }
+    setDownloading(true);
+    try {
+      if (isSeries) {
+        const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
+        const cleanTitle = `${title} - S${String(selectedSeason).padStart(2, '0')}E${String(epNum).padStart(2, '0')}`;
+        const res = await startDownload({
+          magnet: streamToDownload.magnet,
+          title: details.title || title,
+          filename: cleanTitle,
+          poster: selectedEpisode?.thumbnail || poster,
+          imdbId: details.imdbId || movie.imdbId,
+          isSeries: true,
+          seriesName: details.title || title,
+          season: selectedSeason,
+          episode: epNum,
+          quality: streamToDownload.quality || '1080p'
+        });
+        if (res && (res.id || res.message || res.success !== false)) {
+          setDownloadSuccess(true);
+          showToast(`Download de "${cleanTitle}" (${streamToDownload.quality || '1080p'}) iniciado em D:\\Filmes!`);
+        } else {
+          showToast('Erro ao iniciar download no PC.');
+        }
+      } else {
+        const res = await startDownload({
+          magnet: streamToDownload.magnet,
+          title,
+          poster,
+          imdbId: details.imdbId || movie.imdbId || details.id,
+          quality: streamToDownload.quality || '1080p'
+        });
+        if (res && (res.id || res.message || res.success !== false)) {
+          setDownloadSuccess(true);
+          showToast(`Download de "${title}" (${streamToDownload.quality || '1080p'}) iniciado em D:\\Filmes!`);
+        } else {
+          showToast('Erro ao iniciar download no PC.');
+        }
+      }
+    } catch (err) {
+      showToast(`Erro ao iniciar download: ${err.message}`);
+    } finally {
+      setDownloading(false);
+      setDownloadPickerOpen(false);
+      setStreamActionTarget(null);
+    }
+  }, [isSeries, selectedEpisode, selectedSeason, title, details, poster, movie]);
+
+  // Ação 2: Download para o PC (com escolha de versão)
+  const handleDownload = useCallback(() => {
     if (isLocal) {
       showToast('Este arquivo já está salvo no seu computador em D:\\Filmes.');
       return;
@@ -249,69 +313,127 @@ export function MovieDetailsModal({
       return;
     }
 
-    if (isSeries) {
-      if (episodeStreams.length === 0) {
-        showToast('Buscando torrents do episódio para iniciar download...');
+    const avail = isSeries ? episodeStreams : streams;
+    if (avail.length === 0) {
+      showToast(isSeries ? 'Buscando fontes do episódio para download...' : 'Buscando fontes torrent para download...');
+      return;
+    }
+
+    if (avail.length === 1) {
+      executeDownloadStream(avail[0]);
+      return;
+    }
+
+    setDownloadPickerIndex(0);
+    setDownloadPickerOpen(true);
+  }, [isLocal, downloading, isSeries, episodeStreams, streams, executeDownloadStream]);
+
+  // Controle remoto para sub-diálogos (Escolha de Versão e Opções de Stream)
+  useEffect(() => {
+    if (!downloadPickerOpen && !streamActionTarget) return;
+
+    const handleSubDialogKeyDown = (e) => {
+      const code = e.keyCode || e.which || 0;
+      const key = e.key || '';
+
+      const isBack = code === 10009 || code === 27 || code === 8 || key === 'Back' || key === 'Escape';
+      const isEnter = code === 13 || key === 'Enter';
+      const isUp = code === 38 || key === 'ArrowUp';
+      const isDown = code === 40 || key === 'ArrowDown';
+
+      if (downloadPickerOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (isBack) {
+          setDownloadPickerOpen(false);
+          return;
+        }
+        if (isUp) {
+          setDownloadPickerIndex(prev => Math.max(0, prev - 1));
+          return;
+        }
+        if (isDown) {
+          setDownloadPickerIndex(prev => Math.min(currentAvailableStreams.length - 1, prev + 1));
+          return;
+        }
+        if (isEnter) {
+          const selected = currentAvailableStreams[downloadPickerIndex];
+          if (selected) {
+            executeDownloadStream(selected);
+          }
+          return;
+        }
         return;
       }
-      const best = episodeStreams[0];
-      const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
-      const cleanTitle = `${title} - S${String(selectedSeason).padStart(2, '0')}E${String(epNum).padStart(2, '0')}`;
-      setDownloading(true);
-      try {
-        const res = await startDownload({
-          magnet: best.magnet,
-          title: details.title || title,
-          filename: cleanTitle,
-          poster,
-          imdbId: details.imdbId || movie.imdbId,
-          isSeries: true,
-          seriesName: details.title || title,
-          season: selectedSeason,
-          episode: epNum,
-          quality: best.quality
-        });
-        if (res && (res.id || res.message || res.success !== false)) {
-          setDownloadSuccess(true);
-          showToast(`Download de "${cleanTitle}" iniciado em D:\\Filmes!`);
-        } else {
-          showToast('Erro ao iniciar download no PC.');
+
+      if (streamActionTarget) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (isBack) {
+          setStreamActionTarget(null);
+          return;
         }
-      } catch (err) {
-        showToast(`Erro ao iniciar download: ${err.message}`);
-      } finally {
-        setDownloading(false);
+        if (isUp) {
+          setStreamActionIndex(prev => Math.max(0, prev - 1));
+          return;
+        }
+        if (isDown) {
+          setStreamActionIndex(prev => Math.min(2, prev + 1));
+          return;
+        }
+        if (isEnter) {
+          if (streamActionIndex === 0) {
+            const st = streamActionTarget;
+            setStreamActionTarget(null);
+            if (isSeries) {
+              const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
+              onPlayStream({
+                id: `${details.imdbId || details.id || movie.id}-s${selectedSeason}e${epNum}`,
+                movieId: details.id || movie.id,
+                imdbId: details.imdbId || movie.imdbId,
+                streamUrl: st.streamUrl,
+                title: `${title} - T${selectedSeason}E${epNum}: ${selectedEpisode?.name || 'Episódio'}`,
+                poster: selectedEpisode?.thumbnail || poster,
+                infoHash: st.infoHash,
+                quality: st.quality,
+                isLocal: false,
+                isSeries: true,
+                season: selectedSeason,
+                episode: epNum,
+                episodeName: selectedEpisode?.name || '',
+                resumePosition: resumePos
+              });
+            } else {
+              onPlayStream({
+                id: details.id || movie.id,
+                movieId: details.id || movie.id,
+                imdbId: details.imdbId || movie.imdbId,
+                streamUrl: st.streamUrl || `/api/stream/${st.infoHash}?magnet=${encodeURIComponent(st.magnet)}`,
+                title: `${title} - ${st.quality || '1080p'}`,
+                poster,
+                infoHash: st.infoHash,
+                quality: st.quality,
+                isLocal: false,
+                resumePosition: resumePos
+              });
+            }
+          } else if (streamActionIndex === 1) {
+            const st = streamActionTarget;
+            setStreamActionTarget(null);
+            executeDownloadStream(st);
+          } else {
+            setStreamActionTarget(null);
+          }
+          return;
+        }
       }
-      return;
-    }
+    };
 
-    if (streams.length === 0) {
-      showToast('Aguardando fontes torrent para iniciar download...');
-      return;
-    }
-
-    const best = streams[0];
-    setDownloading(true);
-    try {
-      const res = await startDownload({
-        magnet: best.magnet,
-        title,
-        poster,
-        imdbId: details.imdbId || movie.imdbId || details.id,
-        quality: best.quality
-      });
-      if (res && (res.id || res.message || res.success !== false)) {
-        setDownloadSuccess(true);
-        showToast(`Download de "${title}" iniciado em D:\\Filmes!`);
-      } else {
-        showToast('Erro ao iniciar download no PC.');
-      }
-    } catch (err) {
-      showToast(`Erro ao iniciar download: ${err.message}`);
-    } finally {
-      setDownloading(false);
-    }
-  }, [isLocal, downloading, isSeries, episodeStreams, streams, details, selectedEpisode, selectedSeason, title, poster, movie]);
+    window.addEventListener('keydown', handleSubDialogKeyDown, true);
+    return () => window.removeEventListener('keydown', handleSubDialogKeyDown, true);
+  }, [downloadPickerOpen, downloadPickerIndex, streamActionTarget, streamActionIndex, currentAvailableStreams, executeDownloadStream, isSeries, selectedEpisode, selectedSeason, details, movie, title, poster, resumePos, onPlayStream]);
 
   // Ação 3: Favoritos
   const handleToggleFav = useCallback(() => {
@@ -334,7 +456,20 @@ export function MovieDetailsModal({
   useEffect(() => {
     if (modalActionRef) {
       modalActionRef.current = {
-        triggerAction: (idx) => {
+        handleBack: () => {
+          if (downloadPickerOpen) {
+            setDownloadPickerOpen(false);
+            return true;
+          }
+          if (streamActionTarget) {
+            setStreamActionTarget(null);
+            return true;
+          }
+          return false;
+        },
+        triggerAction: (idx, isPlayKey) => {
+          if (downloadPickerOpen || streamActionTarget) return;
+
           if (hasResume) {
             if (idx === 0) {
               handlePlay(resumePos);
@@ -347,7 +482,14 @@ export function MovieDetailsModal({
             } else if (idx === 4) {
               handleRemoveHistory();
             } else if (idx >= 5) {
-              handleStreamSelect(idx - 5);
+              const streamIdx = idx - 5;
+              const target = isSeries ? episodeStreams[streamIdx] : streams[streamIdx];
+              if (isPlayKey) {
+                handleStreamSelect(streamIdx);
+              } else if (target) {
+                setStreamActionTarget(target);
+                setStreamActionIndex(0);
+              }
             }
           } else {
             if (idx === 0) {
@@ -357,13 +499,20 @@ export function MovieDetailsModal({
             } else if (idx === 2) {
               handleToggleFav();
             } else if (idx >= 3) {
-              handleStreamSelect(idx - 3);
+              const streamIdx = idx - 3;
+              const target = isSeries ? episodeStreams[streamIdx] : streams[streamIdx];
+              if (isPlayKey) {
+                handleStreamSelect(streamIdx);
+              } else if (target) {
+                setStreamActionTarget(target);
+                setStreamActionIndex(0);
+              }
             }
           }
         }
       };
     }
-  }, [modalActionRef, handlePlay, handleDownload, handleToggleFav, handleRemoveHistory, handleStreamSelect, hasResume, resumePos]);
+  }, [modalActionRef, handlePlay, handleDownload, handleToggleFav, handleRemoveHistory, handleStreamSelect, hasResume, resumePos, downloadPickerOpen, streamActionTarget, isSeries, episodeStreams, streams]);
 
   if (!movie) return null;
 
@@ -604,7 +753,10 @@ export function MovieDetailsModal({
                       <div
                         key={stream.infoHash || idx}
                         className={`tv-stream-item ${isStreamFocused ? 'focused' : ''}`}
-                        onClick={() => handleStreamSelect(idx)}
+                        onClick={() => {
+                          setStreamActionTarget(stream);
+                          setStreamActionIndex(0);
+                        }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                           <span className="material-icons" style={{ color: 'var(--primary)' }}>play_circle</span>
@@ -642,7 +794,10 @@ export function MovieDetailsModal({
                   <div
                     key={stream.infoHash || idx}
                     className={`tv-stream-item ${isStreamFocused ? 'focused' : ''}`}
-                    onClick={() => handleStreamSelect(idx)}
+                    onClick={() => {
+                      setStreamActionTarget(stream);
+                      setStreamActionIndex(0);
+                    }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                       <span className="material-icons" style={{ color: 'var(--primary)' }}>play_circle</span>
@@ -662,6 +817,145 @@ export function MovieDetailsModal({
           )}
         </div>
       </div>
+
+      {/* 1. Diálogo de Escolha de Versão para Download */}
+      {downloadPickerOpen && (
+        <div className="tv-version-picker-backdrop" onClick={() => setDownloadPickerOpen(false)}>
+          <div className="tv-version-picker-modal" onClick={e => e.stopPropagation()}>
+            <div className="tv-version-picker-header">
+              <h2 className="tv-version-picker-title">Escolher Versão para Download</h2>
+              <p className="tv-version-picker-subtitle">
+                {title} {isSeries && selectedEpisode ? `• T${selectedSeason}E${selectedEpisode.episode || selectedEpisode.number}` : ''} • Selecione a qualidade para salvar no PC (D:\Filmes)
+              </p>
+            </div>
+
+            <div className="tv-version-picker-list">
+              {currentAvailableStreams.map((st, sIdx) => {
+                const isSelected = downloadPickerIndex === sIdx;
+                const is4K = String(st.quality || '').toLowerCase().includes('4k') || String(st.title || '').toLowerCase().includes('2160p');
+                const seeds = st.seeders || st.seeds || 0;
+                return (
+                  <div
+                    key={st.infoHash || sIdx}
+                    className={`tv-version-picker-item ${isSelected ? 'focused' : ''}`}
+                    onClick={() => executeDownloadStream(st)}
+                  >
+                    <div className="tv-version-item-left">
+                      <span className="material-icons tv-version-icon">file_download</span>
+                      <div className="tv-version-item-info">
+                        <div className="tv-version-title">{st.title || st.name || title}</div>
+                        <div className="tv-version-meta-row">
+                          <span className={`tv-version-badge-quality ${is4K ? 'q-4k' : ''}`}>{st.quality || '1080p'}</span>
+                          {st.size && <span className="tv-version-badge-size">• {st.size}</span>}
+                          <span className="tv-version-badge-seeds">• {seeds} sementes</span>
+                          {st.audio && <span style={{ color: 'var(--text-subtle)' }}>• {st.audio}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button type="button" className="tv-version-btn-action">
+                      <span className="material-icons" style={{ fontSize: '18px' }}>download</span>
+                      <span>Baixar</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="tv-version-picker-footer">
+              <span>Navegue com UP/DOWN • Pressione ENTER para baixar</span>
+              <span>Pressione VOLTAR para fechar</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Diálogo de Ação de Stream Individual (Assistir / Baixar) */}
+      {streamActionTarget && (
+        <div className="tv-version-picker-backdrop" onClick={() => setStreamActionTarget(null)}>
+          <div className="tv-stream-action-modal" onClick={e => e.stopPropagation()}>
+            <div className="tv-stream-action-header">
+              <span className="tv-version-badge-quality" style={{ alignSelf: 'flex-start' }}>{streamActionTarget.quality || '1080p'}</span>
+              <h2 className="tv-stream-action-title">Opções para esta Versão</h2>
+              <p className="tv-stream-action-subtitle">{streamActionTarget.title || streamActionTarget.name || title}</p>
+              <div style={{ fontSize: '13px', color: 'var(--text-subtle)', marginTop: '2px' }}>
+                Tamanho: {streamActionTarget.size || 'HD'} • {streamActionTarget.seeders || streamActionTarget.seeds || 0} sementes {streamActionTarget.audio ? `• ${streamActionTarget.audio}` : ''}
+              </div>
+            </div>
+
+            <div className="tv-stream-action-buttons">
+              {/* Botão 1: Assistir */}
+              <button
+                type="button"
+                className={`tv-stream-action-btn btn-play ${streamActionIndex === 0 ? 'focused' : ''}`}
+                onClick={() => {
+                  const st = streamActionTarget;
+                  setStreamActionTarget(null);
+                  if (isSeries) {
+                    const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
+                    onPlayStream({
+                      id: `${details.imdbId || details.id || movie.id}-s${selectedSeason}e${epNum}`,
+                      movieId: details.id || movie.id,
+                      imdbId: details.imdbId || movie.imdbId,
+                      streamUrl: st.streamUrl,
+                      title: `${title} - T${selectedSeason}E${epNum}: ${selectedEpisode?.name || 'Episódio'}`,
+                      poster: selectedEpisode?.thumbnail || poster,
+                      infoHash: st.infoHash,
+                      quality: st.quality,
+                      isLocal: false,
+                      isSeries: true,
+                      season: selectedSeason,
+                      episode: epNum,
+                      episodeName: selectedEpisode?.name || '',
+                      resumePosition: resumePos
+                    });
+                  } else {
+                    onPlayStream({
+                      id: details.id || movie.id,
+                      movieId: details.id || movie.id,
+                      imdbId: details.imdbId || movie.imdbId,
+                      streamUrl: st.streamUrl || `/api/stream/${st.infoHash}?magnet=${encodeURIComponent(st.magnet)}`,
+                      title: `${title} - ${st.quality || '1080p'}`,
+                      poster,
+                      infoHash: st.infoHash,
+                      quality: st.quality,
+                      isLocal: false,
+                      resumePosition: resumePos
+                    });
+                  }
+                }}
+              >
+                <span className="material-icons">play_circle</span>
+                <span>Assistir Agora (Reproduzir fluxo)</span>
+              </button>
+
+              {/* Botão 2: Baixar para o PC */}
+              <button
+                type="button"
+                className={`tv-stream-action-btn btn-download ${streamActionIndex === 1 ? 'focused' : ''}`}
+                onClick={() => {
+                  const st = streamActionTarget;
+                  setStreamActionTarget(null);
+                  executeDownloadStream(st);
+                }}
+              >
+                <span className="material-icons">file_download</span>
+                <span>Baixar para o PC (Salvar em D:\Filmes)</span>
+              </button>
+
+              {/* Botão 3: Cancelar */}
+              <button
+                type="button"
+                className={`tv-stream-action-btn ${streamActionIndex === 2 ? 'focused' : ''}`}
+                onClick={() => setStreamActionTarget(null)}
+              >
+                <span className="material-icons">close</span>
+                <span>Cancelar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

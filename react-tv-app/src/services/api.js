@@ -272,12 +272,12 @@ export async function getDownloads() {
 }
 
 // 8. Iniciar download explícito
-export async function startDownload({ magnet, title, poster, imdbId }) {
+export async function startDownload(params) {
   try {
     return await request('/api/downloads/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ magnet, title, poster, imdbId })
+      body: JSON.stringify(params)
     });
   } catch (err) {
     return { success: false, error: err.message };

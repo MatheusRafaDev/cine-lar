@@ -1421,3 +1421,245 @@ body.tv-body {
   padding: 4px 12px;
   border-radius: 999px;
 }
+
+/* 12. Diálogo de Seleção de Versão para Download */
+.tv-version-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+
+.tv-version-picker-modal {
+  background: #181816;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  width: 860px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.95);
+}
+
+.tv-version-picker-header {
+  padding: 24px 32px 18px 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tv-version-picker-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #FAF9F5;
+  letter-spacing: -0.3px;
+}
+
+.tv-version-picker-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.tv-version-picker-list {
+  padding: 16px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 55vh;
+}
+
+.tv-version-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.tv-version-picker-item.focused {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: #FFFFFF !important;
+  transform: scale(1.02) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8) !important;
+}
+
+.tv-version-item-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tv-version-icon {
+  font-size: 28px;
+  color: #22C55E;
+}
+
+.tv-version-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tv-version-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FAF9F5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-version-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.tv-version-badge-quality {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(229, 9, 20, 0.25);
+  color: #FFFFFF;
+  border: 1px solid rgba(229, 9, 20, 0.6);
+  text-transform: uppercase;
+}
+
+.tv-version-badge-quality.q-4k {
+  background: rgba(245, 197, 24, 0.25);
+  color: #F5C518;
+  border-color: rgba(245, 197, 24, 0.6);
+}
+
+.tv-version-badge-size {
+  color: #22C55E;
+  font-weight: 700;
+}
+
+.tv-version-badge-seeds {
+  color: var(--text-muted);
+}
+
+.tv-version-btn-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22C55E;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  flex-shrink: 0;
+}
+
+.tv-version-picker-item.focused .tv-version-btn-action {
+  background: #22C55E;
+  color: #000000;
+  border-color: #FFFFFF;
+}
+
+.tv-version-picker-footer {
+  padding: 14px 32px;
+  background: rgba(0, 0, 0, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+
+/* Diálogo de Ação de Stream (Assistir / Baixar) */
+.tv-stream-action-modal {
+  background: #181816;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  width: 540px;
+  max-width: 90vw;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.95);
+}
+
+.tv-stream-action-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tv-stream-action-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #FAF9F5;
+}
+
+.tv-stream-action-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.tv-stream-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tv-stream-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 52px;
+  padding: 0 20px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.08);
+  color: #FAF9F5;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.tv-stream-action-btn.focused {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  transform: scale(1.03) !important;
+  border-color: #FFFFFF !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8) !important;
+}
+
+.tv-stream-action-btn.btn-play.focused {
+  background: var(--primary) !important;
+  color: #FFFFFF !important;
+}
+
+.tv-stream-action-btn.btn-download.focused {
+  background: #22C55E !important;
+  color: #000000 !important;
+}
