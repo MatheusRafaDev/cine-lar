@@ -31,6 +31,7 @@ export function useSpatialNav({
   onBack = null,
   onEnter = null,
   onTabChange = null,
+  onLocalFilterChange = null,
   onPlayPause = null,
   onSeek = null,
   onVolume = null
@@ -73,6 +74,7 @@ export function useSpatialNav({
     onBack,
     onEnter,
     onTabChange,
+    onLocalFilterChange,
     onPlayPause,
     onSeek,
     onVolume
@@ -414,6 +416,7 @@ export function useSpatialNav({
         setLocalFilterIndex(i => {
           const next = Math.max(0, i - 1);
           stateRef.current.localFilterIndex = next;
+          s.onLocalFilterChange?.(next);
           return next;
         });
       } else if (s.activeZone === 'hero') {
@@ -463,6 +466,7 @@ export function useSpatialNav({
         setLocalFilterIndex(i => {
           const next = Math.min(Math.max(0, s.localFilterCount - 1), i + 1);
           stateRef.current.localFilterIndex = next;
+          s.onLocalFilterChange?.(next);
           return next;
         });
       } else if (s.activeZone === 'hero') {

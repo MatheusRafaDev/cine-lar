@@ -52,24 +52,26 @@ export function LocalFolderView({
         </div>
       </div>
 
-      {/* 2. Barra de Filtros e Franquias (10-Foot Focusable Chips) */}
-      <div className="tv-local-filter-bar">
-        {filters.map((f, idx) => {
-          const isFocused = isFiltersFocused && localFilterIndex === idx;
-          const isActive = activeFilter === f.id;
-          return (
-            <button
-              key={f.id}
-              ref={el => filterRefs.current[idx] = el}
-              type="button"
-              className={`tv-filter-chip ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}`}
-              onClick={() => onSelectFilter(f.id, idx)}
-            >
-              {f.icon && <span className="material-icons" style={{ fontSize: '18px' }}>{f.icon}</span>}
-              <span>{f.label}</span>
-            </button>
-          );
-        })}
+      {/* 2. Alternador de Exibição: Pasta Local | Franquias */}
+      <div className="tv-local-toggle-container">
+        <div className="tv-local-toggle-bar">
+          {filters.map((f, idx) => {
+            const isFocused = isFiltersFocused && localFilterIndex === idx;
+            const isActive = activeFilter === f.id;
+            return (
+              <button
+                key={f.id}
+                ref={el => filterRefs.current[idx] = el}
+                type="button"
+                className={`tv-local-toggle-btn ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}`}
+                onClick={() => onSelectFilter(f.id, idx)}
+              >
+                {f.icon && <span className="material-icons" style={{ fontSize: '18px' }}>{f.icon}</span>}
+                <span>{f.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* 3. Área de Conteúdo: Grid Full-Page Vertical (Sem Carrossel) */}

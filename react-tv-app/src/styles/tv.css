@@ -1189,7 +1189,57 @@ body.tv-body {
   font-weight: 600;
 }
 
-/* Barra de Filtros de Franquias */
+/* Barra de Alternância: Pasta Local | Franquias */
+.tv-local-toggle-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.tv-local-toggle-bar {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.tv-local-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.tv-local-toggle-btn.active {
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.tv-local-toggle-btn.focused {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  transform: scale(1.05) !important;
+  outline: 3px solid var(--focus-border) !important;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.4) !important;
+  z-index: 5;
+}
+
+/* Barra de Filtros de Franquias (Legado/Compatibilidade) */
 .tv-local-filter-bar {
   display: flex;
   align-items: center;

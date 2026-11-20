@@ -172,40 +172,20 @@ export function App() {
     return list;
   }, [watchHistory, favorites, trendingMovies, seriesGenreSections, localMovies, genreSections]);
 
-  // Filtros disponíveis na visualização local
+  // Filtros disponíveis na visualização local: Pasta Local | Franquias
   const localFilters = useMemo(() => {
-    const list = [
-      { id: 'all', label: `Todos os Filmes (${localLibrary.count || (localLibrary.movies ? localLibrary.movies.length : 32)})`, icon: 'video_library' },
-      { id: 'collections', label: `Coleções Agrupadas (${localLibrary.franchises ? localLibrary.franchises.length : 10})`, icon: 'collections_bookmark' }
+    return [
+      { id: 'all', label: 'Pasta Local', icon: 'folder' },
+      { id: 'collections', label: 'Franquias', icon: 'collections_bookmark' }
     ];
-
-    if (localLibrary.franchises && localLibrary.franchises.length > 0) {
-      localLibrary.franchises.forEach(f => {
-        list.push({
-          id: `franchise:${f.name}`,
-          label: `${f.name} (${f.movies ? f.movies.length : (f.count || 1)})`,
-          icon: 'folder_special'
-        });
-      });
-    }
-
-    if (localLibrary.standaloneMovies && localLibrary.standaloneMovies.length > 0) {
-      list.push({
-        id: 'standalone',
-        label: `Filmes Avulsos (${localLibrary.standaloneMovies.length})`,
-        icon: 'movie'
-      });
-    }
-
-    return list;
-  }, [localLibrary]);
+  }, []);
 
   // Seções e linhas em grid full-page (6 colunas) para a visualização Local
   const localGridRows = useMemo(() => {
     const COL_COUNT = 6;
     if (!localLibrary || !localLibrary.movies) return [];
 
-    // 1. Modo Coleções Agrupadas
+    // 1. Modo Franquias (Coleções Agrupadas)
     if (localFilterId === 'collections') {
       const rows = [];
       (localLibrary.franchises || []).forEach(f => {
@@ -236,41 +216,7 @@ export function App() {
       return rows;
     }
 
-    // 2. Modo Franquia Específica (ex: 'franchise:Shrek')
-    if (localFilterId.startsWith('franchise:')) {
-      const fName = localFilterId.replace('franchise:', '');
-      const f = (localLibrary.franchises || []).find(x => x.name === fName);
-      const fMovies = f ? f.movies : [];
-      const rows = [];
-      for (let i = 0; i < fMovies.length; i += COL_COUNT) {
-        rows.push({
-          id: `franchise-single-${i}`,
-          title: i === 0 ? `Coleção ${fName}` : '',
-          subtitle: i === 0 ? `${fMovies.length} ${fMovies.length === 1 ? 'filme salvo' : 'filmes salvos em ordem cronológica'}` : '',
-          icon: 'collections_bookmark',
-          movies: fMovies.slice(i, i + COL_COUNT)
-        });
-      }
-      return rows;
-    }
-
-    // 3. Modo Filmes Avulsos
-    if (localFilterId === 'standalone') {
-      const stMovies = localLibrary.standaloneMovies || [];
-      const rows = [];
-      for (let i = 0; i < stMovies.length; i += COL_COUNT) {
-        rows.push({
-          id: `standalone-single-${i}`,
-          title: i === 0 ? 'Filmes Avulsos (Sem Franquia)' : '',
-          subtitle: i === 0 ? `${stMovies.length} títulos individuais` : '',
-          icon: 'movie',
-          movies: stMovies.slice(i, i + COL_COUNT)
-        });
-      }
-      return rows;
-    }
-
-    // 4. Modo Padrão: 'all' (Página inteira contínua com todos os filmes salvos)
+    // 2. Modo Padrão: 'all' (Pasta Local - Todos os filmes salvos)
     const allMovies = localLibrary.movies || [];
     const rows = [];
     for (let i = 0; i < allMovies.length; i += COL_COUNT) {
@@ -397,6 +343,14 @@ export function App() {
         setActiveTab(item.id);
       }
     },
+    onLocalFilterChange: (newFilterIdx) => {
+      const targetFilter = localFilters[newFilterIdx];
+      if (targetFilter) {
+        setLocalFilterId(targetFilter.id);
+        nav.setRowIndex(0);
+        nav.setColIndex(0);
+      }
+    },
     onBack: () => {
       // Hierarquia estrita do botão Voltar (Tizen / Esc)
       if (activeStream) {
@@ -462,9 +416,10 @@ export function App() {
         const targetFilter = localFilters[filterIndex];
         if (targetFilter) {
           setLocalFilterId(targetFilter.id);
-          nav.setRowIndex(0);
-          nav.setColIndex(0);
         }
+        nav.setActiveZone('rows');
+        nav.setRowIndex(0);
+        nav.setColIndex(0);
         return;
       }
 
