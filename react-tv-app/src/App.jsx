@@ -407,6 +407,13 @@ export function App() {
     return baseButtons + streamsCount;
   }, [selectedMovie]);
 
+  const modalStreamBaseIndex = useMemo(() => {
+    if (!selectedMovie) return 3;
+    const saved = getSavedProgress(selectedMovie);
+    const hasResume = Boolean(saved && saved.position > 10 && (!saved.duration || saved.position / saved.duration < 0.92));
+    return hasResume ? 5 : 3;
+  }, [selectedMovie]);
+
   // 3.5. Ações dinâmicas para o Menu de Ações Rápidas (Segurar OK no controle)
   const quickMenuActionsList = useMemo(() => {
     if (!quickMenuMovie) return [];
@@ -561,6 +568,8 @@ export function App() {
   const nav = useSpatialNav({
     isPlayerOpen: Boolean(activeStream),
     isModalOpen: Boolean(selectedMovie),
+    modalActionRef,
+    modalStreamBaseIndex,
     isQuickMenuOpen: Boolean(quickMenuMovie),
     quickMenuCount: quickMenuActionsList.length,
     activeTab,
@@ -591,19 +600,19 @@ export function App() {
       }
     },
     onBack: () => {
-      // Limpeza de estado do player e modal (o controle de foco é gerenciado pelo useSpatialNav)
+      // Limpeza de estado do player e modal (prioridade absoluta com useSpatialNav)
       if (activeStream) {
         setActiveStream(null);
         refreshUserData();
-        return;
+        return true;
       }
       if (selectedMovie) {
         if (modalActionRef.current && modalActionRef.current.handleBack && modalActionRef.current.handleBack()) {
-          return;
+          return true; // Sub-diálogo consumiu o voltar, modal continua aberto
         }
         setSelectedMovie(null);
         refreshUserData();
-        return;
+        return false; // Modal fechado
       }
       // Se já está no header da página inicial e pressionou voltar novamente, sai do aplicativo Tizen
       if (typeof window !== 'undefined' && window.tizen && window.tizen.application) {

@@ -22,6 +22,8 @@ export const KEYS = {
 export function useSpatialNav({
   isPlayerOpen = false,
   isModalOpen = false,
+  modalActionRef = null,
+  modalStreamBaseIndex = 3,
   isQuickMenuOpen = false,
   quickMenuCount = 4,
   activeTab = 'home',
@@ -65,6 +67,8 @@ export function useSpatialNav({
   stateRef.current = {
     isPlayerOpen,
     isModalOpen,
+    modalActionRef,
+    modalStreamBaseIndex,
     isQuickMenuOpen,
     quickMenuCount,
     activeZone,
@@ -236,6 +240,139 @@ export function useSpatialNav({
       return;
     }
 
+    // A1. Prioridade Absoluta: Modal de Detalhes do Filme ou Série aberto
+    if (s.isModalOpen) {
+      // 1. Se houver sub-diálogo aberto dentro do modal (Escolher Versão para Download ou Opções para esta Versão)
+      if (s.modalActionRef?.current?.isSubDialogOpen?.()) {
+        if (isBack) {
+          e.preventDefault();
+          e.stopPropagation();
+          s.modalActionRef.current.handleBack?.();
+          return;
+        }
+        if (isUp) {
+          e.preventDefault();
+          e.stopPropagation();
+          s.modalActionRef.current.handleSubNav?.(-1);
+          return;
+        }
+        if (isDown) {
+          e.preventDefault();
+          e.stopPropagation();
+          s.modalActionRef.current.handleSubNav?.(1);
+          return;
+        }
+        if (isEnter) {
+          e.preventDefault();
+          e.stopPropagation();
+          s.modalActionRef.current.handleSubEnter?.();
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      // 2. Tecla Voltar dentro do Modal de Detalhes: fecha o modal e restaura o foco na área de conteúdo (rows/hero)
+      if (isBack) {
+        e.preventDefault();
+        e.stopPropagation();
+        const handledBySub = s.onBack?.();
+        if (handledBySub) return;
+        setActiveZone(prev => (prev === 'modal' ? 'rows' : prev));
+        return;
+      }
+
+      if (isEnter) {
+        e.preventDefault();
+        e.stopPropagation();
+        s.onEnter?.({ zone: 'modal', index: s.modalIndex, isPlayKey: false });
+        return;
+      }
+
+      if (isPlayPause) {
+        e.preventDefault();
+        e.stopPropagation();
+        s.onEnter?.({ zone: 'modal', index: 0, isPlayKey: true });
+        return;
+      }
+
+      const baseIdx = s.modalStreamBaseIndex || 3;
+      const totalItems = s.modalItemsCount || 3;
+
+      if (isLeft) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Na barra horizontal de botões: navega para a esquerda
+        if (s.modalIndex < baseIdx) {
+          setModalIndex(prev => {
+            const next = Math.max(0, prev - 1);
+            stateRef.current.modalIndex = next;
+            return next;
+          });
+        }
+        return;
+      }
+
+      if (isRight) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Na barra horizontal de botões: navega para a direita
+        if (s.modalIndex < baseIdx) {
+          setModalIndex(prev => {
+            const next = Math.min(baseIdx - 1, prev + 1);
+            stateRef.current.modalIndex = next;
+            return next;
+          });
+        }
+        return;
+      }
+
+      if (isDown) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (s.modalIndex < baseIdx) {
+          // Desce da linha de botões para o primeiro stream (se houver streams)
+          if (totalItems > baseIdx) {
+            setModalIndex(baseIdx);
+            stateRef.current.modalIndex = baseIdx;
+          }
+        } else {
+          // Desce na lista vertical de streams
+          setModalIndex(prev => {
+            const next = Math.min(totalItems - 1, prev + 1);
+            stateRef.current.modalIndex = next;
+            return next;
+          });
+        }
+        return;
+      }
+
+      if (isUp) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (s.modalIndex >= baseIdx) {
+          // Se está no primeiro stream, sobe de volta para o primeiro botão de ação
+          if (s.modalIndex === baseIdx) {
+            setModalIndex(0);
+            stateRef.current.modalIndex = 0;
+          } else {
+            // Sobe na lista vertical de streams
+            setModalIndex(prev => {
+              const next = prev - 1;
+              stateRef.current.modalIndex = next;
+              return next;
+            });
+          }
+        }
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     // A. Prioridade Máxima: Botão Voltar (Tizen / Esc / Backspace)
     if (isBack) {
       e.preventDefault();
@@ -247,19 +384,7 @@ export function useSpatialNav({
         return;
       }
 
-      // 2. Modal de detalhes aberto: fecha o modal e joga foco para o header na tab atual
-      if (s.isModalOpen) {
-        s.onBack?.();
-        const tabIdx = NAV_ITEMS.findIndex(item => item.id === s.activeTab);
-        const targetHeaderIdx = tabIdx >= 0 ? tabIdx : 0;
-        setHeaderIndex(targetHeaderIdx);
-        stateRef.current.headerIndex = targetHeaderIdx;
-        setActiveZone('header');
-        stateRef.current.activeZone = 'header';
-        return;
-      }
-
-      // 3. Se o foco está em qualquer área de conteúdo (rows, local-filters, hero, busca):
+      // 2. Se o foco está em qualquer área de conteúdo (rows, local-filters, hero, busca):
       // Joga SEMPRE o foco para o header, sincronizado com a tab atual, para navegar dentro dele
       if (s.activeZone !== 'header') {
         const tabIdx = NAV_ITEMS.findIndex(item => item.id === s.activeTab);
@@ -271,7 +396,7 @@ export function useSpatialNav({
         return;
       }
 
-      // 4. Se o usuário JÁ ESTÁ no header e não está na aba Início, volta para Início
+      // 3. Se o usuário JÁ ESTÁ no header e não está na aba Início, volta para Início
       if (s.activeTab !== 'home' || s.headerIndex !== 0) {
         setHeaderIndex(0);
         stateRef.current.headerIndex = 0;
@@ -279,7 +404,7 @@ export function useSpatialNav({
         return;
       }
 
-      // 5. Se já está no header na aba Início, chama onBack para fechar o app Tizen
+      // 4. Se já está no header na aba Início, chama onBack para fechar o app Tizen
       s.onBack?.();
       return;
     }
@@ -309,57 +434,6 @@ export function useSpatialNav({
       if (isDown) {
         e.preventDefault();
         s.onVolume?.(-0.1);
-        return;
-      }
-      return;
-    }
-
-    // C. Modal de Detalhes aberto (Ações: Assistir, Baixar, Favoritos, Streams)
-    if (s.isModalOpen) {
-      if (isEnter) {
-        e.preventDefault();
-        s.onEnter?.({ zone: 'modal', index: s.modalIndex, isPlayKey: false });
-        return;
-      }
-      if (isPlayPause) {
-        e.preventDefault();
-        s.onEnter?.({ zone: 'modal', index: 0, isPlayKey: true });
-        return;
-      }
-      if (isLeft) {
-        e.preventDefault();
-        setModalIndex(prev => {
-          const next = Math.max(0, prev - 1);
-          stateRef.current.modalIndex = next;
-          return next;
-        });
-        return;
-      }
-      if (isRight) {
-        e.preventDefault();
-        setModalIndex(prev => {
-          const next = Math.min(s.modalItemsCount - 1, prev + 1);
-          stateRef.current.modalIndex = next;
-          return next;
-        });
-        return;
-      }
-      if (isUp) {
-        e.preventDefault();
-        setModalIndex(prev => {
-          const next = Math.max(0, prev - 1);
-          stateRef.current.modalIndex = next;
-          return next;
-        });
-        return;
-      }
-      if (isDown) {
-        e.preventDefault();
-        setModalIndex(prev => {
-          const next = Math.min(s.modalItemsCount - 1, prev + 1);
-          stateRef.current.modalIndex = next;
-          return next;
-        });
         return;
       }
       return;

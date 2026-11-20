@@ -330,113 +330,6 @@ export function MovieDetailsModal({
     setDownloadPickerOpen(true);
   }, [isLocal, downloading, isSeries, episodeStreams, streams, executeDownloadStream]);
 
-  // Controle remoto para sub-diálogos (Escolha de Versão e Opções de Stream)
-  useEffect(() => {
-    if (!downloadPickerOpen && !streamActionTarget) return;
-
-    const handleSubDialogKeyDown = (e) => {
-      const code = e.keyCode || e.which || 0;
-      const key = e.key || '';
-
-      const isBack = code === 10009 || code === 27 || code === 8 || key === 'Back' || key === 'Escape';
-      const isEnter = code === 13 || key === 'Enter';
-      const isUp = code === 38 || key === 'ArrowUp';
-      const isDown = code === 40 || key === 'ArrowDown';
-
-      if (downloadPickerOpen) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (isBack) {
-          setDownloadPickerOpen(false);
-          return;
-        }
-        if (isUp) {
-          setDownloadPickerIndex(prev => Math.max(0, prev - 1));
-          return;
-        }
-        if (isDown) {
-          setDownloadPickerIndex(prev => Math.min(currentAvailableStreams.length - 1, prev + 1));
-          return;
-        }
-        if (isEnter) {
-          const selected = currentAvailableStreams[downloadPickerIndex];
-          if (selected) {
-            executeDownloadStream(selected);
-          }
-          return;
-        }
-        return;
-      }
-
-      if (streamActionTarget) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (isBack) {
-          setStreamActionTarget(null);
-          return;
-        }
-        if (isUp) {
-          setStreamActionIndex(prev => Math.max(0, prev - 1));
-          return;
-        }
-        if (isDown) {
-          setStreamActionIndex(prev => Math.min(2, prev + 1));
-          return;
-        }
-        if (isEnter) {
-          if (streamActionIndex === 0) {
-            const st = streamActionTarget;
-            setStreamActionTarget(null);
-            if (isSeries) {
-              const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
-              onPlayStream({
-                id: `${details.imdbId || details.id || movie.id}-s${selectedSeason}e${epNum}`,
-                movieId: details.id || movie.id,
-                imdbId: details.imdbId || movie.imdbId,
-                streamUrl: st.streamUrl,
-                title: `${title} - T${selectedSeason}E${epNum}: ${selectedEpisode?.name || 'Episódio'}`,
-                poster: selectedEpisode?.thumbnail || poster,
-                infoHash: st.infoHash,
-                quality: st.quality,
-                isLocal: false,
-                isSeries: true,
-                season: selectedSeason,
-                episode: epNum,
-                episodeName: selectedEpisode?.name || '',
-                resumePosition: resumePos
-              });
-            } else {
-              onPlayStream({
-                id: details.id || movie.id,
-                movieId: details.id || movie.id,
-                imdbId: details.imdbId || movie.imdbId,
-                streamUrl: st.streamUrl || `/api/stream/${st.infoHash}?magnet=${encodeURIComponent(st.magnet)}`,
-                title: `${title} - ${st.quality || '1080p'}`,
-                poster,
-                infoHash: st.infoHash,
-                quality: st.quality,
-                isLocal: false,
-                resumePosition: resumePos
-              });
-            }
-          } else if (streamActionIndex === 1) {
-            const st = streamActionTarget;
-            setStreamActionTarget(null);
-            executeDownloadStream(st);
-          } else {
-            setStreamActionTarget(null);
-          }
-          return;
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleSubDialogKeyDown, true);
-    return () => window.removeEventListener('keydown', handleSubDialogKeyDown, true);
-  }, [downloadPickerOpen, downloadPickerIndex, streamActionTarget, streamActionIndex, currentAvailableStreams, executeDownloadStream, isSeries, selectedEpisode, selectedSeason, details, movie, title, poster, resumePos, onPlayStream]);
-
   // Ação 3: Favoritos
   const handleToggleFav = useCallback(() => {
     const target = details || movie;
@@ -456,10 +349,11 @@ export function MovieDetailsModal({
     }
   }, [details, movie, title, onClose]);
 
-  // Vincula controlador de ações espaciais para o controle remoto da TV
+  // Vincula controlador de ações e sub-diálogos com prioridade total para o controle remoto da TV
   useEffect(() => {
     if (modalActionRef) {
       modalActionRef.current = {
+        isSubDialogOpen: () => Boolean(downloadPickerOpen || streamActionTarget),
         handleBack: () => {
           if (downloadPickerOpen) {
             setDownloadPickerOpen(false);
@@ -470,6 +364,62 @@ export function MovieDetailsModal({
             return true;
           }
           return false;
+        },
+        handleSubNav: (delta) => {
+          if (downloadPickerOpen) {
+            setDownloadPickerIndex(prev => delta > 0 ? Math.min(currentAvailableStreams.length - 1, prev + 1) : Math.max(0, prev - 1));
+          } else if (streamActionTarget) {
+            setStreamActionIndex(prev => delta > 0 ? Math.min(2, prev + 1) : Math.max(0, prev - 1));
+          }
+        },
+        handleSubEnter: () => {
+          if (downloadPickerOpen) {
+            const selected = currentAvailableStreams[downloadPickerIndex];
+            if (selected) executeDownloadStream(selected);
+          } else if (streamActionTarget) {
+            if (streamActionIndex === 0) {
+              const st = streamActionTarget;
+              setStreamActionTarget(null);
+              if (isSeries) {
+                const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
+                onPlayStream({
+                  id: `${details.imdbId || details.id || movie.id}-s${selectedSeason}e${epNum}`,
+                  movieId: details.id || movie.id,
+                  imdbId: details.imdbId || movie.imdbId,
+                  streamUrl: st.streamUrl,
+                  title: `${title} - T${selectedSeason}E${epNum}: ${selectedEpisode?.name || 'Episódio'}`,
+                  poster: selectedEpisode?.thumbnail || poster,
+                  infoHash: st.infoHash,
+                  quality: st.quality,
+                  isLocal: false,
+                  isSeries: true,
+                  season: selectedSeason,
+                  episode: epNum,
+                  episodeName: selectedEpisode?.name || '',
+                  resumePosition: resumePos
+                });
+              } else {
+                onPlayStream({
+                  id: details.id || movie.id,
+                  movieId: details.id || movie.id,
+                  imdbId: details.imdbId || movie.imdbId,
+                  streamUrl: st.streamUrl || `/api/stream/${st.infoHash}?magnet=${encodeURIComponent(st.magnet)}`,
+                  title: `${title} - ${st.quality || '1080p'}`,
+                  poster,
+                  infoHash: st.infoHash,
+                  quality: st.quality,
+                  isLocal: false,
+                  resumePosition: resumePos
+                });
+              }
+            } else if (streamActionIndex === 1) {
+              const st = streamActionTarget;
+              setStreamActionTarget(null);
+              executeDownloadStream(st);
+            } else {
+              setStreamActionTarget(null);
+            }
+          }
         },
         triggerAction: (idx, isPlayKey) => {
           if (downloadPickerOpen || streamActionTarget) return;
@@ -516,7 +466,32 @@ export function MovieDetailsModal({
         }
       };
     }
-  }, [modalActionRef, handlePlay, handleDownload, handleToggleFav, handleRemoveHistory, handleStreamSelect, hasResume, resumePos, downloadPickerOpen, streamActionTarget, isSeries, episodeStreams, streams]);
+  }, [
+    modalActionRef,
+    downloadPickerOpen,
+    downloadPickerIndex,
+    streamActionTarget,
+    streamActionIndex,
+    currentAvailableStreams,
+    executeDownloadStream,
+    isSeries,
+    selectedEpisode,
+    selectedSeason,
+    details,
+    movie,
+    title,
+    poster,
+    resumePos,
+    onPlayStream,
+    handlePlay,
+    handleDownload,
+    handleToggleFav,
+    handleRemoveHistory,
+    handleStreamSelect,
+    hasResume,
+    episodeStreams,
+    streams
+  ]);
 
   if (!movie) return null;
 
