@@ -48,6 +48,7 @@ export function App() {
 
   const playerControlsRef = useRef({});
   const searchInputRef = useRef({ handleKeyPress: null });
+  const modalActionRef = useRef({});
 
   // 1. Carrega dados iniciais do backend
   const refreshUserData = useCallback(() => {
@@ -411,7 +412,14 @@ export function App() {
         } catch (_) {}
       }
     },
-    onEnter: ({ zone, headerIndex, heroIndex, rowIndex, colIndex, filterIndex, searchRowIndex, searchColIndex, resultsColIndex, isPlayKey }) => {
+    onEnter: ({ zone, index, headerIndex, heroIndex, rowIndex, colIndex, filterIndex, searchRowIndex, searchColIndex, resultsColIndex, isPlayKey }) => {
+      if (zone === 'modal') {
+        if (modalActionRef.current && modalActionRef.current.triggerAction) {
+          modalActionRef.current.triggerAction(index);
+        }
+        return;
+      }
+
       if (zone === 'header') {
         const item = NAV_ITEMS[headerIndex];
         if (item) {
@@ -615,6 +623,7 @@ export function App() {
           movie={selectedMovie}
           isZoneFocused={nav.activeZone === 'modal'}
           focusedIndex={nav.modalIndex}
+          modalActionRef={modalActionRef}
           onClose={() => {
             setSelectedMovie(null);
             refreshUserData();

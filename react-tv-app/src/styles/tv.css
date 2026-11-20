@@ -254,6 +254,42 @@ body.tv-body {
   color: #FFFFFF !important;
 }
 
+.tv-btn-download {
+  background: rgba(34, 197, 94, 0.18);
+  color: #22C55E;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.tv-btn-download.focused {
+  background: #22C55E !important;
+  color: #000000 !important;
+  outline: 3.5px solid #FFFFFF !important;
+  box-shadow: 0 12px 32px rgba(34, 197, 94, 0.5) !important;
+}
+
+.tv-btn-download.already-local {
+  background: rgba(34, 197, 94, 0.22);
+  color: #86EFAC;
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.tv-modal-toast {
+  background: rgba(15, 23, 42, 0.95);
+  color: #FAF9F5;
+  border: 1.5px solid #22C55E;
+  border-radius: var(--radius-md);
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.85);
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
 /* 3. Seções e Carrosséis Horizontais */
 .tv-sections-container {
   display: flex;

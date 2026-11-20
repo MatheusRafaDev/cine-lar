@@ -143,6 +143,16 @@ export function useSpatialNav({
         if (onEnter) onEnter({ zone: 'modal', index: modalIndex });
         return;
       }
+      if (code === KEYS.LEFT || key === 'ArrowLeft') {
+        e.preventDefault();
+        setModalIndex(prev => Math.max(0, prev - 1));
+        return;
+      }
+      if (code === KEYS.RIGHT || key === 'ArrowRight') {
+        e.preventDefault();
+        setModalIndex(prev => Math.min(modalItemsCount - 1, prev + 1));
+        return;
+      }
       if (code === KEYS.UP || key === 'ArrowUp') {
         e.preventDefault();
         setModalIndex(prev => Math.max(0, prev - 1));

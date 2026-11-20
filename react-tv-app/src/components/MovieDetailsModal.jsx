@@ -1,16 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { getMovieDetails, getSeriesMeta, getEpisodeStreams, isFavorite, toggleFavorite } from '../services/api';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  getMovieDetails,
+  getSeriesMeta,
+  getEpisodeStreams,
+  isFavorite,
+  toggleFavorite,
+  startDownload
+} from '../services/api';
 
 export function MovieDetailsModal({
   movie,
   isZoneFocused,
   focusedIndex,
   onClose,
-  onPlayStream
+  onPlayStream,
+  modalActionRef
 }) {
   const [details, setDetails] = useState(movie);
   const [loading, setLoading] = useState(false);
   const [favorite, setFavorite] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Estados específicos para Séries
   const [seriesMeta, setSeriesMeta] = useState(null);
@@ -20,6 +31,11 @@ export function MovieDetailsModal({
   const [loadingStreams, setLoadingStreams] = useState(false);
 
   const isSeries = Boolean(details?.isSeries || details?.type === 'series' || movie?.isSeries || movie?.type === 'series');
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3500);
+  };
 
   useEffect(() => {
     if (!movie) return;
@@ -34,13 +50,11 @@ export function MovieDetailsModal({
         .then(meta => {
           if (isMounted && meta) {
             setSeriesMeta(meta);
-            // Define temporada inicial
             const videos = meta.videos || [];
             const validSeasons = Array.from(new Set(videos.map(v => v.season).filter(s => s > 0))).sort((a, b) => a - b);
             const initialSeason = validSeasons.length > 0 ? validSeasons[0] : 1;
             setSelectedSeason(initialSeason);
 
-            // Seleciona o primeiro episódio da temporada
             const firstEp = videos.find(v => v.season === initialSeason);
             if (firstEp) {
               setSelectedEpisode(firstEp);
@@ -94,41 +108,206 @@ export function MovieDetailsModal({
     loadStreamsForEpisode(movie.imdbId || movie.id, ep.season, ep.episode || ep.number, movie.title);
   };
 
-  if (!movie) return null;
+  const title = details?.title || movie?.title || 'Sem título';
+  const poster = details?.poster || movie?.poster || '';
+  const backdrop = details?.backdrop || movie?.backdrop || poster;
+  const synopsis = details?.synopsis || details?.description || movie?.synopsis || 'Sem sinopse disponível.';
+  const streams = details?.streams || [];
+  const isLocal = Boolean(details?.isLocal || details?.filePath || details?.videoPath);
 
-  const title = details.title || movie.title;
-  const poster = details.poster || movie.poster;
-  const backdrop = details.backdrop || movie.backdrop || poster;
-  const synopsis = details.synopsis || details.description || movie.synopsis || 'Sem sinopse disponível.';
-  const streams = details.streams || [];
-  const isLocal = Boolean(details.isLocal || details.filePath || details.videoPath);
+  // Ação 1: Assistir
+  const handlePlay = useCallback(() => {
+    if (isSeries) {
+      if (episodeStreams.length > 0) {
+        const best = episodeStreams[0];
+        const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
+        onPlayStream({
+          streamUrl: best.streamUrl,
+          title: `${title} - T${selectedSeason}E${epNum}: ${selectedEpisode?.name || 'Episódio'}`,
+          poster: selectedEpisode?.thumbnail || poster,
+          infoHash: best.infoHash,
+          quality: best.quality,
+          isLocal: false
+        });
+      } else {
+        showToast('Buscando fontes para reproduzir o episódio selecionado...');
+      }
+      return;
+    }
 
-  const handleToggleFav = () => {
+    if (isLocal) {
+      onPlayStream({
+        streamUrl: details.streamUrl || `/api/local/stream?file=${encodeURIComponent(details.filePath || details.videoPath)}`,
+        title,
+        poster,
+        isLocal: true,
+        resumePosition: details.position || 0
+      });
+      return;
+    }
+
+    if (streams.length > 0) {
+      const best = streams[0];
+      onPlayStream({
+        streamUrl: best.streamUrl || `/api/stream/${best.infoHash}?magnet=${encodeURIComponent(best.magnet)}`,
+        title,
+        poster,
+        infoHash: best.infoHash,
+        quality: best.quality,
+        isLocal: false,
+        resumePosition: details.position || 0
+      });
+    } else {
+      showToast('Aguardando fontes para reproduzir o filme...');
+    }
+  }, [isSeries, isLocal, episodeStreams, streams, details, selectedEpisode, selectedSeason, title, poster, onPlayStream]);
+
+  // Ação 2: Download para o PC
+  const handleDownload = useCallback(async () => {
+    if (isLocal) {
+      showToast('Este arquivo já está salvo no seu computador em D:\\Filmes.');
+      return;
+    }
+
+    if (downloading) {
+      showToast('Download em andamento no PC...');
+      return;
+    }
+
+    if (isSeries) {
+      if (episodeStreams.length === 0) {
+        showToast('Buscando torrents do episódio para iniciar download...');
+        return;
+      }
+      const best = episodeStreams[0];
+      const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
+      const cleanTitle = `${title} - S${String(selectedSeason).padStart(2, '0')}E${String(epNum).padStart(2, '0')}`;
+      setDownloading(true);
+      try {
+        const res = await startDownload({
+          magnet: best.magnet,
+          title: details.title || title,
+          filename: cleanTitle,
+          poster,
+          imdbId: details.imdbId || movie.imdbId,
+          isSeries: true,
+          seriesName: details.title || title,
+          season: selectedSeason,
+          episode: epNum,
+          quality: best.quality
+        });
+        if (res && (res.id || res.message || res.success !== false)) {
+          setDownloadSuccess(true);
+          showToast(`Download de "${cleanTitle}" iniciado em D:\\Filmes!`);
+        } else {
+          showToast('Erro ao iniciar download no PC.');
+        }
+      } catch (err) {
+        showToast(`Erro ao iniciar download: ${err.message}`);
+      } finally {
+        setDownloading(false);
+      }
+      return;
+    }
+
+    if (streams.length === 0) {
+      showToast('Aguardando fontes torrent para iniciar download...');
+      return;
+    }
+
+    const best = streams[0];
+    setDownloading(true);
+    try {
+      const res = await startDownload({
+        magnet: best.magnet,
+        title,
+        poster,
+        imdbId: details.imdbId || movie.imdbId || details.id,
+        quality: best.quality
+      });
+      if (res && (res.id || res.message || res.success !== false)) {
+        setDownloadSuccess(true);
+        showToast(`Download de "${title}" iniciado em D:\\Filmes!`);
+      } else {
+        showToast('Erro ao iniciar download no PC.');
+      }
+    } catch (err) {
+      showToast(`Erro ao iniciar download: ${err.message}`);
+    } finally {
+      setDownloading(false);
+    }
+  }, [isLocal, downloading, isSeries, episodeStreams, streams, details, selectedEpisode, selectedSeason, title, poster, movie]);
+
+  // Ação 3: Favoritos
+  const handleToggleFav = useCallback(() => {
     const next = toggleFavorite(details);
     setFavorite(next);
-  };
+    showToast(next ? 'Adicionado à sua lista de Favoritos!' : 'Removido dos seus Favoritos.');
+  }, [details]);
+
+  // Vincula controlador de ações espaciais para o controle remoto da TV
+  useEffect(() => {
+    if (modalActionRef) {
+      modalActionRef.current = {
+        triggerAction: (idx) => {
+          if (idx === 0) {
+            handlePlay();
+          } else if (idx === 1) {
+            handleDownload();
+          } else if (idx === 2) {
+            handleToggleFav();
+          } else if (idx >= 3) {
+            const streamIdx = idx - 3;
+            if (isSeries) {
+              if (episodeStreams[streamIdx]) {
+                const s = episodeStreams[streamIdx];
+                const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
+                onPlayStream({
+                  streamUrl: s.streamUrl,
+                  title: `${title} - T${selectedSeason}E${epNum}: ${selectedEpisode?.name || 'Episódio'}`,
+                  poster: selectedEpisode?.thumbnail || poster,
+                  infoHash: s.infoHash,
+                  quality: s.quality,
+                  isLocal: false
+                });
+              }
+            } else {
+              if (streams[streamIdx]) {
+                const s = streams[streamIdx];
+                onPlayStream({
+                  streamUrl: s.streamUrl || `/api/stream/${s.infoHash}?magnet=${encodeURIComponent(s.magnet)}`,
+                  title: `${title} - ${s.quality || '1080p'}`,
+                  poster,
+                  infoHash: s.infoHash,
+                  quality: s.quality,
+                  isLocal: false
+                });
+              }
+            }
+          }
+        }
+      };
+    }
+  }, [modalActionRef, handlePlay, handleDownload, handleToggleFav, isSeries, episodeStreams, streams, selectedSeason, selectedEpisode, title, poster, onPlayStream]);
+
+  if (!movie) return null;
 
   // Temporadas disponíveis
-  const seasons = useMemo(() => {
-    if (!seriesMeta?.videos) return [];
-    const sSet = new Set(seriesMeta.videos.map(v => v.season).filter(s => s > 0));
-    return Array.from(sSet).sort((a, b) => a - b);
-  }, [seriesMeta]);
+  const seasons = Array.from(new Set(seriesMeta?.videos?.map(v => v.season).filter(s => s > 0) || [])).sort((a, b) => a - b);
 
   // Episódios da temporada selecionada
-  const currentEpisodes = useMemo(() => {
-    if (!seriesMeta?.videos) return [];
-    return seriesMeta.videos
-      .filter(v => v.season === selectedSeason)
-      .sort((a, b) => (a.episode || a.number || 0) - (b.episode || b.number || 0));
-  }, [seriesMeta, selectedSeason]);
+  const currentEpisodes = (seriesMeta?.videos || [])
+    .filter(v => v.season === selectedSeason)
+    .sort((a, b) => (a.episode || a.number || 0) - (b.episode || b.number || 0));
 
   const isPlayFocused = isZoneFocused && focusedIndex === 0;
-  const isFavFocused = isZoneFocused && focusedIndex === 1;
+  const isDownloadFocused = isZoneFocused && focusedIndex === 1;
+  const isFavFocused = isZoneFocused && focusedIndex === 2;
 
   return (
     <div className="tv-modal-backdrop" onClick={onClose}>
       <div className="tv-modal-container" onClick={e => e.stopPropagation()}>
+        {/* Banner Superior do Modal */}
         <div
           className="tv-modal-hero"
           style={{ backgroundImage: `url(${backdrop})` }}
@@ -152,47 +331,61 @@ export function MovieDetailsModal({
                   <span className="tv-badge-pill" style={{ background: '#3b82f6', color: '#FFFFFF' }}>Série de TV</span>
                 )}
                 {isLocal && (
-                  <span className="tv-badge-pill" style={{ background: '#22c55e', color: '#000' }}>Arquivo Local</span>
+                  <span className="tv-badge-pill" style={{ background: '#22c55e', color: '#000', fontWeight: 800 }}>Arquivo Local (D:\Filmes)</span>
                 )}
               </div>
 
+              {/* Botões Principais de Ação: Assistir, Baixar, Minha Lista */}
               <div className="tv-hero-actions">
-                {!isSeries && (
-                  <button
-                    type="button"
-                    className={`tv-btn tv-btn-primary ${isPlayFocused ? 'focused' : ''}`}
-                    onClick={() => {
-                      if (isLocal) {
-                        onPlayStream({
-                          streamUrl: details.streamUrl || `/api/local/stream?file=${encodeURIComponent(details.filePath || details.videoPath)}`,
-                          title,
-                          poster,
-                          isLocal: true
-                        });
-                      } else if (streams.length > 0) {
-                        onPlayStream({
-                          streamUrl: streams[0].streamUrl || `/api/stream/${streams[0].infoHash}?magnet=${encodeURIComponent(streams[0].magnet)}`,
-                          title,
-                          poster,
-                          infoHash: streams[0].infoHash,
-                          quality: streams[0].quality
-                        });
-                      }
-                    }}
-                  >
-                    <span className="material-icons">play_arrow</span>
-                    <span>
-                      {isLocal
-                        ? 'Assistir Agora (Local)'
-                        : loading
-                        ? 'Buscando Melhores Fontes...'
-                        : streams.length > 0
-                        ? `Assistir Melhor Opção (${streams[0].quality || 'HD'})`
-                        : 'Aguardando Fontes...'}
-                    </span>
-                  </button>
-                )}
+                {/* 1. Botão Assistir */}
+                <button
+                  type="button"
+                  className={`tv-btn tv-btn-primary ${isPlayFocused ? 'focused' : ''}`}
+                  onClick={handlePlay}
+                >
+                  <span className="material-icons">play_arrow</span>
+                  <span>
+                    {isLocal
+                      ? 'Assistir do Disco Local'
+                      : isSeries
+                      ? `Assistir Episódio ${selectedEpisode?.episode || selectedEpisode?.number || 1}`
+                      : loading
+                      ? 'Buscando Fontes...'
+                      : streams.length > 0
+                      ? `Assistir Agora (${streams[0].quality || '1080p'})`
+                      : 'Assistir'}
+                  </span>
+                </button>
 
+                {/* 2. Botão Baixar para o PC */}
+                <button
+                  type="button"
+                  className={`tv-btn tv-btn-download ${isDownloadFocused ? 'focused' : ''} ${isLocal ? 'already-local' : ''}`}
+                  onClick={handleDownload}
+                >
+                  <span className="material-icons">
+                    {isLocal
+                      ? 'check_circle'
+                      : downloadSuccess
+                      ? 'cloud_done'
+                      : downloading
+                      ? 'sync'
+                      : 'file_download'}
+                  </span>
+                  <span>
+                    {isLocal
+                      ? 'Salvo no PC (D:\\Filmes)'
+                      : downloadSuccess
+                      ? 'Download Iniciado!'
+                      : downloading
+                      ? 'Baixando para o PC...'
+                      : isSeries
+                      ? `Baixar Episódio ${selectedEpisode?.episode || selectedEpisode?.number || 1} para o PC`
+                      : 'Baixar para o PC (D:\\Filmes)'}
+                  </span>
+                </button>
+
+                {/* 3. Botão Minha Lista (Favoritos) */}
                 <button
                   type="button"
                   className={`tv-btn tv-btn-secondary ${isFavFocused ? 'focused' : ''}`}
@@ -202,10 +395,19 @@ export function MovieDetailsModal({
                   <span>{favorite ? 'Na Minha Lista' : 'Minha Lista'}</span>
                 </button>
               </div>
+
+              {/* Notificação Toast dentro do Modal */}
+              {toastMessage && (
+                <div className="tv-modal-toast">
+                  <span className="material-icons" style={{ fontSize: '18px', color: '#22c55e' }}>info</span>
+                  <span>{toastMessage}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
+        {/* Corpo do Modal: Sinopse, Temporadas e Lista de Torrents */}
         <div className="tv-modal-body">
           <p className="tv-modal-synopsis">{synopsis}</p>
 
@@ -226,7 +428,7 @@ export function MovieDetailsModal({
               </div>
 
               <div className="tv-episodes-list">
-                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
                   Episódios da Temporada {selectedSeason}:
                 </h3>
 
@@ -260,9 +462,9 @@ export function MovieDetailsModal({
 
               {/* Opções de Transmissão do Episódio Selecionado */}
               {selectedEpisode && (
-                <div className="tv-streams-section" style={{ marginTop: '16px' }}>
+                <div className="tv-streams-section" style={{ marginTop: '20px' }}>
                   <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-                    Opções para o Episódio {selectedEpisode.episode || selectedEpisode.number} ({selectedEpisode.name}):
+                    Opções para o Episódio {selectedEpisode.episode || selectedEpisode.number} ({selectedEpisode.name || 'Episódio'}):
                   </h3>
 
                   {loadingStreams && (
@@ -273,36 +475,40 @@ export function MovieDetailsModal({
                     <div style={{ color: 'var(--text-subtle)' }}>Nenhum stream encontrado para este episódio no momento.</div>
                   )}
 
-                  {episodeStreams.map((stream, idx) => (
-                    <div
-                      key={stream.infoHash || idx}
-                      className="tv-stream-item"
-                      onClick={() => onPlayStream({
-                        streamUrl: stream.streamUrl,
-                        title: `${title} - T${selectedSeason}E${selectedEpisode.episode || selectedEpisode.number}: ${selectedEpisode.name || ''}`,
-                        poster: selectedEpisode.thumbnail || poster,
-                        infoHash: stream.infoHash,
-                        quality: stream.quality
-                      })}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <span className="material-icons" style={{ color: 'var(--primary)' }}>play_circle</span>
-                        <div>
-                          <div className="tv-stream-title">{stream.title || stream.name || title}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '2px' }}>
-                            Sementes: {stream.seeders || stream.seeds || 0} • Tamanho: {stream.size || 'HD'} {stream.audio ? `• ${stream.audio}` : ''}
+                  {episodeStreams.map((stream, idx) => {
+                    const streamFocusIndex = 3 + idx;
+                    const isStreamFocused = isZoneFocused && focusedIndex === streamFocusIndex;
+                    return (
+                      <div
+                        key={stream.infoHash || idx}
+                        className={`tv-stream-item ${isStreamFocused ? 'focused' : ''}`}
+                        onClick={() => onPlayStream({
+                          streamUrl: stream.streamUrl,
+                          title: `${title} - T${selectedSeason}E${selectedEpisode.episode || selectedEpisode.number}: ${selectedEpisode.name || ''}`,
+                          poster: selectedEpisode.thumbnail || poster,
+                          infoHash: stream.infoHash,
+                          quality: stream.quality
+                        })}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                          <span className="material-icons" style={{ color: 'var(--primary)' }}>play_circle</span>
+                          <div>
+                            <div className="tv-stream-title">{stream.title || stream.name || title}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '2px' }}>
+                              Sementes: {stream.seeders || stream.seeds || 0} • Tamanho: {stream.size || 'HD'} {stream.audio ? `• ${stream.audio}` : ''}
+                            </div>
                           </div>
                         </div>
+                        <span className="tv-stream-badge">{stream.quality || '1080p'}</span>
                       </div>
-                      <span className="tv-stream-badge">{stream.quality || '1080p'}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           )}
 
-          {/* Seção de Filmes: Torrents */}
+          {/* Seção de Filmes: Opções de Transmissão (Torrents) */}
           {!isSeries && !isLocal && (
             <div className="tv-streams-section">
               <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
@@ -314,7 +520,7 @@ export function MovieDetailsModal({
               )}
 
               {streams.map((stream, idx) => {
-                const streamFocusIndex = 2 + idx;
+                const streamFocusIndex = 3 + idx;
                 const isStreamFocused = isZoneFocused && focusedIndex === streamFocusIndex;
                 return (
                   <div
