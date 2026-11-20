@@ -1,50 +1,144 @@
-import React from 'react';
-import { CarouselRow } from '../components/CarouselRow';
+import React, { useEffect, useRef } from 'react';
+import { LocalMovieCard } from '../components/LocalMovieCard';
 
 export function LocalFolderView({
-  localSections = [],
-  activeZone,
-  rowIndex,
-  colIndex,
-  onSelectMovie
+  localLibrary = {},
+  filters = [],
+  activeFilter = 'all',
+  onSelectFilter = () => {},
+  gridRows = [],
+  activeZone = 'rows',
+  localFilterIndex = 0,
+  rowIndex = 0,
+  colIndex = 0,
+  onSelectMovie = () => {}
 }) {
+  const isFiltersFocused = activeZone === 'local-filters';
   const isRowsFocused = activeZone === 'rows';
+
+  const filterRefs = useRef([]);
+
+  // Garante auto-scroll horizontal suave na barra de filtros quando navegada pelo controle remoto
+  useEffect(() => {
+    if (isFiltersFocused && filterRefs.current[localFilterIndex]) {
+      filterRefs.current[localFilterIndex].scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest'
+      });
+    }
+  }, [isFiltersFocused, localFilterIndex]);
+
+  const count = localLibrary.count || (localLibrary.movies ? localLibrary.movies.length : 0);
+  const totalSize = localLibrary.totalSize || '';
+  const franchisesCount = localLibrary.franchises ? localLibrary.franchises.length : 0;
+  const savePath = localLibrary.savePath || 'D:\\Filmes';
+
+  const isCollectionsMode = activeFilter === 'collections';
 
   return (
     <div className="tv-view-container tv-local-view" style={{ paddingTop: '90px' }}>
-      <div className="tv-page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+      {/* 1. Cabeçalho Editorial com Estatísticas do Disco */}
+      <div className="tv-page-header tv-local-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
           <h1 className="tv-page-title">Minha Pasta Local</h1>
-          <span className="tv-badge-pill" style={{ background: '#22c55e', color: '#000', fontWeight: 800 }}>
-            D:\Filmes
+          <span className="tv-badge-pill tv-badge-path">
+            <span className="material-icons" style={{ fontSize: '14px' }}>folder</span>
+            <span>{savePath}</span>
+          </span>
+          <span className="tv-badge-pill tv-badge-stats">
+            {count} filmes salvos • {totalSize || '74 GB'} • {franchisesCount} franquias
           </span>
         </div>
         <p className="tv-page-subtitle">
-          Filmes armazenados no seu computador. Reprodução instantânea direta sem consumo de internet.
+          Acervo permanente no disco do computador. Reprodução instantânea de alta fidelidade com zero consumo de internet.
         </p>
       </div>
 
-      {localSections.length === 0 ? (
+      {/* 2. Barra de Filtros e Franquias (10-Foot Focusable Chips) */}
+      <div className="tv-local-filter-bar">
+        {filters.map((f, idx) => {
+          const isFocused = isFiltersFocused && localFilterIndex === idx;
+          const isActive = activeFilter === f.id;
+          return (
+            <button
+              key={f.id}
+              ref={el => filterRefs.current[idx] = el}
+              type="button"
+              className={`tv-filter-chip ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}`}
+              onClick={() => onSelectFilter(f.id, idx)}
+            >
+              {f.icon && <span className="material-icons" style={{ fontSize: '18px' }}>{f.icon}</span>}
+              <span>{f.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 3. Área de Conteúdo: Grid Full-Page Vertical (Sem Carrossel) */}
+      {gridRows.length === 0 ? (
         <div className="tv-empty-container">
           <span className="material-icons" style={{ fontSize: '64px', color: 'var(--text-subtle)' }}>folder_off</span>
-          <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Nenhum filme local encontrado em D:\Filmes</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Adicione arquivos .mkv ou .mp4 à pasta ou baixe pela plataforma.</p>
+          <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Nenhum filme encontrado nesta categoria</h2>
+          <p style={{ color: 'var(--text-muted)' }}>Adicione arquivos à pasta {savePath} ou selecione outro filtro.</p>
         </div>
-      ) : (
-        <div className="tv-sections-container">
-          {localSections.map((section, idx) => {
-            const isCurrentRowFocused = isRowsFocused && rowIndex === idx;
+      ) : isCollectionsMode ? (
+        /* Modo Coleções Agrupadas: Seções com Título de Franquia + Grid de cada franquia */
+        <div className="tv-collections-container">
+          {gridRows.map((row, rIdx) => {
+            const isCurrentRowFocused = isRowsFocused && rowIndex === rIdx;
             return (
-              <CarouselRow
-                key={section.id || idx}
-                title={section.title}
-                movies={section.movies}
-                isRowFocused={isCurrentRowFocused}
-                focusedColIndex={colIndex}
-                onSelectMovie={onSelectMovie}
-              />
+              <div key={row.id || rIdx} className="tv-franchise-section">
+                {row.title && (
+                  <div className="tv-franchise-section-header">
+                    <div className="tv-franchise-title-row">
+                      <span className="material-icons tv-franchise-icon">{row.icon || 'collections_bookmark'}</span>
+                      <h2 className="tv-franchise-title">{row.title}</h2>
+                      {row.subtitle && <span className="tv-franchise-badge">{row.subtitle}</span>}
+                    </div>
+                  </div>
+                )}
+                <div className="tv-fullpage-grid">
+                  {row.movies.map((movie, cIdx) => (
+                    <LocalMovieCard
+                      key={movie.id || `${rIdx}-${cIdx}`}
+                      movie={movie}
+                      isFocused={isCurrentRowFocused && colIndex === cIdx}
+                      onClick={() => onSelectMovie(movie)}
+                    />
+                  ))}
+                </div>
+              </div>
             );
           })}
+        </div>
+      ) : (
+        /* Modo Galeria Contínua: Grid de página inteira (6 colunas) */
+        <div className="tv-single-gallery-container">
+          {gridRows[0]?.title && (
+            <div className="tv-franchise-section-header" style={{ marginBottom: '20px' }}>
+              <div className="tv-franchise-title-row">
+                <span className="material-icons tv-franchise-icon">{gridRows[0].icon || 'collections_bookmark'}</span>
+                <h2 className="tv-franchise-title">{gridRows[0].title}</h2>
+                {gridRows[0].subtitle && <span className="tv-franchise-badge">{gridRows[0].subtitle}</span>}
+              </div>
+            </div>
+          )}
+          <div className="tv-fullpage-grid">
+            {gridRows.map((row, rIdx) => (
+              row.movies.map((movie, cIdx) => {
+                const isItemFocused = isRowsFocused && rowIndex === rIdx && colIndex === cIdx;
+                return (
+                  <LocalMovieCard
+                    key={movie.id || `${rIdx}-${cIdx}`}
+                    movie={movie}
+                    isFocused={isItemFocused}
+                    onClick={() => onSelectMovie(movie)}
+                  />
+                );
+              })
+            ))}
+          </div>
         </div>
       )}
     </div>

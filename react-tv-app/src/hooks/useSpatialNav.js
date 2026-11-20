@@ -25,6 +25,7 @@ export function useSpatialNav({
   hasHero = true,
   rowCount = 1,
   getColCount = null,
+  localFilterCount = 0,
   modalItemsCount = 2,
   onBack = null,
   onEnter = null,
@@ -32,12 +33,13 @@ export function useSpatialNav({
   onSeek = null,
   onVolume = null
 }) {
-  const [activeZone, setActiveZone] = useState('rows'); // 'header' | 'hero' | 'rows' | 'modal' | 'player' | 'search-keyboard' | 'search-results'
+  const [activeZone, setActiveZone] = useState('rows'); // 'header' | 'hero' | 'rows' | 'modal' | 'player' | 'search-keyboard' | 'search-results' | 'local-filters'
   const [headerIndex, setHeaderIndex] = useState(0);
   const [heroIndex, setHeroIndex] = useState(0);
   const [rowIndex, setRowIndex] = useState(0);
   const [colIndex, setColIndex] = useState(0);
   const [modalIndex, setModalIndex] = useState(0);
+  const [localFilterIndex, setLocalFilterIndex] = useState(0);
 
   // Estados específicos para a busca
   const [searchRowIndex, setSearchRowIndex] = useState(0);
@@ -182,6 +184,7 @@ export function useSpatialNav({
           heroIndex,
           rowIndex,
           colIndex,
+          filterIndex: localFilterIndex,
           searchRowIndex,
           searchColIndex,
           resultsColIndex,
@@ -196,12 +199,23 @@ export function useSpatialNav({
       e.preventDefault();
       if (activeZone === 'rows') {
         if (rowIndex > 0) {
-          setRowIndex(r => r - 1);
+          setRowIndex(r => {
+            const nextR = r - 1;
+            if (getColCount) {
+              const maxC = getColCount(nextR);
+              setColIndex(c => Math.min(Math.max(0, maxC - 1), c));
+            }
+            return nextR;
+          });
+        } else if (activeTab === 'local') {
+          setActiveZone('local-filters');
         } else if (activeTab === 'home' && hasHero) {
           setActiveZone('hero');
         } else {
           setActiveZone('header');
         }
+      } else if (activeZone === 'local-filters') {
+        setActiveZone('header');
       } else if (activeZone === 'hero') {
         setActiveZone('header');
       } else if (activeZone === 'search-keyboard') {
@@ -224,15 +238,28 @@ export function useSpatialNav({
           setActiveZone('hero');
         } else if (activeTab === 'search') {
           setActiveZone('search-keyboard');
+        } else if (activeTab === 'local') {
+          setActiveZone('local-filters');
         } else {
           setActiveZone('rows');
           setRowIndex(0);
         }
+      } else if (activeZone === 'local-filters') {
+        setActiveZone('rows');
+        setRowIndex(0);
+        setColIndex(0);
       } else if (activeZone === 'hero') {
         setActiveZone('rows');
         setRowIndex(0);
       } else if (activeZone === 'rows') {
-        setRowIndex(r => Math.min(Math.max(0, rowCount - 1), r + 1));
+        setRowIndex(r => {
+          const nextR = Math.min(Math.max(0, rowCount - 1), r + 1);
+          if (getColCount) {
+            const maxC = getColCount(nextR);
+            setColIndex(c => Math.min(Math.max(0, maxC - 1), c));
+          }
+          return nextR;
+        });
       } else if (activeZone === 'search-keyboard') {
         if (searchRowIndex < 3) {
           setSearchRowIndex(r => r + 1);
@@ -248,6 +275,8 @@ export function useSpatialNav({
       e.preventDefault();
       if (activeZone === 'header') {
         setHeaderIndex(i => Math.max(0, i - 1));
+      } else if (activeZone === 'local-filters') {
+        setLocalFilterIndex(i => Math.max(0, i - 1));
       } else if (activeZone === 'hero') {
         setHeroIndex(i => Math.max(0, i - 1));
       } else if (activeZone === 'rows') {
@@ -269,6 +298,8 @@ export function useSpatialNav({
       e.preventDefault();
       if (activeZone === 'header') {
         setHeaderIndex(i => Math.min(5, i + 1));
+      } else if (activeZone === 'local-filters') {
+        setLocalFilterIndex(i => Math.min(Math.max(0, localFilterCount - 1), i + 1));
       } else if (activeZone === 'hero') {
         setHeroIndex(i => Math.min(1, i + 1));
       } else if (activeZone === 'rows') {
@@ -287,8 +318,8 @@ export function useSpatialNav({
       return;
     }
   }, [
-    isPlayerOpen, isModalOpen, activeZone, activeTab, hasHero, rowCount, getColCount,
-    modalItemsCount, headerIndex, heroIndex, rowIndex, colIndex, modalIndex,
+    isPlayerOpen, isModalOpen, activeZone, activeTab, hasHero, rowCount, getColCount, localFilterCount,
+    modalItemsCount, headerIndex, heroIndex, rowIndex, colIndex, modalIndex, localFilterIndex,
     searchRowIndex, searchColIndex, resultsColIndex,
     onBack, onEnter, onPlayPause, onSeek, onVolume
   ]);
@@ -309,6 +340,8 @@ export function useSpatialNav({
     setRowIndex,
     colIndex,
     setColIndex,
+    localFilterIndex,
+    setLocalFilterIndex,
     modalIndex,
     setModalIndex,
     searchRowIndex,

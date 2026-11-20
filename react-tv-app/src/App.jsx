@@ -14,6 +14,7 @@ import {
   getSeries,
   getGenres,
   getLocalMovies,
+  getLocalLibraryData,
   getDownloads,
   getWatchHistory,
   getFavorites,
@@ -28,6 +29,16 @@ export function App() {
   const [genreSections, setGenreSections] = useState([]);
   const [seriesGenreSections, setSeriesGenreSections] = useState([]);
   const [localMovies, setLocalMovies] = useState([]);
+  const [localLibrary, setLocalLibrary] = useState({
+    movies: [],
+    franchises: [],
+    standaloneMovies: [],
+    series: [],
+    count: 0,
+    totalSize: '',
+    savePath: 'D:\\Filmes'
+  });
+  const [localFilterId, setLocalFilterId] = useState('all');
   const [downloads, setDownloads] = useState([]);
   const [watchHistory, setWatchHistory] = useState([]);
   const [favorites, setFavorites] = useState([]);
@@ -51,9 +62,10 @@ export function App() {
       setTrendingMovies(movies);
     });
 
-    // Filmes Locais
-    getLocalMovies().then(movies => {
-      setLocalMovies(movies);
+    // Biblioteca e Filmes Locais (com franquias estruturadas)
+    getLocalLibraryData().then(data => {
+      setLocalLibrary(data);
+      setLocalMovies(data.movies || []);
     });
 
     // Downloads
@@ -158,17 +170,117 @@ export function App() {
     return list;
   }, [watchHistory, favorites, trendingMovies, seriesGenreSections, localMovies, genreSections]);
 
-  // Seções da visualização Local
-  const localSections = useMemo(() => {
-    if (localMovies.length === 0) return [];
-    return [
-      {
-        id: 'all-local',
-        title: 'Todos os Filmes Prontos no Disco',
-        movies: localMovies
-      }
+  // Filtros disponíveis na visualização local
+  const localFilters = useMemo(() => {
+    const list = [
+      { id: 'all', label: `Todos os Filmes (${localLibrary.count || (localLibrary.movies ? localLibrary.movies.length : 32)})`, icon: 'video_library' },
+      { id: 'collections', label: `Coleções Agrupadas (${localLibrary.franchises ? localLibrary.franchises.length : 10})`, icon: 'collections_bookmark' }
     ];
-  }, [localMovies]);
+
+    if (localLibrary.franchises && localLibrary.franchises.length > 0) {
+      localLibrary.franchises.forEach(f => {
+        list.push({
+          id: `franchise:${f.name}`,
+          label: `${f.name} (${f.movies ? f.movies.length : (f.count || 1)})`,
+          icon: 'folder_special'
+        });
+      });
+    }
+
+    if (localLibrary.standaloneMovies && localLibrary.standaloneMovies.length > 0) {
+      list.push({
+        id: 'standalone',
+        label: `Filmes Avulsos (${localLibrary.standaloneMovies.length})`,
+        icon: 'movie'
+      });
+    }
+
+    return list;
+  }, [localLibrary]);
+
+  // Seções e linhas em grid full-page (6 colunas) para a visualização Local
+  const localGridRows = useMemo(() => {
+    const COL_COUNT = 6;
+    if (!localLibrary || !localLibrary.movies) return [];
+
+    // 1. Modo Coleções Agrupadas
+    if (localFilterId === 'collections') {
+      const rows = [];
+      (localLibrary.franchises || []).forEach(f => {
+        const fMovies = f.movies || [];
+        for (let i = 0; i < fMovies.length; i += COL_COUNT) {
+          rows.push({
+            id: `franchise-${f.name}-${i}`,
+            title: i === 0 ? `Coleção ${f.name}` : '',
+            subtitle: i === 0 ? `${fMovies.length} ${fMovies.length === 1 ? 'filme salvo' : 'filmes salvos em ordem cronológica'}` : '',
+            icon: 'collections_bookmark',
+            movies: fMovies.slice(i, i + COL_COUNT)
+          });
+        }
+      });
+
+      if (localLibrary.standaloneMovies && localLibrary.standaloneMovies.length > 0) {
+        const stMovies = localLibrary.standaloneMovies;
+        for (let i = 0; i < stMovies.length; i += COL_COUNT) {
+          rows.push({
+            id: `standalone-${i}`,
+            title: i === 0 ? 'Filmes Avulsos' : '',
+            subtitle: i === 0 ? `${stMovies.length} filmes individuais salvos no disco` : '',
+            icon: 'movie',
+            movies: stMovies.slice(i, i + COL_COUNT)
+          });
+        }
+      }
+      return rows;
+    }
+
+    // 2. Modo Franquia Específica (ex: 'franchise:Shrek')
+    if (localFilterId.startsWith('franchise:')) {
+      const fName = localFilterId.replace('franchise:', '');
+      const f = (localLibrary.franchises || []).find(x => x.name === fName);
+      const fMovies = f ? f.movies : [];
+      const rows = [];
+      for (let i = 0; i < fMovies.length; i += COL_COUNT) {
+        rows.push({
+          id: `franchise-single-${i}`,
+          title: i === 0 ? `Coleção ${fName}` : '',
+          subtitle: i === 0 ? `${fMovies.length} ${fMovies.length === 1 ? 'filme salvo' : 'filmes salvos em ordem cronológica'}` : '',
+          icon: 'collections_bookmark',
+          movies: fMovies.slice(i, i + COL_COUNT)
+        });
+      }
+      return rows;
+    }
+
+    // 3. Modo Filmes Avulsos
+    if (localFilterId === 'standalone') {
+      const stMovies = localLibrary.standaloneMovies || [];
+      const rows = [];
+      for (let i = 0; i < stMovies.length; i += COL_COUNT) {
+        rows.push({
+          id: `standalone-single-${i}`,
+          title: i === 0 ? 'Filmes Avulsos (Sem Franquia)' : '',
+          subtitle: i === 0 ? `${stMovies.length} títulos individuais` : '',
+          icon: 'movie',
+          movies: stMovies.slice(i, i + COL_COUNT)
+        });
+      }
+      return rows;
+    }
+
+    // 4. Modo Padrão: 'all' (Página inteira contínua com todos os filmes salvos)
+    const allMovies = localLibrary.movies || [];
+    const rows = [];
+    for (let i = 0; i < allMovies.length; i += COL_COUNT) {
+      rows.push({
+        id: `all-grid-${i}`,
+        title: '',
+        subtitle: '',
+        movies: allMovies.slice(i, i + COL_COUNT)
+      });
+    }
+    return rows;
+  }, [localLibrary, localFilterId]);
 
   // Filme em destaque (Hero)
   const heroMovie = useMemo(() => {
@@ -180,22 +292,26 @@ export function App() {
     if (activeTab === 'home') return homeSections;
     if (activeTab === 'movies') return genreSections;
     if (activeTab === 'series') return seriesGenreSections;
-    if (activeTab === 'local') return localSections;
+    if (activeTab === 'local') return localGridRows;
     return [];
-  }, [activeTab, homeSections, genreSections, seriesGenreSections, localSections]);
+  }, [activeTab, homeSections, genreSections, seriesGenreSections, localGridRows]);
 
   const rowCount = useMemo(() => {
     if (activeTab === 'downloads') return Math.max(1, downloads.length);
     if (activeTab === 'search') return 1;
+    if (activeTab === 'local') return Math.max(1, localGridRows.length);
     return Math.max(1, currentSections.length);
-  }, [activeTab, downloads.length, currentSections.length]);
+  }, [activeTab, downloads.length, localGridRows.length, currentSections.length]);
 
   const getColCount = useCallback((rIdx) => {
+    if (activeTab === 'local') {
+      return localGridRows[rIdx]?.movies?.length || 1;
+    }
     if (currentSections[rIdx] && currentSections[rIdx].movies) {
       return currentSections[rIdx].movies.length;
     }
     return 1;
-  }, [currentSections]);
+  }, [activeTab, localGridRows, currentSections]);
 
   // Iniciar reprodução de filme ou abrir modal de série
   const handlePlayMovieDirect = useCallback(async (movie) => {
@@ -244,6 +360,7 @@ export function App() {
     hasHero: activeTab === 'home' && Boolean(heroMovie),
     rowCount,
     getColCount,
+    localFilterCount: localFilters.length,
     modalItemsCount: 5,
     onBack: () => {
       // Hierarquia estrita do botão Voltar (Tizen / Esc)
@@ -271,7 +388,7 @@ export function App() {
         } catch (_) {}
       }
     },
-    onEnter: ({ zone, headerIndex, heroIndex, rowIndex, colIndex, searchRowIndex, searchColIndex, resultsColIndex, isPlayKey }) => {
+    onEnter: ({ zone, headerIndex, heroIndex, rowIndex, colIndex, filterIndex, searchRowIndex, searchColIndex, resultsColIndex, isPlayKey }) => {
       if (zone === 'header') {
         const item = NAV_ITEMS[headerIndex];
         if (item) {
@@ -289,11 +406,29 @@ export function App() {
         return;
       }
 
+      if (zone === 'local-filters') {
+        const targetFilter = localFilters[filterIndex];
+        if (targetFilter) {
+          setLocalFilterId(targetFilter.id);
+          nav.setRowIndex(0);
+          nav.setColIndex(0);
+        }
+        return;
+      }
+
       if (zone === 'rows') {
         if (activeTab === 'downloads') {
           const dl = downloads[rowIndex];
           if (dl) {
             handlePlayMovieDirect(dl);
+          }
+          return;
+        }
+
+        if (activeTab === 'local') {
+          const row = localGridRows[rowIndex];
+          if (row && row.movies && row.movies[colIndex]) {
+            handlePlayMovieDirect(row.movies[colIndex]);
           }
           return;
         }
@@ -381,11 +516,21 @@ export function App() {
 
         {activeTab === 'local' && (
           <LocalFolderView
-            localSections={localSections}
+            localLibrary={localLibrary}
+            filters={localFilters}
+            activeFilter={localFilterId}
+            onSelectFilter={(fid, idx) => {
+              setLocalFilterId(fid);
+              nav.setLocalFilterIndex(idx);
+              nav.setRowIndex(0);
+              nav.setColIndex(0);
+            }}
+            gridRows={localGridRows}
             activeZone={nav.activeZone}
+            localFilterIndex={nav.localFilterIndex}
             rowIndex={nav.rowIndex}
             colIndex={nav.colIndex}
-            onSelectMovie={setSelectedMovie}
+            onSelectMovie={handlePlayMovieDirect}
           />
         )}
 

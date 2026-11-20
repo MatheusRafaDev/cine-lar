@@ -1,0 +1,79 @@
+import React, { useEffect, useRef } from 'react';
+
+export function LocalMovieCard({ movie, isFocused, onClick }) {
+  const cardRef = useRef(null);
+
+  // Auto-scroll vertical suave para manter o card sempre visível na TV
+  useEffect(() => {
+    if (isFocused && cardRef.current) {
+      cardRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest'
+      });
+    }
+  }, [isFocused]);
+
+  if (!movie) return null;
+
+  const poster = movie.poster || movie.thumbnail || 'https://via.placeholder.com/300x450/1c1c1a/ffffff?text=Sem+Poster';
+  const title = movie.title || movie.name || movie.cleanName || 'Sem título';
+  const year = movie.year || '';
+  const size = movie.sizeFormatted || '';
+  const quality = movie.quality || '1080p';
+  const franchise = movie.franchise || null;
+
+  return (
+    <div
+      ref={cardRef}
+      className={`tv-card tv-local-card ${isFocused ? 'focused' : ''}`}
+      onClick={onClick}
+    >
+      <div className="tv-card-poster-wrap">
+        <img
+          src={poster}
+          alt={title}
+          className="tv-card-poster"
+          loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = 'https://via.placeholder.com/300x450/1c1c1a/ffffff?text=Sem+Poster';
+          }}
+        />
+
+        {franchise && (
+          <div className="tv-card-badge-franchise" title={`Franquia ${franchise}`}>
+            <span className="material-icons" style={{ fontSize: '12px' }}>collections_bookmark</span>
+            <span>{franchise}</span>
+          </div>
+        )}
+
+        {!franchise && (
+          <div className="tv-card-badge-local">
+            <span className="material-icons" style={{ fontSize: '11px', marginRight: '2px' }}>folder</span>
+            <span>Local</span>
+          </div>
+        )}
+
+        <div className="tv-card-badge-quality">
+          {quality}
+        </div>
+
+        {/* Ícone de Play centralizado que surge quando em foco */}
+        <div className={`tv-local-play-overlay ${isFocused ? 'visible' : ''}`}>
+          <span className="material-icons" style={{ fontSize: '48px', color: '#FFFFFF' }}>play_circle_filled</span>
+        </div>
+      </div>
+
+      <div className="tv-card-info">
+        <h4 className="tv-card-title" title={title}>{title}</h4>
+        <div className="tv-local-meta-row">
+          {year && <span className="tv-card-meta">{year}</span>}
+          {year && size && <span className="tv-meta-separator">•</span>}
+          {size && <span className="tv-card-badge-size">{size}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -160,6 +160,43 @@ export async function getLocalMovies() {
   }
 }
 
+// 4.1 Obter biblioteca local completa com franquias e filmes avulsos estruturados
+export async function getLocalLibraryData() {
+  try {
+    const data = await request('/api/local-movies');
+    const movies = (data.movies || []).map(normalizeMovie);
+    const franchises = (data.franchises || []).map(f => ({
+      ...f,
+      movies: (f.movies || []).map(normalizeMovie)
+    }));
+    const standaloneMovies = (data.standaloneMovies || []).map(normalizeMovie);
+    const series = (data.series || []).map(s => ({
+      ...s,
+      episodes: (s.episodes || []).map(normalizeMovie)
+    }));
+
+    return {
+      movies,
+      franchises,
+      standaloneMovies,
+      series,
+      count: data.count || movies.length,
+      totalSize: data.totalSize || '',
+      savePath: data.savePath || 'D:\\Filmes'
+    };
+  } catch (_) {
+    return {
+      movies: [],
+      franchises: [],
+      standaloneMovies: [],
+      series: [],
+      count: 0,
+      totalSize: '',
+      savePath: 'D:\\Filmes'
+    };
+  }
+}
+
 // 5. Obter torrents e detalhes do filme para reprodução
 export async function getMovieDetails(movie) {
   if (!movie) return null;
