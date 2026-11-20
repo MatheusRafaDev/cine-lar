@@ -4,16 +4,20 @@ import { getSavedProgress } from '../services/api';
 function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu }) {
   const cardRef = useRef(null);
   const pointerTimerRef = useRef(null);
+  const pointerLongPressedRef = useRef(false);
   const [imgFailed, setImgFailed] = useState(false);
 
-  // Quando o card ganha foco, garante que o scroll horizontal do carrossel o mantenha visível sem atraso
+  // Quando o card ganha foco, rola apenas o trilho horizontal via offsetLeft (Zero Reflow Engine)
   useEffect(() => {
     if (isFocused && cardRef.current) {
-      cardRef.current.scrollIntoView({
-        behavior: 'auto',
-        inline: 'center',
-        block: 'nearest'
-      });
+      const el = cardRef.current;
+      const track = el.parentElement;
+      if (track && track.classList.contains('tv-carousel-track')) {
+        const targetLeft = el.offsetLeft - (track.clientWidth / 2) + ((el.offsetWidth || 176) / 2);
+        track.scrollLeft = Math.max(0, targetLeft);
+      } else {
+        el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      }
     }
   }, [isFocused]);
 
@@ -24,6 +28,12 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
   if (!movie) return null;
 
   const handleClick = (e) => {
+    if (pointerLongPressedRef.current) {
+      pointerLongPressedRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (onSelect) {
       onSelect(movie);
     } else if (onClick) {
@@ -46,8 +56,11 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
       : null);
 
   const handlePointerDown = () => {
+    pointerLongPressedRef.current = false;
     if (!onContextMenu) return;
     pointerTimerRef.current = setTimeout(() => {
+      pointerLongPressedRef.current = true;
+      pointerTimerRef.current = null;
       onContextMenu(movie);
     }, 450);
   };
@@ -80,7 +93,7 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
         {poster && !imgFailed ? (
           <img
             src={poster}
-            alt={title}
+            alt=""
             className="tv-card-poster"
             loading="lazy"
             decoding="async"
@@ -115,13 +128,13 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
           </div>
         )}
 
-        <div className="tv-card-bottom-scrim" />
-
-        <div className={`tv-card-play-overlay ${isFocused ? 'visible' : ''}`}>
-          <div className="tv-card-play-btn">
-            <span className="material-icons" style={{ fontSize: '26px', color: '#FFFFFF' }}>play_arrow</span>
+        {isFocused && (
+          <div className="tv-card-play-overlay visible">
+            <div className="tv-card-play-btn">
+              <span className="material-icons" style={{ fontSize: '26px', color: '#FFFFFF' }}>play_arrow</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {progress !== null && progress > 0 && (
           <div className="tv-card-progress-bar">

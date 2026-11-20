@@ -22,7 +22,8 @@ export function MovieDetailsModal({
   onClose,
   onPlayStream,
   modalActionRef,
-  onToggleFavorite
+  onToggleFavorite,
+  onDeleteLocal
 }) {
   const [details, setDetails] = useState(movie);
   const [loading, setLoading] = useState(false);
@@ -135,7 +136,8 @@ export function MovieDetailsModal({
   const backdrop = details?.backdrop || movie?.backdrop || poster;
   const synopsis = details?.synopsis || details?.description || movie?.synopsis || 'Sem sinopse disponível.';
   const streams = details?.streams || [];
-  const isLocal = Boolean(details?.isLocal || details?.filePath || details?.videoPath);
+  const resolvedLocalPath = details?.filePath || details?.videoPath || details?.localFile?.videoPath || movie?.filePath || movie?.videoPath || '';
+  const isLocal = Boolean(resolvedLocalPath);
 
   // Progresso salvo previamente no histórico
   const savedProgress = useMemo(() => {
@@ -175,22 +177,19 @@ export function MovieDetailsModal({
       return;
     }
 
-    if (isLocal) {
-      const filePath = details.filePath || details.videoPath || movie.filePath || movie.videoPath || '';
-      let sUrl = details.streamUrl || movie.streamUrl || `/api/local/stream?file=${encodeURIComponent(filePath)}`;
-      if (!sUrl.includes('direct=')) {
-        sUrl += (sUrl.includes('?') ? '&' : '?') + 'direct=1';
-      }
+    if (isLocal && resolvedLocalPath) {
+      const sUrl = details?.localFile?.streamUrl || details?.streamUrl || movie?.streamUrl || `/api/local/stream?file=${encodeURIComponent(resolvedLocalPath)}`;
       onPlayStream({
-        id: details.id || movie.id || filePath,
-        movieId: details.id || movie.id || filePath,
+        id: details.id || movie.id || resolvedLocalPath,
+        movieId: details.id || movie.id || resolvedLocalPath,
         imdbId: details.imdbId || movie.imdbId,
         streamUrl: sUrl,
         title,
         poster,
-        quality: details.quality || movie.quality || '1080p Full HD',
+        quality: details?.localFile?.quality || details.quality || movie.quality || '1080p Full HD',
         isLocal: true,
-        filePath,
+        filePath: resolvedLocalPath,
+        duration: details?.localFile?.duration || details.duration || movie.duration || 0,
         resumePosition: posToResume
       });
       return;
@@ -492,28 +491,38 @@ export function MovieDetailsModal({
       });
     }
 
-    // 3. Baixar para o PC / Episódio
-    list.push({
-      id: 'download',
-      icon: isLocal
-        ? 'check_circle'
-        : downloadSuccess
-        ? 'cloud_done'
-        : downloading
-        ? 'sync'
-        : 'file_download',
-      label: isLocal
-        ? 'Salvo no PC (D:\\Filmes)'
-        : downloadSuccess
-        ? 'Download Iniciado!'
-        : downloading
-        ? 'Baixando para o PC...'
-        : isSeries
-        ? `Baixar Episódio ${selectedEpisode?.episode || selectedEpisode?.number || 1}`
-        : 'Baixar para o PC (D:\\Filmes)',
-      isDownload: true,
-      action: handleDownload
-    });
+    // 3. Baixar para o PC / Excluir Arquivo Local se já estiver salvo no disco
+    if (isLocal && onDeleteLocal) {
+      list.push({
+        id: 'delete_local',
+        icon: 'delete_forever',
+        label: 'Excluir do PC',
+        warning: true,
+        action: () => onDeleteLocal({ ...movie, ...details })
+      });
+    } else {
+      list.push({
+        id: 'download',
+        icon: isLocal
+          ? 'check_circle'
+          : downloadSuccess
+          ? 'cloud_done'
+          : downloading
+          ? 'sync'
+          : 'file_download',
+        label: isLocal
+          ? 'Salvo no PC (D:\\Filmes)'
+          : downloadSuccess
+          ? 'Download Iniciado!'
+          : downloading
+          ? 'Baixando para o PC...'
+          : isSeries
+          ? `Baixar Episódio ${selectedEpisode?.episode || selectedEpisode?.number || 1}`
+          : 'Baixar para o PC (D:\\Filmes)',
+        isDownload: true,
+        action: handleDownload
+      });
+    }
 
     // 4. Baixar Todos os Episódios (Apenas Séries online)
     if (isSeries && !isLocal) {
@@ -562,7 +571,10 @@ export function MovieDetailsModal({
     handleDownload,
     handleOpenSeriesDownloadDialog,
     handleToggleFav,
-    handleRemoveHistory
+    handleRemoveHistory,
+    onDeleteLocal,
+    movie,
+    details
   ]);
 
   const streamBaseIndex = actionButtons.length;

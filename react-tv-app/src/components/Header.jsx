@@ -10,7 +10,8 @@ export const NAV_ITEMS = [
   { id: 'search', label: 'Buscar' }
 ];
 
-function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex }) {
+function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, serverStatus = 'checking' }) {
+  const statusLabel = serverStatus === 'online' ? 'Servidor conectado' : serverStatus === 'offline' ? 'Servidor indisponível' : 'Verificando servidor';
   return (
     <header className="tv-header">
       <div className="tv-logo-box" onClick={() => onSelectTab('home')}>
@@ -33,6 +34,10 @@ function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex }
           );
         })}
       </nav>
+      <div className={`tv-server-status ${serverStatus}`} title={statusLabel} aria-label={statusLabel}>
+        <span className="tv-server-status-dot" />
+        <span>{serverStatus === 'online' ? 'Online' : serverStatus === 'offline' ? 'Offline' : 'Conectando'}</span>
+      </div>
     </header>
   );
 }

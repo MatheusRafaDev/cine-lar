@@ -176,9 +176,9 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
     if (currentDepth > maxDepth || !fs.existsSync(dir)) return items;
     const resolvedDir = path.resolve(dir).toLowerCase();
 
-    // Se este diretório for de um download ativo ainda em andamento, não lista na pasta local
-    if (downloadingPaths && downloadingPaths.length > 0) {
-        if (downloadingPaths.some(dp => resolvedDir.startsWith(dp) || dp.startsWith(resolvedDir))) {
+    // Se este subdiretório específico for de um download ativo ainda em andamento, não lista na pasta local
+    if (currentDepth > 0 && downloadingPaths && downloadingPaths.length > 0) {
+        if (downloadingPaths.some(dp => dp && (resolvedDir === dp || resolvedDir.startsWith(dp + path.sep)))) {
             return items;
         }
     }
@@ -205,8 +205,9 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
                 if (stat) {
                     let folderName = path.basename(dir);
                     const parentDir = path.basename(path.dirname(dir));
-                    const isGenericFolder = /^(filmes|matheusflix|cinelar|downloads|videos|movies)$/i.test(folderName);
-                    if (isGenericFolder || currentDepth === 0) {
+                    const isGenericFolder = /^(filmes|matheusflix|cinelar|downloads|videos|movies|depois do filme|bonus|bônus|extras|curtas)$/i.test(folderName) ||
+                        /\b(trilogia|colecao|coleção|collection|saga|pack)\b/i.test(folderName);
+                    if (isGenericFolder || currentDepth === 0 || videoFiles.length > 1) {
                         folderName = vf.name.replace(/\.[^.]+$/, '');
                     } else if (/^(temporada|season|s\d+)/i.test(folderName) && parentDir && !/^(series|filmes|matheusflix|cinelar)$/i.test(parentDir)) {
                         folderName = `${parentDir} ${folderName}`;
@@ -256,6 +257,15 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
 
             const db = getDb();
             const results = [];
+            const usedIds = new Set();
+            const makeUniqueId = (baseId, fallbackPath) => {
+                let candidate = baseId || `local_${encodeURIComponent(fallbackPath)}`;
+                if (usedIds.has(candidate)) {
+                    candidate = `${candidate}_${usedIds.size}`;
+                }
+                usedIds.add(candidate);
+                return candidate;
+            };
             const collected = collectLocalVideos(savePath, 4, 0, downloadingPaths);
 
             for (const item of collected) {
@@ -267,9 +277,11 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                 // 0. VERIFICAÇÃO ULTRA-RÁPIDA EM SQLite: Se o arquivo já foi indexado e não mudou, carrega instantaneamente
                 try {
                     const cached = getLocalMediaByPath(videoFile);
-                    if (cached && cached.file_size === stat.size && Math.abs(cached.mtime_ms - stat.mtimeMs) < 1000) {
+                    const isStaleGenericCache = cached && String(cached.clean_name || '').toLowerCase() !== String(cleanName || '').toLowerCase();
+                    if (cached && !isStaleGenericCache && cached.file_size === stat.size && Math.abs(cached.mtime_ms - stat.mtimeMs) < 1000) {
+                        const baseId = cached.imdb_id || `local_${encodeURIComponent(cached.clean_name || cached.title)}`;
                         results.push({
-                            id: cached.imdb_id || `local_${encodeURIComponent(cached.clean_name || cached.title)}`,
+                            id: makeUniqueId(baseId, cached.file_path),
                             imdbId: cached.imdb_id || '',
                             title: cached.title,
                             originalTitle: cached.original_title || cached.title,
@@ -286,6 +298,7 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                             sizeBytes: cached.file_size,
                             sizeFormatted: formatBytes(cached.file_size),
                             duration: cached.duration || 0,
+                            filePath: cached.file_path,
                             videoPath: cached.file_path,
                             srtPath: cached.srt_path || srtFile || null,
                             streamUrl: `/api/local/stream?file=${encodeURIComponent(cached.file_path)}`,
@@ -485,8 +498,9 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                 });
             } catch (_) {}
 
+            const baseId = movieData?.imdb_id || `local_${encodeURIComponent(cleanName)}`;
             results.push({
-                id: movieData?.imdb_id || `local_${encodeURIComponent(cleanName)}`,
+                id: makeUniqueId(baseId, videoFile),
                 imdbId: movieData?.imdb_id || '',
                 title: movieData?.title || cleanName,
                 originalTitle: movieData?.original_title || cleanName,
@@ -503,6 +517,7 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                 sizeBytes: stat.size,
                 sizeFormatted: formatBytes(stat.size),
                 duration: vidDuration,
+                filePath: videoFile,
                 videoPath: videoFile,
                 srtPath: srtFile,
                 streamUrl: `/api/local/stream?file=${encodeURIComponent(videoFile)}`,
@@ -585,14 +600,12 @@ export function streamLocalVideo(filePath, req, res) {
 
     const urlObj = new URL(req.url, 'http://localhost:8085');
     const isTranscode = urlObj.searchParams.get('transcode') === '1';
-    const isDirectParam = urlObj.searchParams.get('direct') === '1';
-    const isTizen = /Tizen|SmartTV|Samsung|Web0S|LG|BRAVIA|Android/i.test(req.headers['user-agent'] || '');
-    const isDirect = isDirectParam || isTizen;
     const startTimeParam = parseFloat(urlObj.searchParams.get('startTime') || urlObj.searchParams.get('t') || 0);
 
     const isMkvOrNonMp4 = /\.(mkv|avi|ts|mov|wmv|vob|flv)$/i.test(targetFile);
-    // Somente arquivos não-nativos em navegadores sem suporte direto ou transcode forçado usam remux FFmpeg
-    const needsFfmpegRemux = Boolean(RESOLVED_FFMPEG && !isDirect && (isMkvOrNonMp4 || isTranscode || !mediaInfo.isDirectPlayable));
+    // Tizen/Chromium HTML5 <video> exige container MP4 (enableMkvProgressive = false):
+    // sempre remuxa MKV/AVI/TS ou audio AC3/EAC3 em tempo real com -c:v copy (zero perda de qualidade e <1% CPU)
+    const needsFfmpegRemux = Boolean(RESOLVED_FFMPEG && (isMkvOrNonMp4 || isTranscode || !mediaInfo.isDirectPlayable || startTimeParam > 0));
 
     if (needsFfmpegRemux) {
         console.log(`[LocalStream] Remuxando vídeo com FFmpeg "${path.basename(targetFile)}" (start: ${startTimeParam}s, video: ${mediaInfo.videoCodec || 'h264'}, audio: ${mediaInfo.audioCodec || 'aac'})`);
@@ -749,7 +762,21 @@ export function invalidateLocalCache() {
     lastScanTime = 0;
 }
 
+export function removeFileFromLocalCache(targetPath) {
+    if (!targetPath || !Array.isArray(localCache)) return;
+    try {
+        const norm = path.resolve(targetPath).toLowerCase();
+        localCache = localCache.filter(m => {
+            const vp = m.videoPath || m.filePath || '';
+            if (!vp) return true;
+            const resolvedVp = path.resolve(vp).toLowerCase();
+            return resolvedVp !== norm && !resolvedVp.startsWith(norm + path.sep);
+        });
+    } catch (_) {}
+}
+
 export function deleteLocalFile(targetPath, baseDir = 'D:\\filmes') {
+    removeFileFromLocalCache(targetPath);
     deleteLocalMediaRecord(targetPath);
     if (!fs.existsSync(targetPath)) return false;
 

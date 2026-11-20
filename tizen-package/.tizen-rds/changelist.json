@@ -3,71 +3,171 @@
   "deploys": {
     "next": [
       {
-        "path": "Debug/projects/tizen-package/assets/index-BLures-u.css",
+        "path": "Debug/projects/tizen-package/assets/CarouselRow-legacy-Be3Pj2CZ.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-CyBsnakZ.js",
+        "path": "Debug/projects/tizen-package/assets/CarouselRow-VImZgjEn.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-legacy-rCYbb_GE.js",
+        "path": "Debug/projects/tizen-package/assets/CinemaPlayer-legacy-BqqrIdzk.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/polyfills-legacy-CoKm92xK.js",
+        "path": "Debug/projects/tizen-package/assets/CinemaPlayer-mpUxNDVr.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-69IVX0Mm.css",
+        "path": "Debug/projects/tizen-package/assets/DownloadsView-CDsuZTFE.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-CeogfhCn.js",
+        "path": "Debug/projects/tizen-package/assets/DownloadsView-legacy-mxVpKh00.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-legacy-CmuXwADR.js",
+        "path": "Debug/projects/tizen-package/assets/FavoritesView-D-ao3YnO.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-B9ZlC1Z3.js",
+        "path": "Debug/projects/tizen-package/assets/FavoritesView-legacy-ClHN5G8j.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-D4lWKHt4.css",
+        "path": "Debug/projects/tizen-package/assets/HomeView-DyTbI2qv.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-legacy-CvQps1Lt.js",
+        "path": "Debug/projects/tizen-package/assets/HomeView-legacy-CuA8Y3BT.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-CvfY5KrR.css",
+        "path": "Debug/projects/tizen-package/assets/index-Bv-D5wR6.css",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/index.html",
+        "path": "Debug/projects/tizen-package/assets/index-cnzvqMgP.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-h7ch4CoG.js",
+        "path": "Debug/projects/tizen-package/assets/index-legacy-CbHurQBY.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-legacy-DGoJufnJ.js",
+        "path": "Debug/projects/tizen-package/assets/LocalFolderView-DpFi0e4P.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-B6b8DaQZ.css",
+        "path": "Debug/projects/tizen-package/assets/LocalFolderView-legacy-lkr3IMre.js",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-DC1KSHeA.js",
+        "path": "Debug/projects/tizen-package/assets/material-icons-latin-400-normal-B5tbEuci.woff",
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-legacy-WSSLsCah.js",
+        "path": "Debug/projects/tizen-package/assets/material-icons-latin-400-normal-kAwBdRge.woff2",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/MovieCard-B0xlGmHN.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/MovieCard-legacy-B4c9J_2z.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/MovieDetailsModal-CtX_jKrX.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/MovieDetailsModal-legacy-C8aFDRGD.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/MoviesView-legacy-c2PMlanl.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/MoviesView-ZSSd5pMP.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/plus-jakarta-sans-latin-400-normal-BDKaGhyp.woff",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/plus-jakarta-sans-latin-400-normal-Dhut76fR.woff2",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/plus-jakarta-sans-latin-500-normal-Bf-nb4oT.woff2",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/plus-jakarta-sans-latin-500-normal-DYtqi0QS.woff",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/plus-jakarta-sans-latin-600-normal-BR_Ojra4.woff",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/plus-jakarta-sans-latin-600-normal-DLTa1BUW.woff2",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/plus-jakarta-sans-latin-700-normal-CfpNZvy6.woff2",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/plus-jakarta-sans-latin-700-normal-DqEcQeE5.woff",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/plus-jakarta-sans-latin-800-normal-BRNHt2w0.woff",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/plus-jakarta-sans-latin-800-normal-CusIZhrK.woff2",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/polyfills-legacy-Bn4lZXB-.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/QuickActionsModal-legacy--fept1_2.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/QuickActionsModal-sjAdoqTR.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/react-vendor-DKJPOvK7.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/react-vendor-legacy-ChsNuLM3.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/SearchView-DHGfsbWL.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/SearchView-legacy-D0aY6g1s.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/SeriesView-DEh-UaBD.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/SeriesView-legacy-CxC361Qm.js",
         "type": "add"
       },
       {
@@ -79,39 +179,7 @@
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-BWcy-Hl9.css",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/assets/index-inK9cqeI.js",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/assets/index-legacy-CG2_q7MU.js",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/assets/index-CreQ4Zh6.js",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/assets/index-legacy-CgB7IvFZ.js",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/assets/index-rAji3uQx.css",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/assets/index-BF6H6Mio.js",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/assets/index-CcfUEsVU.css",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/assets/index-legacy-IGyL2LWG.js",
+        "path": "Debug/projects/tizen-package/index.html",
         "type": "add"
       }
     ]

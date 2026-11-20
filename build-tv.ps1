@@ -36,9 +36,10 @@ $configXml = @"
     <author href="http://192.168.15.9:8085" email="apps@cinelar.local">Cinelar</author>
     <content src="index.html"/>
     <description>Cinelar TV App para Samsung Smart TV</description>
+    <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
     <feature name="http://tizen.org/feature/screen.size.all"/>
     <icon src="icon.png"/>
-    <tizen:metadata key="http://tizen.org/metadata/app_ui_type/base_screen_resolution" value="fullscreen"/>
+    <tizen:metadata key="http://tizen.org/metadata/app_ui_type/base_screen_resolution" value="extensive"/>
     <name>Cinelar</name>
     <tizen:privilege name="http://developer.samsung.com/privilege/productinfo"/>
     <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>

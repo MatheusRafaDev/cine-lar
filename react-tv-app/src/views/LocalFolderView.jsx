@@ -101,7 +101,7 @@ export function LocalFolderView({
                 <div className="tv-fullpage-grid">
                   {row.movies.map((movie, cIdx) => (
                     <LocalMovieCard
-                      key={movie.id || `${rIdx}-${cIdx}`}
+                      key={movie.filePath || movie.videoPath || `${movie.id || 'local'}-${rIdx}-${cIdx}`}
                       movie={movie}
                       isFocused={isCurrentRowFocused && colIndex === cIdx}
                       onSelect={onSelectMovie}
@@ -114,7 +114,7 @@ export function LocalFolderView({
           })}
         </div>
       ) : (
-        /* Modo Galeria Contínua: Grid de página inteira (6 colunas) */
+        /* Modo Galeria Contínua: Grid de página inteira (8 colunas) */
         <div className="tv-single-gallery-container">
           {gridRows[0]?.title && (
             <div className="tv-franchise-section-header" style={{ marginBottom: '20px' }}>
@@ -131,7 +131,7 @@ export function LocalFolderView({
                 const isItemFocused = isRowsFocused && rowIndex === rIdx && colIndex === cIdx;
                 return (
                   <LocalMovieCard
-                    key={movie.id || `${rIdx}-${cIdx}`}
+                    key={movie.filePath || movie.videoPath || `${movie.id || 'local'}-${rIdx}-${cIdx}`}
                     movie={movie}
                     isFocused={isItemFocused}
                     onSelect={onSelectMovie}

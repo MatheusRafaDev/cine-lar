@@ -61,6 +61,7 @@ export function useSpatialNav({
   // Refs de controle de long press para o botão OK (segurar abre menu de ações)
   const enterLongPressTimerRef = useRef(null);
   const longPressTriggeredRef = useRef(false);
+  const pendingCardEnterRef = useRef(false);
 
   // Ref persistente com todo o estado e props para acesso O(1) no event listener sem recriar
   const stateRef = useRef({});
@@ -102,6 +103,41 @@ export function useSpatialNav({
   };
 
   const lastKeyRef = useRef({ code: 0, time: 0 });
+
+  // Troca de aba adiada ao percorrer o header: evita montar/desmontar uma tela inteira
+  // (dezenas de cards e imagens) a cada toque de seta. A aba so e trocada quando o usuario
+  // para no item (TAB_SWITCH_DELAY) ou confirma com OK / seta para baixo.
+  const TAB_SWITCH_DELAY = 280;
+  const tabChangeTimerRef = useRef(null);
+  const pendingDescendRef = useRef(false);
+
+  const scheduleTabChange = (idx) => {
+    if (tabChangeTimerRef.current) clearTimeout(tabChangeTimerRef.current);
+    tabChangeTimerRef.current = setTimeout(() => {
+      tabChangeTimerRef.current = null;
+      stateRef.current.onTabChange?.(idx);
+    }, TAB_SWITCH_DELAY);
+  };
+
+  // Aplica imediatamente uma troca de aba pendente. Retorna true se a aba vai mudar
+  // (nesse caso a descida para o conteudo acontece apos a nova aba renderizar).
+  const flushTabChange = () => {
+    if (!tabChangeTimerRef.current) return false;
+    clearTimeout(tabChangeTimerRef.current);
+    tabChangeTimerRef.current = null;
+    const idx = stateRef.current.headerIndex;
+    const item = NAV_ITEMS[idx];
+    if (item && item.id !== stateRef.current.activeTab) {
+      pendingDescendRef.current = true;
+      stateRef.current.onTabChange?.(idx);
+      return true;
+    }
+    return false;
+  };
+
+  useEffect(() => () => {
+    if (tabChangeTimerRef.current) clearTimeout(tabChangeTimerRef.current);
+  }, []);
 
   // 1. Registro permanente de teclas de mídia no sistema Tizen da Samsung
   useEffect(() => {
@@ -274,6 +310,13 @@ export function useSpatialNav({
       stateRef.current.headerIndex = tabIdx;
     }
 
+    if (pendingDescendRef.current) {
+      // Usuario confirmou (OK / seta para baixo) antes da troca adiada: desce direto para o conteudo da nova aba
+      pendingDescendRef.current = false;
+      descendFromHeader();
+      return;
+    }
+
     if (stateRef.current.activeZone === 'header') return;
 
     // Restaura a posição salva para a nova aba
@@ -317,9 +360,9 @@ export function useSpatialNav({
     const code = e.keyCode || e.which || 0;
     const key = e.key || '';
 
-    // Debounce inteligente de 30ms apenas para repetição contínua da mesma tecla
+    // Debounce de 55ms apenas para repetição contínua da mesma tecla (evita fila de eventos travando a TV)
     const now = Date.now();
-    if (lastKeyRef.current.code === code && now - lastKeyRef.current.time < 30) {
+    if (lastKeyRef.current.code === code && now - lastKeyRef.current.time < 55) {
       e.preventDefault();
       return;
     }
@@ -340,10 +383,16 @@ export function useSpatialNav({
         enterLongPressTimerRef.current = null;
       }
       longPressTriggeredRef.current = false;
+      pendingCardEnterRef.current = false;
     }
 
     // A0. Prioridade Absoluta: Menu de Ações Rápidas aberto
     if (s.isQuickMenuOpen) {
+      pendingCardEnterRef.current = false;
+      if (enterLongPressTimerRef.current) {
+        clearTimeout(enterLongPressTimerRef.current);
+        enterLongPressTimerRef.current = null;
+      }
       if (isBack) {
         e.preventDefault();
         e.stopPropagation();
@@ -352,6 +401,7 @@ export function useSpatialNav({
       }
       if (isEnter) {
         e.preventDefault();
+        e.stopPropagation();
         s.onQuickMenuSelect?.(s.quickMenuIndex);
         return;
       }
@@ -379,6 +429,11 @@ export function useSpatialNav({
 
     // A1. Prioridade Absoluta: Modal de Detalhes do Filme ou Série aberto
     if (s.isModalOpen) {
+      pendingCardEnterRef.current = false;
+      if (enterLongPressTimerRef.current) {
+        clearTimeout(enterLongPressTimerRef.current);
+        enterLongPressTimerRef.current = null;
+      }
       // 1. Se houver sub-diálogo aberto dentro do modal (Escolher Versão para Download ou Opções para esta Versão)
       if (s.modalActionRef?.current?.isSubDialogOpen?.()) {
         if (isBack) {
@@ -548,6 +603,10 @@ export function useSpatialNav({
       }
 
       // 3. Se o usuário JÁ ESTÁ no header e não está na aba Início, volta para Início
+      if (tabChangeTimerRef.current) {
+        clearTimeout(tabChangeTimerRef.current);
+        tabChangeTimerRef.current = null;
+      }
       if (s.activeTab !== 'home' || s.headerIndex !== 0) {
         setHeaderIndex(0);
         stateRef.current.headerIndex = 0;
@@ -612,10 +671,13 @@ export function useSpatialNav({
     if (isEnter) {
       e.preventDefault();
 
-      const isCardZone = s.activeZone === 'rows' || s.activeZone === 'hero' || s.activeZone === 'search-results';
+      const isDownloadActionButton = s.activeTab === 'downloads' && s.activeZone === 'rows' && s.colIndex > 0;
+      const isCardZone = !isDownloadActionButton && (s.activeZone === 'rows' || s.activeZone === 'hero' || s.activeZone === 'search-results');
 
-      // Se não for zona de cards (ex: header, local-filters, search-keyboard, modal), dispara imediato no keydown
+      // Se não for zona de cards (ex: header, local-filters, search-keyboard, modal, ou botões de ação em Downloads), dispara imediato no keydown
       if (!isCardZone) {
+        pendingCardEnterRef.current = false;
+        if (s.activeZone === 'header' && flushTabChange()) return;
         s.onEnter?.({
           zone: s.activeZone,
           headerIndex: s.headerIndex,
@@ -633,6 +695,7 @@ export function useSpatialNav({
 
       // Se o long press já disparou e o usuário continua segurando OK na TV, ignora
       if (longPressTriggeredRef.current) {
+        pendingCardEnterRef.current = false;
         return;
       }
 
@@ -642,11 +705,13 @@ export function useSpatialNav({
         return;
       }
 
-      // Primeiro keydown na zona de cards: agenda detecção de long press (400ms)
+      // Primeiro keydown na zona de cards: marca intenção de clique no card e agenda detecção de long press (400ms)
       longPressTriggeredRef.current = false;
+      pendingCardEnterRef.current = true;
 
       enterLongPressTimerRef.current = setTimeout(() => {
         longPressTriggeredRef.current = true;
+        pendingCardEnterRef.current = false;
         enterLongPressTimerRef.current = null;
         s.onLongPress?.({
           zone: s.activeZone,
@@ -717,6 +782,7 @@ export function useSpatialNav({
     if (isDown) {
       e.preventDefault();
       if (s.activeZone === 'header') {
+        if (flushTabChange()) return;
         descendFromHeader();
         return;
       } else if (s.activeZone === 'local-filters') {
@@ -774,12 +840,10 @@ export function useSpatialNav({
     if (isLeft) {
       e.preventDefault();
       if (s.activeZone === 'header') {
-        setHeaderIndex(i => {
-          const next = Math.max(0, i - 1);
-          stateRef.current.headerIndex = next;
-          s.onTabChange?.(next);
-          return next;
-        });
+        const next = Math.max(0, (stateRef.current.headerIndex || 0) - 1);
+        stateRef.current.headerIndex = next;
+        setHeaderIndex(next);
+        scheduleTabChange(next);
       } else if (s.activeZone === 'local-filters') {
         setLocalFilterIndex(i => {
           const next = Math.max(0, i - 1);
@@ -824,12 +888,10 @@ export function useSpatialNav({
     if (isRight) {
       e.preventDefault();
       if (s.activeZone === 'header') {
-        setHeaderIndex(i => {
-          const next = Math.min(s.headerCount - 1, i + 1);
-          stateRef.current.headerIndex = next;
-          s.onTabChange?.(next);
-          return next;
-        });
+        const next = Math.min(s.headerCount - 1, (stateRef.current.headerIndex || 0) + 1);
+        stateRef.current.headerIndex = next;
+        setHeaderIndex(next);
+        scheduleTabChange(next);
       } else if (s.activeZone === 'local-filters') {
         setLocalFilterIndex(i => {
           const next = Math.min(Math.max(0, s.localFilterCount - 1), i + 1);
@@ -889,10 +951,17 @@ export function useSpatialNav({
       // Se o long press disparou (menu já aberto), ignora o soltar do botão
       if (longPressTriggeredRef.current) {
         longPressTriggeredRef.current = false;
+        pendingCardEnterRef.current = false;
         e.preventDefault();
         e.stopPropagation();
         return;
       }
+
+      // Se o keydown de Enter ocorreu dentro de um modal/menu (que fechou no keydown), NÃO dispara clique no card ao soltar a tecla!
+      if (!pendingCardEnterRef.current) {
+        return;
+      }
+      pendingCardEnterRef.current = false;
 
       // Se soltou antes de 400ms na zona de cards, dispara o clique normal (onEnter)
       const isCardZone = s.activeZone === 'rows' || s.activeZone === 'hero' || s.activeZone === 'search-results';

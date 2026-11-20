@@ -27,10 +27,48 @@ trust_anchor: []
 
 # list of files in web project (.html,.css etc) and resources
 files:
-  - assets/index-BF6H6Mio.js
-  - assets/index-CcfUEsVU.css
-  - assets/index-legacy-IGyL2LWG.js
-  - assets/polyfills-legacy-CoKm92xK.js
+  - assets/CarouselRow-VImZgjEn.js
+  - assets/CarouselRow-legacy-Be3Pj2CZ.js
+  - assets/CinemaPlayer-legacy-BqqrIdzk.js
+  - assets/CinemaPlayer-mpUxNDVr.js
+  - assets/DownloadsView-CDsuZTFE.js
+  - assets/DownloadsView-legacy-mxVpKh00.js
+  - assets/FavoritesView-D-ao3YnO.js
+  - assets/FavoritesView-legacy-ClHN5G8j.js
+  - assets/HomeView-DyTbI2qv.js
+  - assets/HomeView-legacy-CuA8Y3BT.js
+  - assets/LocalFolderView-DpFi0e4P.js
+  - assets/LocalFolderView-legacy-lkr3IMre.js
+  - assets/MovieCard-B0xlGmHN.js
+  - assets/MovieCard-legacy-B4c9J_2z.js
+  - assets/MovieDetailsModal-CtX_jKrX.js
+  - assets/MovieDetailsModal-legacy-C8aFDRGD.js
+  - assets/MoviesView-ZSSd5pMP.js
+  - assets/MoviesView-legacy-c2PMlanl.js
+  - assets/QuickActionsModal-legacy--fept1_2.js
+  - assets/QuickActionsModal-sjAdoqTR.js
+  - assets/SearchView-DHGfsbWL.js
+  - assets/SearchView-legacy-D0aY6g1s.js
+  - assets/SeriesView-DEh-UaBD.js
+  - assets/SeriesView-legacy-CxC361Qm.js
+  - assets/index-Bv-D5wR6.css
+  - assets/index-cnzvqMgP.js
+  - assets/index-legacy-CbHurQBY.js
+  - assets/material-icons-latin-400-normal-B5tbEuci.woff
+  - assets/material-icons-latin-400-normal-kAwBdRge.woff2
+  - assets/plus-jakarta-sans-latin-400-normal-BDKaGhyp.woff
+  - assets/plus-jakarta-sans-latin-400-normal-Dhut76fR.woff2
+  - assets/plus-jakarta-sans-latin-500-normal-Bf-nb4oT.woff2
+  - assets/plus-jakarta-sans-latin-500-normal-DYtqi0QS.woff
+  - assets/plus-jakarta-sans-latin-600-normal-BR_Ojra4.woff
+  - assets/plus-jakarta-sans-latin-600-normal-DLTa1BUW.woff2
+  - assets/plus-jakarta-sans-latin-700-normal-CfpNZvy6.woff2
+  - assets/plus-jakarta-sans-latin-700-normal-DqEcQeE5.woff
+  - assets/plus-jakarta-sans-latin-800-normal-BRNHt2w0.woff
+  - assets/plus-jakarta-sans-latin-800-normal-CusIZhrK.woff2
+  - assets/polyfills-legacy-Bn4lZXB-.js
+  - assets/react-vendor-DKJPOvK7.js
+  - assets/react-vendor-legacy-ChsNuLM3.js
   - icon.png
   - index.html
 

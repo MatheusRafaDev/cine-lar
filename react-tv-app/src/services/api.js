@@ -1,6 +1,27 @@
 // Cinelar API Client - Conecta diretamente ao torrent-service local
 const DEFAULT_HOST = '192.168.15.9';
 const DEFAULT_PORT = 8085;
+const catalogCache = new Map();
+const catalogInFlight = new Map();
+
+function getCatalogCache(key, loader, ttlMs = 5 * 60 * 1000) {
+  const cached = catalogCache.get(key);
+  if (cached && Date.now() - cached.time < ttlMs) {
+    return Promise.resolve(cached.value);
+  }
+  if (catalogInFlight.has(key)) return catalogInFlight.get(key);
+
+  const requestPromise = Promise.resolve().then(loader).then(value => {
+    catalogCache.set(key, { time: Date.now(), value });
+    catalogInFlight.delete(key);
+    return value;
+  }).catch(error => {
+    catalogInFlight.delete(key);
+    throw error;
+  });
+  catalogInFlight.set(key, requestPromise);
+  return requestPromise;
+}
 
 function getStoredServerIp() {
   try {
@@ -11,27 +32,53 @@ function getStoredServerIp() {
 }
 
 export function getServerUrl() {
-  const customIp = getStoredServerIp();
-  if (customIp) {
-    return customIp.startsWith('http') ? customIp : `http://${customIp}:${DEFAULT_PORT}`;
+  const customAddress = getStoredServerIp().trim();
+  if (customAddress) {
+    const address = /^https?:\/\//i.test(customAddress)
+      ? customAddress
+      : `http://${customAddress}`;
+
+    try {
+      const url = new URL(address);
+      if (!url.port) url.port = String(DEFAULT_PORT);
+      return url.toString().replace(/\/$/, '');
+    } catch (_) {
+      // Mantém a tentativa de conexão para que a interface possa informar o erro ao usuário.
+      return address.replace(/\/$/, '');
+    }
   }
 
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    if (host && host !== 'localhost' && host !== '127.0.0.1' && !host.startsWith('file')) {
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return `http://${host}:${DEFAULT_PORT}`;
+    }
+    if (host && !host.startsWith('file')) {
       return `http://${host}:${DEFAULT_PORT}`;
     }
   }
   return `http://${DEFAULT_HOST}:${DEFAULT_PORT}`;
 }
 
+export async function getServerStatus() {
+  try {
+    await request('/api/status');
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 export const API_BASE = `${getServerUrl()}/api`;
 
 async function request(endpoint, options = {}) {
   const url = `${getServerUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeoutId = controller ? setTimeout(() => controller.abort(), 12000) : null;
   try {
     const res = await fetch(url, {
       ...options,
+      signal: options.signal || controller?.signal,
       headers: {
         'Accept': 'application/json',
         ...(options.headers || {})
@@ -42,8 +89,11 @@ async function request(endpoint, options = {}) {
     }
     return await res.json();
   } catch (err) {
-    console.warn(`[API] Erro ao requisitar ${url}:`, err.message);
+    const message = err?.name === 'AbortError' ? 'Tempo limite da conexão excedido' : err.message;
+    console.warn(`[API] Erro ao requisitar ${url}:`, message);
     throw err;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 }
 
@@ -52,7 +102,8 @@ export function normalizeMovie(item) {
   if (!item) return null;
   const id = item.imdb_id || item.imdbId || item.id || item.filePath || '';
   const isSeries = Boolean(item.isSeries || item.type === 'series' || (item.year && String(item.year).includes('–')));
-  const isLocal = Boolean(item.isLocal || item.is_local || item.videoPath || item.filePath);
+  const resolvedFilePath = item.filePath || item.videoPath || item.localFile?.videoPath || '';
+  const isLocal = Boolean(resolvedFilePath);
   const position = Number(item.position || item.position_seconds || 0);
   const duration = Number(item.duration || item.duration_seconds || 0);
   const progress = item.progress !== undefined && item.progress !== null
@@ -72,9 +123,9 @@ export function normalizeMovie(item) {
     imdbRating: item.rating || item.imdbRating || null,
     synopsis: item.description || item.synopsis || '',
     isLocal,
-    filePath: item.filePath || item.videoPath || '',
-    videoPath: item.filePath || item.videoPath || '',
-    streamUrl: item.streamUrl || '',
+    filePath: resolvedFilePath,
+    videoPath: resolvedFilePath,
+    streamUrl: item.streamUrl || (resolvedFilePath ? `/api/local/stream?file=${encodeURIComponent(resolvedFilePath)}` : ''),
     infoHash: item.infoHash || null,
     quality: item.quality || '',
     isSeries,
@@ -91,13 +142,15 @@ export function normalizeMovie(item) {
 // 1. Obter catálogo de filmes por gênero ou geral
 export async function getMovies({ genre = '', limit = 30, offset = 0 } = {}) {
   try {
-    let q = `?limit=${limit}&offset=${offset}`;
-    if (genre && genre !== 'all') {
-      q += `&genre=${encodeURIComponent(genre)}`;
-    }
-    const data = await request(`/api/movies${q}`);
-    const list = data.movies || [];
-    return list.map(normalizeMovie);
+    const key = `movies:${genre}:${limit}:${offset}`;
+    return await getCatalogCache(key, async () => {
+      let q = `?limit=${limit}&offset=${offset}`;
+      if (genre && genre !== 'all') {
+        q += `&genre=${encodeURIComponent(genre)}`;
+      }
+      const data = await request(`/api/movies${q}`);
+      return (data.movies || []).map(normalizeMovie);
+    });
   } catch (_) {
     return [];
   }
@@ -106,13 +159,15 @@ export async function getMovies({ genre = '', limit = 30, offset = 0 } = {}) {
 // 1.1 Obter catálogo de séries por gênero ou geral
 export async function getSeries({ genre = '', limit = 30, offset = 0 } = {}) {
   try {
-    let q = `?type=series&limit=${limit}&offset=${offset}`;
-    if (genre && genre !== 'all') {
-      q += `&genre=${encodeURIComponent(genre)}`;
-    }
-    const data = await request(`/api/movies${q}`);
-    const list = data.movies || [];
-    return list.map(item => normalizeMovie({ ...item, isSeries: true, type: 'series' }));
+    const key = `series:${genre}:${limit}:${offset}`;
+    return await getCatalogCache(key, async () => {
+      let q = `?type=series&limit=${limit}&offset=${offset}`;
+      if (genre && genre !== 'all') {
+        q += `&genre=${encodeURIComponent(genre)}`;
+      }
+      const data = await request(`/api/movies${q}`);
+      return (data.movies || []).map(item => normalizeMovie({ ...item, isSeries: true, type: 'series' }));
+    });
   } catch (_) {
     return [];
   }
@@ -149,9 +204,10 @@ export async function getEpisodeStreams({ imdbId, season = 1, episode = 1, title
 // 2. Obter filmes em alta (Trending)
 export async function getTrendingMovies() {
   try {
-    const data = await request('/api/movies/trending');
-    const list = data.movies || [];
-    return list.map(normalizeMovie);
+    return await getCatalogCache('trending:50', async () => {
+      const data = await request('/api/movies/trending');
+      return (data.movies || []).map(normalizeMovie);
+    });
   } catch (_) {
     return [];
   }
@@ -160,8 +216,10 @@ export async function getTrendingMovies() {
 // 3. Obter gêneros disponíveis
 export async function getGenres() {
   try {
-    const data = await request('/api/genres');
-    return data.genres || [];
+    return await getCatalogCache('genres', async () => {
+      const data = await request('/api/genres');
+      return data.genres || [];
+    });
   } catch (_) {
     return [];
   }
@@ -222,7 +280,7 @@ export async function getMovieDetails(movie) {
   const imdbId = normalized.imdbId || normalized.id;
   const title = normalized.title;
 
-  if (normalized.isLocal) {
+  if (normalized.isLocal && normalized.filePath && !String(imdbId).startsWith('tt')) {
     return normalized;
   }
 
@@ -234,10 +292,18 @@ export async function getMovieDetails(movie) {
       magnet: t.magnetUri
     }));
 
+    const localFile = data.localFile || null;
+    const localVideoPath = localFile?.videoPath || normalized.filePath || '';
+    const localStreamUrl = localFile?.streamUrl || (localVideoPath ? `/api/local/stream?file=${encodeURIComponent(localVideoPath)}` : normalized.streamUrl);
+
     return {
       ...normalized,
-      isLocal: data.isLocal || false,
-      localFile: data.localFile || null,
+      isLocal: Boolean(localVideoPath),
+      localFile,
+      filePath: localVideoPath,
+      videoPath: localVideoPath,
+      streamUrl: localStreamUrl,
+      duration: localFile?.duration || normalized.duration || 0,
       streams
     };
   } catch (err) {

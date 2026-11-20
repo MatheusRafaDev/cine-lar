@@ -53,7 +53,12 @@ export const QuickActionsModal = memo(function QuickActionsModal({
                   key={act.id}
                   type="button"
                   className={`tv-quick-action-item ${act.danger ? 'danger' : ''} ${isFocused ? 'focused' : ''}`}
-                  onClick={() => act.id === 'confirm_delete' ? onConfirmDelete() : onCancelDelete()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (act.id === 'confirm_delete') onConfirmDelete();
+                    else onCancelDelete();
+                  }}
                 >
                   <span className="material-icons tv-quick-action-icon">{act.icon}</span>
                   <div className="tv-quick-action-text">
@@ -182,17 +187,17 @@ export const QuickActionsModal = memo(function QuickActionsModal({
           <div className="tv-quick-actions-meta">
             <div className="tv-quick-actions-badges">
               {isInContinueWatching && (
-                <span className="tv-badge-pill" style={{ background: 'rgba(229, 9, 20, 0.25)', color: 'var(--primary)', borderColor: 'rgba(229, 9, 20, 0.5)' }}>
+                <span className="tv-badge-pill" style={{ background: 'rgba(229, 9, 20, 0.25)', color: 'var(--primary)' }}>
                   Continuar Assistindo
                 </span>
               )}
               {isLocal && (
-                <span className="tv-badge-pill" style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22C55E', borderColor: 'rgba(34, 197, 94, 0.4)' }}>
+                <span className="tv-badge-pill" style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22C55E' }}>
                   Pasta Local
                 </span>
               )}
               {!isLocal && !isInContinueWatching && (
-                <span className="tv-badge-pill" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60A5FA', borderColor: 'rgba(59, 130, 246, 0.4)' }}>
+                <span className="tv-badge-pill" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60A5FA' }}>
                   Catálogo Online
                 </span>
               )}
@@ -217,7 +222,11 @@ export const QuickActionsModal = memo(function QuickActionsModal({
                 key={act.id}
                 type="button"
                 className={`tv-quick-action-item ${act.highlight ? 'highlight' : ''} ${act.warning ? 'warning' : ''} ${act.danger ? 'danger' : ''} ${isFocused ? 'focused' : ''}`}
-                onClick={() => onSelectAction(act.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSelectAction(act.id);
+                }}
               >
                 <span
                   className="material-icons tv-quick-action-icon"

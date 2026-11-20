@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useRef, useCallback, memo } from 'react';
 import { MovieCard } from './MovieCard';
 
 function CarouselRowComponent({
@@ -11,13 +11,19 @@ function CarouselRowComponent({
 }) {
   const rowRef = useRef(null);
 
-  // Quando a linha ganha foco, centraliza verticalmente na tela da TV sem atraso
+  // Callbacks estaveis: os pais passam funcoes inline (nova identidade a cada render),
+  // o que forcava TODOS os cards da linha focada a re-renderizar a cada toque no controle.
+  const callbacksRef = useRef({ onSelectMovie, onContextMenuMovie });
+  callbacksRef.current = { onSelectMovie, onContextMenuMovie };
+  const stableOnSelect = useCallback((mov) => callbacksRef.current.onSelectMovie?.(mov), []);
+  const stableOnContextMenu = useCallback((mov) => callbacksRef.current.onContextMenuMovie?.(mov), []);
+
+  // Quando a linha ganha foco, centraliza verticalmente na tela da TV sem reflow pesado de scrollIntoView
   useEffect(() => {
     if (isRowFocused && rowRef.current) {
-      rowRef.current.scrollIntoView({
-        behavior: 'auto',
-        block: 'center'
-      });
+      const el = rowRef.current;
+      const desiredTop = el.offsetTop - (window.innerHeight / 2) + (el.offsetHeight / 2);
+      window.scrollTo(0, Math.max(0, desiredTop));
     }
   }, [isRowFocused]);
 
@@ -38,8 +44,8 @@ function CarouselRowComponent({
               key={movie.id || movie.imdbId || `${title}-${idx}`}
               movie={movie}
               isFocused={isCardFocused}
-              onSelect={onSelectMovie}
-              onContextMenu={onContextMenuMovie}
+              onSelect={stableOnSelect}
+              onContextMenu={onContextMenuMovie ? stableOnContextMenu : undefined}
             />
           );
         })}

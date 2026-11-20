@@ -12,7 +12,9 @@ export function HomeView({
   onSelectMovie,
   onContextMenuMovie,
   onPlayHero,
-  onInfoHero
+  onInfoHero,
+  isLoading = false,
+  serverStatus = 'checking'
 }) {
   const isHeroFocused = activeZone === 'hero';
   const isRowsFocused = activeZone === 'rows';
@@ -31,6 +33,20 @@ export function HomeView({
       )}
 
       <div className="tv-sections-container">
+        {isLoading && !heroMovie && sections.length === 0 && (
+          <div className="tv-home-feedback" role="status">
+            <span className="tv-home-spinner" />
+            <strong>Preparando sua sessão</strong>
+            <span>Carregando catálogo e biblioteca local…</span>
+          </div>
+        )}
+        {!isLoading && !heroMovie && sections.length === 0 && serverStatus === 'offline' && (
+          <div className="tv-home-feedback offline" role="alert">
+            <span className="material-icons">wifi_off</span>
+            <strong>Servidor não encontrado</strong>
+            <span>Verifique se o serviço Cinelar está ligado e se a TV está na mesma rede.</span>
+          </div>
+        )}
         {sections.map((section, idx) => {
           const isCurrentRowFocused = isRowsFocused && rowIndex === idx;
           const isContinue = section.id === 'continue-watching';

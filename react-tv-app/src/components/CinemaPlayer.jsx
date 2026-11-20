@@ -14,7 +14,7 @@ function formatSeconds(sec) {
 }
 
 export function CinemaPlayer({
-  streamConfig,
+  streamConfig = {},
   onClose,
   spatialNavControls
 }) {
@@ -31,6 +31,7 @@ export function CinemaPlayer({
     isLocal = false,
     filePath = '',
     videoPath = '',
+    duration: initialDuration = 0,
     resumePosition = 0,
     isSeries = false,
     season = null,
@@ -42,7 +43,9 @@ export function CinemaPlayer({
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState(Number(initialDuration) || 0);
+  const durationRef = useRef(Number(initialDuration) || 0);
+  const streamOffsetRef = useRef(0);
   const [bufferedPercent, setBufferedPercent] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [osd, setOsd] = useState({ icon: '', text: '', visible: false });
@@ -96,9 +99,10 @@ export function CinemaPlayer({
   }, [id, movieId, imdbId, filePath, videoPath, infoHash, title, poster, backdrop, isLocal, streamUrl, quality, isSeries, season, episode, episodeName, year]);
 
   // Monta a URL completa apontando para o torrent-service
-  const fullStreamUrl = streamUrl.startsWith('http')
-    ? streamUrl
-    : `${getServerUrl()}${streamUrl.startsWith('/') ? streamUrl : `/${streamUrl}`}`;
+  const safeStreamUrl = typeof streamUrl === 'string' ? streamUrl.trim() : '';
+  const fullStreamUrl = safeStreamUrl.startsWith('http')
+    ? safeStreamUrl
+    : (safeStreamUrl ? `${getServerUrl()}${safeStreamUrl.startsWith('/') ? safeStreamUrl : `/${safeStreamUrl}`}` : '');
 
   const showOsd = useCallback((icon, text) => {
     setOsd({ icon, text, visible: true });
@@ -125,6 +129,7 @@ export function CinemaPlayer({
     if (video.paused) {
       video.play().then(() => {
         setIsPlaying(true);
+        setIsBuffering(false);
         showOsd('play_arrow', 'Reproduzindo');
         showControlsTemporarily();
       }).catch((e) => {
@@ -135,32 +140,63 @@ export function CinemaPlayer({
       setIsPlaying(false);
       setControlsVisible(true);
       showOsd('pause', 'Pausado');
-      persistProgress(video.currentTime, video.duration);
+      const totalDur = (video.duration && isFinite(video.duration)) ? video.duration : durationRef.current;
+      persistProgress(streamOffsetRef.current + video.currentTime, totalDur);
     }
   }, [showOsd, showControlsTemporarily, persistProgress]);
+
+  const loadWithStartOffset = useCallback((offsetSec) => {
+    const video = videoRef.current;
+    if (!video || !fullStreamUrl) {
+      setHasError(true);
+      setErrorMessage('Não foi possível localizar o endereço de reprodução.');
+      setIsBuffering(false);
+      return;
+    }
+    streamOffsetRef.current = offsetSec;
+    const baseUrl = fullStreamUrl.replace(/([?&])startTime=[^&]+(&?)/i, (m, p1, p2) => (p2 ? p1 : ''));
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    video.src = offsetSec > 0 ? `${baseUrl}${sep}startTime=${Math.floor(offsetSec)}` : baseUrl;
+    video.load();
+    video.play().then(() => {
+      setIsPlaying(true);
+      setIsBuffering(false);
+    }).catch(() => {});
+  }, [fullStreamUrl]);
 
   const seekRelative = useCallback((seconds) => {
     const video = videoRef.current;
     if (!video) return;
-    const dur = video.duration || 0;
-    const target = Math.max(0, Math.min(dur > 0 ? dur - 2 : Infinity, video.currentTime + seconds));
-    video.currentTime = target;
+    const nativeFinite = Boolean(video.duration && !isNaN(video.duration) && isFinite(video.duration));
+    const dur = nativeFinite ? video.duration : (durationRef.current || 0);
+    const curPos = streamOffsetRef.current + (video.currentTime || 0);
+    const target = Math.max(0, Math.min(dur > 0 ? dur - 2 : Infinity, curPos + seconds));
+
+    if (nativeFinite && streamOffsetRef.current === 0) {
+      video.currentTime = target;
+    } else {
+      loadWithStartOffset(target);
+    }
     setCurrentTime(target);
     const icon = seconds > 0 ? 'forward_10' : 'replay_10';
     const text = seconds > 0 ? `+${seconds}s (${formatSeconds(target)})` : `${seconds}s (${formatSeconds(target)})`;
     showOsd(icon, text);
     showControlsTemporarily();
-  }, [showOsd, showControlsTemporarily]);
+  }, [showOsd, showControlsTemporarily, loadWithStartOffset]);
 
   const restartVideo = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    video.currentTime = 0;
+    if (streamOffsetRef.current > 0) {
+      loadWithStartOffset(0);
+    } else {
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    }
     setCurrentTime(0);
-    video.play().catch(() => {});
     showOsd('replay', 'Reiniciado do início');
     showControlsTemporarily();
-  }, [showOsd, showControlsTemporarily]);
+  }, [showOsd, showControlsTemporarily, loadWithStartOffset]);
 
   const adjustVolume = useCallback((delta) => {
     const video = videoRef.current;
@@ -241,16 +277,59 @@ export function CinemaPlayer({
     setIsBuffering(true);
     hasResumedRef.current = false;
     lastSavedPosRef.current = 0;
-    video.src = fullStreamUrl;
+    streamOffsetRef.current = 0;
+
+    if (!fullStreamUrl) {
+      setHasError(true);
+      setErrorMessage('Não foi possível localizar o endereço de reprodução.');
+      setIsBuffering(false);
+      return;
+    }
+
+    // Busca duracao real pelo header X-Media-Duration (util para streams remuxados com FFmpeg)
+    if (!durationRef.current) {
+      fetch(fullStreamUrl, { method: 'HEAD' }).then(r => {
+        const hdrDur = parseFloat(r.headers.get('X-Media-Duration') || '0');
+        if (hdrDur > 0) {
+          durationRef.current = hdrDur;
+          setDuration(hdrDur);
+        }
+      }).catch(() => {});
+    }
+
+    // Se houver posicao de retomada em arquivo local / stream remuxado, ja inicia direto na posicao com startTime
+    const initialOffset = (resumePosition > 10 && (!durationRef.current || resumePosition < durationRef.current - 15))
+      ? Math.floor(resumePosition)
+      : 0;
+
+    if (initialOffset > 0 && isLocal) {
+      streamOffsetRef.current = initialOffset;
+      hasResumedRef.current = true;
+      const sep = fullStreamUrl.includes('?') ? '&' : '?';
+      video.src = `${fullStreamUrl}${sep}startTime=${initialOffset}`;
+      setCurrentTime(initialOffset);
+    } else {
+      video.src = fullStreamUrl;
+    }
     video.load();
 
+    const clearBufferOverlay = () => {
+      if (bufferTimeoutRef.current) {
+        clearTimeout(bufferTimeoutRef.current);
+        bufferTimeoutRef.current = null;
+      }
+      setIsBuffering(false);
+    };
+
     const applyResumeIfPending = () => {
-      const dur = video.duration;
+      const dur = (video.duration && isFinite(video.duration)) ? video.duration : durationRef.current;
       if (!hasResumedRef.current && resumePosition > 10 && dur && resumePosition < (dur - 15)) {
         hasResumedRef.current = true;
         try {
-          if (Math.abs(video.currentTime - resumePosition) > 3) {
-            video.currentTime = resumePosition;
+          if (video.duration && isFinite(video.duration)) {
+            if (Math.abs(video.currentTime - resumePosition) > 3) {
+              video.currentTime = resumePosition;
+            }
           }
           showOsd('history', `Retomando de ${formatSeconds(resumePosition)}`);
         } catch (_) {}
@@ -260,6 +339,7 @@ export function CinemaPlayer({
     const handleLoadedMetadata = () => {
       const dur = video.duration;
       if (dur && !isNaN(dur) && isFinite(dur)) {
+        durationRef.current = dur;
         setDuration(dur);
       }
 
@@ -277,63 +357,84 @@ export function CinemaPlayer({
         }
       }
 
-      if (!hasResumedRef.current && resumePosition > 10 && dur && resumePosition < (dur - 15)) {
+      if (!hasResumedRef.current && resumePosition > 10 && dur && isFinite(dur) && resumePosition < (dur - 15)) {
         try {
           video.currentTime = resumePosition;
         } catch (_) {}
       }
       video.play().then(() => {
         setIsPlaying(true);
-        setIsBuffering(false);
+        clearBufferOverlay();
         showControlsTemporarily();
+        if (streamOffsetRef.current > 0) {
+          showOsd('history', `Retomando de ${formatSeconds(streamOffsetRef.current)}`);
+        }
       }).catch(() => {
-        setIsBuffering(false);
+        clearBufferOverlay();
       });
     };
 
     const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
-      const dur = video.duration;
-      if (dur && !isNaN(dur) && isFinite(dur)) {
+      const rawTime = video.currentTime || 0;
+      const effectivePos = streamOffsetRef.current + rawTime;
+      setCurrentTime(effectivePos);
+
+      // Sempre que o tempo estiver avancando, remove imediatamente o overlay de buffer (sem depender de closure stale)
+      if (rawTime > 0 && !video.paused) {
+        clearBufferOverlay();
+        setIsPlaying(true);
+      }
+
+      const dur = (video.duration && !isNaN(video.duration) && isFinite(video.duration))
+        ? video.duration
+        : durationRef.current;
+
+      if (dur && dur > 0) {
+        durationRef.current = dur;
         setDuration(dur);
         if (video.buffered.length > 0) {
-          const bufEnd = video.buffered.end(video.buffered.length - 1);
+          const bufEnd = streamOffsetRef.current + video.buffered.end(video.buffered.length - 1);
           setBufferedPercent(Math.min(100, (bufEnd / dur) * 100));
         }
         // Salva periodicamente o progresso a cada 10 segundos
-        if (Math.abs(video.currentTime - lastSavedPosRef.current) >= 10) {
-          lastSavedPosRef.current = video.currentTime;
-          persistProgress(video.currentTime, dur);
+        if (Math.abs(effectivePos - lastSavedPosRef.current) >= 10) {
+          lastSavedPosRef.current = effectivePos;
+          persistProgress(effectivePos, dur);
         }
-      }
-      if (isBuffering && video.currentTime > 0) {
-        setIsBuffering(false);
       }
     };
 
     const handleWaiting = () => {
-      setIsBuffering(true);
+      // Debounce de 750ms: evita que micro-pausas de decodificacao travem o overlay "Preparando reproducao..." na tela
+      if (bufferTimeoutRef.current) clearTimeout(bufferTimeoutRef.current);
+      const snapshotTime = video.currentTime;
+      bufferTimeoutRef.current = setTimeout(() => {
+        if (videoRef.current && !videoRef.current.paused && Math.abs(videoRef.current.currentTime - snapshotTime) < 0.05) {
+          setIsBuffering(true);
+        }
+      }, 750);
     };
 
     const handleCanPlay = () => {
-      setIsBuffering(false);
+      clearBufferOverlay();
       applyResumeIfPending();
     };
 
     const handlePlaying = () => {
-      setIsBuffering(false);
+      clearBufferOverlay();
       setIsPlaying(true);
       applyResumeIfPending();
     };
 
     const handleError = (e) => {
       console.warn('[Player] Erro no video HTML5:', e);
+      clearBufferOverlay();
       setHasError(true);
-      setIsBuffering(false);
       setErrorMessage('Não foi possível reproduzir este fluxo. O formato pode requerer transcodificação ou o arquivo foi movido.');
     };
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('loadeddata', handleCanPlay);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('canplay', handleCanPlay);
@@ -342,7 +443,12 @@ export function CinemaPlayer({
     video.addEventListener('error', handleError);
 
     return () => {
+      if (bufferTimeoutRef.current) {
+        clearTimeout(bufferTimeoutRef.current);
+        bufferTimeoutRef.current = null;
+      }
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('loadeddata', handleCanPlay);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('canplay', handleCanPlay);
@@ -352,8 +458,10 @@ export function CinemaPlayer({
 
       // Limpeza profunda de decodificadores e salvamento final ao fechar o player
       try {
-        if (video.duration && video.currentTime > 5) {
-          persistProgress(video.currentTime, video.duration);
+        const finalDur = (video.duration && isFinite(video.duration)) ? video.duration : durationRef.current;
+        const finalPos = streamOffsetRef.current + (video.currentTime || 0);
+        if (finalDur && finalPos > 5) {
+          persistProgress(finalPos, finalDur);
         }
         video.pause();
         video.muted = true;
@@ -368,7 +476,7 @@ export function CinemaPlayer({
         stopStream(infoHash).catch(() => {});
       }
     };
-  }, [fullStreamUrl, resumePosition, infoHash, title, poster, showControlsTemporarily, showOsd, persistProgress]);
+  }, [fullStreamUrl]);
 
   // Polling de telemetria do torrent
   useEffect(() => {
@@ -498,7 +606,7 @@ export function CinemaPlayer({
                     Arquivo Local
                   </span>
                 ) : (
-                  <span className="tv-badge-pill" style={{ fontSize: '11px', background: 'rgba(229, 9, 20, 0.25)', color: 'var(--primary)', borderColor: 'rgba(229, 9, 20, 0.5)' }}>
+                  <span className="tv-badge-pill" style={{ fontSize: '11px', background: 'rgba(229, 9, 20, 0.25)', color: 'var(--primary)' }}>
                     Transmissão Online
                   </span>
                 )}

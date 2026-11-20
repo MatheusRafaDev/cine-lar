@@ -60,6 +60,40 @@ const JELLYFIN_URL = process.env.JELLYFIN_URL || 'http://localhost:8096';
 const JELLYFIN_USER = process.env.JELLYFIN_USER || 'usuario';
 const JELLYFIN_PW = process.env.JELLYFIN_PW || '10092004';
 
+function isPathInsideBase(targetPath, basePath) {
+    const base = path.resolve(basePath);
+    const target = path.resolve(targetPath);
+    const relative = path.relative(base, target);
+    return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+}
+
+function isTrustedMutationRequest(req) {
+    const origin = req.headers.origin;
+    // Aplicativos Tizen instalados normalmente enviam Origin "null" ou não enviam Origin.
+    if (!origin || origin === 'null') return true;
+
+    try {
+        const originUrl = new URL(origin);
+        const requestUrl = new URL(`http://${req.headers.host || `localhost:${PORT}`}`);
+        if (originUrl.hostname === requestUrl.hostname) return true;
+
+        const configuredOrigins = (process.env.ALLOWED_MUTATION_ORIGINS || '')
+            .split(',')
+            .map(value => value.trim())
+            .filter(Boolean);
+        return configuredOrigins.includes(origin);
+    } catch (_) {
+        return false;
+    }
+}
+
+function rejectUntrustedMutation(req, res) {
+    if (isTrustedMutationRequest(req)) return false;
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Origem não autorizada para alterar a biblioteca' }));
+    return true;
+}
+
 // Initialize SQLite database
 initDb();
 
@@ -193,9 +227,14 @@ function stopStreamingTorrent(infoHash) {
 
 function getActiveDownloadingPaths() {
     const paths = [];
+    const baseSave = path.resolve(SAVE_PATH).toLowerCase();
+    const basePlatform = path.resolve(PLATFORM_DOWNLOAD_PATH).toLowerCase();
     for (const d of downloadsRegistry.values()) {
         if (d.status === 'downloading' && d.savePath) {
-            paths.push(path.resolve(d.savePath).toLowerCase());
+            const p = path.resolve(d.savePath).toLowerCase();
+            if (p !== baseSave && p !== basePlatform) {
+                paths.push(p);
+            }
         }
     }
     return paths;
@@ -738,7 +777,10 @@ const server = http.createServer(async (req, res) => {
                     freeSpaceGB = parseFloat(((st.bfree * st.bsize) / (1024 ** 3)).toFixed(1));
                 }
             } catch (_) {}
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.writeHead(200, {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'no-cache'
+            });
             res.end(JSON.stringify({
                 status: 'online',
                 savePath: SAVE_PATH,
@@ -979,7 +1021,10 @@ const server = http.createServer(async (req, res) => {
         // Genres endpoint
         if (pathname === '/api/genres' && req.method === 'GET') {
             const genres = getGenresSummary();
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.writeHead(200, {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'private, max-age=300'
+            });
             res.end(JSON.stringify({ genres }));
             return;
         }
@@ -1070,7 +1115,10 @@ const server = http.createServer(async (req, res) => {
                     }
 
                     await markLocalMoviesInList(metas);
-                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.writeHead(200, {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Cache-Control': 'private, max-age=30'
+                    });
                     res.end(JSON.stringify({
                         movies: metas,
                         total,
@@ -1099,7 +1147,10 @@ const server = http.createServer(async (req, res) => {
                         // Re-query
                         const freshResults = searchCatalog({ q, genre, year, sort, limit, offset });
                         await markLocalMoviesInList(freshResults.movies);
-                        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                        res.writeHead(200, {
+                            'Content-Type': 'application/json; charset=utf-8',
+                            'Cache-Control': 'private, max-age=120'
+                        });
                         res.end(JSON.stringify(freshResults));
                         return;
                     }
@@ -1109,7 +1160,10 @@ const server = http.createServer(async (req, res) => {
             }
 
             await markLocalMoviesInList(results.movies);
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.writeHead(200, {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'private, max-age=120'
+            });
             res.end(JSON.stringify(results));
             return;
         }
@@ -1211,7 +1265,10 @@ const server = http.createServer(async (req, res) => {
                 const all = Array.from(streamsMap.values());
                 const seasonPacks = all.filter(s => s.isSeasonPack);
 
-                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.writeHead(200, {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Cache-Control': 'private, max-age=120'
+                });
                 res.end(JSON.stringify({
                     season: sNum,
                     seasonPacks: seasonPacks.length > 0 ? seasonPacks : all,
@@ -1499,13 +1556,19 @@ const server = http.createServer(async (req, res) => {
                             rating: m.imdbRating || (m.popularities?.moviedb ? (m.popularities.moviedb / 10).toFixed(1) : null)
                         };
                     });
-                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.writeHead(200, {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Cache-Control': 'private, max-age=120'
+                    });
                     res.end(JSON.stringify({ movies }));
                     return;
                 } catch (err) {}
             }
 
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.writeHead(200, {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'private, max-age=120'
+            });
             res.end(JSON.stringify({ movies: results.movies }));
             return;
         }
@@ -1833,7 +1896,10 @@ const server = http.createServer(async (req, res) => {
                 const totalBytes = movies.reduce((acc, m) => acc + (m.sizeBytes || 0), 0);
                 const grouped = groupMediaLibrary(movies);
 
-                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.writeHead(200, {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Cache-Control': 'private, max-age=15'
+                });
                 res.end(JSON.stringify({
                     movies,
                     count: movies.length,
@@ -1877,6 +1943,11 @@ const server = http.createServer(async (req, res) => {
                 res.end(JSON.stringify({ error: 'file query parameter is required' }));
                 return;
             }
+            if (!isPathInsideBase(filePath, SAVE_PATH)) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Acesso negado: arquivo fora da biblioteca local' }));
+                return;
+            }
             try {
                 streamLocalVideo(filePath, req, res);
             } catch (err) {
@@ -1889,6 +1960,7 @@ const server = http.createServer(async (req, res) => {
 
         // Delete local movie file from disk (ultra-responsivo: remove do cache em O(1) e libera torrents que travem o arquivo)
         if (pathname === '/api/local/file' && req.method === 'DELETE') {
+            if (rejectUntrustedMutation(req, res)) return;
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', () => {
@@ -1901,10 +1973,9 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-                    const allowedBase = path.resolve(SAVE_PATH).toLowerCase();
-                    const targetPath = path.resolve(filePath).toLowerCase();
+                    const targetPath = path.resolve(filePath);
 
-                    if (!targetPath.startsWith(allowedBase)) {
+                    if (!isPathInsideBase(targetPath, SAVE_PATH)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'Acesso negado: só é permitido excluir arquivos da pasta de filmes' }));
                         return;
@@ -1953,6 +2024,7 @@ const server = http.createServer(async (req, res) => {
 
         // Rename local movie / video file
         if (pathname === '/api/local/rename' && req.method === 'POST') {
+            if (rejectUntrustedMutation(req, res)) return;
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', () => {
@@ -1965,10 +2037,9 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-                    const allowedBase = path.resolve(SAVE_PATH).toLowerCase();
-                    const targetPath = path.resolve(filePath).toLowerCase();
+                    const targetPath = path.resolve(filePath);
 
-                    if (!targetPath.startsWith(allowedBase)) {
+                    if (!isPathInsideBase(targetPath, SAVE_PATH)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'Acesso negado: só é permitido alterar arquivos da pasta de filmes' }));
                         return;
@@ -2791,18 +2862,49 @@ const server = http.createServer(async (req, res) => {
 
         // Cancel / delete download (ultra-responsivo: remove do registro e responde em <1ms, limpando disco em background)
         if (pathname.startsWith('/api/downloads/') && req.method === 'DELETE') {
-            const id = pathname.replace('/api/downloads/', '').trim().toLowerCase();
-            const item = downloadsRegistry.get(id);
-            const torrent = getActiveTorrent(id);
+            if (rejectUntrustedMutation(req, res)) return;
+            const rawId = decodeURIComponent(pathname.replace('/api/downloads/', '')).trim();
+            const id = rawId.toLowerCase();
+            let targetKey = id;
+            let item = downloadsRegistry.get(id);
+            if (!item) {
+                for (const [k, v] of downloadsRegistry.entries()) {
+                    if (
+                        String(v?.imdbId || '').toLowerCase() === id ||
+                        String(v?.id || '').toLowerCase() === id ||
+                        String(v?.title || '').toLowerCase() === id
+                    ) {
+                        targetKey = k;
+                        item = v;
+                        break;
+                    }
+                }
+            }
+            const torrent = getActiveTorrent(targetKey);
             const deleteFiles = urlObj.searchParams.get('deleteFiles') !== 'false';
 
-            console.log(`[TorrentService] Removendo download: ${id} ("${item?.title || torrent?.name || 'desconhecido'}"), deleteFiles=${deleteFiles}`);
+            // Verifica também se corresponde a um filme local escaneado em D:\Filmes (ex: quando chamado via imdbId tt...)
+            let matchedLocalFile = null;
+            if (deleteFiles) {
+                try {
+                    const localList = getCachedLocalMovies(SAVE_PATH) || [];
+                    matchedLocalFile = localList.find(m =>
+                        String(m.imdbId || '').toLowerCase() === id ||
+                        String(m.id || '').toLowerCase() === id ||
+                        String(m.title || '').toLowerCase() === id ||
+                        String(m.cleanName || '').toLowerCase() === id
+                    ) || null;
+                } catch (_) {}
+            }
 
-            downloadsRegistry.delete(id);
+            console.log(`[TorrentService] Removendo download: ${id} ("${item?.title || matchedLocalFile?.title || torrent?.name || 'desconhecido'}"), deleteFiles=${deleteFiles}`);
+
+            downloadsRegistry.delete(targetKey);
             persistDownloads();
 
-            if (deleteFiles && item?.savePath) {
-                removeFileFromLocalCache(item.savePath);
+            if (deleteFiles) {
+                if (item?.savePath) removeFileFromLocalCache(item.savePath);
+                if (matchedLocalFile?.filePath) removeFileFromLocalCache(matchedLocalFile.filePath);
                 invalidateLocalSetsCache();
             }
 
@@ -2814,7 +2916,19 @@ const server = http.createServer(async (req, res) => {
 
             setImmediate(() => {
                 if (deleteFiles) {
-                    cleanupCancelledDownload(item, torrent, SAVE_PATH);
+                    if (item || torrent) {
+                        cleanupCancelledDownload(item, torrent, SAVE_PATH);
+                    }
+                    if (matchedLocalFile?.filePath && fs.existsSync(matchedLocalFile.filePath)) {
+                        try {
+                            fs.unlinkSync(matchedLocalFile.filePath);
+                            const parentDir = path.dirname(matchedLocalFile.filePath);
+                            if (parentDir && path.resolve(parentDir).toLowerCase() !== path.resolve(SAVE_PATH).toLowerCase()) {
+                                const rem = fs.readdirSync(parentDir);
+                                if (rem.length === 0) fs.rmdirSync(parentDir);
+                            }
+                        } catch (_) {}
+                    }
                     scanLocalMovies(SAVE_PATH);
                     refreshJellyfinLibrary();
                 } else if (torrent) {

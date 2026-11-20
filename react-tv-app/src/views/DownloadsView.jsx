@@ -14,37 +14,21 @@ export function DownloadsView({
   onContextMenu
 }) {
   const isListFocused = activeZone === 'rows';
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const cardRefs = useRef([]);
 
   // Auto-scroll para manter o item focado visível na TV
   useEffect(() => {
     if (isListFocused && cardRefs.current[focusedIndex]) {
       cardRefs.current[focusedIndex].scrollIntoView({
-        behavior: 'smooth',
+        behavior: 'auto',
         block: 'nearest'
       });
     }
   }, [isListFocused, focusedIndex]);
 
-  // Limpa confirmação de exclusão após 4 segundos
-  useEffect(() => {
-    if (!confirmDeleteId) return;
-    const timer = setTimeout(() => {
-      setConfirmDeleteId(null);
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [confirmDeleteId]);
-
   const handleDeleteClick = (e, item) => {
     e.stopPropagation();
-    const itemId = item.infoHash || item.id;
-    if (confirmDeleteId === itemId) {
-      setConfirmDeleteId(null);
-      onCancelDownload?.(item, true);
-    } else {
-      setConfirmDeleteId(itemId);
-    }
+    onCancelDownload?.(item, true);
   };
 
   const handlePauseResumeClick = (e, item) => {
@@ -172,7 +156,6 @@ export function DownloadsView({
             const isDone = item.status === 'completed' || progress >= 100;
             const isPaused = Boolean(item.isPaused || item.status === 'paused');
             const itemId = item.infoHash || item.id || idx;
-            const isDeleting = confirmDeleteId === itemId;
 
             // Cores e status
             let statusLabel = 'Baixando';
@@ -324,17 +307,17 @@ export function DownloadsView({
                     </button>
                   )}
 
-                  {/* Botão 3: Excluir / Cancelar */}
+                  {/* Botão 3: Excluir / Cancelar (Ação Instantânea) */}
                   <button
                     type="button"
-                    className={`tv-btn tv-btn-secondary tv-download-btn tv-download-delete-btn ${isItemFocused && (isDone ? actionIndex === 1 : actionIndex === 2) ? 'focused' : ''} ${isDeleting ? 'confirming' : ''}`}
+                    className={`tv-btn tv-btn-secondary tv-download-btn tv-download-delete-btn ${isItemFocused && (isDone ? actionIndex === 1 : actionIndex === 2) ? 'focused' : ''}`}
                     onClick={(e) => handleDeleteClick(e, item)}
-                    title="Excluir download e remover arquivos do disco"
+                    title="Cancelar e excluir arquivos do disco"
                   >
                     <span className="material-icons" style={{ fontSize: '18px' }}>
-                      {isDeleting ? 'warning' : 'delete_outline'}
+                      delete_outline
                     </span>
-                    <span>{isDeleting ? 'Confirmar?' : 'Excluir'}</span>
+                    <span>{isDone ? 'Excluir' : 'Cancelar'}</span>
                   </button>
                 </div>
               </div>

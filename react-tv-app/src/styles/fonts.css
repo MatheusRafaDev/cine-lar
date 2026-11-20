@@ -1,0 +1,26 @@
+/* Fontes empacotadas localmente no app (antes vinham do Google Fonts pela internet,
+   bloqueando a primeira renderizacao na TV). Apenas subset latin (cobre PT-BR). */
+@import '@fontsource/plus-jakarta-sans/latin-400.css';
+@import '@fontsource/plus-jakarta-sans/latin-500.css';
+@import '@fontsource/plus-jakarta-sans/latin-600.css';
+@import '@fontsource/plus-jakarta-sans/latin-700.css';
+@import '@fontsource/plus-jakarta-sans/latin-800.css';
+@import '@fontsource/material-icons/latin-400.css';
+
+/* Classe padrao do Google Material Icons */
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}

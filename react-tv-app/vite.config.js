@@ -22,7 +22,17 @@ export default defineConfig({
     minify: 'terser',
     rollupOptions: {
       output: {
-        manualChunks: undefined
+        manualChunks(id) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-vendor';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'icons';
+          }
+          if (id.includes('@fontsource')) {
+            return 'fonts';
+          }
+        }
       }
     }
   }

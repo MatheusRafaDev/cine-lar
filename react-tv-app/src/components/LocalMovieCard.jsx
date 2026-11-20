@@ -4,16 +4,18 @@ import { getSavedProgress } from '../services/api';
 function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu }) {
   const cardRef = useRef(null);
   const pointerTimerRef = useRef(null);
+  const pointerLongPressedRef = useRef(false);
   const [imgFailed, setImgFailed] = useState(false);
 
-  // Auto-scroll vertical instantâneo para manter o card sempre visível na TV sem atraso
+  // Auto-scroll vertical leve sem reflow de scrollIntoView
   useEffect(() => {
     if (isFocused && cardRef.current) {
-      cardRef.current.scrollIntoView({
-        behavior: 'auto',
-        block: 'nearest',
-        inline: 'nearest'
-      });
+      const el = cardRef.current;
+      const rect = el.getBoundingClientRect();
+      if (rect.top < 90 || rect.bottom > window.innerHeight - 40) {
+        const desiredTop = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2);
+        window.scrollTo(0, Math.max(0, desiredTop));
+      }
     }
   }, [isFocused]);
 
@@ -24,6 +26,12 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
   if (!movie) return null;
 
   const handleClick = (e) => {
+    if (pointerLongPressedRef.current) {
+      pointerLongPressedRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (onSelect) {
       onSelect(movie);
     } else if (onClick) {
@@ -45,8 +53,11 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
     : null;
 
   const handlePointerDown = () => {
+    pointerLongPressedRef.current = false;
     if (!onContextMenu) return;
     pointerTimerRef.current = setTimeout(() => {
+      pointerLongPressedRef.current = true;
+      pointerTimerRef.current = null;
       onContextMenu(movie);
     }, 450);
   };
@@ -79,7 +90,7 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
         {poster && !imgFailed ? (
           <img
             src={poster}
-            alt={title}
+            alt=""
             className="tv-card-poster"
             loading="lazy"
             decoding="async"
@@ -122,14 +133,14 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
           </div>
         )}
 
-        <div className="tv-card-bottom-scrim" />
-
-        {/* Ícone de Play centralizado que surge quando em foco ou hover */}
-        <div className={`tv-card-play-overlay ${isFocused ? 'visible' : ''}`}>
-          <div className="tv-card-play-btn">
-            <span className="material-icons" style={{ fontSize: '28px', color: '#FFFFFF' }}>play_arrow</span>
+        {/* Ícone de Play centralizado que surge apenas quando em foco */}
+        {isFocused && (
+          <div className="tv-card-play-overlay visible">
+            <div className="tv-card-play-btn">
+              <span className="material-icons" style={{ fontSize: '28px', color: '#FFFFFF' }}>play_arrow</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="tv-card-info">

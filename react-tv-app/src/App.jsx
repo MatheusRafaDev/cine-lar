@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Header, NAV_ITEMS } from './components/Header';
-import { MovieDetailsModal } from './components/MovieDetailsModal';
-import { CinemaPlayer } from './components/CinemaPlayer';
-import { HomeView } from './views/HomeView';
-import { MoviesView } from './views/MoviesView';
-import { SeriesView } from './views/SeriesView';
-import { FavoritesView } from './views/FavoritesView';
-import { LocalFolderView } from './views/LocalFolderView';
-import { DownloadsView } from './views/DownloadsView';
-import { SearchView } from './views/SearchView';
-import { QuickActionsModal } from './components/QuickActionsModal';
+const MovieDetailsModal = lazy(() => import('./components/MovieDetailsModal').then(m => ({ default: m.MovieDetailsModal })));
+const CinemaPlayer = lazy(() => import('./components/CinemaPlayer').then(m => ({ default: m.CinemaPlayer })));
+const HomeView = lazy(() => import('./views/HomeView').then(m => ({ default: m.HomeView })));
+const MoviesView = lazy(() => import('./views/MoviesView').then(m => ({ default: m.MoviesView })));
+const SeriesView = lazy(() => import('./views/SeriesView').then(m => ({ default: m.SeriesView })));
+const FavoritesView = lazy(() => import('./views/FavoritesView').then(m => ({ default: m.FavoritesView })));
+const LocalFolderView = lazy(() => import('./views/LocalFolderView').then(m => ({ default: m.LocalFolderView })));
+const DownloadsView = lazy(() => import('./views/DownloadsView').then(m => ({ default: m.DownloadsView })));
+const SearchView = lazy(() => import('./views/SearchView').then(m => ({ default: m.SearchView })));
+const QuickActionsModal = lazy(() => import('./components/QuickActionsModal').then(m => ({ default: m.QuickActionsModal })));
 import {
   getTrendingMovies,
   getMovies,
@@ -31,7 +31,8 @@ import {
   isFavorite,
   clearWatchProgress,
   isInWatchHistory,
-  deleteLocalFile
+  deleteLocalFile,
+  getServerStatus
 } from './services/api';
 import { useSpatialNav } from './hooks/useSpatialNav';
 
@@ -62,15 +63,27 @@ export function App() {
   const [quickMenuContext, setQuickMenuContext] = useState({ isInContinueWatching: false, isLocal: false });
   const [confirmDeleteMode, setConfirmDeleteMode] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [serverStatus, setServerStatus] = useState('checking');
+  const [isHomeLoading, setIsHomeLoading] = useState(true);
+  const toastTimerRef = useRef(null);
+  const downloadsRequestInFlightRef = useRef(false);
+  const downloadsSnapshotRef = useRef('');
 
   const showToast = useCallback((msg) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 3500);
+    toastTimerRef.current = setTimeout(() => setToastMessage(''), 3500);
+  }, []);
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
   }, []);
 
   const playerControlsRef = useRef({});
   const searchInputRef = useRef({ handleKeyPress: null });
   const modalActionRef = useRef({});
+  const deletedDownloadIdsRef = useRef(new Set());
+  const deletedLocalPathsRef = useRef(new Set());
 
   // 1. Carrega dados de usuário (sem disparar requisições pesadas de catálogo)
   const refreshUserData = useCallback(() => {
@@ -84,6 +97,7 @@ export function App() {
   // Inicialização leve e ultrarrápida da Home (executa apenas uma vez no mount)
   useEffect(() => {
     refreshUserData();
+    getServerStatus().then(isOnline => setServerStatus(isOnline ? 'online' : 'offline'));
     syncFavoritesWithServer().then(favs => {
       if (favs && favs.length > 0) setFavorites(favs);
     });
@@ -91,35 +105,24 @@ export function App() {
     // Trending & Destaque
     getTrendingMovies().then(movies => {
       setTrendingMovies(movies);
+      setIsHomeLoading(false);
     });
 
     // Biblioteca e Filmes Locais (com franquias estruturadas)
-    getLocalLibraryData().then(data => {
-      setLocalLibrary(data);
-      setLocalMovies(data.movies || []);
-    });
-
-    // Downloads e telemetria
-    getDownloadsData().then(data => {
-      setDownloads(data.downloads || []);
-      if (data.storage) setDownloadsStorage(data.storage);
-      if (data.stats) setDownloadsStats(data.stats);
-    });
-
     // Carrega apenas 4 gêneros essenciais de filmes e 1 de séries para a Home ser ultrarrápida
-    getGenres().then(async genres => {
+    const catalogTimer = setTimeout(() => getGenres().then(async genres => {
       const topMovieGenres = genres.filter(g => g.id !== 'all').slice(0, 4);
 
       const mPromises = topMovieGenres.map(async g => {
         try {
-          const list = await getMovies({ genre: g.id, limit: 15 });
+          const list = await getMovies({ genre: g.id, limit: 12 });
           return list.length > 0 ? { id: g.id, title: g.name, movies: list } : null;
         } catch (_) {
           return null;
         }
       });
 
-      const sPromise = getSeries({ limit: 15 }).then(list => {
+      const sPromise = getSeries({ limit: 12 }).then(list => {
         return list && list.length > 0 ? [{ id: 'series-popular', title: 'Séries em Destaque', movies: list }] : [];
       }).catch(() => []);
 
@@ -132,7 +135,9 @@ export function App() {
       if (sSections && sSections.length > 0) {
         setSeriesGenreSections(sSections);
       }
-    });
+    }), 700);
+
+    return () => clearTimeout(catalogTimer);
   }, []);
 
   // Lazy loading sob demanda para a aba Filmes
@@ -143,7 +148,7 @@ export function App() {
       const allGenres = genres.filter(g => g.id !== 'all').slice(0, 10);
       const mPromises = allGenres.map(async g => {
         try {
-          const list = await getMovies({ genre: g.id, limit: 15 });
+          const list = await getMovies({ genre: g.id, limit: 12 });
           return list.length > 0 ? { id: g.id, title: g.name, movies: list } : null;
         } catch (_) {
           return null;
@@ -165,7 +170,7 @@ export function App() {
       const allGenres = genres.filter(g => g.id !== 'all').slice(0, 8);
       const sPromises = allGenres.map(async g => {
         try {
-          const sList = await getSeries({ genre: g.id, limit: 15 });
+          const sList = await getSeries({ genre: g.id, limit: 12 });
           return sList.length > 0 ? { id: `series-${g.id}`, title: `Séries de ${g.name}`, movies: sList } : null;
         } catch (_) {
           return null;
@@ -179,21 +184,66 @@ export function App() {
     });
   }, [activeTab, loadedAllSeries]);
 
-  // Função centralizada para atualizar lista e métricas de downloads
+  // Função centralizada para atualizar lista e métricas de downloads (ignorando itens recém-excluídos)
   const refreshDownloadsInfo = useCallback(async () => {
+    if (downloadsRequestInFlightRef.current || document.hidden) return;
+    downloadsRequestInFlightRef.current = true;
     try {
       const data = await getDownloadsData();
-      setDownloads(data.downloads || []);
-      if (data.storage) setDownloadsStorage(data.storage);
-      if (data.stats) setDownloadsStats(data.stats);
-    } catch (_) {}
+      const filtered = (data.downloads || []).filter(d => {
+        const did = String(d.infoHash || d.id || '').toLowerCase();
+        return !deletedDownloadIdsRef.current.has(did);
+      });
+      const snapshot = JSON.stringify({
+        downloads: filtered.map(d => [d.infoHash || d.id, d.status, d.progress, d.downloaded, d.speed, d.peers]),
+        storage: data.storage,
+        stats: data.stats
+      });
+      if (snapshot !== downloadsSnapshotRef.current) {
+        downloadsSnapshotRef.current = snapshot;
+        setDownloads(filtered);
+        if (data.storage) setDownloadsStorage(data.storage);
+        if (data.stats) setDownloadsStats(data.stats);
+      }
+    } catch (_) {
+    } finally {
+      downloadsRequestInFlightRef.current = false;
+    }
   }, []);
+
+  // Atualiza automaticamente a biblioteca local ao abrir a aba Pasta Local
+  useEffect(() => {
+    if (activeTab !== 'local') return;
+    getLocalLibraryData().then(data => {
+      const isNotDeleted = (m) => {
+        const mp = String(m?.filePath || m?.videoPath || '').toLowerCase().trim();
+        return !mp || !deletedLocalPathsRef.current.has(mp);
+      };
+      const filteredMovies = (data.movies || []).filter(isNotDeleted);
+      const filteredFranchises = (data.franchises || [])
+        .map(f => ({ ...f, movies: (f.movies || []).filter(isNotDeleted) }))
+        .filter(f => f.movies.length > 0);
+      const filteredStandalone = (data.standaloneMovies || []).filter(isNotDeleted);
+      const filteredSeries = (data.series || [])
+        .map(s => ({ ...s, episodes: (s.episodes || []).filter(isNotDeleted) }))
+        .filter(s => s.episodes.length > 0);
+      setLocalLibrary({
+        ...data,
+        movies: filteredMovies,
+        franchises: filteredFranchises,
+        standaloneMovies: filteredStandalone,
+        series: filteredSeries,
+        count: filteredMovies.length
+      });
+      setLocalMovies(filteredMovies);
+    });
+  }, [activeTab]);
 
   // Polling leve para downloads ativos quando na aba downloads
   useEffect(() => {
     if (activeTab !== 'downloads') return;
     refreshDownloadsInfo();
-    const interval = setInterval(refreshDownloadsInfo, 2000);
+    const interval = setInterval(refreshDownloadsInfo, 5000);
     return () => clearInterval(interval);
   }, [activeTab, refreshDownloadsInfo]);
 
@@ -221,7 +271,7 @@ export function App() {
       list.push({
         id: 'trending',
         title: 'Filmes em Alta',
-        movies: trendingMovies
+        movies: trendingMovies.slice(0, 18)
       });
     }
 
@@ -399,15 +449,12 @@ export function App() {
       return;
     }
 
-    const isLocal = Boolean(movie.isLocal || movie.videoPath || movie.filePath || movie.is_local);
+    const filePath = movie.videoPath || movie.filePath || '';
+    const isLocal = Boolean(filePath);
     if (isLocal) {
-      const filePath = movie.videoPath || movie.filePath || '';
       let sUrl = movie.streamUrl;
       if (!sUrl) {
         sUrl = `/api/local/stream?file=${encodeURIComponent(filePath)}`;
-      }
-      if (!sUrl.includes('direct=')) {
-        sUrl += (sUrl.includes('?') ? '&' : '?') + 'direct=1';
       }
 
       setActiveStream({
@@ -420,6 +467,7 @@ export function App() {
         quality: movie.quality || '1080p Full HD',
         isLocal: true,
         filePath,
+        duration: movie.duration || 0,
         resumePosition: resumePos
       });
       return;
@@ -438,13 +486,32 @@ export function App() {
         infoHash: movie.infoHash,
         quality: movie.quality || '1080p Full HD',
         isLocal: false,
+        duration: movie.duration || 0,
         resumePosition: resumePos
       });
       return;
     }
 
-    // Busca detalhes e melhor torrent
+    // Busca detalhes e melhor torrent (ou arquivo local já baixado)
     const full = await getMovieDetails(movie);
+    if (full && full.isLocal && full.filePath) {
+      setActiveStream({
+        id: full.id || full.imdbId || full.filePath,
+        movieId: full.id || movie.id || full.filePath,
+        imdbId: full.imdbId || movie.imdbId,
+        streamUrl: full.streamUrl || `/api/local/stream?file=${encodeURIComponent(full.filePath)}`,
+        title: full.title,
+        poster: full.poster,
+        backdrop: full.backdrop || full.poster,
+        quality: full.localFile?.quality || full.quality || '1080p Full HD',
+        isLocal: true,
+        filePath: full.filePath,
+        duration: full.duration || 0,
+        resumePosition: resumePos
+      });
+      return;
+    }
+
     if (full && full.streams && full.streams.length > 0) {
       const best = full.streams[0];
       setActiveStream({
@@ -458,6 +525,7 @@ export function App() {
         infoHash: best.infoHash,
         quality: best.quality || '1080p Full HD',
         isLocal: false,
+        duration: full.duration || 0,
         resumePosition: resumePos
       });
     } else {
@@ -528,63 +596,250 @@ export function App() {
   const handleCloseQuickMenu = useCallback(() => {
     if (confirmDeleteMode) {
       setConfirmDeleteMode(false);
+      nav.setQuickMenuIndex?.(0);
       return;
     }
     setQuickMenuMovie(null);
   }, [confirmDeleteMode]);
 
-  // Ações de download
-  const handlePauseDownload = useCallback(async (item) => {
+  // Remove otimisticamente um arquivo local de todos os estados da UI em 0ms
+  const removeLocalMovieFromState = useCallback((target) => {
+    if (!target) return;
+    const fPath = String(target.filePath || target.videoPath || target.savePath || '').toLowerCase().trim();
+    const tId = String(target.id || target.imdbId || target.infoHash || '').toLowerCase().trim();
+    const tTitle = String(target.title || target.cleanName || target.name || '').toLowerCase().trim();
+
+    if (fPath) deletedLocalPathsRef.current.add(fPath);
+
+    const matchesTarget = (m) => {
+      if (!m) return false;
+      const mPath = String(m.filePath || m.videoPath || '').toLowerCase().trim();
+      const mId = String(m.id || m.imdbId || '').toLowerCase().trim();
+      const mTitle = String(m.title || m.cleanName || m.name || '').toLowerCase().trim();
+      if (fPath && mPath && (mPath === fPath || mPath.startsWith(fPath))) return true;
+      if (tId && mId && mId === tId && (m.isLocal || fPath)) return true;
+      if (!fPath && tTitle && mTitle && mTitle === tTitle) return true;
+      return false;
+    };
+
+    setLocalMovies(prev => prev.filter(m => !matchesTarget(m)));
+    setLocalLibrary(prev => {
+      if (!prev) return prev;
+      const nextMovies = (prev.movies || []).filter(m => !matchesTarget(m));
+      const nextFranchises = (prev.franchises || [])
+        .map(f => ({ ...f, movies: (f.movies || []).filter(m => !matchesTarget(m)) }))
+        .filter(f => f.movies.length > 0);
+      const nextStandalone = (prev.standaloneMovies || []).filter(m => !matchesTarget(m));
+      const nextSeries = (prev.series || [])
+        .map(s => ({ ...s, episodes: (s.episodes || []).filter(ep => !matchesTarget(ep)) }))
+        .filter(s => s.episodes.length > 0);
+      return {
+        ...prev,
+        movies: nextMovies,
+        franchises: nextFranchises,
+        standaloneMovies: nextStandalone,
+        series: nextSeries,
+        count: nextMovies.length
+      };
+    });
+  }, []);
+
+  // Ações de download (100% otimistas - resposta em 0ms na interface)
+  const handlePauseDownload = useCallback((item) => {
     const id = item.infoHash || item.id;
     if (!id) return;
-    await pauseDownload(id);
+    const normId = String(id).toLowerCase();
+
+    setDownloads(prev => prev.map(d => {
+      if (String(d.infoHash || d.id || '').toLowerCase() === normId) {
+        return { ...d, isPaused: true, status: 'paused', downloadSpeed: '0 B/s' };
+      }
+      return d;
+    }));
     showToast(`Download de "${item.title || 'Filme'}" pausado.`);
-    refreshDownloadsInfo();
+
+    pauseDownload(id).then(() => refreshDownloadsInfo());
   }, [refreshDownloadsInfo, showToast]);
 
-  const handleResumeDownload = useCallback(async (item) => {
+  const handleResumeDownload = useCallback((item) => {
     const id = item.infoHash || item.id;
     if (!id) return;
-    await resumeDownload(id);
+    const normId = String(id).toLowerCase();
+    deletedDownloadIdsRef.current.delete(normId);
+
+    setDownloads(prev => prev.map(d => {
+      if (String(d.infoHash || d.id || '').toLowerCase() === normId) {
+        return { ...d, isPaused: false, status: 'downloading' };
+      }
+      return d;
+    }));
     showToast(`Download de "${item.title || 'Filme'}" retomado.`);
-    refreshDownloadsInfo();
+
+    resumeDownload(id).then(() => refreshDownloadsInfo());
   }, [refreshDownloadsInfo, showToast]);
 
-  const handleCancelDownload = useCallback(async (item, deleteFiles = true) => {
+  const findMatchingLocalMovie = useCallback((target) => {
+    if (!target || !localMovies || localMovies.length === 0) return null;
+    const tPath = String(target.filePath || target.videoPath || '').toLowerCase().trim();
+    const tImdb = String(target.imdbId || target.id || '').toLowerCase().trim();
+    const tTitle = String(target.title || target.cleanName || target.name || '').toLowerCase().trim();
+    return localMovies.find(m => {
+      if (!m) return false;
+      const mPath = String(m.filePath || m.videoPath || '').toLowerCase().trim();
+      const mImdb = String(m.imdbId || m.id || '').toLowerCase().trim();
+      const mTitle = String(m.title || m.cleanName || m.name || '').toLowerCase().trim();
+      if (tPath && mPath && mPath === tPath) return true;
+      if (tImdb && tImdb.startsWith('tt') && mImdb === tImdb) return true;
+      if (tTitle && mTitle && mTitle === tTitle) return true;
+      return false;
+    }) || null;
+  }, [localMovies]);
+
+  const handleCancelDownload = useCallback((item, deleteFiles = true) => {
+    if (!item) return;
+    const matchedLocal = findMatchingLocalMovie(item);
+    const localPath = item.filePath || item.videoPath || matchedLocal?.filePath || matchedLocal?.videoPath || '';
     const id = item.infoHash || item.id;
-    if (!id) return;
-    await deleteDownload(id, deleteFiles);
-    showToast(`Download de "${item.title || 'Filme'}" cancelado e excluído do PC.`);
-    refreshDownloadsInfo();
-  }, [refreshDownloadsInfo, showToast]);
+    if (!id && !localPath) return;
 
-  const handleConfirmDelete = useCallback(async () => {
-    if (!quickMenuMovie) return;
-    const target = quickMenuMovie;
+    if (id) {
+      const normId = String(id).toLowerCase();
+      deletedDownloadIdsRef.current.add(normId);
+
+      // 1. Remove instantaneamente da lista de downloads na tela (0ms)
+      setDownloads(prev => {
+        const next = prev.filter(d => String(d.infoHash || d.id || '').toLowerCase() !== normId);
+        if (activeTab === 'downloads') {
+          nav.setRowIndex?.(r => Math.max(0, Math.min(r, next.length - 1)));
+          nav.setColIndex?.(0);
+        }
+        return next;
+      });
+    }
+
+    // 2. Remove também da biblioteca local e histórico se existir
+    if (deleteFiles) {
+      removeLocalMovieFromState(matchedLocal || item);
+      clearWatchProgress(item);
+      refreshUserData();
+    }
+
+    showToast(`Download de "${item.title || 'Filme'}" cancelado e excluído do PC.`);
+
+    // 3. Executa exclusão física no backend em background sem travar a UI
+    if (localPath && deleteFiles) {
+      deleteLocalFile(localPath).catch(() => {});
+    }
+    if (id) {
+      deleteDownload(id, deleteFiles).then(() => {
+        refreshDownloadsInfo();
+        if (deleteFiles) {
+          getLocalLibraryData().then(data => {
+            const isNotDeleted = (m) => {
+              const mp = String(m?.filePath || m?.videoPath || '').toLowerCase().trim();
+              return !mp || !deletedLocalPathsRef.current.has(mp);
+            };
+            const filteredMovies = (data.movies || []).filter(isNotDeleted);
+            const filteredFranchises = (data.franchises || [])
+              .map(f => ({ ...f, movies: (f.movies || []).filter(isNotDeleted) }))
+              .filter(f => f.movies.length > 0);
+            const filteredStandalone = (data.standaloneMovies || []).filter(isNotDeleted);
+            const filteredSeries = (data.series || [])
+              .map(s => ({ ...s, episodes: (s.episodes || []).filter(isNotDeleted) }))
+              .filter(s => s.episodes.length > 0);
+            setLocalLibrary({
+              ...data,
+              movies: filteredMovies,
+              franchises: filteredFranchises,
+              standaloneMovies: filteredStandalone,
+              series: filteredSeries,
+              count: filteredMovies.length
+            });
+            setLocalMovies(filteredMovies);
+          });
+        }
+      });
+    }
+  }, [activeTab, findMatchingLocalMovie, refreshDownloadsInfo, showToast, removeLocalMovieFromState, refreshUserData]);
+
+  // Exclusão ultra-responsiva de arquivo local (0ms na interface)
+  const executeDeleteLocalMovie = useCallback((target) => {
+    if (!target) return;
     setConfirmDeleteMode(false);
     setQuickMenuMovie(null);
+    setSelectedMovie(null);
 
-    const fPath = target.filePath || target.videoPath;
-    if (fPath) {
-      try {
-        const res = await deleteLocalFile(fPath);
-        if (res && res.success !== false) {
-          showToast(`"${target.title || target.cleanName || 'Arquivo'}" excluído do computador!`);
-          clearWatchProgress(target);
-          refreshUserData();
-          const data = await getLocalLibraryData();
-          setLocalLibrary(data);
-          setLocalMovies(data.movies || []);
-        } else {
-          showToast(res?.error || 'Erro ao excluir arquivo');
-        }
-      } catch (err) {
-        showToast('Erro ao excluir arquivo');
-      }
-    } else {
-      showToast('Caminho do arquivo local não identificado');
+    const matchedLocal = findMatchingLocalMovie(target);
+    const fPath = target.filePath || target.videoPath || matchedLocal?.filePath || matchedLocal?.videoPath || target.savePath || '';
+    const displayTitle = target.title || target.cleanName || matchedLocal?.title || 'Arquivo';
+
+    // 1. Atualização otimista instantânea (remove o card na mesma hora)
+    removeLocalMovieFromState(matchedLocal ? { ...target, filePath: fPath } : target);
+    clearWatchProgress(target);
+    refreshUserData();
+    if (activeTab === 'local') {
+      nav.setColIndex?.(c => Math.max(0, c - 1));
     }
-  }, [quickMenuMovie, showToast, refreshUserData]);
+
+    const tImdb = String(target.imdbId || target.id || '').toLowerCase().trim();
+    const tTitle = String(target.title || target.cleanName || target.name || '').toLowerCase().trim();
+    const matchedDl = downloads.find(d => {
+      if (!d) return false;
+      if (target.infoHash && String(d.infoHash || d.id || '').toLowerCase() === String(target.infoHash).toLowerCase()) return true;
+      if (tImdb && String(d.imdbId || d.id || '').toLowerCase() === tImdb) return true;
+      if (tTitle && String(d.title || d.name || '').toLowerCase().trim() === tTitle) return true;
+      return false;
+    });
+    const dlId = matchedDl?.infoHash || matchedDl?.id || target.infoHash || (target.id && /^[a-f0-9]{40}$/i.test(String(target.id)) ? target.id : null);
+
+    if (dlId) {
+      const normDlId = String(dlId).toLowerCase();
+      deletedDownloadIdsRef.current.add(normDlId);
+      setDownloads(prev => prev.filter(d => String(d.infoHash || d.id || '').toLowerCase() !== normDlId));
+    }
+
+    showToast(`"${displayTitle}" excluído do computador!`);
+
+    // 2. Dispara remoção física em background no servidor
+    if (fPath) {
+      deleteLocalFile(fPath).then((res) => {
+        if (res && res.success === false) {
+          showToast(res.error || 'Aviso ao excluir arquivo no disco');
+        }
+        getLocalLibraryData().then(data => {
+          const isNotDeleted = (m) => {
+            const mp = String(m?.filePath || m?.videoPath || '').toLowerCase().trim();
+            return !mp || !deletedLocalPathsRef.current.has(mp);
+          };
+          const filteredMovies = (data.movies || []).filter(isNotDeleted);
+          const filteredFranchises = (data.franchises || [])
+            .map(f => ({ ...f, movies: (f.movies || []).filter(isNotDeleted) }))
+            .filter(f => f.movies.length > 0);
+          const filteredStandalone = (data.standaloneMovies || []).filter(isNotDeleted);
+          const filteredSeries = (data.series || [])
+            .map(s => ({ ...s, episodes: (s.episodes || []).filter(isNotDeleted) }))
+            .filter(s => s.episodes.length > 0);
+          setLocalLibrary({
+            ...data,
+            movies: filteredMovies,
+            franchises: filteredFranchises,
+            standaloneMovies: filteredStandalone,
+            series: filteredSeries,
+            count: filteredMovies.length
+          });
+          setLocalMovies(filteredMovies);
+        });
+      }).catch(() => {});
+    }
+    if (dlId) {
+      deleteDownload(dlId, true).then(() => refreshDownloadsInfo()).catch(() => {});
+    }
+  }, [activeTab, downloads, findMatchingLocalMovie, removeLocalMovieFromState, refreshUserData, showToast, refreshDownloadsInfo]);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!quickMenuMovie) return;
+    executeDeleteLocalMovie(quickMenuMovie);
+  }, [quickMenuMovie, executeDeleteLocalMovie]);
 
   const handleQuickActionSelect = useCallback((actionId) => {
     if (!quickMenuMovie) return;
@@ -637,7 +892,7 @@ export function App() {
         break;
 
       case 'delete_local':
-        setConfirmDeleteMode(true);
+        executeDeleteLocalMovie(target);
         break;
 
       case 'confirm_delete':
@@ -646,25 +901,35 @@ export function App() {
 
       case 'cancel_delete':
         setConfirmDeleteMode(false);
+        nav.setQuickMenuIndex?.(0);
         break;
 
       default:
         setQuickMenuMovie(null);
         break;
     }
-  }, [quickMenuMovie, handlePlayMovieDirect, showToast, refreshUserData, handleConfirmDelete, handleResumeDownload, handlePauseDownload, handleCancelDownload, nav]);
+  }, [quickMenuMovie, handlePlayMovieDirect, showToast, refreshUserData, executeDeleteLocalMovie, handleConfirmDelete, handleResumeDownload, handlePauseDownload, handleCancelDownload]);
 
   // Abertura centralizada do menu de opções do título
   const handleOpenQuickMenuForMovie = useCallback((target, forceContinueWatching = false) => {
     if (!target) return;
-    let isLocal = Boolean(target.isLocal || target.filePath || activeTab === 'local');
-    const isDownload = Boolean(activeTab === 'downloads' || target.progress !== undefined || target.status === 'downloading' || target.status === 'completed');
+    const matchedLocal = findMatchingLocalMovie(target);
+    const resolvedFilePath = target.filePath || target.videoPath || matchedLocal?.filePath || matchedLocal?.videoPath || '';
+    const isLocal = Boolean(resolvedFilePath || target.isLocal || activeTab === 'local');
+    const isDownload = Boolean(
+      activeTab === 'downloads' ||
+      target.status === 'downloading' ||
+      target.status === 'paused'
+    );
     const isContinueWatching = Boolean(forceContinueWatching || isInWatchHistory(target) || (target.position && target.position > 10));
+    const enrichedTarget = resolvedFilePath && !target.filePath
+      ? { ...target, filePath: resolvedFilePath, videoPath: resolvedFilePath, isLocal: true }
+      : target;
 
     setConfirmDeleteMode(false);
-    setQuickMenuContext({ isInContinueWatching: isContinueWatching, isLocal, isDownload, downloadItem: target });
-    setQuickMenuMovie(target);
-  }, [activeTab]);
+    setQuickMenuContext({ isInContinueWatching: isContinueWatching, isLocal, isDownload, downloadItem: enrichedTarget });
+    setQuickMenuMovie(enrichedTarget);
+  }, [activeTab, findMatchingLocalMovie]);
 
   const handleLongPress = useCallback(({ zone, heroIndex, rowIndex, colIndex, resultsColIndex }) => {
     let target = null;
@@ -833,7 +1098,12 @@ export function App() {
         if (activeTab === 'local') {
           const row = localGridRows[rowIndex];
           if (row && row.movies && row.movies[colIndex]) {
-            handlePlayMovieDirect(row.movies[colIndex]);
+            const mov = row.movies[colIndex];
+            if (isPlayKey) {
+              handlePlayMovieDirect(mov);
+            } else {
+              handleOpenQuickMenuForMovie(mov);
+            }
           }
           return;
         }
@@ -881,16 +1151,24 @@ export function App() {
     if (idx !== -1) nav.setHeaderIndex(idx);
   };
 
-  return (
-    <div className="tv-app-root">
-      <Header
-        activeTab={activeTab}
-        onSelectTab={handleSelectTab}
-        isZoneFocused={nav.activeZone === 'header'}
-        focusedIndex={nav.headerIndex}
-      />
+  // Enquanto o player fullscreen estiver aberto, a interface por baixo nao precisa ser pintada.
+  // visibility (e nao display) preserva o layout e a posicao de rolagem ao voltar.
+  const hiddenUnderPlayerStyle = activeStream ? { visibility: 'hidden' } : undefined;
 
-      <main className="tv-main-content">
+  return (
+    <Suspense fallback={null}>
+    <div className="tv-app-root">
+      <div style={hiddenUnderPlayerStyle}>
+        <Header
+          activeTab={activeTab}
+          onSelectTab={handleSelectTab}
+          isZoneFocused={nav.activeZone === 'header'}
+          focusedIndex={nav.headerIndex}
+          serverStatus={serverStatus}
+        />
+      </div>
+
+      <main className="tv-main-content" style={hiddenUnderPlayerStyle}>
         {activeTab === 'home' && (
           <HomeView
             heroMovie={heroMovie}
@@ -909,6 +1187,8 @@ export function App() {
             onContextMenuMovie={(mov) => handleOpenQuickMenuForMovie(mov, true)}
             onPlayHero={() => handlePlayMovieDirect(heroMovie)}
             onInfoHero={() => setSelectedMovie(heroMovie)}
+            isLoading={isHomeLoading}
+            serverStatus={serverStatus}
           />
         )}
 
@@ -962,7 +1242,7 @@ export function App() {
             localFilterIndex={nav.localFilterIndex}
             rowIndex={nav.rowIndex}
             colIndex={nav.colIndex}
-            onSelectMovie={handlePlayMovieDirect}
+            onSelectMovie={handleOpenQuickMenuForMovie}
             onContextMenuMovie={handleOpenQuickMenuForMovie}
           />
         )}
@@ -1003,6 +1283,7 @@ export function App() {
           focusedIndex={nav.modalIndex}
           modalActionRef={modalActionRef}
           onToggleFavorite={refreshUserData}
+          onDeleteLocal={executeDeleteLocalMovie}
           onClose={() => {
             setSelectedMovie(null);
             refreshUserData();
@@ -1051,6 +1332,7 @@ export function App() {
         </div>
       )}
     </div>
+    </Suspense>
   );
 }
 export default App;
