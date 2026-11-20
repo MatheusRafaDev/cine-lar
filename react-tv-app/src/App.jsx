@@ -18,6 +18,9 @@ import {
   getLocalMovies,
   getLocalLibraryData,
   getDownloads,
+  getDownloadsData,
+  pauseDownload,
+  resumeDownload,
   getWatchHistory,
   getSavedProgress,
   getFavorites,
@@ -48,6 +51,8 @@ export function App() {
   });
   const [localFilterId, setLocalFilterId] = useState('all');
   const [downloads, setDownloads] = useState([]);
+  const [downloadsStorage, setDownloadsStorage] = useState(null);
+  const [downloadsStats, setDownloadsStats] = useState(null);
   const [watchHistory, setWatchHistory] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -89,9 +94,11 @@ export function App() {
       setLocalMovies(data.movies || []);
     });
 
-    // Downloads
-    getDownloads().then(d => {
-      setDownloads(d);
+    // Downloads e telemetria
+    getDownloadsData().then(data => {
+      setDownloads(data.downloads || []);
+      if (data.storage) setDownloadsStorage(data.storage);
+      if (data.stats) setDownloadsStats(data.stats);
     });
 
     // Gêneros de filmes e séries carregados em paralelo para inicialização ultrarrápida
@@ -126,15 +133,23 @@ export function App() {
     });
   }, [refreshUserData]);
 
-  // Polling leve para downloads ativos
+  // Função centralizada para atualizar lista e métricas de downloads
+  const refreshDownloadsInfo = useCallback(async () => {
+    try {
+      const data = await getDownloadsData();
+      setDownloads(data.downloads || []);
+      if (data.storage) setDownloadsStorage(data.storage);
+      if (data.stats) setDownloadsStats(data.stats);
+    } catch (_) {}
+  }, []);
+
+  // Polling leve para downloads ativos quando na aba downloads
   useEffect(() => {
     if (activeTab !== 'downloads') return;
-    const interval = setInterval(async () => {
-      const d = await getDownloads();
-      setDownloads(d);
-    }, 2000);
+    refreshDownloadsInfo();
+    const interval = setInterval(refreshDownloadsInfo, 2000);
     return () => clearInterval(interval);
-  }, [activeTab]);
+  }, [activeTab, refreshDownloadsInfo]);
 
   // 2. Seções da Home
   const homeSections = useMemo(() => {
@@ -282,6 +297,11 @@ export function App() {
   }, [activeTab, downloads.length, favoritesGridRows.length, localGridRows.length, currentSections.length]);
 
   const getColCount = useCallback((rIdx) => {
+    if (activeTab === 'downloads') {
+      const item = downloads[rIdx];
+      const isDone = item && (item.status === 'completed' || (item.progress && item.progress >= 100));
+      return isDone ? 2 : 3;
+    }
     if (activeTab === 'favorites') {
       return favoritesGridRows[rIdx]?.movies?.length || 1;
     }
@@ -292,7 +312,7 @@ export function App() {
       return currentSections[rIdx].movies.length;
     }
     return 1;
-  }, [activeTab, favoritesGridRows, localGridRows, currentSections]);
+  }, [activeTab, downloads, favoritesGridRows, localGridRows, currentSections]);
 
   // Iniciar reprodução de filme ou abrir modal de série com retomada inteligente
   const handlePlayMovieDirect = useCallback(async (movie) => {
@@ -421,6 +441,12 @@ export function App() {
     if (confirmDeleteMode) {
       return ['confirm_delete', 'cancel_delete'];
     }
+    if (quickMenuContext.isDownload) {
+      const isDlDone = quickMenuMovie.status === 'completed' || (quickMenuMovie.progress && quickMenuMovie.progress >= 100);
+      return isDlDone
+        ? ['play', 'details', 'delete_download']
+        : ['play', 'pause_resume', 'details', 'delete_download'];
+    }
     const list = ['play', 'details', 'favorite'];
     if (!quickMenuContext.isLocal && !quickMenuMovie.isLocal) {
       list.push('download');
@@ -441,6 +467,31 @@ export function App() {
     }
     setQuickMenuMovie(null);
   }, [confirmDeleteMode]);
+
+  // Ações de download
+  const handlePauseDownload = useCallback(async (item) => {
+    const id = item.infoHash || item.id;
+    if (!id) return;
+    await pauseDownload(id);
+    showToast(`Download de "${item.title || 'Filme'}" pausado.`);
+    refreshDownloadsInfo();
+  }, [refreshDownloadsInfo, showToast]);
+
+  const handleResumeDownload = useCallback(async (item) => {
+    const id = item.infoHash || item.id;
+    if (!id) return;
+    await resumeDownload(id);
+    showToast(`Download de "${item.title || 'Filme'}" retomado.`);
+    refreshDownloadsInfo();
+  }, [refreshDownloadsInfo, showToast]);
+
+  const handleCancelDownload = useCallback(async (item, deleteFiles = true) => {
+    const id = item.infoHash || item.id;
+    if (!id) return;
+    await deleteDownload(id, deleteFiles);
+    showToast(`Download de "${item.title || 'Filme'}" cancelado e excluído do PC.`);
+    refreshDownloadsInfo();
+  }, [refreshDownloadsInfo, showToast]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!quickMenuMovie) return;
@@ -485,6 +536,20 @@ export function App() {
         setSelectedMovie(target);
         break;
 
+      case 'pause_resume':
+        setQuickMenuMovie(null);
+        if (target.isPaused || target.status === 'paused') {
+          handleResumeDownload(target);
+        } else {
+          handlePauseDownload(target);
+        }
+        break;
+
+      case 'delete_download':
+        setQuickMenuMovie(null);
+        handleCancelDownload(target, true);
+        break;
+
       case 'favorite': {
         const added = toggleFavorite(target);
         showToast(added ? 'Adicionado à Minha Lista' : 'Removido de Minha Lista');
@@ -521,17 +586,18 @@ export function App() {
         setQuickMenuMovie(null);
         break;
     }
-  }, [quickMenuMovie, handlePlayMovieDirect, showToast, refreshUserData, handleConfirmDelete]);
+  }, [quickMenuMovie, handlePlayMovieDirect, showToast, refreshUserData, handleConfirmDelete, handleResumeDownload, handlePauseDownload, handleCancelDownload]);
 
   // Abertura centralizada do menu de opções do título
   const handleOpenQuickMenuForMovie = useCallback((target) => {
     if (!target) return;
     let isLocal = Boolean(target.isLocal || target.filePath || activeTab === 'local');
+    const isDownload = Boolean(activeTab === 'downloads' || target.progress !== undefined || target.status === 'downloading' || target.status === 'completed');
     const saved = getSavedProgress(target);
     const isContinueWatching = Boolean(saved && saved.position > 10);
 
     setConfirmDeleteMode(false);
-    setQuickMenuContext({ isInContinueWatching: isContinueWatching, isLocal });
+    setQuickMenuContext({ isInContinueWatching: isContinueWatching, isLocal, isDownload, downloadItem: target });
     setQuickMenuMovie(target);
   }, [activeTab]);
 
@@ -669,7 +735,18 @@ export function App() {
         if (activeTab === 'downloads') {
           const dl = downloads[rowIndex];
           if (dl) {
-            handlePlayMovieDirect(dl);
+            const isDone = dl.status === 'completed' || (dl.progress && dl.progress >= 100);
+            if (colIndex === 0 || isPlayKey) {
+              handlePlayMovieDirect(dl);
+            } else if (!isDone && colIndex === 1) {
+              if (dl.isPaused || dl.status === 'paused') {
+                handleResumeDownload(dl);
+              } else {
+                handlePauseDownload(dl);
+              }
+            } else if ((isDone && colIndex === 1) || (!isDone && colIndex === 2)) {
+              handleCancelDownload(dl, true);
+            }
           }
           return;
         }
@@ -815,16 +892,16 @@ export function App() {
         {activeTab === 'downloads' && (
           <DownloadsView
             downloads={downloads}
+            storage={downloadsStorage}
+            stats={downloadsStats}
             activeZone={nav.activeZone}
             focusedIndex={nav.rowIndex}
+            actionIndex={nav.colIndex}
             onPlayDownload={handlePlayMovieDirect}
-            onCancelDownload={async (item) => {
-              if (item.infoHash) {
-                await deleteDownload(item.infoHash, true);
-                const d = await getDownloads();
-                setDownloads(d);
-              }
-            }}
+            onPauseDownload={handlePauseDownload}
+            onResumeDownload={handleResumeDownload}
+            onCancelDownload={handleCancelDownload}
+            onContextMenu={handleOpenQuickMenuForMovie}
           />
         )}
 

@@ -601,4 +601,18 @@ export function deleteLocalMediaRecord(filePath) {
     } catch (_) {}
 }
 
+export function getMovieById(imdbId) {
+    if (!imdbId) return null;
+    try {
+        const database = getDb();
+        const row = database.prepare('SELECT * FROM movies WHERE imdb_id = ?').get(imdbId);
+        if (row) return row;
+        const local = database.prepare('SELECT * FROM local_media WHERE imdb_id = ?').get(imdbId);
+        return local || null;
+    } catch (_) {
+        return null;
+    }
+}
+
+
 

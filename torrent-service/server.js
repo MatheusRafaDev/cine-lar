@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import WebTorrent from 'webtorrent';
-import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites, isUserFavorite, toggleUserFavorite, updateWatchProgress, getWatchHistory, deleteWatchHistory } from './db.js';
+import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites, isUserFavorite, toggleUserFavorite, updateWatchProgress, getWatchHistory, deleteWatchHistory, getMovieById } from './db.js';
 import { seedCatalog, scanLocalMovies } from './seeder.js';
 import { askAiMovieRecommendations } from './aiSearch.js';
 import { getLocalLibrary, streamLocalVideo, deleteLocalFile, renameLocalFile, invalidateLocalCache } from './localScanner.js';
@@ -82,6 +82,19 @@ try {
         const saved = JSON.parse(fs.readFileSync(DOWNLOADS_FILE, 'utf8'));
         if (Array.isArray(saved)) {
             saved.filter(item => item.quality !== 'Streaming').forEach(item => {
+                // Preenche poster a partir do IMDb caso não exista salvo
+                if (!item.poster && item.imdbId) {
+                    try {
+                        const local = getMovieById(item.imdbId);
+                        if (local && local.poster) {
+                            item.poster = local.poster;
+                            item.backdrop = local.backdrop || local.poster;
+                        } else if (item.imdbId.startsWith('tt')) {
+                            item.poster = `https://images.metahub.space/poster/medium/${item.imdbId}/img`;
+                            item.backdrop = `https://images.metahub.space/background/medium/${item.imdbId}/img`;
+                        }
+                    } catch (_) {}
+                }
                 downloadsRegistry.set(item.id, item);
             });
         }
@@ -96,10 +109,24 @@ function persistDownloads() {
             .filter(d => d.quality !== 'Streaming')
             .map(d => ({
                 id: d.id,
-                imdbId: d.imdbId,
-                title: d.title,
-                quality: d.quality,
-                status: d.status,
+                imdbId: d.imdbId || '',
+                title: d.title || 'Download',
+                quality: d.quality || '1080p',
+                status: d.status || 'downloading',
+                isPaused: Boolean(d.isPaused),
+                poster: d.poster || '',
+                backdrop: d.backdrop || '',
+                overview: d.overview || '',
+                year: d.year || '',
+                category: d.category || 'movie',
+                groupName: d.groupName || null,
+                isSeries: Boolean(d.isSeries),
+                seriesName: d.seriesName || null,
+                season: d.season || null,
+                episode: d.episode || null,
+                destinationPath: d.destinationPath || '',
+                savePath: d.savePath || '',
+                magnet: d.magnet || '',
                 downloaded: d.downloaded || '0 MB',
                 total: d.total || '0 MB',
                 progress: d.progress || 0,
@@ -1738,56 +1765,151 @@ const server = http.createServer(async (req, res) => {
         if (pathname === '/api/downloads' && req.method === 'GET') {
             const list = Array.from(downloadsRegistry.values()).map(meta => {
                 const torrent = getActiveTorrent(meta.id);
+                let poster = meta.poster;
+                let backdrop = meta.backdrop || meta.poster;
+                if (!poster && meta.imdbId) {
+                    try {
+                        const local = getMovieById(meta.imdbId);
+                        if (local && local.poster) {
+                            poster = local.poster;
+                            backdrop = local.backdrop || local.poster;
+                        } else if (meta.imdbId.startsWith('tt')) {
+                            poster = `https://images.metahub.space/poster/medium/${meta.imdbId}/img`;
+                            backdrop = `https://images.metahub.space/background/medium/${meta.imdbId}/img`;
+                        }
+                    } catch (_) {}
+                }
+
                 if (torrent) {
+                    const isDone = Boolean(torrent.done || meta.status === 'completed');
+                    const isPaused = Boolean(torrent.paused || meta.isPaused);
                     return {
                         id: meta.id,
+                        infoHash: meta.id,
                         imdbId: meta.imdbId,
                         title: meta.title,
                         quality: meta.quality,
                         name: torrent.name || meta.title,
-                        progress: (torrent.progress * 100).toFixed(1),
-                        downloadSpeed: formatBytes(torrent.downloadSpeed) + '/s',
-                        uploadSpeed: formatBytes(torrent.uploadSpeed) + '/s',
+                        poster: poster || '',
+                        backdrop: backdrop || '',
+                        overview: meta.overview || '',
+                        year: meta.year || '',
+                        progress: isDone ? 100 : parseFloat((torrent.progress * 100).toFixed(1)),
+                        downloadSpeed: (isDone || isPaused) ? '0 B/s' : formatBytes(torrent.downloadSpeed) + '/s',
+                        uploadSpeed: (isDone || isPaused) ? '0 B/s' : formatBytes(torrent.uploadSpeed) + '/s',
                         downloaded: formatBytes(torrent.downloaded),
                         total: formatBytes(torrent.length),
-                        numPeers: torrent.numPeers,
-                        timeRemaining: formatTime(torrent.timeRemaining),
-                        status: torrent.done ? 'completed' : 'downloading',
-                        canPlay: Boolean(torrent.ready),
+                        totalBytes: torrent.length || 0,
+                        downloadedBytes: torrent.downloaded || 0,
+                        numPeers: isPaused ? 0 : torrent.numPeers,
+                        timeRemaining: isDone ? 'Concluído' : (isPaused ? 'Pausado' : formatTime(torrent.timeRemaining)),
+                        status: isDone ? 'completed' : (isPaused ? 'paused' : 'downloading'),
+                        isPaused: isPaused,
+                        canPlay: Boolean(torrent.ready || isDone),
                         streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || torrent.magnetURI || '')}&title=${encodeURIComponent(meta.title)}`,
                         magnet: meta.magnet || torrent.magnetURI || '',
                         destinationPath: meta.destinationPath || `MatheusFlix\\${meta.title}`,
+                        savePath: meta.savePath || '',
                         category: meta.category || 'movie',
                         groupName: meta.groupName || null,
+                        season: meta.season || null,
+                        episode: meta.episode || null,
+                        isSeries: Boolean(meta.isSeries),
                         createdAt: meta.createdAt
                     };
                 }
+
+                const isDone = meta.status === 'completed';
+                const isPaused = Boolean(meta.isPaused || meta.status === 'paused');
                 return {
                     id: meta.id,
+                    infoHash: meta.id,
                     imdbId: meta.imdbId,
                     title: meta.title,
                     quality: meta.quality,
                     name: meta.title,
-                    progress: meta.progress || (meta.status === 'completed' ? 100 : 0),
+                    poster: poster || '',
+                    backdrop: backdrop || '',
+                    overview: meta.overview || '',
+                    year: meta.year || '',
+                    progress: meta.progress || (isDone ? 100 : 0),
                     downloadSpeed: '0 B/s',
                     uploadSpeed: '0 B/s',
-                    downloaded: meta.downloaded || (meta.status === 'completed' ? 'Concluído' : '0 B'),
+                    downloaded: meta.downloaded || (isDone ? 'Concluído' : '0 B'),
                     total: meta.total || '',
+                    totalBytes: 0,
+                    downloadedBytes: 0,
                     numPeers: 0,
-                    timeRemaining: meta.status === 'completed' ? 'Concluído' : 'Pausado',
-                    status: meta.status || 'downloading',
-                    canPlay: meta.status === 'completed',
+                    timeRemaining: isDone ? 'Concluído' : (isPaused ? 'Pausado' : 'Aguardando'),
+                    status: isDone ? 'completed' : (isPaused ? 'paused' : 'downloading'),
+                    isPaused: isPaused,
+                    canPlay: isDone,
                     streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || '')}&title=${encodeURIComponent(meta.title)}`,
                     magnet: meta.magnet || '',
                     destinationPath: meta.destinationPath || `MatheusFlix\\${meta.title}`,
+                    savePath: meta.savePath || '',
                     category: meta.category || 'movie',
                     groupName: meta.groupName || null,
+                    season: meta.season || null,
+                    episode: meta.episode || null,
+                    isSeries: Boolean(meta.isSeries),
                     createdAt: meta.createdAt
                 };
             });
 
+            // Disco / Armazenamento em D:\Filmes
+            let freeSpaceGB = null;
+            let totalSpaceGB = null;
+            let usedSpaceGB = null;
+            try {
+                if (fs.existsSync(SAVE_PATH)) {
+                    const st = fs.statfsSync(SAVE_PATH);
+                    freeSpaceGB = parseFloat(((st.bfree * st.bsize) / (1024 ** 3)).toFixed(1));
+                    totalSpaceGB = parseFloat(((st.blocks * st.bsize) / (1024 ** 3)).toFixed(1));
+                    usedSpaceGB = parseFloat((totalSpaceGB - freeSpaceGB).toFixed(1));
+                }
+            } catch (_) {}
+
+            // Métricas agregadas
+            let totalDownloadSpeedBytes = 0;
+            let totalUploadSpeedBytes = 0;
+            let activeCount = 0;
+            let completedCount = 0;
+            let pausedCount = 0;
+
+            list.forEach(item => {
+                if (item.status === 'downloading' && !item.isPaused) {
+                    activeCount++;
+                    const t = getActiveTorrent(item.id);
+                    if (t) {
+                        totalDownloadSpeedBytes += t.downloadSpeed || 0;
+                        totalUploadSpeedBytes += t.uploadSpeed || 0;
+                    }
+                } else if (item.status === 'completed') {
+                    completedCount++;
+                } else if (item.status === 'paused' || item.isPaused) {
+                    pausedCount++;
+                }
+            });
+
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ downloads: list }));
+            res.end(JSON.stringify({
+                downloads: list,
+                storage: {
+                    freeSpaceGB,
+                    totalSpaceGB,
+                    usedSpaceGB,
+                    savePath: SAVE_PATH
+                },
+                stats: {
+                    activeCount,
+                    completedCount,
+                    pausedCount,
+                    totalDownloads: list.length,
+                    totalDownloadSpeed: formatBytes(totalDownloadSpeedBytes) + '/s',
+                    totalUploadSpeed: formatBytes(totalUploadSpeedBytes) + '/s'
+                }
+            }));
             return;
         }
 
@@ -2218,7 +2340,23 @@ const server = http.createServer(async (req, res) => {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body);
-                    const { magnet, imdbId, title, quality, filename, isSeries, seriesName, season, episode } = data;
+                    const { magnet, imdbId, title, quality, filename, isSeries, seriesName, season, episode, overview, year } = data;
+                    let poster = data.poster || '';
+                    let backdrop = data.backdrop || poster;
+
+                    if (!poster && imdbId) {
+                        try {
+                            const local = getMovieById(imdbId);
+                            if (local && local.poster) {
+                                poster = local.poster;
+                                backdrop = local.backdrop || local.poster;
+                            } else if (imdbId.startsWith('tt')) {
+                                poster = `https://images.metahub.space/poster/medium/${imdbId}/img`;
+                                backdrop = `https://images.metahub.space/background/medium/${imdbId}/img`;
+                            }
+                        } catch (_) {}
+                    }
+
                     if (!magnet) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'magnet URL is required' }));
@@ -2258,6 +2396,10 @@ const server = http.createServer(async (req, res) => {
                         title: title || filename || 'Filme',
                         quality: quality || '1080p',
                         magnet: magnet,
+                        poster: poster || '',
+                        backdrop: backdrop || '',
+                        overview: overview || '',
+                        year: year || '',
                         category: org.category,
                         groupName: org.groupName,
                         isSeries: Boolean(isSeries || org.category === 'series'),
@@ -2267,6 +2409,7 @@ const server = http.createServer(async (req, res) => {
                         destinationPath: org.displayPath,
                         savePath: org.targetPath,
                         status: 'downloading',
+                        isPaused: false,
                         createdAt: new Date().toISOString()
                     };
                     downloadsRegistry.set(infoHash, metaItem);
@@ -2289,6 +2432,7 @@ const server = http.createServer(async (req, res) => {
                         const item = downloadsRegistry.get(infoHash);
                         if (item) {
                             item.status = 'completed';
+                            item.isPaused = false;
                             item.progress = 100;
                             item.downloaded = formatBytes(torrent.length);
                             item.total = formatBytes(torrent.length);
@@ -2320,6 +2464,79 @@ const server = http.createServer(async (req, res) => {
                     res.end(JSON.stringify({ error: e.message }));
                 }
             });
+            return;
+        }
+
+        // Pause download
+        if (pathname.startsWith('/api/downloads/') && pathname.endsWith('/pause') && req.method === 'POST') {
+            const id = pathname.replace('/api/downloads/', '').replace('/pause', '').trim().toLowerCase();
+            const torrent = getActiveTorrent(id);
+            if (torrent) {
+                try {
+                    torrent.pause();
+                } catch (e) {
+                    console.warn(`[TorrentService] Erro ao pausar torrent ${id}:`, e.message);
+                }
+            }
+            const meta = downloadsRegistry.get(id);
+            if (meta) {
+                meta.status = 'paused';
+                meta.isPaused = true;
+                persistDownloads();
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: true, message: 'Download pausado', id }));
+            return;
+        }
+
+        // Resume download
+        if (pathname.startsWith('/api/downloads/') && pathname.endsWith('/resume') && req.method === 'POST') {
+            const id = pathname.replace('/api/downloads/', '').replace('/resume', '').trim().toLowerCase();
+            let torrent = getActiveTorrent(id);
+            const meta = downloadsRegistry.get(id);
+
+            if (torrent) {
+                try {
+                    torrent.resume();
+                } catch (e) {
+                    console.warn(`[TorrentService] Erro ao retomar torrent ${id}:`, e.message);
+                }
+            } else if (meta && meta.magnet) {
+                try {
+                    torrent = client.add(meta.magnet, { path: meta.savePath || PLATFORM_DOWNLOAD_PATH }, (t) => {
+                        console.log(`[TorrentService] Torrent retomado: "${t.name}"`);
+                        const video = selectBestVideoFile(t.files);
+                        if (video) {
+                            prioritizeVideoForStreaming(t, video);
+                        }
+                    });
+                    torrent.on('done', () => {
+                        console.log(`[TorrentService] Download COMPLETED: "${torrent.name}"!`);
+                        if (meta) {
+                            meta.status = 'completed';
+                            meta.isPaused = false;
+                            meta.progress = 100;
+                            meta.downloaded = formatBytes(torrent.length);
+                            meta.total = formatBytes(torrent.length);
+                            meta.completedAt = new Date().toISOString();
+                            persistDownloads();
+                        }
+                        scanLocalMovies(SAVE_PATH);
+                        refreshJellyfinLibrary();
+                    });
+                } catch (e) {
+                    console.warn(`[TorrentService] Erro ao re-adicionar torrent para retomada:`, e.message);
+                }
+            }
+
+            if (meta) {
+                meta.status = 'downloading';
+                meta.isPaused = false;
+                persistDownloads();
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: true, message: 'Download retomado', id }));
             return;
         }
 

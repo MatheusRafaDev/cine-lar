@@ -18,7 +18,7 @@ export const QuickActionsModal = memo(function QuickActionsModal({
 }) {
   if (!isOpen || !movie) return null;
 
-  const { isInContinueWatching = false, isLocal = false } = context;
+  const { isInContinueWatching = false, isLocal = false, isDownload = false } = context;
   const title = movie.title || movie.name || movie.cleanName || 'Filme';
   const poster = movie.poster || movie.thumbnail || '/placeholder-poster.jpg';
   const year = movie.year || (movie.releaseDate ? movie.releaseDate.substring(0, 4) : '');
@@ -74,63 +74,103 @@ export const QuickActionsModal = memo(function QuickActionsModal({
 
   // Lista dinâmica de ações com base no contexto do card
   const actions = [];
+  const isDlPaused = Boolean(movie.isPaused || movie.status === 'paused');
+  const isDlCompleted = Boolean(movie.status === 'completed' || (movie.progress && movie.progress >= 100));
 
-  // 1. Assistir Agora
-  actions.push({
-    id: 'play',
-    title: 'Assistir Agora',
-    subtitle: isInContinueWatching ? 'Retomar de onde parou' : 'Iniciar reprodução imediata',
-    icon: 'play_arrow',
-    highlight: true
-  });
-
-  // 2. Ver Detalhes
-  actions.push({
-    id: 'details',
-    title: 'Ver Detalhes',
-    subtitle: 'Sinopse, elenco e outras informações',
-    icon: 'info'
-  });
-
-  // 3. Adicionar / Remover da Lista (Favoritos)
-  actions.push({
-    id: 'favorite',
-    title: isFav ? 'Remover de Minha Lista' : 'Adicionar a Minha Lista',
-    subtitle: isFav ? 'Remover dos seus títulos favoritos' : 'Salvar em Minha Lista para assistir depois',
-    icon: isFav ? 'bookmark_remove' : 'bookmark_add',
-    iconColor: isFav ? '#F5C518' : 'inherit'
-  });
-
-  // 4. Baixar para o Computador (apenas para títulos online)
-  if (!isLocal && !movie.isLocal) {
+  if (isDownload) {
+    // 1. Assistir (ou reprodução sequencial enquanto baixa)
     actions.push({
-      id: 'download',
-      title: 'Baixar para o Computador',
-      subtitle: 'Salvar em D:\\Filmes para assistir offline',
-      icon: 'file_download'
+      id: 'play',
+      title: isDlCompleted ? 'Assistir Agora' : 'Assistir Enquanto Baixa',
+      subtitle: isDlCompleted ? 'Reproduzir vídeo completo baixado no PC' : 'Streaming sequencial imediato enquanto baixa',
+      icon: 'play_arrow',
+      highlight: true
     });
-  }
 
-  // 5. Remover de Continuar Assistindo (se estiver no histórico ou seção continuar assistindo)
-  if (isInContinueWatching) {
+    // 2. Pausar / Retomar Download
+    if (!isDlCompleted) {
+      actions.push({
+        id: 'pause_resume',
+        title: isDlPaused ? 'Retomar Download' : 'Pausar Download',
+        subtitle: isDlPaused ? 'Retomar transferência dos arquivos no computador' : 'Pausar download temporariamente para liberar internet',
+        icon: isDlPaused ? 'play_arrow' : 'pause'
+      });
+    }
+
+    // 3. Ver Detalhes
     actions.push({
-      id: 'remove_history',
-      title: 'Remover de Continuar Assistindo',
-      subtitle: 'Limpar progresso e retirar da lista inicial',
-      icon: 'history_toggle_off',
-      warning: true
+      id: 'details',
+      title: 'Ver Detalhes do Título',
+      subtitle: 'Sinopse, elenco e informações completas',
+      icon: 'info'
     });
-  }
 
-  // 6. Apagar do Disco (se for arquivo local de D:\Filmes)
-  if (isLocal || movie.isLocal || movie.filePath) {
+    // 4. Cancelar / Excluir Download
     actions.push({
-      id: 'delete_local',
-      title: 'Apagar do Disco (D:\\Filmes)',
-      subtitle: 'Excluir arquivo de vídeo permanentemente do PC',
+      id: 'delete_download',
+      title: 'Cancelar e Excluir Download',
+      subtitle: 'Interromper e apagar arquivos de D:\\Filmes',
       icon: 'delete_forever',
       danger: true
     });
+  } else {
+    // 1. Assistir Agora
+    actions.push({
+      id: 'play',
+      title: 'Assistir Agora',
+      subtitle: isInContinueWatching ? 'Retomar de onde parou' : 'Iniciar reprodução imediata',
+      icon: 'play_arrow',
+      highlight: true
+    });
+
+    // 2. Ver Detalhes
+    actions.push({
+      id: 'details',
+      title: 'Ver Detalhes',
+      subtitle: 'Sinopse, elenco e outras informações',
+      icon: 'info'
+    });
+
+    // 3. Adicionar / Remover da Lista (Favoritos)
+    actions.push({
+      id: 'favorite',
+      title: isFav ? 'Remover de Minha Lista' : 'Adicionar a Minha Lista',
+      subtitle: isFav ? 'Remover dos seus títulos favoritos' : 'Salvar em Minha Lista para assistir depois',
+      icon: isFav ? 'bookmark_remove' : 'bookmark_add',
+      iconColor: isFav ? '#F5C518' : 'inherit'
+    });
+
+    // 4. Baixar para o Computador (apenas para títulos online)
+    if (!isLocal && !movie.isLocal) {
+      actions.push({
+        id: 'download',
+        title: 'Baixar para o Computador',
+        subtitle: 'Salvar em D:\\Filmes para assistir offline',
+        icon: 'file_download'
+      });
+    }
+
+    // 5. Remover de Continuar Assistindo (se estiver no histórico ou seção continuar assistindo)
+    if (isInContinueWatching) {
+      actions.push({
+        id: 'remove_history',
+        title: 'Remover de Continuar Assistindo',
+        subtitle: 'Limpar progresso e retirar da lista inicial',
+        icon: 'history_toggle_off',
+        warning: true
+      });
+    }
+
+    // 6. Apagar do Disco (se for arquivo local de D:\Filmes)
+    if (isLocal || movie.isLocal || movie.filePath) {
+      actions.push({
+        id: 'delete_local',
+        title: 'Apagar do Disco (D:\\Filmes)',
+        subtitle: 'Excluir arquivo de vídeo permanentemente do PC',
+        icon: 'delete_forever',
+        danger: true
+      });
+    }
   }
 
   return (

@@ -267,6 +267,9 @@ export function MovieDetailsModal({
           title: details.title || title,
           filename: cleanTitle,
           poster: selectedEpisode?.thumbnail || poster,
+          backdrop: details.backdrop || movie.backdrop || poster,
+          overview: details.overview || movie.overview || '',
+          year: details.year || movie.year || '',
           imdbId: details.imdbId || movie.imdbId,
           isSeries: true,
           seriesName: details.title || title,
@@ -285,6 +288,9 @@ export function MovieDetailsModal({
           magnet: streamToDownload.magnet,
           title,
           poster,
+          backdrop: details.backdrop || movie.backdrop || poster,
+          overview: details.overview || movie.overview || '',
+          year: details.year || movie.year || (movie.releaseDate ? movie.releaseDate.substring(0, 4) : ''),
           imdbId: details.imdbId || movie.imdbId || details.id,
           quality: streamToDownload.quality || '1080p'
         });

@@ -261,13 +261,42 @@ export async function searchMovies(query) {
   }
 }
 
-// 7. Lista de downloads
+// 7. Lista de downloads e telemetria de disco
 export async function getDownloads() {
   try {
     const data = await request('/api/downloads');
     return data.downloads || [];
   } catch (_) {
     return [];
+  }
+}
+
+export async function getDownloadsData() {
+  try {
+    const data = await request('/api/downloads');
+    return {
+      downloads: data.downloads || [],
+      storage: data.storage || null,
+      stats: data.stats || null
+    };
+  } catch (_) {
+    return { downloads: [], storage: null, stats: null };
+  }
+}
+
+export async function pauseDownload(id) {
+  try {
+    return await request(`/api/downloads/${encodeURIComponent(id)}/pause`, { method: 'POST' });
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function resumeDownload(id) {
+  try {
+    return await request(`/api/downloads/${encodeURIComponent(id)}/resume`, { method: 'POST' });
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 }
 
