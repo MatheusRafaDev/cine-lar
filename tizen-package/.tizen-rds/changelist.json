@@ -71,23 +71,23 @@
         "type": "add"
       },
       {
-        "path": "Debug/projects/tizen-package/assets/index-BIfELizs.js",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/assets/index-D10t3XnP.css",
-        "type": "add"
-      },
-      {
-        "path": "Debug/projects/tizen-package/assets/index-legacy-CfsSbRML.js",
-        "type": "add"
-      },
-      {
         "path": "Debug/projects/tizen-package/config.xml",
         "type": "add"
       },
       {
         "path": "Debug/projects/tizen-package/icon.png",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-BWcy-Hl9.css",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-inK9cqeI.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-legacy-CG2_q7MU.js",
         "type": "add"
       }
     ]
