@@ -11,10 +11,9 @@ export function SeriesView({
   const isRowsFocused = activeZone === 'rows';
 
   return (
-    <div className="tv-view-container tv-series-view" style={{ paddingTop: '90px' }}>
+    <div className="tv-view-container tv-series-view" style={{ paddingTop: '76px' }}>
       <div className="tv-page-header">
-        <h1 className="tv-page-title">Catálogo Completo de Séries</h1>
-        <p className="tv-page-subtitle">Explore temporadas completas, episódios e lançamentos sob demanda</p>
+        <h1 className="tv-page-title">Séries</h1>
       </div>
 
       <div className="tv-sections-container">

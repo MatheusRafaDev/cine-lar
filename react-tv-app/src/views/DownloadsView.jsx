@@ -10,10 +10,9 @@ export function DownloadsView({
   const isListFocused = activeZone === 'rows';
 
   return (
-    <div className="tv-view-container tv-downloads-view" style={{ paddingTop: '90px' }}>
+    <div className="tv-view-container tv-downloads-view" style={{ paddingTop: '76px' }}>
       <div className="tv-page-header">
-        <h1 className="tv-page-title">Gerenciador de Downloads</h1>
-        <p className="tv-page-subtitle">Acompanhe o download contínuo de filmes e séries para a sua biblioteca local</p>
+        <h1 className="tv-page-title">Downloads</h1>
       </div>
 
       {downloads.length === 0 ? (

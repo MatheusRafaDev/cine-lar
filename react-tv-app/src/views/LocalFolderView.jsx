@@ -37,22 +37,19 @@ export function LocalFolderView({
   const isCollectionsMode = activeFilter === 'collections';
 
   return (
-    <div className="tv-view-container tv-local-view" style={{ paddingTop: '90px' }}>
+    <div className="tv-view-container tv-local-view" style={{ paddingTop: '76px' }}>
       {/* 1. Cabeçalho Editorial com Estatísticas do Disco */}
       <div className="tv-page-header tv-local-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-          <h1 className="tv-page-title">Minha Pasta Local</h1>
+        <div className="tv-page-header-row">
+          <h1 className="tv-page-title">Pasta Local</h1>
           <span className="tv-badge-pill tv-badge-path">
             <span className="material-icons" style={{ fontSize: '14px' }}>folder</span>
             <span>{savePath}</span>
           </span>
           <span className="tv-badge-pill tv-badge-stats">
-            {count} filmes salvos • {totalSize || '74 GB'} • {franchisesCount} franquias
+            {count} filmes • {totalSize || '74 GB'} • {franchisesCount} coleções
           </span>
         </div>
-        <p className="tv-page-subtitle">
-          Acervo permanente no disco do computador. Reprodução instantânea de alta fidelidade com zero consumo de internet.
-        </p>
       </div>
 
       {/* 2. Barra de Filtros e Franquias (10-Foot Focusable Chips) */}

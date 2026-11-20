@@ -36,6 +36,10 @@ export function MovieCard({ movie, isFocused, onClick }) {
           className="tv-card-poster"
           loading="lazy"
           decoding="async"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = 'https://via.placeholder.com/300x450/1c1c1a/ffffff?text=Sem+Poster';
+          }}
         />
 
         {rating && (
@@ -46,7 +50,10 @@ export function MovieCard({ movie, isFocused, onClick }) {
         )}
 
         {isLocal && (
-          <div className="tv-card-badge-local">Local</div>
+          <div className="tv-card-badge-local">
+            <span className="material-icons" style={{ fontSize: '11px', marginRight: '2px' }}>folder</span>
+            <span>Local</span>
+          </div>
         )}
 
         {progress !== null && progress > 0 && (

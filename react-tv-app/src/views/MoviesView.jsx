@@ -11,10 +11,9 @@ export function MoviesView({
   const isRowsFocused = activeZone === 'rows';
 
   return (
-    <div className="tv-view-container tv-movies-view" style={{ paddingTop: '90px' }}>
+    <div className="tv-view-container tv-movies-view" style={{ paddingTop: '76px' }}>
       <div className="tv-page-header">
-        <h1 className="tv-page-title">Catálogo Completo de Filmes</h1>
-        <p className="tv-page-subtitle">Navegue por gêneros e explore centenas de títulos sob demanda</p>
+        <h1 className="tv-page-title">Filmes</h1>
       </div>
 
       <div className="tv-sections-container">

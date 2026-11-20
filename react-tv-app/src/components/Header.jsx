@@ -5,7 +5,7 @@ export const NAV_ITEMS = [
   { id: 'movies', label: 'Filmes' },
   { id: 'series', label: 'Séries' },
   { id: 'favorites', label: 'Favoritos' },
-  { id: 'local', label: 'Minha Pasta Local' },
+  { id: 'local', label: 'Pasta Local' },
   { id: 'downloads', label: 'Downloads' },
   { id: 'search', label: 'Buscar' }
 ];
@@ -15,7 +15,7 @@ export function Header({ activeTab, onSelectTab, isZoneFocused, focusedIndex }) 
     <header className="tv-header">
       <div className="tv-logo-box">
         <span className="tv-logo-text">MATHEUSFLIX</span>
-        <span className="tv-logo-tag">TV EDITION</span>
+        <span className="tv-logo-dot" />
       </div>
 
       <nav className="tv-nav-items">
