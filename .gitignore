@@ -17,3 +17,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+
+# React TV App
+react-tv-app/node_modules/
+react-tv-app/dist/
+tizen-package/Debug/
+*.wgt
