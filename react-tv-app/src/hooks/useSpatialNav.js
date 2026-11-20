@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { NAV_ITEMS } from '../components/Header';
 
 // Mapeamento oficial de teclas Tizen e navegadores
 export const KEYS = {
@@ -114,6 +115,13 @@ export function useSpatialNav({
   useEffect(() => {
     if (isModalOpen || isPlayerOpen) return;
 
+    // Sincroniza o índice do header com a tab atual
+    const tabIdx = NAV_ITEMS.findIndex(item => item.id === activeTab);
+    if (tabIdx >= 0) {
+      setHeaderIndex(tabIdx);
+      stateRef.current.headerIndex = tabIdx;
+    }
+
     setActiveZone(currentZone => {
       if (currentZone === 'header') return 'header';
 
@@ -161,11 +169,51 @@ export function useSpatialNav({
     const isUp = code === KEYS.UP || key === 'ArrowUp';
     const isDown = code === KEYS.DOWN || key === 'ArrowDown';
 
-    // A. Prioridade Máxima: Botão Voltar (Tizen / Esc)
+    // A. Prioridade Máxima: Botão Voltar (Tizen / Esc / Backspace)
     if (isBack) {
       e.preventDefault();
       e.stopPropagation();
-      if (s.onBack) s.onBack();
+
+      // 1. Player fullscreen aberto: fecha o player
+      if (s.isPlayerOpen) {
+        s.onBack?.();
+        return;
+      }
+
+      // 2. Modal de detalhes aberto: fecha o modal e joga foco para o header na tab atual
+      if (s.isModalOpen) {
+        s.onBack?.();
+        const tabIdx = NAV_ITEMS.findIndex(item => item.id === s.activeTab);
+        const targetHeaderIdx = tabIdx >= 0 ? tabIdx : 0;
+        setHeaderIndex(targetHeaderIdx);
+        stateRef.current.headerIndex = targetHeaderIdx;
+        setActiveZone('header');
+        stateRef.current.activeZone = 'header';
+        return;
+      }
+
+      // 3. Se o foco está em qualquer área de conteúdo (rows, local-filters, hero, busca):
+      // Joga SEMPRE o foco para o header, sincronizado com a tab atual, para navegar dentro dele
+      if (s.activeZone !== 'header') {
+        const tabIdx = NAV_ITEMS.findIndex(item => item.id === s.activeTab);
+        const targetHeaderIdx = tabIdx >= 0 ? tabIdx : 0;
+        setHeaderIndex(targetHeaderIdx);
+        stateRef.current.headerIndex = targetHeaderIdx;
+        setActiveZone('header');
+        stateRef.current.activeZone = 'header';
+        return;
+      }
+
+      // 4. Se o usuário JÁ ESTÁ no header e não está na aba Início, volta para Início
+      if (s.activeTab !== 'home' || s.headerIndex !== 0) {
+        setHeaderIndex(0);
+        stateRef.current.headerIndex = 0;
+        s.onTabChange?.(0);
+        return;
+      }
+
+      // 5. Se já está no header na aba Início, chama onBack para fechar o app Tizen
+      s.onBack?.();
       return;
     }
 

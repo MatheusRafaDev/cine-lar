@@ -352,7 +352,7 @@ export function App() {
       }
     },
     onBack: () => {
-      // Hierarquia estrita do botão Voltar (Tizen / Esc)
+      // Limpeza de estado do player e modal (o controle de foco é gerenciado pelo useSpatialNav)
       if (activeStream) {
         setActiveStream(null);
         refreshUserData();
@@ -363,16 +363,7 @@ export function App() {
         refreshUserData();
         return;
       }
-      if (nav.activeZone !== 'header') {
-        nav.setActiveZone('header');
-        return;
-      }
-      if (activeTab !== 'home') {
-        setActiveTab('home');
-        nav.setHeaderIndex(0);
-        return;
-      }
-      // Se já está no header da página inicial, sai do aplicativo Tizen
+      // Se já está no header da página inicial e pressionou voltar novamente, sai do aplicativo Tizen
       if (typeof window !== 'undefined' && window.tizen && window.tizen.application) {
         try {
           window.tizen.application.getCurrentApplication().exit();

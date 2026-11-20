@@ -1,8 +1,8 @@
 # Script de Build e Deploy do MatheusFlix para Samsung Smart TV (Tizen)
 param (
     [string]$TvIp = "192.168.15.5:26101",
-    [switch]$Deploy = $true,
-    [switch]$Launch = $true
+    [bool]$Deploy = $true,
+    [bool]$Launch = $true
 )
 
 $ErrorActionPreference = "Stop"
