@@ -523,10 +523,20 @@ export function App() {
     }
   }, [quickMenuMovie, handlePlayMovieDirect, showToast, refreshUserData, handleConfirmDelete]);
 
-  const handleLongPress = useCallback(({ zone, heroIndex, rowIndex, colIndex }) => {
+  // Abertura centralizada do menu de opções do título
+  const handleOpenQuickMenuForMovie = useCallback((target) => {
+    if (!target) return;
+    let isLocal = Boolean(target.isLocal || target.filePath || activeTab === 'local');
+    const saved = getSavedProgress(target);
+    const isContinueWatching = Boolean(saved && saved.position > 10);
+
+    setConfirmDeleteMode(false);
+    setQuickMenuContext({ isInContinueWatching: isContinueWatching, isLocal });
+    setQuickMenuMovie(target);
+  }, [activeTab]);
+
+  const handleLongPress = useCallback(({ zone, heroIndex, rowIndex, colIndex, resultsColIndex }) => {
     let target = null;
-    let isLocal = false;
-    let isContinueWatching = false;
 
     if (zone === 'hero') {
       target = heroMovie;
@@ -537,33 +547,22 @@ export function App() {
         target = favoritesGridRows[rowIndex]?.movies?.[colIndex];
       } else if (activeTab === 'local') {
         target = localGridRows[rowIndex]?.movies?.[colIndex];
-        isLocal = true;
       } else {
         const sec = currentSections[rowIndex];
         if (sec && sec.movies && sec.movies[colIndex]) {
           target = sec.movies[colIndex];
-          if (sec.id === 'continue-watching') {
-            isContinueWatching = true;
-          }
         }
+      }
+    } else if (zone === 'search-results') {
+      if (searchInputRef.current && searchInputRef.current.getResult) {
+        target = searchInputRef.current.getResult(resultsColIndex);
       }
     }
 
-    if (!target) return;
-
-    if (target.isLocal || target.filePath || activeTab === 'local') {
-      isLocal = true;
+    if (target) {
+      handleOpenQuickMenuForMovie(target);
     }
-
-    const saved = getSavedProgress(target);
-    if (saved && saved.position > 10) {
-      isContinueWatching = true;
-    }
-
-    setConfirmDeleteMode(false);
-    setQuickMenuContext({ isInContinueWatching: isContinueWatching, isLocal });
-    setQuickMenuMovie(target);
-  }, [activeTab, heroMovie, downloads, favoritesGridRows, localGridRows, currentSections]);
+  }, [activeTab, heroMovie, downloads, favoritesGridRows, localGridRows, currentSections, handleOpenQuickMenuForMovie]);
 
   // 4. Integração do Hook Espacial Ultra-Rápido
   const nav = useSpatialNav({
@@ -752,6 +751,7 @@ export function App() {
             rowIndex={nav.rowIndex}
             colIndex={nav.colIndex}
             onSelectMovie={setSelectedMovie}
+            onContextMenuMovie={handleOpenQuickMenuForMovie}
             onPlayHero={() => handlePlayMovieDirect(heroMovie)}
             onInfoHero={() => setSelectedMovie(heroMovie)}
           />
@@ -764,6 +764,7 @@ export function App() {
             rowIndex={nav.rowIndex}
             colIndex={nav.colIndex}
             onSelectMovie={setSelectedMovie}
+            onContextMenuMovie={handleOpenQuickMenuForMovie}
           />
         )}
 
@@ -774,6 +775,7 @@ export function App() {
             rowIndex={nav.rowIndex}
             colIndex={nav.colIndex}
             onSelectSeries={setSelectedMovie}
+            onContextMenuMovie={handleOpenQuickMenuForMovie}
           />
         )}
 
@@ -785,6 +787,7 @@ export function App() {
             rowIndex={nav.rowIndex}
             colIndex={nav.colIndex}
             onSelectMovie={setSelectedMovie}
+            onContextMenuMovie={handleOpenQuickMenuForMovie}
           />
         )}
 
@@ -805,6 +808,7 @@ export function App() {
             rowIndex={nav.rowIndex}
             colIndex={nav.colIndex}
             onSelectMovie={handlePlayMovieDirect}
+            onContextMenuMovie={handleOpenQuickMenuForMovie}
           />
         )}
 

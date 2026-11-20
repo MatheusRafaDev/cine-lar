@@ -11,7 +11,8 @@ export function LocalFolderView({
   localFilterIndex = 0,
   rowIndex = 0,
   colIndex = 0,
-  onSelectMovie = () => {}
+  onSelectMovie = () => {},
+  onContextMenuMovie = () => {}
 }) {
   const isFiltersFocused = activeZone === 'local-filters';
   const isRowsFocused = activeZone === 'rows';
@@ -104,6 +105,7 @@ export function LocalFolderView({
                       movie={movie}
                       isFocused={isCurrentRowFocused && colIndex === cIdx}
                       onClick={() => onSelectMovie(movie)}
+                      onContextMenu={onContextMenuMovie}
                     />
                   ))}
                 </div>
@@ -133,6 +135,7 @@ export function LocalFolderView({
                     movie={movie}
                     isFocused={isItemFocused}
                     onClick={() => onSelectMovie(movie)}
+                    onContextMenu={onContextMenuMovie}
                   />
                 );
               })

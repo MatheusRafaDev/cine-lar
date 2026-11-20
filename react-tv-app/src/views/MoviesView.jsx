@@ -6,7 +6,8 @@ export function MoviesView({
   activeZone,
   rowIndex,
   colIndex,
-  onSelectMovie
+  onSelectMovie,
+  onContextMenuMovie
 }) {
   const isRowsFocused = activeZone === 'rows';
 
@@ -27,6 +28,7 @@ export function MoviesView({
               isRowFocused={isCurrentRowFocused}
               focusedColIndex={colIndex}
               onSelectMovie={onSelectMovie}
+              onContextMenuMovie={onContextMenuMovie}
             />
           );
         })}

@@ -6,7 +6,8 @@ function CarouselRowComponent({
   movies = [],
   isRowFocused,
   focusedColIndex,
-  onSelectMovie
+  onSelectMovie,
+  onContextMenuMovie
 }) {
   const rowRef = useRef(null);
 
@@ -38,6 +39,7 @@ function CarouselRowComponent({
               movie={movie}
               isFocused={isCardFocused}
               onClick={() => onSelectMovie(movie)}
+              onContextMenu={onContextMenuMovie}
             />
           );
         })}

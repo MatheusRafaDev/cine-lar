@@ -6,7 +6,8 @@ export function SeriesView({
   activeZone,
   rowIndex,
   colIndex,
-  onSelectSeries
+  onSelectSeries,
+  onContextMenuMovie
 }) {
   const isRowsFocused = activeZone === 'rows';
 
@@ -27,6 +28,7 @@ export function SeriesView({
               isRowFocused={isCurrentRowFocused}
               focusedColIndex={colIndex}
               onSelectMovie={onSelectSeries}
+              onContextMenuMovie={onContextMenuMovie}
             />
           );
         })}

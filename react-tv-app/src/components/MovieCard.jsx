@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, memo } from 'react';
 import { getSavedProgress } from '../services/api';
 
-function MovieCardComponent({ movie, isFocused, onClick }) {
+function MovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
   const cardRef = useRef(null);
+  const pointerTimerRef = useRef(null);
 
   // Quando o card ganha foco, garante que o scroll horizontal do carrossel o mantenha visível sem atraso
   useEffect(() => {
@@ -31,11 +32,36 @@ function MovieCardComponent({ movie, isFocused, onClick }) {
       ? Math.max(1, Math.round((movie.duration - movie.position) / 60))
       : null);
 
+  const handlePointerDown = () => {
+    if (!onContextMenu) return;
+    pointerTimerRef.current = setTimeout(() => {
+      onContextMenu(movie);
+    }, 450);
+  };
+
+  const handlePointerClear = () => {
+    if (pointerTimerRef.current) {
+      clearTimeout(pointerTimerRef.current);
+      pointerTimerRef.current = null;
+    }
+  };
+
   return (
     <div
       ref={cardRef}
       className={`tv-card ${isFocused ? 'focused' : ''}`}
       onClick={onClick}
+      onContextMenu={(e) => {
+        if (onContextMenu) {
+          e.preventDefault();
+          e.stopPropagation();
+          onContextMenu(movie);
+        }
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerClear}
+      onPointerLeave={handlePointerClear}
+      onPointerCancel={handlePointerClear}
     >
       <div className="tv-card-poster-wrap">
         <img

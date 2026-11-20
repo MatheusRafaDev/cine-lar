@@ -461,9 +461,9 @@ export function useSpatialNav({
     if (isEnter) {
       e.preventDefault();
 
-      const isCardZone = s.activeZone === 'rows' || s.activeZone === 'hero';
+      const isCardZone = s.activeZone === 'rows' || s.activeZone === 'hero' || s.activeZone === 'search-results';
 
-      // Se não for zona de cards (ex: header, local-filters, search-keyboard, search-results, modal), dispara imediato no keydown
+      // Se não for zona de cards (ex: header, local-filters, search-keyboard, modal), dispara imediato no keydown
       if (!isCardZone) {
         s.onEnter?.({
           zone: s.activeZone,
@@ -480,28 +480,33 @@ export function useSpatialNav({
         return;
       }
 
-      // Zona de cards: ignora repetição automática gerada ao segurar o botão
-      if (e.repeat) {
+      // Se o long press já disparou e o usuário continua segurando OK na TV, ignora
+      if (longPressTriggeredRef.current) {
         return;
       }
 
-      // Primeiro keydown na zona de cards: agenda detecção de long press (500ms)
+      // Se o timer de long press já está ativo, é repetição de keydown do controle da TV Samsung ->
+      // NÃO cancela e NÃO reinicia o timer! Permite que o timer complete os 400ms!
       if (enterLongPressTimerRef.current) {
-        clearTimeout(enterLongPressTimerRef.current);
+        return;
       }
+
+      // Primeiro keydown na zona de cards: agenda detecção de long press (400ms)
       longPressTriggeredRef.current = false;
 
       enterLongPressTimerRef.current = setTimeout(() => {
         longPressTriggeredRef.current = true;
+        enterLongPressTimerRef.current = null;
         s.onLongPress?.({
           zone: s.activeZone,
           headerIndex: s.headerIndex,
           heroIndex: s.heroIndex,
           rowIndex: s.rowIndex,
           colIndex: s.colIndex,
-          filterIndex: s.localFilterIndex
+          filterIndex: s.localFilterIndex,
+          resultsColIndex: s.resultsColIndex
         });
-      }, 500);
+      }, 400);
       return;
     }
 
@@ -741,13 +746,15 @@ export function useSpatialNav({
       if (longPressTriggeredRef.current) {
         longPressTriggeredRef.current = false;
         e.preventDefault();
+        e.stopPropagation();
         return;
       }
 
-      // Se soltou antes de 500ms na zona de cards, dispara o clique normal (onEnter)
-      const isCardZone = s.activeZone === 'rows' || s.activeZone === 'hero';
+      // Se soltou antes de 400ms na zona de cards, dispara o clique normal (onEnter)
+      const isCardZone = s.activeZone === 'rows' || s.activeZone === 'hero' || s.activeZone === 'search-results';
       if (isCardZone && !s.isModalOpen && !s.isPlayerOpen && !s.isQuickMenuOpen) {
         e.preventDefault();
+        e.stopPropagation();
         s.onEnter?.({
           zone: s.activeZone,
           headerIndex: s.headerIndex,

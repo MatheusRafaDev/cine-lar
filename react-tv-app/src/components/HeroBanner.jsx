@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 
-function HeroBannerComponent({ movie, isZoneFocused, focusedIndex, onPlay, onInfo }) {
+function HeroBannerComponent({ movie, isZoneFocused, focusedIndex, onPlay, onInfo, onContextMenu }) {
   if (!movie) return null;
 
   const backdropUrl = movie.backdrop || movie.poster || '';
@@ -11,6 +11,13 @@ function HeroBannerComponent({ movie, isZoneFocused, focusedIndex, onPlay, onInf
     <section
       className="tv-hero-banner"
       style={{ backgroundImage: `url(${backdropUrl})` }}
+      onContextMenu={(e) => {
+        if (onContextMenu) {
+          e.preventDefault();
+          e.stopPropagation();
+          onContextMenu(movie);
+        }
+      }}
     >
       <div className="tv-hero-gradient" />
 

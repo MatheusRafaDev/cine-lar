@@ -85,6 +85,9 @@ export function SearchView({
           if (results && results[colIdx]) {
             onSelectMovie(results[colIdx]);
           }
+        },
+        getResult: (colIdx) => {
+          return results && results[colIdx] ? results[colIdx] : null;
         }
       };
     }

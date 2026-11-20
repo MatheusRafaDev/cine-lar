@@ -7,7 +7,8 @@ export function FavoritesView({
   activeZone = 'rows',
   rowIndex = 0,
   colIndex = 0,
-  onSelectMovie = () => {}
+  onSelectMovie = () => {},
+  onContextMenuMovie = () => {}
 }) {
   const isRowsFocused = activeZone === 'rows';
   const count = favorites.length;
@@ -45,6 +46,7 @@ export function FavoritesView({
                   movie={movie}
                   isFocused={isItemFocused}
                   onClick={() => onSelectMovie(movie)}
+                  onContextMenu={onContextMenuMovie}
                 />
               );
             })

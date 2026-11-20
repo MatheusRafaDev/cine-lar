@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, memo } from 'react';
 import { getSavedProgress } from '../services/api';
 
-function LocalMovieCardComponent({ movie, isFocused, onClick }) {
+function LocalMovieCardComponent({ movie, isFocused, onClick, onContextMenu }) {
   const cardRef = useRef(null);
+  const pointerTimerRef = useRef(null);
 
   // Auto-scroll vertical instantaneo para manter o card sempre visivel na TV sem atraso
   useEffect(() => {
@@ -30,11 +31,36 @@ function LocalMovieCardComponent({ movie, isFocused, onClick }) {
     ? Math.max(1, Math.round((saved.duration - saved.position) / 60))
     : null;
 
+  const handlePointerDown = () => {
+    if (!onContextMenu) return;
+    pointerTimerRef.current = setTimeout(() => {
+      onContextMenu(movie);
+    }, 450);
+  };
+
+  const handlePointerClear = () => {
+    if (pointerTimerRef.current) {
+      clearTimeout(pointerTimerRef.current);
+      pointerTimerRef.current = null;
+    }
+  };
+
   return (
     <div
       ref={cardRef}
       className={`tv-card tv-local-card ${isFocused ? 'focused' : ''}`}
       onClick={onClick}
+      onContextMenu={(e) => {
+        if (onContextMenu) {
+          e.preventDefault();
+          e.stopPropagation();
+          onContextMenu(movie);
+        }
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerClear}
+      onPointerLeave={handlePointerClear}
+      onPointerCancel={handlePointerClear}
     >
       <div className="tv-card-poster-wrap">
         <img

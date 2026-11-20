@@ -10,6 +10,7 @@ export function HomeView({
   rowIndex,
   colIndex,
   onSelectMovie,
+  onContextMenuMovie,
   onPlayHero,
   onInfoHero
 }) {
@@ -25,6 +26,7 @@ export function HomeView({
           focusedIndex={heroIndex}
           onPlay={onPlayHero}
           onInfo={onInfoHero}
+          onContextMenu={onContextMenuMovie}
         />
       )}
 
@@ -39,6 +41,7 @@ export function HomeView({
               isRowFocused={isCurrentRowFocused}
               focusedColIndex={colIndex}
               onSelectMovie={onSelectMovie}
+              onContextMenuMovie={onContextMenuMovie}
             />
           );
         })}

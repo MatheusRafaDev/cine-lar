@@ -1,0 +1,35 @@
+{
+  "projectDir": "c:\\Users\\rafae\\Documents\\GitHub\\matheus-flix\\tizen-package",
+  "deploys": {
+    "next": [
+      {
+        "path": "Debug/projects/tizen-package/assets/index-BLures-u.css",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-CyBsnakZ.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/index-legacy-rCYbb_GE.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/assets/polyfills-legacy-CoKm92xK.js",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/config.xml",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/icon.png",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/tizen-package/index.html",
+        "type": "add"
+      }
+    ]
+  }
+}
