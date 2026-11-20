@@ -3,7 +3,7 @@ import path from 'path';
 import https from 'https';
 import http from 'http';
 import { spawn, execFileSync } from 'child_process';
-import { upsertMovie, getDb, translateGenres } from './db.js';
+import { upsertMovie, getDb, translateGenres, getLocalMediaByPath, upsertLocalMedia, pruneDeletedLocalMedia } from './db.js';
 import { detectFranchise, detectSeries } from './organizer.js';
 import { fetchPtBrMetadata, searchPtBrMovie } from './tmdbHelper.js';
 
@@ -263,15 +263,54 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                 const { title: cleanName, year: detectedYear } = cleanMovieName(rawName);
                 if (cleanName.length < 2) continue;
 
+                // 0. VERIFICAÇÃO ULTRA-RÁPIDA EM SQLite: Se o arquivo já foi indexado e não mudou, carrega instantaneamente
+                try {
+                    const cached = getLocalMediaByPath(videoFile);
+                    if (cached && cached.file_size === stat.size && Math.abs(cached.mtime_ms - stat.mtimeMs) < 1000) {
+                        results.push({
+                            id: cached.imdb_id || `local_${encodeURIComponent(cached.clean_name || cached.title)}`,
+                            imdbId: cached.imdb_id || '',
+                            title: cached.title,
+                            originalTitle: cached.original_title || cached.title,
+                            cleanName: cached.clean_name || cleanName,
+                            rawName,
+                            year: cached.year || detectedYear || '',
+                            poster: cached.poster || '',
+                            backdrop: cached.backdrop || cached.poster || '',
+                            description: cached.description || 'Filme salvo na sua pasta local.',
+                            genres: cached.genres || 'Cinema',
+                            rating: cached.rating ? Number(cached.rating).toFixed(1) : '8.0',
+                            quality: cached.quality || '1080p',
+                            format: cached.format || 'MP4',
+                            sizeBytes: cached.file_size,
+                            sizeFormatted: formatBytes(cached.file_size),
+                            duration: cached.duration || 0,
+                            videoPath: cached.file_path,
+                            srtPath: cached.srt_path || srtFile || null,
+                            streamUrl: `/api/local/stream?file=${encodeURIComponent(cached.file_path)}`,
+                            hasSubtitle: Boolean(cached.has_subtitle || srtFile),
+                            isLocal: true,
+                            folderName,
+                            franchise: cached.franchise || null,
+                            franchiseIcon: cached.franchise_icon || null,
+                            isSeries: Boolean(cached.is_series),
+                            seriesName: cached.series_name || null,
+                            season: cached.season || null,
+                            episode: cached.episode || null
+                        });
+                        continue;
+                    }
+                } catch (_) {}
+
                 let movieData = null;
 
-                // 1. OTIMIZACAO EXTREMA: Verificar primeiro no banco SQLite local antes de fazer requisicao web
+                // 1. OTIMIZACAO: Verificar se já temos metadados pelo nome limpo no banco
                 try {
                     const row = db.prepare(`
                         SELECT * FROM movies 
-                        WHERE (title LIKE ? OR original_title LIKE ?) 
+                        WHERE title = ? COLLATE NOCASE OR original_title = ? COLLATE NOCASE
                         LIMIT 1
-                    `).get(`%${cleanName}%`, `%${cleanName}%`);
+                    `).get(cleanName, cleanName);
 
                     if (row && row.imdb_id) {
                         movieData = {
@@ -410,38 +449,74 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
         const franchise = detectFranchise(fullRaw);
         const seriesInfo = detectSeries(fullRaw);
 
-        results.push({
-            id: movieData?.imdb_id || `local_${encodeURIComponent(cleanName)}`,
-            imdbId: movieData?.imdb_id || '',
-            title: movieData?.title || cleanName,
-            originalTitle: movieData?.original_title || cleanName,
-            cleanName,
-            rawName,
-            year: movieData?.year || detectedYear || '',
-            poster: movieData?.poster || '',
-            backdrop: movieData?.backdrop || '',
-            description: movieData?.description || 'Filme salvo na sua pasta local.',
-            genres: movieData?.genres || 'Cinema',
-            rating: movieData?.rating ? Number(movieData.rating).toFixed(1) : '8.0',
-            quality,
-            format: ext,
-            sizeBytes: stat.size,
-            sizeFormatted: formatBytes(stat.size),
-            duration: Math.round(getVideoDuration(videoFile)),
-            videoPath: videoFile,
-            srtPath: srtFile,
-            streamUrl: `/api/local/stream?file=${encodeURIComponent(videoFile)}`,
-            hasSubtitle: !!srtFile,
-            isLocal: true,
-            folderName,
-            franchise: franchise ? franchise.name : null,
-            franchiseIcon: franchise ? franchise.icon : null,
-            isSeries: seriesInfo.isSeries,
-            seriesName: seriesInfo.isSeries ? seriesInfo.seriesName : null,
-            season: seriesInfo.isSeries ? seriesInfo.season : null,
-            episode: seriesInfo.isSeries ? seriesInfo.episode : null
-        });
-    }
+        const vidDuration = Math.round(getVideoDuration(videoFile));
+
+        try {
+            upsertLocalMedia({
+                    filePath: videoFile,
+                    fileName,
+                    fileSize: stat.size,
+                    mtimeMs: stat.mtimeMs,
+                    cleanName,
+                    imdbId: movieData?.imdb_id || '',
+                    title: movieData?.title || cleanName,
+                    originalTitle: movieData?.original_title || cleanName,
+                    year: movieData?.year || detectedYear || null,
+                    poster: movieData?.poster || '',
+                    backdrop: movieData?.backdrop || '',
+                    description: movieData?.description || 'Filme salvo na sua pasta local.',
+                    genres: Array.isArray(movieData?.genres) ? movieData.genres.join(', ') : (movieData?.genres || 'Cinema'),
+                    rating: movieData?.rating || 8.0,
+                    quality,
+                    format: ext,
+                    duration: vidDuration,
+                    hasSubtitle: Boolean(srtFile),
+                    srtPath: srtFile || '',
+                    franchise: franchise ? franchise.name : null,
+                    franchiseIcon: franchise ? franchise.icon : null,
+                    isSeries: seriesInfo.isSeries,
+                    seriesName: seriesInfo.isSeries ? seriesInfo.seriesName : null,
+                    season: seriesInfo.isSeries ? seriesInfo.season : null,
+                    episode: seriesInfo.isSeries ? seriesInfo.episode : null
+                });
+            } catch (_) {}
+
+            results.push({
+                id: movieData?.imdb_id || `local_${encodeURIComponent(cleanName)}`,
+                imdbId: movieData?.imdb_id || '',
+                title: movieData?.title || cleanName,
+                originalTitle: movieData?.original_title || cleanName,
+                cleanName,
+                rawName,
+                year: movieData?.year || detectedYear || '',
+                poster: movieData?.poster || '',
+                backdrop: movieData?.backdrop || '',
+                description: movieData?.description || 'Filme salvo na sua pasta local.',
+                genres: movieData?.genres || 'Cinema',
+                rating: movieData?.rating ? Number(movieData.rating).toFixed(1) : '8.0',
+                quality,
+                format: ext,
+                sizeBytes: stat.size,
+                sizeFormatted: formatBytes(stat.size),
+                duration: vidDuration,
+                videoPath: videoFile,
+                srtPath: srtFile,
+                streamUrl: `/api/local/stream?file=${encodeURIComponent(videoFile)}`,
+                hasSubtitle: !!srtFile,
+                isLocal: true,
+                folderName,
+                franchise: franchise ? franchise.name : null,
+                franchiseIcon: franchise ? franchise.icon : null,
+                isSeries: seriesInfo.isSeries,
+                seriesName: seriesInfo.isSeries ? seriesInfo.seriesName : null,
+                season: seriesInfo.isSeries ? seriesInfo.season : null,
+                episode: seriesInfo.isSeries ? seriesInfo.episode : null
+            });
+        }
+
+        try {
+            pruneDeletedLocalMedia(collected.map(c => c.videoFile));
+        } catch (_) {}
 
             // Sort alphabetically by title
             results.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));

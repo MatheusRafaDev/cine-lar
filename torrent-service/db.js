@@ -58,7 +58,16 @@ export function getDb() {
 export function initDb() {
     db = new DatabaseSync(DB_PATH);
 
-    // Create main movies table
+    // 1. Pragmas de máxima performance: modo WAL, sincronização NORMAL, cache em RAM e mmap
+    db.exec(`
+        PRAGMA journal_mode = WAL;
+        PRAGMA synchronous = NORMAL;
+        PRAGMA cache_size = -8000;
+        PRAGMA temp_store = MEMORY;
+        PRAGMA mmap_size = 268435456;
+    `);
+
+    // 2. Tabela principal de filmes do catálogo
     db.exec(`
         CREATE TABLE IF NOT EXISTS movies (
             imdb_id TEXT PRIMARY KEY,
@@ -82,10 +91,51 @@ export function initDb() {
         CREATE INDEX IF NOT EXISTS idx_movies_rating ON movies(rating DESC);
         CREATE INDEX IF NOT EXISTS idx_movies_genres ON movies(genres);
         CREATE INDEX IF NOT EXISTS idx_movies_pop ON movies(popularity DESC);
-        CREATE INDEX IF NOT EXISTS idx_movies_title ON movies(title);
+        CREATE INDEX IF NOT EXISTS idx_movies_title ON movies(title COLLATE NOCASE);
+        CREATE INDEX IF NOT EXISTS idx_movies_is_local ON movies(is_local);
     `);
 
-    // Create Full Text Search (FTS5) table
+    // 3. Tabela dedicada para indexação ultraleve da biblioteca local de arquivos físicos (D:\Filmes)
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS local_media (
+            file_path TEXT PRIMARY KEY,
+            file_name TEXT NOT NULL,
+            file_size INTEGER NOT NULL,
+            mtime_ms REAL NOT NULL,
+            clean_name TEXT,
+            imdb_id TEXT,
+            title TEXT NOT NULL,
+            original_title TEXT,
+            year INTEGER,
+            poster TEXT,
+            backdrop TEXT,
+            description TEXT,
+            genres TEXT,
+            rating REAL DEFAULT 8.0,
+            quality TEXT,
+            format TEXT,
+            duration INTEGER DEFAULT 0,
+            video_codec TEXT,
+            audio_codec TEXT,
+            is_direct_playable INTEGER DEFAULT 0,
+            has_subtitle INTEGER DEFAULT 0,
+            srt_path TEXT,
+            franchise TEXT,
+            franchise_icon TEXT,
+            is_series INTEGER DEFAULT 0,
+            series_name TEXT,
+            season INTEGER,
+            episode INTEGER,
+            updated_at TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_local_media_title ON local_media(title COLLATE NOCASE);
+        CREATE INDEX IF NOT EXISTS idx_local_media_clean ON local_media(clean_name COLLATE NOCASE);
+        CREATE INDEX IF NOT EXISTS idx_local_media_imdb ON local_media(imdb_id);
+        CREATE INDEX IF NOT EXISTS idx_local_media_franchise ON local_media(franchise);
+    `);
+
+    // 4. Full Text Search (FTS5) para buscas instantâneas
     try {
         db.exec(`
             CREATE VIRTUAL TABLE IF NOT EXISTS movies_fts USING fts5(
@@ -100,7 +150,7 @@ export function initDb() {
         console.warn('[Database] FTS5 initialization warning:', e.message);
     }
 
-    // Create favorites and watch history tables (Netflix-style)
+    // 5. Tabelas de usuário (Favoritos e Continuar Assistindo) com índices dedicados
     try {
         db.exec(`
             CREATE TABLE IF NOT EXISTS user_favorites (
@@ -113,6 +163,7 @@ export function initDb() {
                 created_at TEXT,
                 PRIMARY KEY (user_id, movie_id)
             );
+            CREATE INDEX IF NOT EXISTS idx_user_fav_created ON user_favorites(user_id, created_at DESC);
 
             CREATE TABLE IF NOT EXISTS watch_history (
                 user_id TEXT NOT NULL,
@@ -125,12 +176,13 @@ export function initDb() {
                 updated_at TEXT,
                 PRIMARY KEY (user_id, movie_id)
             );
+            CREATE INDEX IF NOT EXISTS idx_watch_hist_updated ON watch_history(user_id, updated_at DESC);
         `);
     } catch (e) {
         console.warn('[Database] User tables initialization warning:', e.message);
     }
 
-    console.log(`[Database] SQLite inicializado com sucesso em "${DB_PATH}"!`);
+    console.log(`[Database] SQLite inicializado com sucesso em "${DB_PATH}" (WAL + MemCache)!`);
     return db;
 }
 
@@ -434,6 +486,111 @@ export function deleteWatchHistory(userId, movieId) {
         WHERE user_id = ? AND movie_id = ?
     `).run(userId, movieId);
     return res.changes > 0;
+}
+
+// 6. Gerenciamento Estruturado e Ultraleve da Tabela local_media
+export function getLocalMediaByPath(filePath) {
+    if (!filePath) return null;
+    const database = getDb();
+    return database.prepare('SELECT * FROM local_media WHERE file_path = ?').get(filePath) || null;
+}
+
+export function getAllLocalMedia() {
+    const database = getDb();
+    return database.prepare('SELECT * FROM local_media ORDER BY title COLLATE NOCASE ASC').all();
+}
+
+export function upsertLocalMedia(item) {
+    if (!item || !item.filePath) return;
+    const database = getDb();
+    const now = new Date().toISOString();
+
+    database.prepare(`
+        INSERT INTO local_media (
+            file_path, file_name, file_size, mtime_ms, clean_name, imdb_id,
+            title, original_title, year, poster, backdrop, description,
+            genres, rating, quality, format, duration, video_codec, audio_codec,
+            is_direct_playable, has_subtitle, srt_path, franchise, franchise_icon,
+            is_series, series_name, season, episode, updated_at
+        ) VALUES (
+            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?
+        )
+        ON CONFLICT(file_path) DO UPDATE SET
+            file_size = excluded.file_size,
+            mtime_ms = excluded.mtime_ms,
+            clean_name = excluded.clean_name,
+            imdb_id = excluded.imdb_id,
+            title = excluded.title,
+            original_title = excluded.original_title,
+            year = excluded.year,
+            poster = excluded.poster,
+            backdrop = excluded.backdrop,
+            description = excluded.description,
+            genres = excluded.genres,
+            rating = excluded.rating,
+            quality = excluded.quality,
+            format = excluded.format,
+            duration = excluded.duration,
+            video_codec = excluded.video_codec,
+            audio_codec = excluded.audio_codec,
+            is_direct_playable = excluded.is_direct_playable,
+            has_subtitle = excluded.has_subtitle,
+            srt_path = excluded.srt_path,
+            franchise = excluded.franchise,
+            franchise_icon = excluded.franchise_icon,
+            is_series = excluded.is_series,
+            series_name = excluded.series_name,
+            season = excluded.season,
+            episode = excluded.episode,
+            updated_at = excluded.updated_at
+    `).run(
+        item.filePath,
+        item.fileName || path.basename(item.filePath),
+        item.fileSize || 0,
+        item.mtimeMs || 0,
+        item.cleanName || '',
+        item.imdbId || '',
+        item.title || item.cleanName || 'Vídeo Local',
+        item.originalTitle || item.title || '',
+        item.year ? parseInt(item.year, 10) : null,
+        item.poster || '',
+        item.backdrop || item.poster || '',
+        item.description || '',
+        item.genres || 'Cinema',
+        parseFloat(item.rating) || 8.0,
+        item.quality || '1080p',
+        item.format || 'MP4',
+        item.duration || 0,
+        item.videoCodec || '',
+        item.audioCodec || '',
+        item.isDirectPlayable ? 1 : 0,
+        item.hasSubtitle ? 1 : 0,
+        item.srtPath || '',
+        item.franchise || null,
+        item.franchiseIcon || null,
+        item.isSeries ? 1 : 0,
+        item.seriesName || null,
+        item.season ? parseInt(item.season, 10) : null,
+        item.episode ? parseInt(item.episode, 10) : null,
+        now
+    );
+}
+
+export function pruneDeletedLocalMedia(existingFilePaths = []) {
+    if (!existingFilePaths || existingFilePaths.length === 0) return;
+    const database = getDb();
+    const rows = database.prepare('SELECT file_path FROM local_media').all();
+    const existingSet = new Set(existingFilePaths.map(p => p.toLowerCase()));
+    const delStmt = database.prepare('DELETE FROM local_media WHERE file_path = ?');
+    for (const row of rows) {
+        if (!existingSet.has(row.file_path.toLowerCase())) {
+            delStmt.run(row.file_path);
+        }
+    }
 }
 
 
