@@ -22,6 +22,8 @@ export const KEYS = {
 export function useSpatialNav({
   isPlayerOpen = false,
   isModalOpen = false,
+  isQuickMenuOpen = false,
+  quickMenuCount = 4,
   activeTab = 'home',
   hasHero = true,
   rowCount = 1,
@@ -31,6 +33,9 @@ export function useSpatialNav({
   modalItemsCount = 3,
   onBack = null,
   onEnter = null,
+  onLongPress = null,
+  onCloseQuickMenu = null,
+  onQuickMenuSelect = null,
   onTabChange = null,
   onLocalFilterChange = null,
   onPlayPause = null,
@@ -43,6 +48,7 @@ export function useSpatialNav({
   const [rowIndex, setRowIndex] = useState(0);
   const [colIndex, setColIndex] = useState(0);
   const [modalIndex, setModalIndex] = useState(0);
+  const [quickMenuIndex, setQuickMenuIndex] = useState(0);
   const [localFilterIndex, setLocalFilterIndex] = useState(0);
 
   // Estados específicos para a busca
@@ -50,11 +56,17 @@ export function useSpatialNav({
   const [searchColIndex, setSearchColIndex] = useState(0);
   const [resultsColIndex, setResultsColIndex] = useState(0);
 
+  // Refs de controle de long press para o botão OK (segurar abre menu de ações)
+  const enterLongPressTimerRef = useRef(null);
+  const longPressTriggeredRef = useRef(false);
+
   // Ref persistente com todo o estado e props para acesso O(1) no event listener sem recriar
   const stateRef = useRef({});
   stateRef.current = {
     isPlayerOpen,
     isModalOpen,
+    isQuickMenuOpen,
+    quickMenuCount,
     activeZone,
     activeTab,
     hasHero,
@@ -68,12 +80,16 @@ export function useSpatialNav({
     rowIndex,
     colIndex,
     modalIndex,
+    quickMenuIndex,
     localFilterIndex,
     searchRowIndex,
     searchColIndex,
     resultsColIndex,
     onBack,
     onEnter,
+    onLongPress,
+    onCloseQuickMenu,
+    onQuickMenuSelect,
     onTabChange,
     onLocalFilterChange,
     onPlayPause,
@@ -98,7 +114,7 @@ export function useSpatialNav({
     }
   }, []);
 
-  // 2. Transições automáticas de zona para Modal e Player
+  // 2. Transições automáticas de zona para Modal, Player e Menu de Ações
   useEffect(() => {
     if (isPlayerOpen) {
       setActiveZone('player');
@@ -110,6 +126,13 @@ export function useSpatialNav({
       setActiveZone(prev => (prev === 'modal' || prev === 'player') ? 'rows' : prev);
     }
   }, [isPlayerOpen, isModalOpen]);
+
+  useEffect(() => {
+    if (isQuickMenuOpen) {
+      setQuickMenuIndex(0);
+      stateRef.current.quickMenuIndex = 0;
+    }
+  }, [isQuickMenuOpen]);
 
   // 3. Sincronização de zona ao trocar de aba (mantém no header se estiver navegando o header)
   useEffect(() => {
@@ -168,6 +191,50 @@ export function useSpatialNav({
     const isRight = code === KEYS.RIGHT || key === 'ArrowRight';
     const isUp = code === KEYS.UP || key === 'ArrowUp';
     const isDown = code === KEYS.DOWN || key === 'ArrowDown';
+
+    // Cancela detecção de long press se o usuário navegar ou apertar voltar
+    if (isBack || isLeft || isRight || isUp || isDown) {
+      if (enterLongPressTimerRef.current) {
+        clearTimeout(enterLongPressTimerRef.current);
+        enterLongPressTimerRef.current = null;
+      }
+      longPressTriggeredRef.current = false;
+    }
+
+    // A0. Prioridade Absoluta: Menu de Ações Rápidas aberto
+    if (s.isQuickMenuOpen) {
+      if (isBack) {
+        e.preventDefault();
+        e.stopPropagation();
+        s.onCloseQuickMenu?.();
+        return;
+      }
+      if (isEnter) {
+        e.preventDefault();
+        s.onQuickMenuSelect?.(s.quickMenuIndex);
+        return;
+      }
+      if (isUp) {
+        e.preventDefault();
+        setQuickMenuIndex(prev => {
+          const next = Math.max(0, prev - 1);
+          stateRef.current.quickMenuIndex = next;
+          return next;
+        });
+        return;
+      }
+      if (isDown) {
+        e.preventDefault();
+        setQuickMenuIndex(prev => {
+          const maxIdx = Math.max(0, (s.quickMenuCount || 1) - 1);
+          const next = Math.min(maxIdx, prev + 1);
+          stateRef.current.quickMenuIndex = next;
+          return next;
+        });
+        return;
+      }
+      return;
+    }
 
     // A. Prioridade Máxima: Botão Voltar (Tizen / Esc / Backspace)
     if (isBack) {
@@ -319,18 +386,48 @@ export function useSpatialNav({
     // E. Botão Enter (OK central)
     if (isEnter) {
       e.preventDefault();
-      s.onEnter?.({
-        zone: s.activeZone,
-        headerIndex: s.headerIndex,
-        heroIndex: s.heroIndex,
-        rowIndex: s.rowIndex,
-        colIndex: s.colIndex,
-        filterIndex: s.localFilterIndex,
-        searchRowIndex: s.searchRowIndex,
-        searchColIndex: s.searchColIndex,
-        resultsColIndex: s.resultsColIndex,
-        isPlayKey: false
-      });
+
+      const isCardZone = s.activeZone === 'rows' || s.activeZone === 'hero';
+
+      // Se não for zona de cards (ex: header, local-filters, search-keyboard, search-results, modal), dispara imediato no keydown
+      if (!isCardZone) {
+        s.onEnter?.({
+          zone: s.activeZone,
+          headerIndex: s.headerIndex,
+          heroIndex: s.heroIndex,
+          rowIndex: s.rowIndex,
+          colIndex: s.colIndex,
+          filterIndex: s.localFilterIndex,
+          searchRowIndex: s.searchRowIndex,
+          searchColIndex: s.searchColIndex,
+          resultsColIndex: s.resultsColIndex,
+          isPlayKey: false
+        });
+        return;
+      }
+
+      // Zona de cards: ignora repetição automática gerada ao segurar o botão
+      if (e.repeat) {
+        return;
+      }
+
+      // Primeiro keydown na zona de cards: agenda detecção de long press (500ms)
+      if (enterLongPressTimerRef.current) {
+        clearTimeout(enterLongPressTimerRef.current);
+      }
+      longPressTriggeredRef.current = false;
+
+      enterLongPressTimerRef.current = setTimeout(() => {
+        longPressTriggeredRef.current = true;
+        s.onLongPress?.({
+          zone: s.activeZone,
+          headerIndex: s.headerIndex,
+          heroIndex: s.heroIndex,
+          rowIndex: s.rowIndex,
+          colIndex: s.colIndex,
+          filterIndex: s.localFilterIndex
+        });
+      }, 500);
       return;
     }
 
@@ -553,11 +650,58 @@ export function useSpatialNav({
     }
   }, []); // Montado uma única vez - listener permanente sem recriação
 
-  // 5. Adiciona o listener uma única vez na inicialização
+  // 4b. Manipulador de keyup para detecção precisa de clique rápido vs long press
+  const handleKeyUp = useCallback((e) => {
+    const s = stateRef.current;
+    const code = e.keyCode || e.which || 0;
+    const key = e.key || '';
+    const isEnter = code === KEYS.ENTER || key === 'Enter';
+
+    if (isEnter) {
+      if (enterLongPressTimerRef.current) {
+        clearTimeout(enterLongPressTimerRef.current);
+        enterLongPressTimerRef.current = null;
+      }
+
+      // Se o long press disparou (menu já aberto), ignora o soltar do botão
+      if (longPressTriggeredRef.current) {
+        longPressTriggeredRef.current = false;
+        e.preventDefault();
+        return;
+      }
+
+      // Se soltou antes de 500ms na zona de cards, dispara o clique normal (onEnter)
+      const isCardZone = s.activeZone === 'rows' || s.activeZone === 'hero';
+      if (isCardZone && !s.isModalOpen && !s.isPlayerOpen && !s.isQuickMenuOpen) {
+        e.preventDefault();
+        s.onEnter?.({
+          zone: s.activeZone,
+          headerIndex: s.headerIndex,
+          heroIndex: s.heroIndex,
+          rowIndex: s.rowIndex,
+          colIndex: s.colIndex,
+          filterIndex: s.localFilterIndex,
+          searchRowIndex: s.searchRowIndex,
+          searchColIndex: s.searchColIndex,
+          resultsColIndex: s.resultsColIndex,
+          isPlayKey: false
+        });
+      }
+    }
+  }, []);
+
+  // 5. Adiciona os listeners uma única vez na inicialização
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [handleKeyDown]);
+    window.addEventListener('keyup', handleKeyUp, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('keyup', handleKeyUp, true);
+      if (enterLongPressTimerRef.current) {
+        clearTimeout(enterLongPressTimerRef.current);
+      }
+    };
+  }, [handleKeyDown, handleKeyUp]);
 
   return {
     activeZone,
@@ -574,6 +718,8 @@ export function useSpatialNav({
     setLocalFilterIndex,
     modalIndex,
     setModalIndex,
+    quickMenuIndex,
+    setQuickMenuIndex,
     searchRowIndex,
     setSearchRowIndex,
     searchColIndex,

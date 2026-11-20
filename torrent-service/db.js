@@ -593,4 +593,12 @@ export function pruneDeletedLocalMedia(existingFilePaths = []) {
     }
 }
 
+export function deleteLocalMediaRecord(filePath) {
+    if (!filePath) return;
+    try {
+        const database = getDb();
+        database.prepare('DELETE FROM local_media WHERE file_path = ?').run(filePath);
+    } catch (_) {}
+}
+
 

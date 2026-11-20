@@ -485,13 +485,26 @@ export function saveWatchProgress({
   } catch (_) {}
 }
 
-export function clearWatchProgress(id) {
-  if (!id) return;
+export function clearWatchProgress(movieOrId) {
+  if (!movieOrId) return;
   try {
-    const target = String(id).toLowerCase().trim();
+    const targets = new Set();
+    if (typeof movieOrId === 'object') {
+      if (movieOrId.id) targets.add(String(movieOrId.id).toLowerCase().trim());
+      if (movieOrId.movieId) targets.add(String(movieOrId.movieId).toLowerCase().trim());
+      if (movieOrId.imdbId) targets.add(String(movieOrId.imdbId).toLowerCase().trim());
+      if (movieOrId.filePath) targets.add(String(movieOrId.filePath).toLowerCase().trim());
+      if (movieOrId.infoHash) targets.add(String(movieOrId.infoHash).toLowerCase().trim());
+      if (movieOrId.title) targets.add(String(movieOrId.title).toLowerCase().trim());
+    } else {
+      targets.add(String(movieOrId).toLowerCase().trim());
+    }
+
     const history = getWatchHistory().filter(item => {
-      const iId = String(item.id || item.movieId || item.filePath || item.infoHash || item.title).toLowerCase().trim();
-      return iId !== target;
+      const ids = [item.id, item.movieId, item.imdbId, item.filePath, item.infoHash, item.title]
+        .filter(Boolean)
+        .map(x => String(x).toLowerCase().trim());
+      return !ids.some(id => targets.has(id));
     });
     _cachedWatchHistory = history;
     _cachedLookupMap = buildWatchLookupMap(_cachedWatchHistory);
@@ -500,12 +513,28 @@ export function clearWatchProgress(id) {
       localStorage.setItem('mf_watch_history', JSON.stringify(history));
     } catch (_) {}
 
-    try {
-      fetch(`${getServerUrl()}/api/user/history?movieId=${encodeURIComponent(id)}&userId=default`, {
-        method: 'DELETE'
-      }).catch(() => {});
-    } catch (_) {}
+    const primaryId = typeof movieOrId === 'object'
+      ? (movieOrId.id || movieOrId.imdbId || movieOrId.movieId || movieOrId.filePath || movieOrId.title)
+      : movieOrId;
+    if (primaryId) {
+      try {
+        fetch(`${getServerUrl()}/api/user/history?movieId=${encodeURIComponent(primaryId)}&userId=default`, {
+          method: 'DELETE'
+        }).catch(() => {});
+      } catch (_) {}
+    }
   } catch (_) {}
+}
+
+export async function deleteLocalFile(filePath) {
+  if (!filePath) return { success: false, error: 'Caminho do arquivo não fornecido' };
+  try {
+    return await request(`/api/local/file?path=${encodeURIComponent(filePath)}`, {
+      method: 'DELETE'
+    });
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 }
 
 // 13. Minha Lista (Favoritos) com Cache em Memoria e Sincronizacao

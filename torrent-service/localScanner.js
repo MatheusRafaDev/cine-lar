@@ -3,7 +3,7 @@ import path from 'path';
 import https from 'https';
 import http from 'http';
 import { spawn, execFileSync } from 'child_process';
-import { upsertMovie, getDb, translateGenres, getLocalMediaByPath, upsertLocalMedia, pruneDeletedLocalMedia } from './db.js';
+import { upsertMovie, getDb, translateGenres, getLocalMediaByPath, upsertLocalMedia, pruneDeletedLocalMedia, deleteLocalMediaRecord } from './db.js';
 import { detectFranchise, detectSeries } from './organizer.js';
 import { fetchPtBrMetadata, searchPtBrMovie } from './tmdbHelper.js';
 
@@ -733,6 +733,7 @@ export function invalidateLocalCache() {
 }
 
 export function deleteLocalFile(targetPath, baseDir = 'D:\\filmes') {
+    deleteLocalMediaRecord(targetPath);
     if (!fs.existsSync(targetPath)) return false;
 
     const stat = fs.statSync(targetPath);

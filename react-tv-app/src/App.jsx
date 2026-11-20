@@ -9,6 +9,7 @@ import { FavoritesView } from './views/FavoritesView';
 import { LocalFolderView } from './views/LocalFolderView';
 import { DownloadsView } from './views/DownloadsView';
 import { SearchView } from './views/SearchView';
+import { QuickActionsModal } from './components/QuickActionsModal';
 import {
   getTrendingMovies,
   getMovies,
@@ -22,7 +23,11 @@ import {
   getFavorites,
   syncFavoritesWithServer,
   getMovieDetails,
-  deleteDownload
+  deleteDownload,
+  toggleFavorite,
+  isFavorite,
+  clearWatchProgress,
+  deleteLocalFile
 } from './services/api';
 import { useSpatialNav } from './hooks/useSpatialNav';
 
@@ -47,6 +52,15 @@ export function App() {
   const [favorites, setFavorites] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [activeStream, setActiveStream] = useState(null);
+  const [quickMenuMovie, setQuickMenuMovie] = useState(null);
+  const [quickMenuContext, setQuickMenuContext] = useState({ isInContinueWatching: false, isLocal: false });
+  const [confirmDeleteMode, setConfirmDeleteMode] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = useCallback((msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3500);
+  }, []);
 
   const playerControlsRef = useRef({});
   const searchInputRef = useRef({ handleKeyPress: null });
@@ -393,10 +407,162 @@ export function App() {
     return baseButtons + streamsCount;
   }, [selectedMovie]);
 
+  // 3.5. Ações dinâmicas para o Menu de Ações Rápidas (Segurar OK no controle)
+  const quickMenuActionsList = useMemo(() => {
+    if (!quickMenuMovie) return [];
+    if (confirmDeleteMode) {
+      return ['confirm_delete', 'cancel_delete'];
+    }
+    const list = ['play', 'details', 'favorite'];
+    if (!quickMenuContext.isLocal && !quickMenuMovie.isLocal) {
+      list.push('download');
+    }
+    if (quickMenuContext.isInContinueWatching) {
+      list.push('remove_history');
+    }
+    if (quickMenuContext.isLocal || quickMenuMovie.isLocal || quickMenuMovie.filePath) {
+      list.push('delete_local');
+    }
+    return list;
+  }, [quickMenuMovie, confirmDeleteMode, quickMenuContext]);
+
+  const handleCloseQuickMenu = useCallback(() => {
+    if (confirmDeleteMode) {
+      setConfirmDeleteMode(false);
+      return;
+    }
+    setQuickMenuMovie(null);
+  }, [confirmDeleteMode]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!quickMenuMovie) return;
+    const target = quickMenuMovie;
+    setConfirmDeleteMode(false);
+    setQuickMenuMovie(null);
+
+    const fPath = target.filePath || target.videoPath;
+    if (fPath) {
+      try {
+        const res = await deleteLocalFile(fPath);
+        if (res && res.success !== false) {
+          showToast(`"${target.title || target.cleanName || 'Arquivo'}" excluído do computador!`);
+          clearWatchProgress(target);
+          refreshUserData();
+          const data = await getLocalLibraryData();
+          setLocalLibrary(data);
+          setLocalMovies(data.movies || []);
+        } else {
+          showToast(res?.error || 'Erro ao excluir arquivo');
+        }
+      } catch (err) {
+        showToast('Erro ao excluir arquivo');
+      }
+    } else {
+      showToast('Caminho do arquivo local não identificado');
+    }
+  }, [quickMenuMovie, showToast, refreshUserData]);
+
+  const handleQuickActionSelect = useCallback((actionId) => {
+    if (!quickMenuMovie) return;
+    const target = quickMenuMovie;
+
+    switch (actionId) {
+      case 'play':
+        setQuickMenuMovie(null);
+        handlePlayMovieDirect(target);
+        break;
+
+      case 'details':
+        setQuickMenuMovie(null);
+        setSelectedMovie(target);
+        break;
+
+      case 'favorite': {
+        const added = toggleFavorite(target);
+        showToast(added ? 'Adicionado à Minha Lista' : 'Removido de Minha Lista');
+        refreshUserData();
+        setQuickMenuMovie(null);
+        break;
+      }
+
+      case 'download':
+        setQuickMenuMovie(null);
+        setSelectedMovie(target);
+        break;
+
+      case 'remove_history':
+        clearWatchProgress(target);
+        refreshUserData();
+        showToast('Removido de Continuar Assistindo');
+        setQuickMenuMovie(null);
+        break;
+
+      case 'delete_local':
+        setConfirmDeleteMode(true);
+        break;
+
+      case 'confirm_delete':
+        handleConfirmDelete();
+        break;
+
+      case 'cancel_delete':
+        setConfirmDeleteMode(false);
+        break;
+
+      default:
+        setQuickMenuMovie(null);
+        break;
+    }
+  }, [quickMenuMovie, handlePlayMovieDirect, showToast, refreshUserData, handleConfirmDelete]);
+
+  const handleLongPress = useCallback(({ zone, heroIndex, rowIndex, colIndex }) => {
+    let target = null;
+    let isLocal = false;
+    let isContinueWatching = false;
+
+    if (zone === 'hero') {
+      target = heroMovie;
+    } else if (zone === 'rows') {
+      if (activeTab === 'downloads') {
+        target = downloads[rowIndex];
+      } else if (activeTab === 'favorites') {
+        target = favoritesGridRows[rowIndex]?.movies?.[colIndex];
+      } else if (activeTab === 'local') {
+        target = localGridRows[rowIndex]?.movies?.[colIndex];
+        isLocal = true;
+      } else {
+        const sec = currentSections[rowIndex];
+        if (sec && sec.movies && sec.movies[colIndex]) {
+          target = sec.movies[colIndex];
+          if (sec.id === 'continue-watching') {
+            isContinueWatching = true;
+          }
+        }
+      }
+    }
+
+    if (!target) return;
+
+    if (target.isLocal || target.filePath || activeTab === 'local') {
+      isLocal = true;
+    }
+
+    const saved = getSavedProgress(target);
+    if (saved && saved.position > 10) {
+      isContinueWatching = true;
+    }
+
+    setConfirmDeleteMode(false);
+    setQuickMenuContext({ isInContinueWatching: isContinueWatching, isLocal });
+    setQuickMenuMovie(target);
+  }, [activeTab, heroMovie, downloads, favoritesGridRows, localGridRows, currentSections]);
+
   // 4. Integração do Hook Espacial Ultra-Rápido
   const nav = useSpatialNav({
     isPlayerOpen: Boolean(activeStream),
     isModalOpen: Boolean(selectedMovie),
+    isQuickMenuOpen: Boolean(quickMenuMovie),
+    quickMenuCount: quickMenuActionsList.length,
     activeTab,
     hasHero: activeTab === 'home' && Boolean(heroMovie),
     rowCount,
@@ -404,6 +570,12 @@ export function App() {
     headerCount: NAV_ITEMS.length,
     localFilterCount: localFilters.length,
     modalItemsCount,
+    onLongPress: handleLongPress,
+    onCloseQuickMenu: handleCloseQuickMenu,
+    onQuickMenuSelect: (idx) => {
+      const actId = quickMenuActionsList[idx];
+      if (actId) handleQuickActionSelect(actId);
+    },
     onTabChange: (newHeaderIdx) => {
       const item = NAV_ITEMS[newHeaderIdx];
       if (item && item.id !== activeTab) {
@@ -684,6 +856,30 @@ export function App() {
           }}
           spatialNavControls={playerControlsRef.current}
         />
+      )}
+
+      {/* Menu de Ações Rápidas (Segurar OK no controle) */}
+      {quickMenuMovie && (
+        <QuickActionsModal
+          movie={quickMenuMovie}
+          context={quickMenuContext}
+          isFav={isFavorite(quickMenuMovie.id, quickMenuMovie.imdbId, quickMenuMovie.title)}
+          isOpen={Boolean(quickMenuMovie)}
+          focusedIndex={nav.quickMenuIndex}
+          confirmDeleteMode={confirmDeleteMode}
+          onSelectAction={handleQuickActionSelect}
+          onClose={handleCloseQuickMenu}
+          onConfirmDelete={handleConfirmDelete}
+          onCancelDelete={() => setConfirmDeleteMode(false)}
+        />
+      )}
+
+      {/* Notificação Toast Global */}
+      {toastMessage && (
+        <div className="tv-global-toast">
+          <span className="material-icons" style={{ fontSize: '20px', color: '#22C55E' }}>check_circle</span>
+          <span>{toastMessage}</span>
+        </div>
       )}
     </div>
   );
