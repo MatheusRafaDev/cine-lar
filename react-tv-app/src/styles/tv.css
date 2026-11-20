@@ -368,32 +368,34 @@ body.tv-body {
   will-change: scroll-position;
 }
 
-/* 4. Cartão de Filme (Card) */
+/* 4. Cartão de Filme (Card) - Design Cinematográfico Premium */
 .tv-card {
   flex: 0 0 176px;
   width: 176px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  border-radius: var(--radius-sm);
+  gap: 10px;
+  border-radius: 12px;
   position: relative;
   cursor: pointer;
   outline: none;
   contain: layout style;
   transform: translateZ(0);
   backface-visibility: hidden;
-  transition: transform 0.15s cubic-bezier(0.2, 0, 0.2, 1);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
 
 .tv-card-poster-wrap {
   width: 100%;
   height: 255px;
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   overflow: hidden;
   position: relative;
-  background-color: var(--bg-card);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  background-color: #141413;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  transition: border-color 0.22s ease, box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tv-card-poster {
@@ -401,22 +403,86 @@ body.tv-body {
   height: 100%;
   object-fit: cover;
   display: block;
+  transform: scale(1) translateZ(0);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), filter 0.22s ease;
 }
 
+/* Gradiente inferior suave para contraste */
+.tv-card-bottom-scrim {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(to top, rgba(11, 11, 10, 0.88) 0%, rgba(11, 11, 10, 0.35) 50%, transparent 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Overlay de Play Cinelar no Hover/Foco */
+.tv-card-play-overlay,
+.tv-local-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(11, 11, 10, 0.3) 0%, rgba(11, 11, 10, 0.65) 100%);
+  opacity: 0;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.tv-card-play-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #D97757 0%, #B85838 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.85), 0 0 20px rgba(217, 119, 87, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  transform: scale(0.85);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Badges sobre o poster */
 .tv-card-rating {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(0, 0, 0, 0.88);
-  border: 1px solid rgba(245, 197, 24, 0.6);
+  background: rgba(14, 14, 13, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(245, 197, 24, 0.5);
   color: #F5C518;
   font-size: 11px;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 7px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   gap: 3px;
+  z-index: 3;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.2px;
+}
+
+.tv-card-badge-series {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(99, 102, 241, 0.92);
+  color: #FFFFFF;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 3px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.8px;
+  z-index: 3;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
 }
 
 .tv-card-badge-local {
@@ -427,11 +493,13 @@ body.tv-body {
   color: #000;
   font-size: 10px;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 2px 7px;
+  border-radius: 5px;
   text-transform: uppercase;
   display: inline-flex;
   align-items: center;
+  z-index: 3;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .tv-card-progress-bar {
@@ -440,18 +508,21 @@ body.tv-body {
   left: 0;
   right: 0;
   height: 4px;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.22);
+  z-index: 5;
 }
 
 .tv-card-progress-fill {
   height: 100%;
-  background: var(--primary);
+  background: linear-gradient(90deg, #D97757 0%, #F59E0B 100%);
+  box-shadow: 0 0 8px rgba(217, 119, 87, 0.8);
 }
 
 .tv-card-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  padding: 0 2px;
 }
 
 .tv-card-title {
@@ -462,28 +533,67 @@ body.tv-body {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.3;
+  transition: color 0.15s ease;
 }
 
 .tv-card-meta {
   font-size: 12px;
   color: var(--text-muted);
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s ease;
 }
 
-/* Estado focado do Card */
+.tv-card-remaining {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #FAF9F5;
+  font-weight: 600;
+}
+
+/* Estado Focado e Hover do Card */
+.tv-card:hover,
 .tv-card.focused {
   transform: scale(1.08) translateZ(0) !important;
-  z-index: 10;
+  z-index: 25;
 }
 
+.tv-card:hover .tv-card-poster-wrap,
 .tv-card.focused .tv-card-poster-wrap {
-  outline: 3px solid #FFFFFF !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.9) !important;
+  border-color: #FFFFFF !important;
+  box-shadow: 0 0 0 2.5px #FFFFFF, 0 16px 40px rgba(0, 0, 0, 0.95), 0 0 32px rgba(217, 119, 87, 0.5) !important;
 }
 
+.tv-card:hover .tv-card-poster,
+.tv-card.focused .tv-card-poster {
+  transform: scale(1.06) translateZ(0);
+  filter: brightness(1.05);
+}
+
+.tv-card:hover .tv-card-play-overlay,
+.tv-card.focused .tv-card-play-overlay,
+.tv-local-play-overlay.visible {
+  opacity: 1;
+}
+
+.tv-card:hover .tv-card-play-btn,
+.tv-card.focused .tv-card-play-btn {
+  transform: scale(1);
+}
+
+.tv-card:hover .tv-card-title,
 .tv-card.focused .tv-card-title {
   color: #FFFFFF !important;
   font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.tv-card:hover .tv-card-meta,
+.tv-card.focused .tv-card-meta {
+  color: rgba(250, 249, 245, 0.85);
 }
 
 /* 5. Modal de Detalhes (Stremio Style) */
@@ -1684,12 +1794,14 @@ body.tv-body {
   height: 295px !important;
   min-height: 295px !important;
   max-height: 295px !important;
-  border-radius: var(--radius-sm) !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
   position: relative !important;
-  background-color: #11141e !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+  background-color: #141413 !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6) !important;
   box-sizing: border-box !important;
+  transition: border-color 0.22s ease, box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .tv-fullpage-grid .tv-card-poster,
@@ -1776,20 +1888,21 @@ body.tv-body {
 /* Badges e Overlays para Filmes Locais */
 .tv-card-badge-franchise {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  max-width: 65%;
+  top: 8px;
+  left: 8px;
+  max-width: 70%;
   background: rgba(217, 119, 87, 0.95);
+  backdrop-filter: blur(8px);
   color: #FFFFFF;
   font-size: 10px;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  gap: 3px;
-  z-index: 2;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  gap: 4px;
+  z-index: 3;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
   letter-spacing: 0.2px;
   white-space: nowrap;
   overflow: hidden;
@@ -1798,17 +1911,19 @@ body.tv-body {
 
 .tv-card-badge-quality {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  background: rgba(0, 0, 0, 0.85);
+  top: 8px;
+  right: 8px;
+  background: rgba(14, 14, 13, 0.88);
+  backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.25);
   color: #FFFFFF;
   font-size: 9px;
   font-weight: 800;
-  padding: 2px 5px;
-  border-radius: 3px;
-  z-index: 2;
+  padding: 3px 6px;
+  border-radius: 5px;
+  z-index: 3;
   text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .tv-local-play-overlay {

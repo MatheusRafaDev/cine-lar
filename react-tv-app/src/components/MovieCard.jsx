@@ -98,7 +98,13 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
         {rating && (
           <div className="tv-card-rating">
             <span className="material-icons" style={{ fontSize: '11px' }}>star</span>
-            <span>{rating}</span>
+            <span>{typeof rating === 'number' ? rating.toFixed(1) : rating}</span>
+          </div>
+        )}
+
+        {(movie.isSeries || movie.type === 'series') && (
+          <div className="tv-card-badge-series">
+            <span>SÉRIE</span>
           </div>
         )}
 
@@ -108,6 +114,14 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
             <span>Local</span>
           </div>
         )}
+
+        <div className="tv-card-bottom-scrim" />
+
+        <div className={`tv-card-play-overlay ${isFocused ? 'visible' : ''}`}>
+          <div className="tv-card-play-btn">
+            <span className="material-icons" style={{ fontSize: '26px', color: '#FFFFFF' }}>play_arrow</span>
+          </div>
+        </div>
 
         {progress !== null && progress > 0 && (
           <div className="tv-card-progress-bar">
@@ -123,7 +137,10 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
         <h4 className="tv-card-title">{title}</h4>
         <span className="tv-card-meta">
           {remainingMin ? (
-            <span style={{ color: '#FAF9F5', fontWeight: 600 }}>Restam {remainingMin} min</span>
+            <span className="tv-card-remaining">
+              <span className="material-icons" style={{ fontSize: '12px' }}>schedule</span>
+              <span>Restam {remainingMin} min</span>
+            </span>
           ) : (
             year || (isLocal ? 'Vídeo Pronto' : 'Filme')
           )}

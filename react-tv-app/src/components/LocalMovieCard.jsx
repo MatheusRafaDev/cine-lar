@@ -122,9 +122,13 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
           </div>
         )}
 
-        {/* Ícone de Play centralizado que surge quando em foco */}
-        <div className={`tv-local-play-overlay ${isFocused ? 'visible' : ''}`}>
-          <span className="material-icons" style={{ fontSize: '42px', color: '#FFFFFF' }}>play_circle_filled</span>
+        <div className="tv-card-bottom-scrim" />
+
+        {/* Ícone de Play centralizado que surge quando em foco ou hover */}
+        <div className={`tv-card-play-overlay ${isFocused ? 'visible' : ''}`}>
+          <div className="tv-card-play-btn">
+            <span className="material-icons" style={{ fontSize: '28px', color: '#FFFFFF' }}>play_arrow</span>
+          </div>
         </div>
       </div>
 
@@ -132,7 +136,10 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
         <h4 className="tv-card-title" title={title}>{title}</h4>
         <div className="tv-local-meta-row">
           {remainingMin ? (
-            <span className="tv-card-meta" style={{ color: '#FAF9F5', fontWeight: 600 }}>Restam {remainingMin} min</span>
+            <span className="tv-card-meta tv-card-remaining" style={{ color: '#FAF9F5', fontWeight: 600 }}>
+              <span className="material-icons" style={{ fontSize: '12px' }}>schedule</span>
+              <span>Restam {remainingMin} min</span>
+            </span>
           ) : (
             year && <span className="tv-card-meta">{year}</span>
           )}
