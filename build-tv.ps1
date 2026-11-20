@@ -65,7 +65,7 @@ Write-Host "Pacote WGT assinado com sucesso: $([Math]::Round($wgtSize, 1)) KB" -
 if ($Deploy) {
     Write-Host "[4/5] Instalando na Samsung Smart TV ($TvIp)..." -ForegroundColor Cyan
     & $sdbTool connect $TvIp
-    & $tzTool install -e $TvIp -p $wgtOut
+    & $tzTool install -e $TvIp -p $legacyWgt
 
     if ($Launch) {
         Write-Host "[5/5] Iniciando Cinelar na TV..." -ForegroundColor Cyan
