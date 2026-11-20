@@ -80,6 +80,15 @@ const client = new WebTorrent();
 client.on('error', (err) => {
     console.error('[WebTorrent] Global error:', err.message);
 });
+client.on('torrent', (torrent) => {
+    if (!torrent) return;
+    torrent.on('error', (err) => {
+        console.warn(`[WebTorrent] Torrent error interceptado (${torrent.name || torrent.infoHash || 'desconhecido'}):`, err?.message || err);
+    });
+    torrent.on('warning', (w) => {
+        // Ignora avisos normais de trackers lentos/offline
+    });
+});
 
 // Downloads registry: infoHash -> meta info
 const downloadsRegistry = new Map();
@@ -2153,9 +2162,12 @@ const server = http.createServer(async (req, res) => {
                 }
             }
             if (dnParam) {
+                const dnNoExt = dnParam.replace(/\.[^.]+$/, '');
                 const candidates = [
                     path.join(PLATFORM_DOWNLOAD_PATH, dnParam),
-                    path.join(SAVE_PATH, dnParam)
+                    path.join(PLATFORM_DOWNLOAD_PATH, dnNoExt, dnParam),
+                    path.join(SAVE_PATH, dnParam),
+                    path.join(SAVE_PATH, dnNoExt, dnParam)
                 ];
                 for (const cand of candidates) {
                     try {
@@ -2306,17 +2318,16 @@ const server = http.createServer(async (req, res) => {
 
                 const total = file.length;
                 let contentType = 'video/mp4';
-                if (file.name.endsWith('.mkv')) contentType = 'video/x-matroska';
-                else if (file.name.endsWith('.webm')) contentType = 'video/webm';
+                if (file.name.endsWith('.webm')) contentType = 'video/webm';
                 else if (file.name.endsWith('.avi')) contentType = 'video/x-msvideo';
 
                 const isTranscode = urlObj.searchParams.get('transcode') === '1';
                 const startTimeParam = parseFloat(urlObj.searchParams.get('startTime') || urlObj.searchParams.get('t') || 0);
-                const isAviOrIncompatible = /\.(avi|wmv|flv|mov|ts|vob)$/i.test(file.name);
+                const isMkvOrIncompatible = /\.(mkv|avi|wmv|flv|mov|ts|vob)$/i.test(file.name);
 
-                // Se pediu transcode ou o formato do arquivo é incompatível nativamente com o navegador (ex: AVI)
-                if ((isTranscode || isAviOrIncompatible) && RESOLVED_FFMPEG) {
-                    console.log(`[StreamingTranscode] Ativando conversao em tempo real com FFmpeg para "${file.name}" (start: ${startTimeParam}s)`);
+                // Tizen/Chromium HTML5 <video> exige container MP4 para exibir o quadro de video (MKV puro toca apenas o audio!)
+                if ((isTranscode || isMkvOrIncompatible) && RESOLVED_FFMPEG) {
+                    console.log(`[StreamingTranscode] Ativando remux/conversao em tempo real com FFmpeg para "${file.name}" (start: ${startTimeParam}s)`);
 
                     if (req.method === 'HEAD') {
                         res.writeHead(200, {
@@ -2328,17 +2339,24 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-                    // Tenta achar arquivo local no disco
+                    // Tenta achar arquivo local no disco (inclusive em subpasta com o nome do release)
+                    const baseNoExt = (file.name || '').replace(/\.[^.]+$/, '');
+                    const dlMeta = downloadsRegistry.get(infoHash);
                     const possibleDiskPaths = [
+                        file.path,
+                        dlMeta?.savePath ? path.join(dlMeta.savePath, file.name) : null,
+                        dlMeta?.savePath ? path.join(dlMeta.savePath, file.path) : null,
                         path.join(PLATFORM_DOWNLOAD_PATH, file.path),
                         path.join(PLATFORM_DOWNLOAD_PATH, file.name),
+                        path.join(PLATFORM_DOWNLOAD_PATH, baseNoExt, file.name),
                         path.join(SAVE_PATH, file.path),
-                        path.join(SAVE_PATH, file.name)
-                    ];
+                        path.join(SAVE_PATH, file.name),
+                        path.join(SAVE_PATH, baseNoExt, file.name)
+                    ].filter(Boolean);
                     let diskFilePath = null;
                     for (const dp of possibleDiskPaths) {
                         try {
-                            if (fs.existsSync(dp) && fs.statSync(dp).size > 1024 * 1024) {
+                            if (fs.existsSync(dp) && fs.statSync(dp).isFile() && fs.statSync(dp).size > 1024 * 1024) {
                                 diskFilePath = dp;
                                 break;
                             }
@@ -2347,10 +2365,13 @@ const server = http.createServer(async (req, res) => {
 
                     const args = [
                         '-hide_banner',
-                        '-loglevel', 'error'
+                        '-loglevel', 'error',
+                        '-fflags', '+genpts+discardcorrupt',
+                        '-analyzeduration', '2000000',
+                        '-probesize', '2000000'
                     ];
 
-                    if (startTimeParam > 0) {
+                    if (startTimeParam > 0 && diskFilePath) {
                         args.push('-ss', String(startTimeParam));
                     }
 
@@ -2362,13 +2383,13 @@ const server = http.createServer(async (req, res) => {
                         args.push('-i', 'pipe:0');
                     }
 
-                    // Preserva 100% da qualidade original se o vídeo já for compatível (H.264 / HEVC em MP4 ou MKV)
-                    const isVideoH264OrHevc = !isAviOrIncompatible || /\.(mp4|mkv|mov|m4v)$/i.test(file.name);
-                    const vArgs = isVideoH264OrHevc
+                    // Preserva 100% da qualidade original copiando o stream de video (-c:v copy) para MP4/MKV/MOV
+                    const isVideoCompatible = /\.(mp4|mkv|mov|m4v)$/i.test(file.name);
+                    const vArgs = isVideoCompatible
                         ? ['-c:v', 'copy']
                         : ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-maxrate', '12M', '-bufsize', '24M'];
 
-                    // Áudio: copia se for mp4/aac nativo, caso contrário codifica em AAC 256k estéreo cristalino
+                    // Audio: converte ou garante AAC 256k estereo compativel com qualquer TV
                     const isAudioAac = file.name.endsWith('.mp4');
                     const aArgs = isAudioAac
                         ? ['-c:a', 'copy']
@@ -2521,9 +2542,12 @@ const server = http.createServer(async (req, res) => {
 
             let foundLocalFile = null;
             if (dnParam) {
+                const dnNoExt = dnParam.replace(/\.[^.]+$/, '');
                 const candidates = [
                     path.join(PLATFORM_DOWNLOAD_PATH, dnParam),
-                    path.join(SAVE_PATH, dnParam)
+                    path.join(PLATFORM_DOWNLOAD_PATH, dnNoExt, dnParam),
+                    path.join(SAVE_PATH, dnParam),
+                    path.join(SAVE_PATH, dnNoExt, dnParam)
                 ];
                 for (const cand of candidates) {
                     try {
