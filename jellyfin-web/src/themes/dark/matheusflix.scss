@@ -175,36 +175,40 @@ button[aria-label*="Menu"],
     padding: 0 !important;
 }
 
-/* Botao voltar do cabecalho limpo estilo Cinelar */
+/* Botao voltar do cabecalho limpo e minimalista (sem bordas brancas) */
 .headerBackButton {
-    width: 42px !important;
-    height: 42px !important;
-    min-width: 42px !important;
-    max-width: 42px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
     border-radius: 50% !important;
-    background: none !important;
+    background: transparent !important;
     color: #FAF9F5 !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     margin: 0 8px 0 0 !important;
-    border: 1.5px solid rgba(250, 249, 245, 0.18) !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
     padding: 0 !important;
     cursor: pointer !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 
     .material-icons {
-        font-size: 20px !important;
+        font-size: 24px !important;
         color: #FAF9F5 !important;
     }
 
     &:hover,
     &:focus,
     &:focus-visible {
-        background: rgba(250, 249, 245, 0.12) !important;
-        border-color: #FAF9F5 !important;
+        background: rgba(255, 255, 255, 0.15) !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
         color: #ffffff !important;
-        transform: scale(1.06) !important;
+        transform: scale(1.08) !important;
 
         .material-icons {
             color: #ffffff !important;
@@ -400,9 +404,12 @@ button[aria-label*="Menu"],
 
     &:focus,
     &:focus-visible {
-        outline: 3px solid #FAF9F5 !important;
-        outline-offset: 2px !important;
+        outline: none !important;
+        border: none !important;
+        background: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
         transform: scale(1.05) !important;
+        box-shadow: none !important;
         z-index: 5 !important;
     }
 
@@ -438,45 +445,52 @@ body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
     height: 100% !important;
 }
 
-/* Botão de Pesquisa no estilo Cinelar (ic) */
+/* Botão de Pesquisa no estilo minimalista Cinelar (sem bordas brancas) */
 .headerSearchButton {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 42px !important;
-    height: 42px !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
     color: #FAF9F5 !important;
     border-radius: 50% !important;
     background: transparent !important;
-    border: 1.5px solid rgba(250, 249, 245, 0.18) !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
     cursor: pointer !important;
-    transition: all 0.2s ease !important;
+    padding: 0 !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 
     .material-icons {
-        font-size: 20px !important;
+        font-size: 22px !important;
         color: #FAF9F5 !important;
     }
 
     &:hover,
     &:focus,
     &:focus-visible {
-        background: rgba(250, 249, 245, 0.12) !important;
-        border-color: #FAF9F5 !important;
+        background: rgba(255, 255, 255, 0.15) !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
         color: #ffffff !important;
-        transform: scale(1.06) !important;
+        transform: scale(1.08) !important;
     }
 }
 
-/* Botão de Usuário / Avatar no estilo Cinelar (av) */
+/* Botão de Usuário / Avatar no estilo minimalista Cinelar (sem bordas brancas) */
 .headerUserButton {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 42px !important;
-    height: 42px !important;
-    min-width: 42px !important;
-    max-width: 42px !important;
-    border-radius: 12px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    border-radius: 50% !important;
     background: #E50914 !important;
     color: #FAF9F5 !important;
     box-shadow: none !important;
@@ -486,11 +500,11 @@ body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
     overflow: hidden !important;
     cursor: pointer !important;
     font-weight: 700 !important;
-    font-size: 18px !important;
+    font-size: 16px !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 
     .mf-avatar-initial {
-        font-size: 18px !important;
+        font-size: 16px !important;
         font-weight: 700 !important;
         color: #FAF9F5 !important;
         line-height: 1 !important;
@@ -511,14 +525,17 @@ body[data-page="mypreferencesmenu"] .headerTabs .emby-tab-button {
     &:hover,
     &:focus,
     &:focus-visible {
-        transform: scale(1.06) !important;
-        filter: brightness(1.1) !important;
+        transform: scale(1.08) !important;
+        outline: none !important;
+        border: none !important;
+        box-shadow: 0 0 16px rgba(229, 9, 20, 0.6) !important;
     }
 
     &.headerUserButtonActive {
-        outline: 3px solid #FAF9F5 !important;
-        outline-offset: 3px !important;
-        transform: scale(1.06) !important;
+        outline: none !important;
+        border: none !important;
+        box-shadow: 0 0 16px rgba(229, 9, 20, 0.8) !important;
+        transform: scale(1.08) !important;
     }
 }
 

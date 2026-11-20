@@ -62,8 +62,10 @@ html.layout-tv,
     .skinHeader,
     .skinHeader.semiTransparent,
     .skinHeader-withBackground {
-        background: rgba(20, 20, 19, 0.98) !important;
-        border-bottom: 1px solid rgba(250, 249, 245, 0.1) !important;
+        background: rgba(16, 16, 15, 0.98) !important;
+        border-bottom: none !important;
+        border: none !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
     }
 
     .mainDrawer {
@@ -99,6 +101,102 @@ html.layout-tv,
     padding-right: var(--tv-safe-x, 3.5vw) !important;
     height: 72px !important;
     box-sizing: border-box !important;
+    border: none !important;
+    border-bottom: none !important;
+}
+
+/* Reset completo de bordas brancas e simplificacao do cabecalho na TV */
+.layout-tv .skinHeader {
+    border: none !important;
+    border-bottom: none !important;
+
+    button,
+    a,
+    .focusable,
+    .emby-tab-button,
+    .headerButton,
+    .headerSearchButton,
+    .headerBackButton,
+    .headerUserButton,
+    .mf-header-logo {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+
+        &:focus,
+        &:focus-visible {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            transform: scale(1.06) !important;
+        }
+    }
+
+    /* Ocultar icones de atalho extras desnecessarios na Smart TV */
+    .headerQuickConnectButton,
+    .headerHelpButton,
+    .headerSyncButton,
+    .headerCastButton {
+        display: none !important;
+    }
+
+    /* Abas do cabecalho com destaque suave estilo Netflix (sem nenhuma borda branca) */
+    .emby-tab-button {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        border-radius: 20px !important;
+
+        &:focus,
+        &:focus-visible {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: rgba(255, 255, 255, 0.18) !important;
+            color: #ffffff !important;
+            transform: scale(1.06) !important;
+        }
+
+        &.emby-tab-button-active {
+            color: #FAF9F5 !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+            border: none !important;
+        }
+    }
+
+    /* Botoes de acao (lupa de busca, voltar) limpos sem bordas */
+    .headerSearchButton,
+    .headerBackButton {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+
+        &:focus,
+        &:focus-visible {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: rgba(255, 255, 255, 0.18) !important;
+            color: #ffffff !important;
+            transform: scale(1.08) !important;
+        }
+    }
+
+    /* Botao de usuario / perfil com brilho vermelho suave ao focar */
+    .headerUserButton {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+
+        &:focus,
+        &:focus-visible,
+        &.headerUserButtonActive {
+            border: none !important;
+            outline: none !important;
+            box-shadow: 0 0 16px rgba(229, 9, 20, 0.8) !important;
+            transform: scale(1.08) !important;
+        }
+    }
 }
 
 .layout-tv .mf-home-sections-wrap {

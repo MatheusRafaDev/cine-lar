@@ -61,9 +61,7 @@ function renderHeader() {
     html += '<div class="headerTabs sectionTabs"></div>';
     html += '</div>';
     html += '<div class="headerRight">';
-    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerQuickConnectButton" aria-label="Conexão Rápida" title="Conexão Rápida (Parear TV)"><span class="material-icons phonelink" aria-hidden="true"></span></button>';
     html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerSearchButton" aria-label="Buscar"><span class="material-icons search" aria-hidden="true"></span></button>';
-    html += '<button type="button" is="paper-icon-button-light" class="headerButton headerButtonRight headerHelpButton" aria-label="Atalhos" title="Atalhos do Controle e Teclado (?)"><span class="material-icons help_outline" aria-hidden="true"></span></button>';
     html += '<button is="paper-icon-button-light" class="headerButton headerButtonRight headerUserButton" aria-label="Perfil"></button>';
     html += '<div class="currentTimeText hide"></div>';
     html += '</div>';
