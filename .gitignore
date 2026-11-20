@@ -18,8 +18,9 @@ npm-debug.log*
 Thumbs.db
 
 
-# React TV App
+# React TV App & Temporários Locais
 react-tv-app/node_modules/
 react-tv-app/dist/
 tizen-package/Debug/
 *.wgt
+scratch/

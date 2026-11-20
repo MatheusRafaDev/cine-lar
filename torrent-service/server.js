@@ -41,14 +41,15 @@ if (typeof process.loadEnvFile === 'function') {
 }
 
 const PORT = process.env.PORT || 8085;
+const HOST = process.env.HOST || '0.0.0.0';
 const CONFIG_FILE = path.join(__dirname, 'config.json');
-let SAVE_PATH = process.env.SAVE_PATH || 'D:\\filmes';
+let SAVE_PATH = path.normalize(process.env.SAVE_PATH || 'D:\\Filmes');
 
 try {
     if (fs.existsSync(CONFIG_FILE)) {
         const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
         if (cfg.savePath) {
-            SAVE_PATH = cfg.savePath;
+            SAVE_PATH = path.normalize(cfg.savePath);
         }
     }
 } catch (e) {
@@ -58,16 +59,29 @@ try {
 let PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'Cinelar');
 const JELLYFIN_URL = process.env.JELLYFIN_URL || 'http://localhost:8096';
 const JELLYFIN_USER = process.env.JELLYFIN_USER || 'usuario';
-const JELLYFIN_PW = process.env.JELLYFIN_PW || '10092004';
+const JELLYFIN_PW = process.env.JELLYFIN_PW || '';
+const MUTATION_API_TOKEN = (process.env.MUTATION_API_TOKEN || '').trim();
 
 function isPathInsideBase(targetPath, basePath) {
+    if (!targetPath || !basePath) return false;
     const base = path.resolve(basePath);
     const target = path.resolve(targetPath);
-    const relative = path.relative(base, target);
+    const normBase = process.platform === 'win32' ? base.toLowerCase() : base;
+    const normTarget = process.platform === 'win32' ? target.toLowerCase() : target;
+    const relative = path.relative(normBase, normTarget);
     return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 }
 
 function isTrustedMutationRequest(req) {
+    if (MUTATION_API_TOKEN) {
+        const headerToken = (req.headers['x-api-token'] || '').trim();
+        const authHeader = (req.headers.authorization || '').trim();
+        const bearerToken = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : '';
+        if (headerToken !== MUTATION_API_TOKEN && bearerToken !== MUTATION_API_TOKEN) {
+            return false;
+        }
+    }
+
     const origin = req.headers.origin;
     // Aplicativos Tizen instalados normalmente enviam Origin "null" ou não enviam Origin.
     if (!origin || origin === 'null') return true;
@@ -76,6 +90,9 @@ function isTrustedMutationRequest(req) {
         const originUrl = new URL(origin);
         const requestUrl = new URL(`http://${req.headers.host || `localhost:${PORT}`}`);
         if (originUrl.hostname === requestUrl.hostname) return true;
+        if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1' || originUrl.hostname.startsWith('192.168.') || originUrl.hostname.startsWith('10.')) {
+            return true;
+        }
 
         const configuredOrigins = (process.env.ALLOWED_MUTATION_ORIGINS || '')
             .split(',')
@@ -725,7 +742,7 @@ const server = http.createServer(async (req, res) => {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS, HEAD');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Emby-Token');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Emby-Token, X-Api-Token');
     res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration');
 
     if (req.method === 'OPTIONS') {
@@ -800,6 +817,7 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (pathname === '/api/settings/save-path' && req.method === 'POST') {
+            if (rejectUntrustedMutation(req, res)) return;
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', () => {
@@ -1988,8 +2006,8 @@ const server = http.createServer(async (req, res) => {
                     // 2. Se houver um download/torrent segurando este arquivo ou pasta, remove e fecha os handles
                     const targetDir = path.dirname(targetPath);
                     for (const [dlId, dlItem] of downloadsRegistry.entries()) {
-                        const dlSave = dlItem?.savePath ? path.resolve(dlItem.savePath).toLowerCase() : '';
-                        if (dlSave && (targetPath.startsWith(dlSave) || dlSave === targetDir)) {
+                        const dlSave = dlItem?.savePath ? path.resolve(dlItem.savePath) : '';
+                        if (dlSave && (isPathInsideBase(targetPath, dlSave) || isPathInsideBase(dlSave, targetDir))) {
                             const activeT = getActiveTorrent(dlId);
                             if (activeT) {
                                 try { activeT.destroy({ destroyStore: true }); } catch (_) {}
@@ -2232,22 +2250,23 @@ const server = http.createServer(async (req, res) => {
                     try { dnParam = decodeURIComponent(dnMatch[1]); } catch (_) { dnParam = dnMatch[1]; }
                 }
             }
-            if (dnParam) {
-                const dnNoExt = dnParam.replace(/\.[^.]+$/, '');
+            const safeDn = dnParam ? path.basename(dnParam.trim()) : '';
+            if (safeDn && safeDn !== '.' && safeDn !== '..') {
+                const dnNoExt = safeDn.replace(/\.[^.]+$/, '');
                 const candidates = [
-                    path.join(PLATFORM_DOWNLOAD_PATH, dnParam),
-                    path.join(PLATFORM_DOWNLOAD_PATH, dnNoExt, dnParam),
-                    path.join(SAVE_PATH, dnParam),
-                    path.join(SAVE_PATH, dnNoExt, dnParam)
-                ];
+                    path.join(PLATFORM_DOWNLOAD_PATH, safeDn),
+                    path.join(PLATFORM_DOWNLOAD_PATH, dnNoExt, safeDn),
+                    path.join(SAVE_PATH, safeDn),
+                    path.join(SAVE_PATH, dnNoExt, safeDn)
+                ].filter(cand => isPathInsideBase(cand, SAVE_PATH));
                 for (const cand of candidates) {
                     try {
-                        if (fs.existsSync(cand) && fs.statSync(cand).size > 1024 * 1024) {
+                        if (fs.existsSync(cand) && fs.statSync(cand).isFile() && fs.statSync(cand).size > 1024 * 1024) {
                             const size = fs.statSync(cand).size;
                             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                             res.end(JSON.stringify({
                                 ready: true,
-                                name: dnParam,
+                                name: safeDn,
                                 fileName: path.basename(cand),
                                 fileLength: size,
                                 progress: '100.0',
@@ -2427,7 +2446,7 @@ const server = http.createServer(async (req, res) => {
                     let diskFilePath = null;
                     for (const dp of possibleDiskPaths) {
                         try {
-                            if (fs.existsSync(dp) && fs.statSync(dp).isFile() && fs.statSync(dp).size > 1024 * 1024) {
+                            if (isPathInsideBase(dp, SAVE_PATH) && fs.existsSync(dp) && fs.statSync(dp).isFile() && fs.statSync(dp).size > 1024 * 1024) {
                                 diskFilePath = dp;
                                 break;
                             }
@@ -2612,17 +2631,18 @@ const server = http.createServer(async (req, res) => {
             }
 
             let foundLocalFile = null;
-            if (dnParam) {
-                const dnNoExt = dnParam.replace(/\.[^.]+$/, '');
+            const safeDn = dnParam ? path.basename(dnParam.trim()) : '';
+            if (safeDn && safeDn !== '.' && safeDn !== '..') {
+                const dnNoExt = safeDn.replace(/\.[^.]+$/, '');
                 const candidates = [
-                    path.join(PLATFORM_DOWNLOAD_PATH, dnParam),
-                    path.join(PLATFORM_DOWNLOAD_PATH, dnNoExt, dnParam),
-                    path.join(SAVE_PATH, dnParam),
-                    path.join(SAVE_PATH, dnNoExt, dnParam)
-                ];
+                    path.join(PLATFORM_DOWNLOAD_PATH, safeDn),
+                    path.join(PLATFORM_DOWNLOAD_PATH, dnNoExt, safeDn),
+                    path.join(SAVE_PATH, safeDn),
+                    path.join(SAVE_PATH, dnNoExt, safeDn)
+                ].filter(cand => isPathInsideBase(cand, SAVE_PATH));
                 for (const cand of candidates) {
                     try {
-                        if (fs.existsSync(cand) && fs.statSync(cand).size > 1024 * 1024) {
+                        if (fs.existsSync(cand) && fs.statSync(cand).isFile() && fs.statSync(cand).size > 1024 * 1024) {
                             foundLocalFile = {
                                 path: cand,
                                 name: path.basename(cand),
@@ -2655,6 +2675,7 @@ const server = http.createServer(async (req, res) => {
 
         // Start a download
         if (pathname === '/api/downloads/start' && req.method === 'POST') {
+            if (rejectUntrustedMutation(req, res)) return;
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
@@ -2789,6 +2810,7 @@ const server = http.createServer(async (req, res) => {
 
         // Pause download
         if (pathname.startsWith('/api/downloads/') && pathname.endsWith('/pause') && req.method === 'POST') {
+            if (rejectUntrustedMutation(req, res)) return;
             const id = pathname.replace('/api/downloads/', '').replace('/pause', '').trim().toLowerCase();
             const torrent = getActiveTorrent(id);
             if (torrent) {
@@ -2811,6 +2833,7 @@ const server = http.createServer(async (req, res) => {
 
         // Resume download
         if (pathname.startsWith('/api/downloads/') && pathname.endsWith('/resume') && req.method === 'POST') {
+            if (rejectUntrustedMutation(req, res)) return;
             const id = pathname.replace('/api/downloads/', '').replace('/resume', '').trim().toLowerCase();
             let torrent = getActiveTorrent(id);
             const meta = downloadsRegistry.get(id);
@@ -2942,6 +2965,7 @@ const server = http.createServer(async (req, res) => {
 
         // Rename download title
         if (pathname === '/api/downloads/rename' && req.method === 'POST') {
+            if (rejectUntrustedMutation(req, res)) return;
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', () => {
@@ -2981,15 +3005,16 @@ const server = http.createServer(async (req, res) => {
 
         // Launch in qBittorrent directly
         if (pathname === '/api/qbittorrent/open' && req.method === 'POST') {
+            if (rejectUntrustedMutation(req, res)) return;
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', () => {
                 try {
                     const data = JSON.parse(body);
-                    const { magnet } = data;
-                    if (!magnet) {
+                    const magnet = typeof data.magnet === 'string' ? data.magnet.trim() : '';
+                    if (!magnet || !/^magnet:\?xt=urn:btih:/i.test(magnet)) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ error: 'magnet parameter is required' }));
+                        res.end(JSON.stringify({ error: 'Valid magnet parameter is required' }));
                         return;
                     }
 
@@ -3020,7 +3045,7 @@ const server = http.createServer(async (req, res) => {
     }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
     console.log(`=======================================================`);
     console.log(`Cinelar Torrent & Discovery Service iniciado!`);
     console.log(`Porta: http://localhost:${PORT}`);

@@ -69,4 +69,4 @@ Se voce tambem tiver aparelhos Android TV (Mi Box, Fire TV Stick, Chromecast com
    ```text
    http://192.168.15.9:8096
    ```
-3. Faca login com a conta `rafael` (senha `10092004`) ou use o **Quick Connect**.
+3. Faca login com a sua conta do Jellyfin configurada no servidor ou use o **Quick Connect**.

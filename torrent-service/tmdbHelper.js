@@ -1,7 +1,10 @@
 import https from 'https';
 
-const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8';
 const cache = new Map();
+
+function getTmdbKey() {
+    return (process.env.TMDB_API_KEY || '').trim();
+}
 
 function fetchJson(url) {
     return new Promise((resolve) => {
@@ -34,6 +37,8 @@ function fetchJson(url) {
  */
 export async function fetchPtBrMetadata(imdbId) {
     if (!imdbId || !String(imdbId).startsWith('tt')) return null;
+    const apiKey = getTmdbKey();
+    if (!apiKey) return null;
 
     const id = String(imdbId).trim();
     if (cache.has(id)) {
@@ -41,7 +46,7 @@ export async function fetchPtBrMetadata(imdbId) {
     }
 
     try {
-        const url = `https://api.themoviedb.org/3/find/${id}?api_key=${TMDB_KEY}&external_source=imdb_id&language=pt-BR`;
+        const url = `https://api.themoviedb.org/3/find/${id}?api_key=${encodeURIComponent(apiKey)}&external_source=imdb_id&language=pt-BR`;
         const data = await fetchJson(url);
         const result = data?.movie_results?.[0] || data?.tv_results?.[0];
 
@@ -72,11 +77,13 @@ export async function fetchPtBrMetadata(imdbId) {
  */
 export async function searchPtBrMovie(query, year = null) {
     if (!query || query.trim().length < 2) return null;
+    const apiKey = getTmdbKey();
+    if (!apiKey) return null;
     const cacheKey = `search_${query.toLowerCase().trim()}_${year || ''}`;
     if (cache.has(cacheKey)) return cache.get(cacheKey);
 
     try {
-        let url = `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(query.trim())}&language=pt-BR`;
+        let url = `https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(apiKey)}&query=${encodeURIComponent(query.trim())}&language=pt-BR`;
         if (year) url += `&year=${year}`;
         const data = await fetchJson(url);
         const res = data?.results?.[0];

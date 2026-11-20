@@ -183,10 +183,13 @@ O servico backend pode ser configurado por meio do arquivo `torrent-service/.env
 | Variavel | Padrao | Descricao |
 |---|---|---|
 | `PORT` | `8085` | Porta HTTP do servico de torrent e streaming |
-| `SAVE_PATH` | `D:\filmes` | Diretorio padrao para armazenamento dos arquivos |
+| `HOST` | `0.0.0.0` | Interface de rede para escuta do servidor HTTP |
+| `SAVE_PATH` | `D:\Filmes` | Diretorio padrao para armazenamento dos arquivos |
 | `JELLYFIN_URL` | `http://localhost:8096` | Endereco do servidor Jellyfin local |
 | `JELLYFIN_USER` | `usuario` | Usuario administrativo padrao do Jellyfin |
-| `JELLYFIN_PW` | `10092004` | Senha padrao do usuario Jellyfin |
+| `JELLYFIN_PW` | `<definido_no_.env>` | Senha do usuario Jellyfin (configurar em `torrent-service/.env`) |
+| `TMDB_API_KEY` | `<definido_no_.env>` | Chave da API v3 do TMDB para metadados em PT-BR |
+| `MUTATION_API_TOKEN` | *(opcional)* | Token de seguranca para rotas de alteracao/exclusao (`X-Api-Token`) |
 
 ---
 

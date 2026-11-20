@@ -1,6 +1,7 @@
 // Cinelar API Client - Conecta diretamente ao torrent-service local
-const DEFAULT_HOST = '192.168.15.9';
-const DEFAULT_PORT = 8085;
+const DEFAULT_HOST = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SERVER_HOST) || '192.168.15.9';
+const DEFAULT_PORT = Number((typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SERVER_PORT) || 8085);
+const DEFAULT_API_TOKEN = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_TOKEN) || '';
 const catalogCache = new Map();
 const catalogInFlight = new Map();
 
@@ -28,6 +29,14 @@ function getStoredServerIp() {
     return localStorage.getItem('mf_server_ip') || '';
   } catch (_) {
     return '';
+  }
+}
+
+function getApiToken() {
+  try {
+    return localStorage.getItem('mf_api_token') || DEFAULT_API_TOKEN || '';
+  } catch (_) {
+    return DEFAULT_API_TOKEN || '';
   }
 }
 
@@ -73,6 +82,7 @@ export const API_BASE = `${getServerUrl()}/api`;
 
 async function request(endpoint, options = {}) {
   const url = `${getServerUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const token = getApiToken();
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timeoutId = controller ? setTimeout(() => controller.abort(), 12000) : null;
   try {
@@ -81,6 +91,7 @@ async function request(endpoint, options = {}) {
       signal: options.signal || controller?.signal,
       headers: {
         'Accept': 'application/json',
+        ...(token ? { 'X-Api-Token': token } : {}),
         ...(options.headers || {})
       }
     });
