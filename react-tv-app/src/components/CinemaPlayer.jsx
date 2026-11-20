@@ -18,7 +18,16 @@ export function CinemaPlayer({
   onClose,
   spatialNavControls
 }) {
-  const { streamUrl, title, poster, infoHash, isLocal, resumePosition = 0 } = streamConfig;
+  const {
+    streamUrl,
+    title = 'Reproduzindo',
+    poster,
+    backdrop,
+    infoHash,
+    quality = '1080p Full HD',
+    isLocal,
+    resumePosition = 0
+  } = streamConfig;
 
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -26,24 +35,27 @@ export function CinemaPlayer({
   const [duration, setDuration] = useState(0);
   const [bufferedPercent, setBufferedPercent] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
-  const [osdMessage, setOsdMessage] = useState('');
+  const [osd, setOsd] = useState({ icon: '', text: '', visible: false });
   const [streamStats, setStreamStats] = useState(null);
-  const [isBuffering, setIsBuffering] = useState(!isLocal);
+  const [isBuffering, setIsBuffering] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const controlsTimeoutRef = useRef(null);
   const osdTimeoutRef = useRef(null);
+  const bufferTimeoutRef = useRef(null);
 
   // Monta a URL completa apontando para o torrent-service
   const fullStreamUrl = streamUrl.startsWith('http')
     ? streamUrl
     : `${getServerUrl()}${streamUrl.startsWith('/') ? streamUrl : `/${streamUrl}`}`;
 
-  const showOsd = useCallback((msg) => {
-    setOsdMessage(msg);
+  const showOsd = useCallback((icon, text) => {
+    setOsd({ icon, text, visible: true });
     clearTimeout(osdTimeoutRef.current);
     osdTimeoutRef.current = setTimeout(() => {
-      setOsdMessage('');
-    }, 900);
+      setOsd(prev => ({ ...prev, visible: false }));
+    }, 1100);
   }, []);
 
   const showControlsTemporarily = useCallback(() => {
@@ -53,7 +65,7 @@ export function CinemaPlayer({
       if (videoRef.current && !videoRef.current.paused) {
         setControlsVisible(false);
       }
-    }, 3500);
+    }, 4000);
   }, []);
 
   const togglePlay = useCallback(() => {
@@ -63,33 +75,50 @@ export function CinemaPlayer({
     if (video.paused) {
       video.play().then(() => {
         setIsPlaying(true);
-        showOsd('Reproduzindo');
+        showOsd('play_arrow', 'Reproduzindo');
         showControlsTemporarily();
-      }).catch(() => {});
+      }).catch((e) => {
+        console.warn('[Player] Erro ao retomar reproducao:', e);
+      });
     } else {
       video.pause();
       setIsPlaying(false);
       setControlsVisible(true);
-      showOsd('Pausado');
+      showOsd('pause', 'Pausado');
     }
   }, [showOsd, showControlsTemporarily]);
 
   const seekRelative = useCallback((seconds) => {
     const video = videoRef.current;
     if (!video) return;
-    const nextTime = Math.max(0, Math.min(video.duration || 0, video.currentTime + seconds));
-    video.currentTime = nextTime;
-    setCurrentTime(nextTime);
-    showOsd(seconds > 0 ? `+${seconds}s` : `${seconds}s`);
+    const dur = video.duration || 0;
+    const target = Math.max(0, Math.min(dur > 0 ? dur - 2 : Infinity, video.currentTime + seconds));
+    video.currentTime = target;
+    setCurrentTime(target);
+    const icon = seconds > 0 ? 'forward_10' : 'replay_10';
+    const text = seconds > 0 ? `+${seconds}s (${formatSeconds(target)})` : `${seconds}s (${formatSeconds(target)})`;
+    showOsd(icon, text);
+    showControlsTemporarily();
+  }, [showOsd, showControlsTemporarily]);
+
+  const restartVideo = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = 0;
+    setCurrentTime(0);
+    video.play().catch(() => {});
+    showOsd('replay', 'Reiniciado do início');
     showControlsTemporarily();
   }, [showOsd, showControlsTemporarily]);
 
   const adjustVolume = useCallback((delta) => {
     const video = videoRef.current;
     if (!video) return;
-    const nextVol = Math.max(0, Math.min(1, video.volume + delta));
+    const nextVol = Math.max(0, Math.min(1, Math.round((video.volume + delta) * 10) / 10));
     video.volume = nextVol;
-    showOsd(`Volume: ${Math.round(nextVol * 100)}%`);
+    const volPercent = Math.round(nextVol * 100);
+    const icon = nextVol === 0 ? 'volume_off' : nextVol > 0.5 ? 'volume_up' : 'volume_down';
+    showOsd(icon, `Volume: ${volPercent}%`);
     showControlsTemporarily();
   }, [showOsd, showControlsTemporarily]);
 
@@ -102,11 +131,13 @@ export function CinemaPlayer({
     }
   }, [spatialNavControls, togglePlay, seekRelative, adjustVolume]);
 
-  // Carregamento inicial do vídeo e retomada de posição
+  // Carregamento do vídeo e tratamento de eventos nativos
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
+    setHasError(false);
+    setIsBuffering(true);
     video.src = fullStreamUrl;
     video.load();
 
@@ -114,6 +145,7 @@ export function CinemaPlayer({
       setDuration(video.duration || 0);
       if (resumePosition > 10 && resumePosition < (video.duration - 15)) {
         video.currentTime = resumePosition;
+        showOsd('history', `Retomando de ${formatSeconds(resumePosition)}`);
       }
       video.play().then(() => {
         setIsPlaying(true);
@@ -128,7 +160,6 @@ export function CinemaPlayer({
       setCurrentTime(video.currentTime);
       if (video.duration) {
         setDuration(video.duration);
-        // Calcula buffer
         if (video.buffered.length > 0) {
           const bufEnd = video.buffered.end(video.buffered.length - 1);
           setBufferedPercent(Math.min(100, (bufEnd / video.duration) * 100));
@@ -139,24 +170,36 @@ export function CinemaPlayer({
       }
     };
 
-    const handleWaiting = () => setIsBuffering(true);
+    const handleWaiting = () => {
+      setIsBuffering(true);
+    };
+
     const handlePlaying = () => {
       setIsBuffering(false);
       setIsPlaying(true);
+    };
+
+    const handleError = (e) => {
+      console.warn('[Player] Erro no video HTML5:', e);
+      setHasError(true);
+      setIsBuffering(false);
+      setErrorMessage('Não foi possível reproduzir este fluxo. O formato pode requerer transcodificação ou o enxame está lento.');
     };
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('playing', handlePlaying);
+    video.addEventListener('error', handleError);
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('playing', handlePlaying);
+      video.removeEventListener('error', handleError);
 
-      // Limpeza profunda de mídia ao desmontar o player
+      // Limpeza profunda de decodificadores ao fechar o player
       try {
         if (video.duration && video.currentTime > 5) {
           saveWatchProgress({
@@ -180,7 +223,7 @@ export function CinemaPlayer({
         stopStream(infoHash).catch(() => {});
       }
     };
-  }, [fullStreamUrl, resumePosition, infoHash, title, poster, isBuffering, showControlsTemporarily]);
+  }, [fullStreamUrl, resumePosition, infoHash, title, poster, showControlsTemporarily, showOsd]);
 
   // Polling de telemetria do torrent
   useEffect(() => {
@@ -190,16 +233,17 @@ export function CinemaPlayer({
       const stats = await getStreamStatus(infoHash);
       if (stats) {
         setStreamStats(stats);
-        if (stats.canPlay || stats.ready) {
+        if ((stats.canPlay || stats.ready) && isBuffering && videoRef.current?.currentTime > 0) {
           setIsBuffering(false);
         }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isLocal, infoHash]);
+  }, [isLocal, infoHash, isBuffering]);
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const remainingTime = duration > currentTime ? duration - currentTime : 0;
 
   return (
     <div className="tv-player-wrap" onClick={showControlsTemporarily}>
@@ -210,50 +254,135 @@ export function CinemaPlayer({
         preload="auto"
       />
 
-      {/* OSD Feedback */}
-      {osdMessage && (
-        <div className="tv-osd-feedback">{osdMessage}</div>
-      )}
-
-      {/* Buffer Overlay */}
-      {isBuffering && (
-        <div className="tv-buffer-overlay">
-          <div className="tv-spinner" />
-          <h3 style={{ fontSize: '20px', fontWeight: 700 }}>Carregando filme...</h3>
-          {streamStats && (
-            <div className="tv-buffer-stats">
-              Velocidade: {streamStats.downloadSpeed || '0 KB/s'} • Sementes: {streamStats.numPeers || 0} • Buffer: {streamStats.progress || 0}%
-            </div>
-          )}
+      {/* OSD Feedback Central (Pausado, +10s, Volume) */}
+      {osd.visible && (
+        <div className="tv-osd-feedback">
+          <span className="material-icons" style={{ fontSize: '38px', color: 'var(--primary)' }}>
+            {osd.icon}
+          </span>
+          <span>{osd.text}</span>
         </div>
       )}
 
-      {/* Controles da TV */}
-      <div className={`tv-player-controls ${controlsVisible ? 'visible' : ''}`}>
-        <div className="tv-player-top">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      {/* Tela de Erro com Recuperação */}
+      {hasError && (
+        <div className="tv-buffer-overlay" style={{ background: 'rgba(11, 11, 10, 0.95)' }}>
+          <span className="material-icons" style={{ fontSize: '64px', color: '#ef4444' }}>error_outline</span>
+          <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Falha na Reprodução</h2>
+          <p style={{ color: 'var(--text-muted)', maxWidth: '600px', textAlign: 'center', lineHeight: 1.5 }}>
+            {errorMessage}
+          </p>
+          <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
             <button
               type="button"
-              className="tv-btn tv-btn-secondary focused"
+              className="tv-btn tv-btn-primary focused"
               onClick={onClose}
-              title="Voltar ao início"
             >
-              <span className="material-icons">arrow_back</span>
-              <span>Voltar</span>
+              <span className="material-icons">list</span>
+              <span>Escolher Outra Opção</span>
             </button>
-            <h2 className="tv-player-movie-title">{title}</h2>
+            <button
+              type="button"
+              className="tv-btn tv-btn-secondary"
+              onClick={() => {
+                setHasError(false);
+                setIsBuffering(true);
+                if (videoRef.current) {
+                  videoRef.current.src = fullStreamUrl;
+                  videoRef.current.load();
+                }
+              }}
+            >
+              <span className="material-icons">refresh</span>
+              <span>Tentar Novamente</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay de Buffer e Conexão ao Enxame */}
+      {isBuffering && !hasError && (
+        <div className="tv-buffer-overlay">
+          <div className="tv-spinner" />
+          <h3 style={{ fontSize: '22px', fontWeight: 800, marginTop: '8px' }}>
+            {isLocal ? 'Carregando arquivo local...' : 'Conectando ao enxame de sementes...'}
+          </h3>
+          {streamStats && (
+            <div className="tv-buffer-stats-box">
+              <div className="tv-buffer-stats-item">
+                <span className="material-icons" style={{ fontSize: '18px', color: 'var(--primary)' }}>speed</span>
+                <span>{streamStats.downloadSpeed || '0 KB/s'}</span>
+              </div>
+              <div className="tv-buffer-stats-item">
+                <span className="material-icons" style={{ fontSize: '18px', color: 'var(--accent)' }}>group</span>
+                <span>{streamStats.numPeers || 0} sementes</span>
+              </div>
+              <div className="tv-buffer-stats-item">
+                <span className="material-icons" style={{ fontSize: '18px', color: '#22c55e' }}>data_usage</span>
+                <span>Buffer: {streamStats.progress || 0}%</span>
+              </div>
+            </div>
+          )}
+          <p style={{ fontSize: '13px', color: 'var(--text-subtle)', marginTop: '6px' }}>
+            Dica: Pressione OK / Enter para pausar a qualquer momento.
+          </p>
+        </div>
+      )}
+
+      {/* Controles de Cinema da TV */}
+      <div className={`tv-player-controls ${controlsVisible ? 'visible' : ''}`}>
+        {/* Barra Superior */}
+        <div className="tv-player-top">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <button
+              type="button"
+              className="tv-player-icon-btn"
+              onClick={onClose}
+              title="Voltar"
+            >
+              <span className="material-icons" style={{ fontSize: '26px' }}>arrow_back</span>
+            </button>
+
+            <div>
+              <h2 className="tv-player-movie-title">{title}</h2>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                <span className="tv-badge-pill" style={{ fontSize: '11px', background: 'rgba(255,255,255,0.18)' }}>
+                  {quality}
+                </span>
+                {isLocal ? (
+                  <span className="tv-badge-pill" style={{ fontSize: '11px', background: '#22c55e', color: '#000' }}>
+                    Arquivo Local
+                  </span>
+                ) : (
+                  <span className="tv-badge-pill" style={{ fontSize: '11px', background: 'rgba(229, 9, 20, 0.25)', color: 'var(--primary)', borderColor: 'rgba(229, 9, 20, 0.5)' }}>
+                    Torrent Streaming
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
           {streamStats && (
-            <div style={{ fontSize: '13px', background: 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: '8px' }}>
-              {streamStats.downloadSpeed} • Buffer {streamStats.progress}%
+            <div className="tv-player-telemetry-badge">
+              <span style={{ color: 'var(--accent)' }}>{streamStats.numPeers || 0} sementes</span>
+              <span>•</span>
+              <span style={{ color: '#22c55e' }}>{streamStats.downloadSpeed}</span>
+              <span>•</span>
+              <span>Buffer {streamStats.progress}%</span>
             </div>
           )}
         </div>
 
+        {/* Barra Inferior com Linha do Tempo Estilo Netflix */}
         <div className="tv-player-bottom">
           <div className="tv-timeline-box">
-            <div className="tv-timeline-track">
+            <div className="tv-timeline-track" onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const pos = (e.clientX - rect.left) / rect.width;
+              if (duration > 0 && videoRef.current) {
+                videoRef.current.currentTime = pos * duration;
+              }
+            }}>
               <div
                 className="tv-timeline-buffer"
                 style={{ width: `${bufferedPercent}%` }}
@@ -261,12 +390,16 @@ export function CinemaPlayer({
               <div
                 className="tv-timeline-progress"
                 style={{ width: `${progressPercent}%` }}
-              />
+              >
+                <div className="tv-timeline-thumb" />
+              </div>
             </div>
 
             <div className="tv-time-row">
-              <span>{formatSeconds(currentTime)}</span>
-              <span>{formatSeconds(duration)}</span>
+              <span style={{ color: '#FFFFFF', fontWeight: 700 }}>{formatSeconds(currentTime)}</span>
+              <span style={{ color: 'var(--text-subtle)' }}>
+                {duration > 0 ? `-${formatSeconds(remainingTime)}  /  ${formatSeconds(duration)}` : '00:00'}
+              </span>
             </div>
           </div>
 
@@ -276,7 +409,9 @@ export function CinemaPlayer({
               className="tv-btn tv-btn-primary focused"
               onClick={togglePlay}
             >
-              <span className="material-icons">{isPlaying ? 'pause' : 'play_arrow'}</span>
+              <span className="material-icons" style={{ fontSize: '24px' }}>
+                {isPlaying ? 'pause' : 'play_arrow'}
+              </span>
               <span>{isPlaying ? 'Pausar (OK)' : 'Reproduzir (OK)'}</span>
             </button>
 
@@ -297,9 +432,20 @@ export function CinemaPlayer({
               <span className="material-icons">forward_10</span>
               <span>+10s</span>
             </button>
+
+            <button
+              type="button"
+              className="tv-btn tv-btn-secondary"
+              onClick={restartVideo}
+              title="Reiniciar filme do início"
+            >
+              <span className="material-icons">replay</span>
+              <span>Reiniciar</span>
+            </button>
           </div>
         </div>
       </div>
     </div>
   );
 }
+export default CinemaPlayer;

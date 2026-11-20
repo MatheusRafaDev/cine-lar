@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { searchMovies } from '../services/api';
+import { searchMovies, getTrendingMovies } from '../services/api';
 import { MovieCard } from '../components/MovieCard';
 
-const KEYBOARD_ROWS = [
+export const KEYBOARD_ROWS = [
   ['A', 'B', 'C', 'D', 'E', 'F', 'G', '1', '2', '3'],
   ['H', 'I', 'J', 'K', 'L', 'M', 'N', '4', '5', '6'],
   ['O', 'P', 'Q', 'R', 'S', 'T', 'U', '7', '8', '9'],
@@ -15,17 +15,26 @@ export function SearchView({
   searchColIndex,
   resultsColIndex,
   onSelectMovie,
-  onQueryChange,
-  currentQuery = ''
+  searchActionRef
 }) {
-  const [query, setQuery] = useState(currentQuery);
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const debounceTimerRef = useRef(null);
 
+  // Carrega sugestões iniciais populares quando a tela abre
+  useEffect(() => {
+    getTrendingMovies().then(movies => {
+      if (movies && movies.length > 0) {
+        setResults(movies.slice(0, 18));
+      }
+    });
+  }, []);
+
   const performSearch = useCallback(async (q) => {
     if (!q || !q.trim()) {
-      setResults([]);
+      const trending = await getTrendingMovies();
+      setResults(trending.slice(0, 18));
       setLoading(false);
       return;
     }
@@ -52,7 +61,6 @@ export function SearchView({
       } else {
         next = prev + k;
       }
-      if (onQueryChange) onQueryChange(next);
 
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
@@ -61,7 +69,26 @@ export function SearchView({
 
       return next;
     });
-  }, [onQueryChange, performSearch]);
+  }, [performSearch]);
+
+  // Vincula ref de ações para o controlador espacial no App.jsx
+  useEffect(() => {
+    if (searchActionRef) {
+      searchActionRef.current = {
+        pressKey: (r, c) => {
+          const row = KEYBOARD_ROWS[r];
+          if (row && row[c]) {
+            handleKeyPress(row[c]);
+          }
+        },
+        selectResult: (colIdx) => {
+          if (results && results[colIdx]) {
+            onSelectMovie(results[colIdx]);
+          }
+        }
+      };
+    }
+  }, [searchActionRef, handleKeyPress, results, onSelectMovie]);
 
   const isKeyboardFocused = activeZone === 'search-keyboard';
   const isResultsFocused = activeZone === 'search-results';
@@ -69,12 +96,16 @@ export function SearchView({
   return (
     <div className="tv-view-container tv-search-view" style={{ paddingTop: '90px' }}>
       <div className="tv-search-header-box">
-        <h1 className="tv-page-title">Buscar Filmes</h1>
+        <h1 className="tv-page-title">Buscar Filmes e Séries</h1>
 
         <div className="tv-search-bar-wrap">
           <span className="material-icons" style={{ fontSize: '28px', color: 'var(--text-muted)' }}>search</span>
           <div className="tv-search-input-mock">
-            {query || <span style={{ color: 'var(--text-subtle)' }}>Digite o nome do filme usando o controle...</span>}
+            {query ? (
+              query
+            ) : (
+              <span style={{ color: 'var(--text-subtle)' }}>Digite o nome do filme usando o controle remoto...</span>
+            )}
           </div>
           {loading && <div className="tv-search-spinner" />}
         </div>
@@ -113,12 +144,12 @@ export function SearchView({
             <h2 className="tv-row-title">
               {query ? `Resultados para "${query}"` : 'Sugestões Populares'}
             </h2>
-            <span className="tv-row-count">{results.length} filmes</span>
+            <span className="tv-row-count">{results.length} títulos</span>
           </div>
 
           {results.length === 0 ? (
             <div className="tv-search-empty">
-              {query ? 'Nenhum filme encontrado para a pesquisa.' : 'Comece a digitar pelo controle para ver resultados em tempo real.'}
+              Nenhum filme ou série encontrado para esta pesquisa.
             </div>
           ) : (
             <div className="tv-search-results-grid">
@@ -140,3 +171,4 @@ export function SearchView({
     </div>
   );
 }
+export default SearchView;

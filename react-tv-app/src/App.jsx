@@ -311,13 +311,16 @@ export function App() {
       }
 
       if (zone === 'search-keyboard') {
-        if (searchInputRef.current && searchInputRef.current.handleKeyPress) {
-          searchInputRef.current.handleKeyPress(searchRowIndex, searchColIndex);
+        if (searchInputRef.current && searchInputRef.current.pressKey) {
+          searchInputRef.current.pressKey(searchRowIndex, searchColIndex);
         }
         return;
       }
 
       if (zone === 'search-results') {
+        if (searchInputRef.current && searchInputRef.current.selectResult) {
+          searchInputRef.current.selectResult(resultsColIndex);
+        }
         return;
       }
     },
@@ -409,6 +412,7 @@ export function App() {
             searchColIndex={nav.searchColIndex}
             resultsColIndex={nav.resultsColIndex}
             onSelectMovie={setSelectedMovie}
+            searchActionRef={searchInputRef}
           />
         )}
       </main>

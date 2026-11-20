@@ -1451,11 +1451,72 @@ const server = http.createServer(async (req, res) => {
                     processStreams(allStreamsRes.value.streams);
                 }
 
+                // Fallback essencial: Se não houver torrent com tag explícita PT-BR, inclui os melhores streams em áudio original/multilanguage
+                if (streamMap.size === 0) {
+                    const fallbackStreams = [
+                        ...(allStreamsRes.status === 'fulfilled' && Array.isArray(allStreamsRes.value?.streams) ? allStreamsRes.value.streams : []),
+                        ...(brProvidersRes.status === 'fulfilled' && Array.isArray(brProvidersRes.value?.streams) ? brProvidersRes.value.streams : [])
+                    ];
+
+                    for (const s of fallbackStreams) {
+                        if (!s.infoHash) continue;
+                        const key = s.infoHash.toLowerCase();
+                        if (streamMap.has(key)) continue;
+
+                        const fullText = `${s.name || ''} ${s.title || ''}`;
+                        const seedsMatch = s.title?.match(/(?:\uD83D\uDC64|[^\x00-\x7F])\s*(\d+)/);
+                        const seeders = seedsMatch ? parseInt(seedsMatch[1], 10) : 0;
+                        const sizeMatch = s.title?.match(/(?:\uD83D\uDCBE|[^\x00-\x7F])\s*([\d\.]+\s*[GMK]B)/i);
+                        const size = sizeMatch ? sizeMatch[1] : '';
+                        const providerMatch = s.title?.match(/(?:\u2699\uFE0F|\u2699|[^\x00-\x7F])\s*([^\n\r]+)/);
+                        const provider = providerMatch ? providerMatch[1].trim() : 'Torrentio';
+                        const firstLine = (s.title || '').split('\n')[0].trim();
+                        const filename = s.behaviorHints?.filename || firstLine;
+
+                        let quality = 'HD';
+                        if (/4k|2160p/i.test(fullText)) quality = '4K UHD';
+                        else if (/1080p/i.test(fullText)) quality = '1080p Full HD';
+                        else if (/720p/i.test(fullText)) quality = '720p HD';
+
+                        const streamTrackers = [];
+                        if (Array.isArray(s.sources)) {
+                            s.sources.forEach(src => {
+                                if (typeof src === 'string' && src.startsWith('tracker:')) {
+                                    streamTrackers.push(src.replace(/^tracker:/, ''));
+                                }
+                            });
+                        }
+
+                        const magnetUri = buildMagnet(key, filename, streamTrackers);
+
+                        streamMap.set(key, {
+                            infoHash: key,
+                            quality,
+                            audio: 'Áudio Original / Legenda',
+                            isPortuguese: false,
+                            isDubbed: false,
+                            seeders,
+                            size,
+                            provider,
+                            filename,
+                            magnetUri,
+                            rawName: s.name,
+                            rawTitle: s.title
+                        });
+
+                        // Limita fallback aos 15 melhores
+                        if (streamMap.size >= 15) break;
+                    }
+                }
+
                 const torrents = Array.from(streamMap.values()).sort((a, b) => {
                     // 1. Dublado / Dual Áudio sempre no topo absoluto
                     if (a.isDubbed && !b.isDubbed) return -1;
                     if (!a.isDubbed && b.isDubbed) return 1;
-                    // 2. Mais seeders primeiro
+                    // 2. Português antes de internacional
+                    if (a.isPortuguese && !b.isPortuguese) return -1;
+                    if (!a.isPortuguese && b.isPortuguese) return 1;
+                    // 3. Mais seeders primeiro
                     return b.seeders - a.seeders;
                 });
 

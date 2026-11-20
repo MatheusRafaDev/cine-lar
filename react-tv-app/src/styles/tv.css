@@ -1037,3 +1037,72 @@ body.tv-body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* 11. Melhorias de UI do Cinema Player */
+.tv-player-icon-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.tv-player-icon-btn:hover,
+.tv-player-icon-btn:focus {
+  background: #FFFFFF;
+  color: #000000;
+  transform: scale(1.1);
+  outline: 3px solid var(--focus-border);
+}
+
+.tv-player-telemetry-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  background: rgba(20, 20, 19, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 18px;
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(8px);
+}
+
+.tv-timeline-thumb {
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 0 10px rgba(229, 9, 20, 0.9);
+}
+
+.tv-buffer-stats-box {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  padding: 10px 24px;
+  border-radius: var(--radius-xl);
+  margin-top: 8px;
+}
+
+.tv-buffer-stats-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}

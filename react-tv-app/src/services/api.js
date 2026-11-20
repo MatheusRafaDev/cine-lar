@@ -175,7 +175,7 @@ export async function getMovieDetails(movie) {
     const data = await request(`/api/torrents?imdbId=${encodeURIComponent(imdbId)}&title=${encodeURIComponent(title)}`);
     const streams = (data.torrents || []).map(t => ({
       ...t,
-      streamUrl: `/api/stream/${t.infoHash}?magnet=${encodeURIComponent(t.magnetUri || '')}`,
+      streamUrl: `/api/stream/${t.infoHash}?magnet=${encodeURIComponent(t.magnetUri || '')}&title=${encodeURIComponent(title)}`,
       magnet: t.magnetUri
     }));
 

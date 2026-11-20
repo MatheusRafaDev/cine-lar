@@ -164,7 +164,7 @@ export function MovieDetailsModal({
                     onClick={() => {
                       if (isLocal) {
                         onPlayStream({
-                          streamUrl: details.streamUrl || `/api/stream/local?file=${encodeURIComponent(details.filePath || details.videoPath)}`,
+                          streamUrl: details.streamUrl || `/api/local/stream?file=${encodeURIComponent(details.filePath || details.videoPath)}`,
                           title,
                           poster,
                           isLocal: true
@@ -181,7 +181,15 @@ export function MovieDetailsModal({
                     }}
                   >
                     <span className="material-icons">play_arrow</span>
-                    <span>{isLocal ? 'Assistir Agora (Local)' : 'Assistir Melhor Opção'}</span>
+                    <span>
+                      {isLocal
+                        ? 'Assistir Agora (Local)'
+                        : loading
+                        ? 'Buscando Melhores Fontes...'
+                        : streams.length > 0
+                        ? `Assistir Melhor Opção (${streams[0].quality || 'HD'})`
+                        : 'Aguardando Fontes...'}
+                    </span>
                   </button>
                 )}
 
