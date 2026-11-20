@@ -1,14 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { getSavedProgress } from '../services/api';
 
-export function MovieCard({ movie, isFocused, onClick }) {
+function MovieCardComponent({ movie, isFocused, onClick }) {
   const cardRef = useRef(null);
 
-  // Quando o card ganha foco, garante que o scroll horizontal do carrossel o mantenha visível
+  // Quando o card ganha foco, garante que o scroll horizontal do carrossel o mantenha visível sem atraso
   useEffect(() => {
     if (isFocused && cardRef.current) {
       cardRef.current.scrollIntoView({
-        behavior: 'smooth',
+        behavior: 'auto',
         inline: 'center',
         block: 'nearest'
       });
@@ -87,3 +87,5 @@ export function MovieCard({ movie, isFocused, onClick }) {
     </div>
   );
 }
+
+export const MovieCard = memo(MovieCardComponent);

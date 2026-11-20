@@ -326,52 +326,68 @@ export function formatTime(seconds) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-// 12. Gerenciador de Progresso (Continuar Assistindo)
+// 12. Gerenciador de Progresso com Cache em Memoria (Zero Lag na TV)
+let _cachedWatchHistory = null;
+let _cachedLookupMap = new Map();
+
+function buildWatchLookupMap(history) {
+  const map = new Map();
+  for (const item of history) {
+    if (!item) continue;
+    if (item.id) map.set(String(item.id).toLowerCase().trim(), item);
+    if (item.imdbId) map.set(String(item.imdbId).toLowerCase().trim(), item);
+    if (item.movieId) map.set(String(item.movieId).toLowerCase().trim(), item);
+    if (item.infoHash) map.set(String(item.infoHash).toLowerCase().trim(), item);
+    if (item.filePath) map.set(String(item.filePath).toLowerCase().trim(), item);
+    if (item.videoPath) map.set(String(item.videoPath).toLowerCase().trim(), item);
+    if (item.title) map.set(String(item.title).toLowerCase().trim(), item);
+  }
+  return map;
+}
+
 export function getWatchHistory() {
+  if (_cachedWatchHistory !== null) {
+    return _cachedWatchHistory;
+  }
   try {
     const raw = localStorage.getItem('mf_watch_history');
     const items = raw ? JSON.parse(raw) : [];
-    return items
+    _cachedWatchHistory = items
       .filter(item => item && (item.id || item.title || item.filePath))
       .map(normalizeMovie)
       .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    _cachedLookupMap = buildWatchLookupMap(_cachedWatchHistory);
+    return _cachedWatchHistory;
   } catch (_) {
+    _cachedWatchHistory = [];
+    _cachedLookupMap = new Map();
     return [];
   }
 }
 
-// Busca o progresso salvo de qualquer filme/série por correspondência flexível (ID, IMDb, caminho ou título)
+// Busca o progresso salvo de qualquer filme/serie em O(1) diretamente da memoria
 export function getSavedProgress(movie) {
   if (!movie) return null;
-  try {
-    const history = getWatchHistory();
-    const targetId = String(movie.id || movie.imdbId || movie.movieId || '').toLowerCase().trim();
-    const targetPath = String(movie.filePath || movie.videoPath || '').toLowerCase().trim();
-    const targetTitle = String(movie.title || movie.name || movie.cleanName || '').toLowerCase().trim();
-
-    return history.find(item => {
-      if (!item) return false;
-      const itemPath = String(item.filePath || item.videoPath || '').toLowerCase().trim();
-      if (targetPath && itemPath && (itemPath === targetPath || itemPath.endsWith(targetPath) || targetPath.endsWith(itemPath))) {
-        return true;
-      }
-      const itemId = String(item.id || '').toLowerCase().trim();
-      const itemImdb = String(item.imdbId || '').toLowerCase().trim();
-      const itemMovieId = String(item.movieId || '').toLowerCase().trim();
-      const itemHash = String(item.infoHash || '').toLowerCase().trim();
-
-      if (targetId && (targetId === itemId || targetId === itemImdb || targetId === itemMovieId || targetId === itemHash)) {
-        return true;
-      }
-      const itemTitle = String(item.title || item.name || '').toLowerCase().trim();
-      if (targetTitle && itemTitle && (targetTitle === itemTitle || targetTitle.includes(itemTitle) || itemTitle.includes(targetTitle))) {
-        return true;
-      }
-      return false;
-    }) || null;
-  } catch (_) {
-    return null;
+  if (_cachedWatchHistory === null) {
+    getWatchHistory();
   }
+
+  const targetId = String(movie.id || movie.imdbId || movie.movieId || movie.infoHash || '').toLowerCase().trim();
+  if (targetId && _cachedLookupMap.has(targetId)) {
+    return _cachedLookupMap.get(targetId);
+  }
+
+  const targetPath = String(movie.filePath || movie.videoPath || '').toLowerCase().trim();
+  if (targetPath && _cachedLookupMap.has(targetPath)) {
+    return _cachedLookupMap.get(targetPath);
+  }
+
+  const targetTitle = String(movie.title || movie.name || movie.cleanName || '').toLowerCase().trim();
+  if (targetTitle && _cachedLookupMap.has(targetTitle)) {
+    return _cachedLookupMap.get(targetTitle);
+  }
+
+  return null;
 }
 
 export function saveWatchProgress({
@@ -401,7 +417,6 @@ export function saveWatchProgress({
   const completed = (position / duration) >= 0.92;
 
   try {
-    // 1. Atualiza localStorage imediatamente (filtrando o item atual para reordenar no topo)
     const normEffectiveId = String(effectiveId).toLowerCase().trim();
     const normPath = filePath ? String(filePath).toLowerCase().trim() : '';
     const normTitle = title ? String(title).toLowerCase().trim() : '';
@@ -422,7 +437,7 @@ export function saveWatchProgress({
         id: effectiveId,
         movieId: movieId || effectiveId,
         imdbId: imdbId || '',
-        title: title || 'Vídeo',
+        title: title || 'Video',
         poster: poster || '',
         backdrop: backdrop || poster || '',
         position: Math.floor(position),
@@ -444,7 +459,13 @@ export function saveWatchProgress({
       history.unshift(itemToSave);
     }
 
-    localStorage.setItem('mf_watch_history', JSON.stringify(history.slice(0, 25)));
+    const trimmed = history.slice(0, 25);
+    _cachedWatchHistory = trimmed;
+    _cachedLookupMap = buildWatchLookupMap(_cachedWatchHistory);
+
+    try {
+      localStorage.setItem('mf_watch_history', JSON.stringify(trimmed));
+    } catch (_) {}
 
     // 2. Sincroniza em background com o banco de dados do servidor
     try {
@@ -472,9 +493,13 @@ export function clearWatchProgress(id) {
       const iId = String(item.id || item.movieId || item.filePath || item.infoHash || item.title).toLowerCase().trim();
       return iId !== target;
     });
-    localStorage.setItem('mf_watch_history', JSON.stringify(history));
+    _cachedWatchHistory = history;
+    _cachedLookupMap = buildWatchLookupMap(_cachedWatchHistory);
 
-    // Sincroniza remoção no servidor
+    try {
+      localStorage.setItem('mf_watch_history', JSON.stringify(history));
+    } catch (_) {}
+
     try {
       fetch(`${getServerUrl()}/api/user/history?movieId=${encodeURIComponent(id)}&userId=default`, {
         method: 'DELETE'
@@ -483,13 +508,28 @@ export function clearWatchProgress(id) {
   } catch (_) {}
 }
 
-// 13. Minha Lista (Favoritos)
+// 13. Minha Lista (Favoritos) com Cache em Memoria
+let _cachedFavorites = null;
+let _cachedFavoritesSet = new Set();
+
 export function getFavorites() {
+  if (_cachedFavorites !== null) {
+    return _cachedFavorites;
+  }
   try {
     const raw = localStorage.getItem('mf_favorites');
     const items = raw ? JSON.parse(raw) : [];
-    return items.map(normalizeMovie);
+    _cachedFavorites = items.map(normalizeMovie);
+    _cachedFavoritesSet = new Set();
+    for (const f of _cachedFavorites) {
+      if (f.id) _cachedFavoritesSet.add(String(f.id).toLowerCase().trim());
+      if (f.imdbId) _cachedFavoritesSet.add(String(f.imdbId).toLowerCase().trim());
+      if (f.movieId) _cachedFavoritesSet.add(String(f.movieId).toLowerCase().trim());
+    }
+    return _cachedFavorites;
   } catch (_) {
+    _cachedFavorites = [];
+    _cachedFavoritesSet = new Set();
     return [];
   }
 }
@@ -507,7 +547,16 @@ export function toggleFavorite(movie) {
       favs.unshift(normalizeMovie(movie));
       isFav = true;
     }
-    localStorage.setItem('mf_favorites', JSON.stringify(favs));
+    _cachedFavorites = favs;
+    _cachedFavoritesSet = new Set();
+    for (const f of _cachedFavorites) {
+      if (f.id) _cachedFavoritesSet.add(String(f.id).toLowerCase().trim());
+      if (f.imdbId) _cachedFavoritesSet.add(String(f.imdbId).toLowerCase().trim());
+      if (f.movieId) _cachedFavoritesSet.add(String(f.movieId).toLowerCase().trim());
+    }
+    try {
+      localStorage.setItem('mf_favorites', JSON.stringify(favs));
+    } catch (_) {}
     return isFav;
   } catch (_) {
     return false;
@@ -515,6 +564,10 @@ export function toggleFavorite(movie) {
 }
 
 export function isFavorite(movieId, imdbId) {
-  const favs = getFavorites();
-  return favs.some(f => f.id === movieId || (imdbId && f.imdbId === imdbId));
+  if (_cachedFavorites === null) {
+    getFavorites();
+  }
+  if (movieId && _cachedFavoritesSet.has(String(movieId).toLowerCase().trim())) return true;
+  if (imdbId && _cachedFavoritesSet.has(String(imdbId).toLowerCase().trim())) return true;
+  return false;
 }

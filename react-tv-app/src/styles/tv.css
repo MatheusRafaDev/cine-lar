@@ -67,11 +67,8 @@ body.tv-body {
   justify-content: space-between;
   padding: 0 48px;
   z-index: 1000;
-  background: rgba(11, 11, 10, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  transition: background 0.3s ease;
+  background: #0B0B0A;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .tv-logo-box {
@@ -113,7 +110,7 @@ body.tv-body {
   border-radius: 999px;
   cursor: pointer;
   outline: none;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
   position: relative;
 }
 
@@ -287,9 +284,9 @@ body.tv-body {
   align-items: center;
   gap: 10px;
   margin-top: 16px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85);
   animation: fadeIn 0.2s ease;
-  backdrop-filter: blur(8px);
+  background: rgba(14, 14, 13, 0.95);
 }
 
 /* 3. Seções e Carrosséis Horizontais */
@@ -332,8 +329,10 @@ body.tv-body {
   overflow-x: auto;
   overflow-y: hidden;
   padding: 12px 0 20px 0;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   contain: layout style;
+  transform: translateZ(0);
+  will-change: scroll-position;
 }
 
 /* 4. Cartão de Filme (Card) */
@@ -373,8 +372,8 @@ body.tv-body {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(0, 0, 0, 0.75);
-  border: 1px solid rgba(245, 197, 24, 0.5);
+  background: rgba(0, 0, 0, 0.88);
+  border: 1px solid rgba(245, 197, 24, 0.6);
   color: #F5C518;
   font-size: 11px;
   font-weight: 800;
@@ -383,7 +382,6 @@ body.tv-body {
   display: flex;
   align-items: center;
   gap: 3px;
-  backdrop-filter: blur(4px);
 }
 
 .tv-card-badge-local {
@@ -445,7 +443,7 @@ body.tv-body {
 
 .tv-card.focused .tv-card-poster-wrap {
   outline: 3px solid #FFFFFF !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.9) !important;
 }
 
 .tv-card.focused .tv-card-title {
@@ -1124,11 +1122,10 @@ body.tv-body {
   gap: 12px;
   font-size: 14px;
   font-weight: 700;
-  background: rgba(20, 20, 19, 0.85);
+  background: rgba(20, 20, 19, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 8px 18px;
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(8px);
 }
 
 .tv-timeline-thumb {
@@ -1248,7 +1245,8 @@ body.tv-body {
   padding: 4px 2px 14px 2px;
   margin-bottom: 20px;
   width: 100%;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
+  transform: translateZ(0);
 }
 
 .tv-filter-chip {
@@ -1426,8 +1424,7 @@ body.tv-body {
 .tv-version-picker-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.88);
-  backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.94);
   display: flex;
   align-items: center;
   justify-content: center;

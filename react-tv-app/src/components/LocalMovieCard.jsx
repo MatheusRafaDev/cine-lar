@@ -1,14 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { getSavedProgress } from '../services/api';
 
-export function LocalMovieCard({ movie, isFocused, onClick }) {
+function LocalMovieCardComponent({ movie, isFocused, onClick }) {
   const cardRef = useRef(null);
 
-  // Auto-scroll vertical suave para manter o card sempre visível na TV
+  // Auto-scroll vertical instantaneo para manter o card sempre visivel na TV sem atraso
   useEffect(() => {
     if (isFocused && cardRef.current) {
       cardRef.current.scrollIntoView({
-        behavior: 'smooth',
+        behavior: 'auto',
         block: 'nearest',
         inline: 'nearest'
       });
@@ -98,3 +98,5 @@ export function LocalMovieCard({ movie, isFocused, onClick }) {
     </div>
   );
 }
+
+export const LocalMovieCard = memo(LocalMovieCardComponent);

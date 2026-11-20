@@ -76,41 +76,35 @@ export function App() {
       setDownloads(d);
     });
 
-    // Gêneros de filmes e séries
+    // Gêneros de filmes e séries carregados em paralelo para inicialização ultrarrápida
     getGenres().then(async genres => {
       const topGenres = genres.filter(g => g.id !== 'all').slice(0, 8);
 
-      // Carrega seções de filmes por gênero
-      const mSections = [];
-      for (const g of topGenres) {
+      const mPromises = topGenres.map(async g => {
         try {
           const list = await getMovies({ genre: g.id, limit: 15 });
-          if (list.length > 0) {
-            mSections.push({
-              id: g.id,
-              title: g.name,
-              movies: list
-            });
-          }
-        } catch (_) {}
-      }
-      setGenreSections(mSections);
+          return list.length > 0 ? { id: g.id, title: g.name, movies: list } : null;
+        } catch (_) {
+          return null;
+        }
+      });
 
-      // Carrega seções de séries por gênero
-      const sSections = [];
-      for (const g of topGenres) {
+      const sPromises = topGenres.map(async g => {
         try {
           const sList = await getSeries({ genre: g.id, limit: 15 });
-          if (sList.length > 0) {
-            sSections.push({
-              id: `series-${g.id}`,
-              title: `Séries de ${g.name}`,
-              movies: sList
-            });
-          }
-        } catch (_) {}
-      }
-      setSeriesGenreSections(sSections);
+          return sList.length > 0 ? { id: `series-${g.id}`, title: `Séries de ${g.name}`, movies: sList } : null;
+        } catch (_) {
+          return null;
+        }
+      });
+
+      const [mSections, sSections] = await Promise.all([
+        Promise.all(mPromises),
+        Promise.all(sPromises)
+      ]);
+
+      setGenreSections(mSections.filter(Boolean));
+      setSeriesGenreSections(sSections.filter(Boolean));
     });
   }, [refreshUserData]);
 

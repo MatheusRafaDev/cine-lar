@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { memo } from 'react';
 
-export function HeroBanner({ movie, isZoneFocused, focusedIndex, onPlay, onInfo }) {
+function HeroBannerComponent({ movie, isZoneFocused, focusedIndex, onPlay, onInfo }) {
   if (!movie) return null;
 
   const backdropUrl = movie.backdrop || movie.poster || '';
@@ -62,3 +62,5 @@ export function HeroBanner({ movie, isZoneFocused, focusedIndex, onPlay, onInfo 
     </section>
   );
 }
+
+export const HeroBanner = memo(HeroBannerComponent);

@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { MovieCard } from './MovieCard';
 
-export function CarouselRow({
+function CarouselRowComponent({
   title,
   movies = [],
   isRowFocused,
@@ -10,11 +10,11 @@ export function CarouselRow({
 }) {
   const rowRef = useRef(null);
 
-  // Quando a linha ganha foco, centraliza verticalmente na tela da TV
+  // Quando a linha ganha foco, centraliza verticalmente na tela da TV sem atraso
   useEffect(() => {
     if (isRowFocused && rowRef.current) {
       rowRef.current.scrollIntoView({
-        behavior: 'smooth',
+        behavior: 'auto',
         block: 'center'
       });
     }
@@ -45,3 +45,17 @@ export function CarouselRow({
     </section>
   );
 }
+
+// Memorizacao de alta performance: linhas inativas nao sao recalculadas quando o usuario navega pelo controle
+export const CarouselRow = memo(CarouselRowComponent, (prevProps, nextProps) => {
+  if (!prevProps.isRowFocused && !nextProps.isRowFocused) {
+    return prevProps.movies === nextProps.movies && prevProps.title === nextProps.title;
+  }
+  if (prevProps.isRowFocused !== nextProps.isRowFocused) {
+    return false;
+  }
+  if (prevProps.focusedColIndex !== nextProps.focusedColIndex) {
+    return false;
+  }
+  return prevProps.movies === nextProps.movies && prevProps.title === nextProps.title;
+});

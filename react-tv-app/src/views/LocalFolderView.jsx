@@ -22,7 +22,7 @@ export function LocalFolderView({
   useEffect(() => {
     if (isFiltersFocused && filterRefs.current[localFilterIndex]) {
       filterRefs.current[localFilterIndex].scrollIntoView({
-        behavior: 'smooth',
+        behavior: 'auto',
         inline: 'center',
         block: 'nearest'
       });

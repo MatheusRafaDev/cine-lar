@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 export const NAV_ITEMS = [
   { id: 'home', label: 'Início' },
@@ -10,7 +10,7 @@ export const NAV_ITEMS = [
   { id: 'search', label: 'Buscar' }
 ];
 
-export function Header({ activeTab, onSelectTab, isZoneFocused, focusedIndex }) {
+function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex }) {
   return (
     <header className="tv-header">
       <div className="tv-logo-box">
@@ -37,3 +37,5 @@ export function Header({ activeTab, onSelectTab, isZoneFocused, focusedIndex }) 
     </header>
   );
 }
+
+export const Header = memo(HeaderComponent);
