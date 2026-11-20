@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { getSavedProgress } from '../services/api';
 
 export function MovieCard({ movie, isFocused, onClick }) {
   const cardRef = useRef(null);
@@ -21,7 +22,14 @@ export function MovieCard({ movie, isFocused, onClick }) {
   const year = movie.year || (movie.releaseDate ? String(movie.releaseDate).slice(0, 4) : '');
   const rating = movie.imdbRating || movie.rating || null;
   const isLocal = Boolean(movie.isLocal || movie.filePath || movie.videoPath);
-  const progress = movie.progress || null;
+
+  const saved = getSavedProgress(movie);
+  const progress = (movie.progress !== undefined && movie.progress !== null) ? movie.progress : (saved?.progress || null);
+  const remainingMin = (saved?.duration && saved?.position && saved.duration > saved.position)
+    ? Math.max(1, Math.round((saved.duration - saved.position) / 60))
+    : (movie.duration && movie.position && movie.duration > movie.position
+      ? Math.max(1, Math.round((movie.duration - movie.position) / 60))
+      : null);
 
   return (
     <div
@@ -68,7 +76,13 @@ export function MovieCard({ movie, isFocused, onClick }) {
 
       <div className="tv-card-info">
         <h4 className="tv-card-title">{title}</h4>
-        <span className="tv-card-meta">{year || (isLocal ? 'Vídeo Pronto' : 'Filme')}</span>
+        <span className="tv-card-meta">
+          {remainingMin ? (
+            <span style={{ color: '#FAF9F5', fontWeight: 600 }}>Restam {remainingMin} min</span>
+          ) : (
+            year || (isLocal ? 'Vídeo Pronto' : 'Filme')
+          )}
+        </span>
       </div>
     </div>
   );

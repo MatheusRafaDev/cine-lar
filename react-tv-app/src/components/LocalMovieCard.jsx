@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { getSavedProgress } from '../services/api';
 
 export function LocalMovieCard({ movie, isFocused, onClick }) {
   const cardRef = useRef(null);
@@ -22,6 +23,12 @@ export function LocalMovieCard({ movie, isFocused, onClick }) {
   const size = movie.sizeFormatted || '';
   const quality = movie.quality || '1080p';
   const franchise = movie.franchise || null;
+
+  const saved = getSavedProgress(movie);
+  const progress = (movie.progress !== undefined && movie.progress !== null) ? movie.progress : (saved?.progress || null);
+  const remainingMin = (saved?.duration && saved?.position && saved.duration > saved.position)
+    ? Math.max(1, Math.round((saved.duration - saved.position) / 60))
+    : null;
 
   return (
     <div
@@ -60,17 +67,31 @@ export function LocalMovieCard({ movie, isFocused, onClick }) {
           {quality}
         </div>
 
+        {/* Barra de Progresso quando há reprodução iniciada */}
+        {progress !== null && progress > 0 && (
+          <div className="tv-card-progress-bar">
+            <div
+              className="tv-card-progress-fill"
+              style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+            />
+          </div>
+        )}
+
         {/* Ícone de Play centralizado que surge quando em foco */}
         <div className={`tv-local-play-overlay ${isFocused ? 'visible' : ''}`}>
-          <span className="material-icons" style={{ fontSize: '48px', color: '#FFFFFF' }}>play_circle_filled</span>
+          <span className="material-icons" style={{ fontSize: '42px', color: '#FFFFFF' }}>play_circle_filled</span>
         </div>
       </div>
 
       <div className="tv-card-info">
         <h4 className="tv-card-title" title={title}>{title}</h4>
         <div className="tv-local-meta-row">
-          {year && <span className="tv-card-meta">{year}</span>}
-          {year && size && <span className="tv-meta-separator">•</span>}
+          {remainingMin ? (
+            <span className="tv-card-meta" style={{ color: '#FAF9F5', fontWeight: 600 }}>Restam {remainingMin} min</span>
+          ) : (
+            year && <span className="tv-card-meta">{year}</span>
+          )}
+          {size && <span className="tv-meta-separator">•</span>}
           {size && <span className="tv-card-badge-size">{size}</span>}
         </div>
       </div>

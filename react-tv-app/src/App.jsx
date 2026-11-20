@@ -18,6 +18,7 @@ import {
   getLocalLibraryData,
   getDownloads,
   getWatchHistory,
+  getSavedProgress,
   getFavorites,
   getMovieDetails,
   deleteDownload
@@ -281,21 +282,50 @@ export function App() {
     return 1;
   }, [activeTab, favoritesGridRows, localGridRows, currentSections]);
 
-  // Iniciar reprodução de filme ou abrir modal de série
+  // Iniciar reprodução de filme ou abrir modal de série com retomada inteligente
   const handlePlayMovieDirect = useCallback(async (movie) => {
     if (!movie) return;
 
-    // Séries abrem modal com seleção de temporada/episódio
+    // Obtém progresso salvo previamente se existir
+    const saved = getSavedProgress(movie);
+    const resumePos = (saved && saved.position > 10) ? saved.position : (movie.position || 0);
+
+    // Séries: se vier do Continuar Assistindo com episódio salvo, retoma diretamente
     if (movie.isSeries || movie.type === 'series') {
-      setSelectedMovie(movie);
+      if (movie.streamUrl && movie.episode) {
+        let sUrl = movie.streamUrl;
+        if (!sUrl.includes('direct=') && movie.isLocal) {
+          sUrl += (sUrl.includes('?') ? '&' : '?') + 'direct=1';
+        }
+        setActiveStream({
+          id: movie.id,
+          movieId: movie.movieId || movie.id,
+          imdbId: movie.imdbId,
+          streamUrl: sUrl,
+          title: movie.title,
+          poster: movie.poster,
+          backdrop: movie.backdrop || movie.poster,
+          infoHash: movie.infoHash,
+          quality: movie.quality || '1080p',
+          isLocal: Boolean(movie.isLocal),
+          filePath: movie.filePath,
+          isSeries: true,
+          season: movie.season,
+          episode: movie.episode,
+          episodeName: movie.episodeName,
+          resumePosition: resumePos
+        });
+        return;
+      }
+      setSelectedMovie({ ...movie, position: resumePos });
       return;
     }
 
     const isLocal = Boolean(movie.isLocal || movie.videoPath || movie.filePath || movie.is_local);
     if (isLocal) {
+      const filePath = movie.videoPath || movie.filePath || '';
       let sUrl = movie.streamUrl;
       if (!sUrl) {
-        const filePath = movie.videoPath || movie.filePath || '';
         sUrl = `/api/local/stream?file=${encodeURIComponent(filePath)}`;
       }
       if (!sUrl.includes('direct=')) {
@@ -303,12 +333,33 @@ export function App() {
       }
 
       setActiveStream({
+        id: movie.id || filePath,
+        movieId: movie.movieId || movie.id || filePath,
         streamUrl: sUrl,
         title: movie.title || movie.name || movie.cleanName || 'Filme Local',
         poster: movie.poster,
         backdrop: movie.backdrop || movie.poster,
         isLocal: true,
-        resumePosition: movie.position || 0
+        filePath,
+        resumePosition: resumePos
+      });
+      return;
+    }
+
+    // Se já tiver streamUrl conhecido (ex: vindo direto do histórico Continuar Assistindo)
+    if (movie.streamUrl && (movie.infoHash || movie.streamUrl.includes('/api/'))) {
+      setActiveStream({
+        id: movie.id || movie.imdbId,
+        movieId: movie.movieId || movie.id,
+        imdbId: movie.imdbId || movie.id,
+        streamUrl: movie.streamUrl,
+        title: movie.title,
+        poster: movie.poster,
+        backdrop: movie.backdrop || movie.poster,
+        infoHash: movie.infoHash,
+        quality: movie.quality || '1080p',
+        isLocal: false,
+        resumePosition: resumePos
       });
       return;
     }
@@ -318,23 +369,30 @@ export function App() {
     if (full && full.streams && full.streams.length > 0) {
       const best = full.streams[0];
       setActiveStream({
+        id: full.id || full.imdbId || movie.id,
+        movieId: full.id || movie.id,
+        imdbId: full.imdbId || movie.imdbId,
         streamUrl: best.streamUrl,
         title: full.title,
         poster: full.poster,
+        backdrop: full.backdrop || full.poster,
         infoHash: best.infoHash,
         quality: best.quality,
         isLocal: false,
-        resumePosition: movie.position || 0
+        resumePosition: resumePos
       });
     } else {
-      setSelectedMovie(full || movie);
+      setSelectedMovie({ ...(full || movie), position: resumePos });
     }
   }, []);
 
   const modalItemsCount = useMemo(() => {
     if (!selectedMovie) return 3;
+    const saved = getSavedProgress(selectedMovie);
+    const hasResume = Boolean(saved && saved.position > 10 && (!saved.duration || saved.position / saved.duration < 0.92));
+    const baseButtons = hasResume ? 5 : 3;
     const streamsCount = selectedMovie.streams ? selectedMovie.streams.length : 5;
-    return 3 + streamsCount;
+    return baseButtons + streamsCount;
   }, [selectedMovie]);
 
   // 4. Integração do Hook Espacial Ultra-Rápido
@@ -458,7 +516,7 @@ export function App() {
         const sec = currentSections[rowIndex];
         if (sec && sec.movies && sec.movies[colIndex]) {
           const mov = sec.movies[colIndex];
-          if (isPlayKey) {
+          if (sec.id === 'continue-watching' || isPlayKey) {
             handlePlayMovieDirect(mov);
           } else {
             setSelectedMovie(mov);

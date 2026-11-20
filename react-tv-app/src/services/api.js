@@ -50,23 +50,41 @@ async function request(endpoint, options = {}) {
 // Normalizador consistente para qualquer item de filme ou série no app
 export function normalizeMovie(item) {
   if (!item) return null;
-  const id = item.imdb_id || item.imdbId || item.id || '';
+  const id = item.imdb_id || item.imdbId || item.id || item.filePath || '';
   const isSeries = Boolean(item.isSeries || item.type === 'series' || (item.year && String(item.year).includes('–')));
+  const isLocal = Boolean(item.isLocal || item.is_local || item.videoPath || item.filePath);
+  const position = Number(item.position || item.position_seconds || 0);
+  const duration = Number(item.duration || item.duration_seconds || 0);
+  const progress = item.progress !== undefined && item.progress !== null
+    ? Number(item.progress)
+    : (duration > 0 && position > 0 ? Math.min(100, Math.round((position / duration) * 100)) : null);
+
   return {
     ...item,
     id,
-    imdbId: id,
+    movieId: item.movieId || item.id || id,
+    imdbId: item.imdb_id || item.imdbId || id,
     title: item.title || item.name || item.cleanName || 'Sem título',
-    poster: item.poster || '',
-    backdrop: item.backdrop || item.poster || '',
+    poster: item.poster || item.thumbnail || '',
+    backdrop: item.backdrop || item.poster || item.thumbnail || '',
     year: item.year ? String(item.year) : '',
     rating: item.rating || item.imdbRating || null,
     imdbRating: item.rating || item.imdbRating || null,
     synopsis: item.description || item.synopsis || '',
-    isLocal: Boolean(item.isLocal || item.is_local || item.videoPath || item.filePath),
+    isLocal,
+    filePath: item.filePath || item.videoPath || '',
+    videoPath: item.filePath || item.videoPath || '',
+    streamUrl: item.streamUrl || '',
+    infoHash: item.infoHash || null,
+    quality: item.quality || '',
     isSeries,
     type: isSeries ? 'series' : (item.type || 'movie'),
-    streamUrl: item.streamUrl || ''
+    season: item.season || null,
+    episode: item.episode || null,
+    episodeName: item.episodeName || '',
+    position,
+    duration,
+    progress
   };
 }
 
@@ -295,45 +313,173 @@ export async function stopStream(infoHash) {
   }
 }
 
+// Formata segundos em MM:SS ou Hh MMm para exibição limpa na TV
+export function formatTime(seconds) {
+  if (!seconds || isNaN(seconds) || seconds <= 0) return '0:00';
+  const total = Math.floor(seconds);
+  const hrs = Math.floor(total / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hrs > 0) {
+    return `${hrs}h ${mins.toString().padStart(2, '0')}m`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 // 12. Gerenciador de Progresso (Continuar Assistindo)
 export function getWatchHistory() {
   try {
     const raw = localStorage.getItem('mf_watch_history');
     const items = raw ? JSON.parse(raw) : [];
-    return items.map(normalizeMovie);
+    return items
+      .filter(item => item && (item.id || item.title || item.filePath))
+      .map(normalizeMovie)
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   } catch (_) {
     return [];
   }
 }
 
-export function saveWatchProgress({ id, title, poster, backdrop, position, duration, imdbId }) {
-  if (!id || !duration || position <= 5) return;
+// Busca o progresso salvo de qualquer filme/série por correspondência flexível (ID, IMDb, caminho ou título)
+export function getSavedProgress(movie) {
+  if (!movie) return null;
   try {
-    const history = getWatchHistory().filter(item => item.id !== id);
-    const completed = (position / duration) >= 0.90;
+    const history = getWatchHistory();
+    const targetId = String(movie.id || movie.imdbId || movie.movieId || '').toLowerCase().trim();
+    const targetPath = String(movie.filePath || movie.videoPath || '').toLowerCase().trim();
+    const targetTitle = String(movie.title || movie.name || movie.cleanName || '').toLowerCase().trim();
+
+    return history.find(item => {
+      if (!item) return false;
+      const itemPath = String(item.filePath || item.videoPath || '').toLowerCase().trim();
+      if (targetPath && itemPath && (itemPath === targetPath || itemPath.endsWith(targetPath) || targetPath.endsWith(itemPath))) {
+        return true;
+      }
+      const itemId = String(item.id || '').toLowerCase().trim();
+      const itemImdb = String(item.imdbId || '').toLowerCase().trim();
+      const itemMovieId = String(item.movieId || '').toLowerCase().trim();
+      const itemHash = String(item.infoHash || '').toLowerCase().trim();
+
+      if (targetId && (targetId === itemId || targetId === itemImdb || targetId === itemMovieId || targetId === itemHash)) {
+        return true;
+      }
+      const itemTitle = String(item.title || item.name || '').toLowerCase().trim();
+      if (targetTitle && itemTitle && (targetTitle === itemTitle || targetTitle.includes(itemTitle) || itemTitle.includes(targetTitle))) {
+        return true;
+      }
+      return false;
+    }) || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+export function saveWatchProgress({
+  id,
+  movieId,
+  imdbId,
+  title,
+  poster,
+  backdrop,
+  position,
+  duration,
+  isLocal,
+  filePath,
+  streamUrl,
+  infoHash,
+  quality,
+  isSeries,
+  season,
+  episode,
+  episodeName,
+  year
+}) {
+  if (!duration || position < 5) return;
+  const effectiveId = id || movieId || imdbId || filePath || infoHash || title;
+  if (!effectiveId) return;
+
+  const completed = (position / duration) >= 0.92;
+
+  try {
+    // 1. Atualiza localStorage imediatamente (filtrando o item atual para reordenar no topo)
+    const normEffectiveId = String(effectiveId).toLowerCase().trim();
+    const normPath = filePath ? String(filePath).toLowerCase().trim() : '';
+    const normTitle = title ? String(title).toLowerCase().trim() : '';
+
+    let history = getWatchHistory().filter(item => {
+      const iId = String(item.id || item.movieId || item.filePath || item.infoHash || item.title).toLowerCase().trim();
+      const iPath = item.filePath ? String(item.filePath).toLowerCase().trim() : '';
+      const iTitle = item.title ? String(item.title).toLowerCase().trim() : '';
+
+      if (iId === normEffectiveId) return false;
+      if (normPath && iPath && (iPath === normPath || iPath.endsWith(normPath) || normPath.endsWith(iPath))) return false;
+      if (normTitle && iTitle && iTitle === normTitle) return false;
+      return true;
+    });
 
     if (!completed) {
-      history.unshift({
-        id,
-        imdbId: imdbId || id,
-        title,
-        poster,
-        backdrop,
+      const itemToSave = {
+        id: effectiveId,
+        movieId: movieId || effectiveId,
+        imdbId: imdbId || '',
+        title: title || 'Vídeo',
+        poster: poster || '',
+        backdrop: backdrop || poster || '',
         position: Math.floor(position),
         duration: Math.floor(duration),
         progress: Math.min(100, Math.round((position / duration) * 100)),
+        isLocal: Boolean(isLocal || filePath),
+        filePath: filePath || '',
+        videoPath: filePath || '',
+        streamUrl: streamUrl || '',
+        infoHash: infoHash || null,
+        quality: quality || '',
+        isSeries: Boolean(isSeries),
+        season: season || null,
+        episode: episode || null,
+        episodeName: episodeName || '',
+        year: year || '',
         updatedAt: Date.now()
-      });
+      };
+      history.unshift(itemToSave);
     }
 
-    localStorage.setItem('mf_watch_history', JSON.stringify(history.slice(0, 20)));
+    localStorage.setItem('mf_watch_history', JSON.stringify(history.slice(0, 25)));
+
+    // 2. Sincroniza em background com o banco de dados do servidor
+    try {
+      fetch(`${getServerUrl()}/api/user/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: 'default',
+          movieId: effectiveId,
+          title,
+          poster,
+          position: Math.floor(position),
+          duration: Math.floor(duration)
+        })
+      }).catch(() => {});
+    } catch (_) {}
   } catch (_) {}
 }
 
 export function clearWatchProgress(id) {
+  if (!id) return;
   try {
-    const history = getWatchHistory().filter(item => item.id !== id);
+    const target = String(id).toLowerCase().trim();
+    const history = getWatchHistory().filter(item => {
+      const iId = String(item.id || item.movieId || item.filePath || item.infoHash || item.title).toLowerCase().trim();
+      return iId !== target;
+    });
     localStorage.setItem('mf_watch_history', JSON.stringify(history));
+
+    // Sincroniza remoção no servidor
+    try {
+      fetch(`${getServerUrl()}/api/user/history?movieId=${encodeURIComponent(id)}&userId=default`, {
+        method: 'DELETE'
+      }).catch(() => {});
+    } catch (_) {}
   } catch (_) {}
 }
 

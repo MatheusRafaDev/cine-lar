@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { getServerUrl, getStreamStatus, stopStream, saveWatchProgress } from '../services/api';
+import { getServerUrl, getStreamStatus, stopStream, saveWatchProgress, clearWatchProgress } from '../services/api';
 
 function formatSeconds(sec) {
   if (isNaN(sec) || sec === Infinity || sec < 0) return '00:00';
@@ -19,14 +19,24 @@ export function CinemaPlayer({
   spatialNavControls
 }) {
   const {
+    id = '',
+    movieId = '',
+    imdbId = '',
     streamUrl,
     title = 'Reproduzindo',
-    poster,
-    backdrop,
-    infoHash,
+    poster = '',
+    backdrop = '',
+    infoHash = null,
     quality = '1080p Full HD',
-    isLocal,
-    resumePosition = 0
+    isLocal = false,
+    filePath = '',
+    videoPath = '',
+    resumePosition = 0,
+    isSeries = false,
+    season = null,
+    episode = null,
+    episodeName = '',
+    year = ''
   } = streamConfig;
 
   const videoRef = useRef(null);
@@ -44,6 +54,41 @@ export function CinemaPlayer({
   const controlsTimeoutRef = useRef(null);
   const osdTimeoutRef = useRef(null);
   const bufferTimeoutRef = useRef(null);
+  const hasResumedRef = useRef(false);
+  const lastSavedPosRef = useRef(0);
+
+  // Função centralizada para salvar e persistir o progresso de exibição
+  const persistProgress = useCallback((pos, dur) => {
+    if (!dur || isNaN(dur) || pos < 5) return;
+    const effectiveId = id || movieId || imdbId || filePath || videoPath || infoHash || title;
+    if (!effectiveId) return;
+
+    const completed = (pos / dur) >= 0.92;
+    if (completed) {
+      clearWatchProgress(effectiveId);
+    } else {
+      saveWatchProgress({
+        id: effectiveId,
+        movieId: movieId || effectiveId,
+        imdbId: imdbId || '',
+        title,
+        poster,
+        backdrop,
+        position: pos,
+        duration: dur,
+        isLocal: Boolean(isLocal || filePath || videoPath),
+        filePath: filePath || videoPath || '',
+        streamUrl,
+        infoHash,
+        quality,
+        isSeries: Boolean(isSeries),
+        season,
+        episode,
+        episodeName,
+        year
+      });
+    }
+  }, [id, movieId, imdbId, filePath, videoPath, infoHash, title, poster, backdrop, isLocal, streamUrl, quality, isSeries, season, episode, episodeName, year]);
 
   // Monta a URL completa apontando para o torrent-service
   const fullStreamUrl = streamUrl.startsWith('http')
@@ -85,8 +130,9 @@ export function CinemaPlayer({
       setIsPlaying(false);
       setControlsVisible(true);
       showOsd('pause', 'Pausado');
+      persistProgress(video.currentTime, video.duration);
     }
-  }, [showOsd, showControlsTemporarily]);
+  }, [showOsd, showControlsTemporarily, persistProgress]);
 
   const seekRelative = useCallback((seconds) => {
     const video = videoRef.current;
@@ -188,17 +234,33 @@ export function CinemaPlayer({
 
     setHasError(false);
     setIsBuffering(true);
+    hasResumedRef.current = false;
+    lastSavedPosRef.current = 0;
     video.src = fullStreamUrl;
     video.load();
+
+    const applyResumeIfPending = () => {
+      const dur = video.duration;
+      if (!hasResumedRef.current && resumePosition > 10 && dur && resumePosition < (dur - 15)) {
+        hasResumedRef.current = true;
+        try {
+          if (Math.abs(video.currentTime - resumePosition) > 3) {
+            video.currentTime = resumePosition;
+          }
+          showOsd('history', `Retomando de ${formatSeconds(resumePosition)}`);
+        } catch (_) {}
+      }
+    };
 
     const handleLoadedMetadata = () => {
       const dur = video.duration;
       if (dur && !isNaN(dur) && isFinite(dur)) {
         setDuration(dur);
       }
-      if (resumePosition > 10 && dur && resumePosition < (dur - 15)) {
-        video.currentTime = resumePosition;
-        showOsd('history', `Retomando de ${formatSeconds(resumePosition)}`);
+      if (!hasResumedRef.current && resumePosition > 10 && dur && resumePosition < (dur - 15)) {
+        try {
+          video.currentTime = resumePosition;
+        } catch (_) {}
       }
       video.play().then(() => {
         setIsPlaying(true);
@@ -218,6 +280,11 @@ export function CinemaPlayer({
           const bufEnd = video.buffered.end(video.buffered.length - 1);
           setBufferedPercent(Math.min(100, (bufEnd / dur) * 100));
         }
+        // Salva periodicamente o progresso a cada 10 segundos
+        if (Math.abs(video.currentTime - lastSavedPosRef.current) >= 10) {
+          lastSavedPosRef.current = video.currentTime;
+          persistProgress(video.currentTime, dur);
+        }
       }
       if (isBuffering && video.currentTime > 0) {
         setIsBuffering(false);
@@ -230,11 +297,13 @@ export function CinemaPlayer({
 
     const handleCanPlay = () => {
       setIsBuffering(false);
+      applyResumeIfPending();
     };
 
     const handlePlaying = () => {
       setIsBuffering(false);
       setIsPlaying(true);
+      applyResumeIfPending();
     };
 
     const handleError = (e) => {
@@ -261,16 +330,10 @@ export function CinemaPlayer({
       video.removeEventListener('playing', handlePlaying);
       video.removeEventListener('error', handleError);
 
-      // Limpeza profunda de decodificadores ao fechar o player
+      // Limpeza profunda de decodificadores e salvamento final ao fechar o player
       try {
         if (video.duration && video.currentTime > 5) {
-          saveWatchProgress({
-            id: infoHash || title,
-            title,
-            poster,
-            position: video.currentTime,
-            duration: video.duration
-          });
+          persistProgress(video.currentTime, video.duration);
         }
         video.pause();
         video.muted = true;
@@ -285,7 +348,7 @@ export function CinemaPlayer({
         stopStream(infoHash).catch(() => {});
       }
     };
-  }, [fullStreamUrl, resumePosition, infoHash, title, poster, showControlsTemporarily, showOsd]);
+  }, [fullStreamUrl, resumePosition, infoHash, title, poster, showControlsTemporarily, showOsd, persistProgress]);
 
   // Polling de telemetria do torrent
   useEffect(() => {
