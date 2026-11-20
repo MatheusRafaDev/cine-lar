@@ -268,7 +268,7 @@ export function useSpatialNav({
     if (code === KEYS.RIGHT || key === 'ArrowRight') {
       e.preventDefault();
       if (activeZone === 'header') {
-        setHeaderIndex(i => Math.min(4, i + 1));
+        setHeaderIndex(i => Math.min(5, i + 1));
       } else if (activeZone === 'hero') {
         setHeroIndex(i => Math.min(1, i + 1));
       } else if (activeZone === 'rows') {

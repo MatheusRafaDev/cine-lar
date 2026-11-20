@@ -929,3 +929,111 @@ body.tv-body {
   overflow-y: auto;
   padding: 8px 0;
 }
+
+/* 10. Estilos de Séries e Episódios no Modal */
+.tv-series-episodes-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.tv-seasons-nav {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.tv-season-btn {
+  background: var(--bg-card);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tv-season-btn.active {
+  background: var(--primary);
+  color: #FFFFFF;
+  border-color: var(--primary);
+}
+
+.tv-season-btn.focused {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  outline: 3px solid var(--focus-border) !important;
+  transform: scale(1.08);
+}
+
+.tv-episodes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tv-episode-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--bg-card);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.tv-episode-card.focused {
+  background: var(--bg-card-hover) !important;
+  outline: 3.5px solid var(--focus-border) !important;
+  transform: scale(1.02) !important;
+}
+
+.tv-episode-card.selected {
+  border-color: var(--primary);
+}
+
+.tv-episode-thumb {
+  width: 120px;
+  height: 68px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: #000;
+  flex-shrink: 0;
+}
+
+.tv-episode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tv-episode-num-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-episode-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

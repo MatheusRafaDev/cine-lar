@@ -47,10 +47,11 @@ async function request(endpoint, options = {}) {
   }
 }
 
-// Normalizador consistente para qualquer item de filme no app
+// Normalizador consistente para qualquer item de filme ou série no app
 export function normalizeMovie(item) {
   if (!item) return null;
   const id = item.imdb_id || item.imdbId || item.id || '';
+  const isSeries = Boolean(item.isSeries || item.type === 'series' || (item.year && String(item.year).includes('–')));
   return {
     ...item,
     id,
@@ -63,6 +64,8 @@ export function normalizeMovie(item) {
     imdbRating: item.rating || item.imdbRating || null,
     synopsis: item.description || item.synopsis || '',
     isLocal: Boolean(item.isLocal || item.is_local || item.videoPath || item.filePath),
+    isSeries,
+    type: isSeries ? 'series' : (item.type || 'movie'),
     streamUrl: item.streamUrl || ''
   };
 }
@@ -78,6 +81,49 @@ export async function getMovies({ genre = '', limit = 30, offset = 0 } = {}) {
     const list = data.movies || [];
     return list.map(normalizeMovie);
   } catch (_) {
+    return [];
+  }
+}
+
+// 1.1 Obter catálogo de séries por gênero ou geral
+export async function getSeries({ genre = '', limit = 30, offset = 0 } = {}) {
+  try {
+    let q = `?type=series&limit=${limit}&offset=${offset}`;
+    if (genre && genre !== 'all') {
+      q += `&genre=${encodeURIComponent(genre)}`;
+    }
+    const data = await request(`/api/movies${q}`);
+    const list = data.movies || [];
+    return list.map(item => normalizeMovie({ ...item, isSeries: true, type: 'series' }));
+  } catch (_) {
+    return [];
+  }
+}
+
+// 1.2 Obter metadados completos de uma série (temporadas e episódios)
+export async function getSeriesMeta(imdbId) {
+  if (!imdbId) return null;
+  try {
+    const data = await request(`/api/series/meta?imdbId=${encodeURIComponent(imdbId)}`);
+    return data.meta || data || null;
+  } catch (err) {
+    console.warn('[API] Erro ao carregar meta da série:', err.message);
+    return null;
+  }
+}
+
+// 1.3 Obter streams de um episódio específico de uma série
+export async function getEpisodeStreams({ imdbId, season = 1, episode = 1, title = '' }) {
+  if (!imdbId) return [];
+  try {
+    const data = await request(`/api/torrents?imdbId=${encodeURIComponent(imdbId)}&type=series&season=${season}&episode=${episode}&title=${encodeURIComponent(title)}`);
+    return (data.torrents || []).map(t => ({
+      ...t,
+      streamUrl: `/api/stream/${t.infoHash}?magnet=${encodeURIComponent(t.magnetUri || '')}`,
+      magnet: t.magnetUri
+    }));
+  } catch (err) {
+    console.warn('[API] Erro ao carregar torrents do episódio:', err.message);
     return [];
   }
 }

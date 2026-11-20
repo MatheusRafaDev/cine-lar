@@ -3,6 +3,7 @@ import React from 'react';
 export const NAV_ITEMS = [
   { id: 'home', label: 'Início' },
   { id: 'movies', label: 'Filmes' },
+  { id: 'series', label: 'Séries' },
   { id: 'local', label: 'Minha Pasta Local' },
   { id: 'downloads', label: 'Downloads' },
   { id: 'search', label: 'Buscar' }

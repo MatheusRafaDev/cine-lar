@@ -4,12 +4,14 @@ import { MovieDetailsModal } from './components/MovieDetailsModal';
 import { CinemaPlayer } from './components/CinemaPlayer';
 import { HomeView } from './views/HomeView';
 import { MoviesView } from './views/MoviesView';
+import { SeriesView } from './views/SeriesView';
 import { LocalFolderView } from './views/LocalFolderView';
 import { DownloadsView } from './views/DownloadsView';
 import { SearchView } from './views/SearchView';
 import {
   getTrendingMovies,
   getMovies,
+  getSeries,
   getGenres,
   getLocalMovies,
   getDownloads,
@@ -24,6 +26,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [genreSections, setGenreSections] = useState([]);
+  const [seriesGenreSections, setSeriesGenreSections] = useState([]);
   const [localMovies, setLocalMovies] = useState([]);
   const [downloads, setDownloads] = useState([]);
   const [watchHistory, setWatchHistory] = useState([]);
@@ -58,15 +61,17 @@ export function App() {
       setDownloads(d);
     });
 
-    // Gêneros e catálogo por gênero
+    // Gêneros de filmes e séries
     getGenres().then(async genres => {
       const topGenres = genres.filter(g => g.id !== 'all').slice(0, 8);
-      const sections = [];
+
+      // Carrega seções de filmes por gênero
+      const mSections = [];
       for (const g of topGenres) {
         try {
           const list = await getMovies({ genre: g.id, limit: 15 });
           if (list.length > 0) {
-            sections.push({
+            mSections.push({
               id: g.id,
               title: g.name,
               movies: list
@@ -74,7 +79,23 @@ export function App() {
           }
         } catch (_) {}
       }
-      setGenreSections(sections);
+      setGenreSections(mSections);
+
+      // Carrega seções de séries por gênero
+      const sSections = [];
+      for (const g of topGenres) {
+        try {
+          const sList = await getSeries({ genre: g.id, limit: 15 });
+          if (sList.length > 0) {
+            sSections.push({
+              id: `series-${g.id}`,
+              title: `Séries de ${g.name}`,
+              movies: sList
+            });
+          }
+        } catch (_) {}
+      }
+      setSeriesGenreSections(sSections);
     });
   }, [refreshUserData]);
 
@@ -116,6 +137,14 @@ export function App() {
       });
     }
 
+    if (seriesGenreSections.length > 0 && seriesGenreSections[0].movies.length > 0) {
+      list.push({
+        id: 'series-popular',
+        title: 'Séries em Destaque',
+        movies: seriesGenreSections[0].movies
+      });
+    }
+
     if (localMovies.length > 0) {
       list.push({
         id: 'local-quick',
@@ -127,7 +156,7 @@ export function App() {
     genreSections.slice(0, 4).forEach(s => list.push(s));
 
     return list;
-  }, [watchHistory, favorites, trendingMovies, localMovies, genreSections]);
+  }, [watchHistory, favorites, trendingMovies, seriesGenreSections, localMovies, genreSections]);
 
   // Seções da visualização Local
   const localSections = useMemo(() => {
@@ -150,9 +179,10 @@ export function App() {
   const currentSections = useMemo(() => {
     if (activeTab === 'home') return homeSections;
     if (activeTab === 'movies') return genreSections;
+    if (activeTab === 'series') return seriesGenreSections;
     if (activeTab === 'local') return localSections;
     return [];
-  }, [activeTab, homeSections, genreSections, localSections]);
+  }, [activeTab, homeSections, genreSections, seriesGenreSections, localSections]);
 
   const rowCount = useMemo(() => {
     if (activeTab === 'downloads') return Math.max(1, downloads.length);
@@ -167,9 +197,16 @@ export function App() {
     return 1;
   }, [currentSections]);
 
-  // Iniciar reprodução de filme
+  // Iniciar reprodução de filme ou abrir modal de série
   const handlePlayMovieDirect = useCallback(async (movie) => {
     if (!movie) return;
+
+    // Séries abrem modal com seleção de temporada/episódio
+    if (movie.isSeries || movie.type === 'series') {
+      setSelectedMovie(movie);
+      return;
+    }
+
     if (movie.isLocal && movie.streamUrl) {
       setActiveStream({
         streamUrl: movie.streamUrl,
@@ -281,7 +318,6 @@ export function App() {
       }
 
       if (zone === 'search-results') {
-        // Seleciona filme no resultado de busca
         return;
       }
     },
@@ -330,6 +366,16 @@ export function App() {
           />
         )}
 
+        {activeTab === 'series' && (
+          <SeriesView
+            genreSections={seriesGenreSections}
+            activeZone={nav.activeZone}
+            rowIndex={nav.rowIndex}
+            colIndex={nav.colIndex}
+            onSelectSeries={setSelectedMovie}
+          />
+        )}
+
         {activeTab === 'local' && (
           <LocalFolderView
             localSections={localSections}
@@ -367,7 +413,7 @@ export function App() {
         )}
       </main>
 
-      {/* Modal de Detalhes do Filme */}
+      {/* Modal de Detalhes do Filme ou Série */}
       {selectedMovie && (
         <MovieDetailsModal
           movie={selectedMovie}
