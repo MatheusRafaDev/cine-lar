@@ -136,8 +136,12 @@ export function MovieDetailsModal({
     }
 
     if (isLocal) {
+      let sUrl = details.streamUrl || `/api/local/stream?file=${encodeURIComponent(details.filePath || details.videoPath || '')}`;
+      if (!sUrl.includes('direct=')) {
+        sUrl += (sUrl.includes('?') ? '&' : '?') + 'direct=1';
+      }
       onPlayStream({
-        streamUrl: details.streamUrl || `/api/local/stream?file=${encodeURIComponent(details.filePath || details.videoPath)}`,
+        streamUrl: sUrl,
         title,
         poster,
         isLocal: true,

@@ -502,11 +502,13 @@ export function streamLocalVideo(filePath, req, res) {
 
     const urlObj = new URL(req.url, 'http://localhost:8085');
     const isTranscode = urlObj.searchParams.get('transcode') === '1';
-    const isDirect = urlObj.searchParams.get('direct') === '1';
+    const isDirectParam = urlObj.searchParams.get('direct') === '1';
+    const isTizen = /Tizen|SmartTV|Samsung|Web0S|LG|BRAVIA|Android/i.test(req.headers['user-agent'] || '');
+    const isDirect = isDirectParam || isTizen;
     const startTimeParam = parseFloat(urlObj.searchParams.get('startTime') || urlObj.searchParams.get('t') || 0);
 
     const isMkvOrNonMp4 = /\.(mkv|avi|ts|mov|wmv|vob|flv)$/i.test(targetFile);
-    // Somente arquivos não-nativos (MKV/AVI), transcode explícito ou codecs incompatíveis com navegador necessitam remux com FFmpeg
+    // Somente arquivos não-nativos em navegadores sem suporte direto ou transcode forçado usam remux FFmpeg
     const needsFfmpegRemux = Boolean(RESOLVED_FFMPEG && !isDirect && (isMkvOrNonMp4 || isTranscode || !mediaInfo.isDirectPlayable));
 
     if (needsFfmpegRemux) {
@@ -564,10 +566,10 @@ export function streamLocalVideo(filePath, req, res) {
         return;
     }
 
-    // Direct HTTP Range streaming (para MP4 nativo)
+    // Direct HTTP Range streaming (para MP4 nativo e MKV na TV)
     let contentType = 'video/mp4';
     if (targetFile.endsWith('.webm')) contentType = 'video/webm';
-    else if (targetFile.endsWith('.mkv')) contentType = 'video/x-matroska';
+    else if (targetFile.endsWith('.mkv')) contentType = 'video/mp4';
     else if (targetFile.endsWith('.avi')) contentType = 'video/x-msvideo';
 
     const range = req.headers.range;

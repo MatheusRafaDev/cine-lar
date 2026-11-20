@@ -291,11 +291,22 @@ export function App() {
       return;
     }
 
-    if (movie.isLocal && movie.streamUrl) {
+    const isLocal = Boolean(movie.isLocal || movie.videoPath || movie.filePath || movie.is_local);
+    if (isLocal) {
+      let sUrl = movie.streamUrl;
+      if (!sUrl) {
+        const filePath = movie.videoPath || movie.filePath || '';
+        sUrl = `/api/local/stream?file=${encodeURIComponent(filePath)}`;
+      }
+      if (!sUrl.includes('direct=')) {
+        sUrl += (sUrl.includes('?') ? '&' : '?') + 'direct=1';
+      }
+
       setActiveStream({
-        streamUrl: movie.streamUrl,
-        title: movie.title,
+        streamUrl: sUrl,
+        title: movie.title || movie.name || movie.cleanName || 'Filme Local',
         poster: movie.poster,
+        backdrop: movie.backdrop || movie.poster,
         isLocal: true,
         resumePosition: movie.position || 0
       });

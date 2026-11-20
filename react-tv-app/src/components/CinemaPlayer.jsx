@@ -122,14 +122,64 @@ export function CinemaPlayer({
     showControlsTemporarily();
   }, [showOsd, showControlsTemporarily]);
 
-  // Vincula controles espaciais
+  // Listener de controle remoto direto e prioritário durante a reprodução
   useEffect(() => {
-    if (spatialNavControls) {
-      spatialNavControls.onPlayPause = togglePlay;
-      spatialNavControls.onSeek = seekRelative;
-      spatialNavControls.onVolume = adjustVolume;
-    }
-  }, [spatialNavControls, togglePlay, seekRelative, adjustVolume]);
+    const handlePlayerKeyDown = (e) => {
+      const code = e.keyCode || e.which || 0;
+      const key = e.key || '';
+
+      // 1. Play / Pause / OK (Enter, Space, MediaPlayPause, MediaPlay, MediaPause)
+      if (code === 13 || code === 10252 || code === 415 || code === 19 || code === 32 || key === 'MediaPlayPause' || key === ' ' || key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePlay();
+        return;
+      }
+
+      // 2. Retroceder -10s (Seta Esquerda, MediaRewind)
+      if (code === 37 || code === 412 || key === 'ArrowLeft' || key === 'MediaRewind') {
+        e.preventDefault();
+        e.stopPropagation();
+        seekRelative(-10);
+        return;
+      }
+
+      // 3. Avançar +10s (Seta Direita, MediaFastForward)
+      if (code === 39 || code === 417 || key === 'ArrowRight' || key === 'MediaFastForward') {
+        e.preventDefault();
+        e.stopPropagation();
+        seekRelative(10);
+        return;
+      }
+
+      // 4. Volume Mais (Seta Cima)
+      if (code === 38 || key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        adjustVolume(0.1);
+        return;
+      }
+
+      // 5. Volume Menos (Seta Baixo)
+      if (code === 40 || key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        adjustVolume(-0.1);
+        return;
+      }
+
+      // 6. Botão Voltar (Tizen 10009, Esc, Backspace)
+      if (code === 10009 || code === 27 || code === 8 || key === 'Back' || key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (onClose) onClose();
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handlePlayerKeyDown, true);
+    return () => window.removeEventListener('keydown', handlePlayerKeyDown, true);
+  }, [togglePlay, seekRelative, adjustVolume, onClose]);
 
   // Carregamento do vídeo e tratamento de eventos nativos
   useEffect(() => {
@@ -142,8 +192,11 @@ export function CinemaPlayer({
     video.load();
 
     const handleLoadedMetadata = () => {
-      setDuration(video.duration || 0);
-      if (resumePosition > 10 && resumePosition < (video.duration - 15)) {
+      const dur = video.duration;
+      if (dur && !isNaN(dur) && isFinite(dur)) {
+        setDuration(dur);
+      }
+      if (resumePosition > 10 && dur && resumePosition < (dur - 15)) {
         video.currentTime = resumePosition;
         showOsd('history', `Retomando de ${formatSeconds(resumePosition)}`);
       }
@@ -158,11 +211,12 @@ export function CinemaPlayer({
 
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
-      if (video.duration) {
-        setDuration(video.duration);
+      const dur = video.duration;
+      if (dur && !isNaN(dur) && isFinite(dur)) {
+        setDuration(dur);
         if (video.buffered.length > 0) {
           const bufEnd = video.buffered.end(video.buffered.length - 1);
-          setBufferedPercent(Math.min(100, (bufEnd / video.duration) * 100));
+          setBufferedPercent(Math.min(100, (bufEnd / dur) * 100));
         }
       }
       if (isBuffering && video.currentTime > 0) {
@@ -174,6 +228,10 @@ export function CinemaPlayer({
       setIsBuffering(true);
     };
 
+    const handleCanPlay = () => {
+      setIsBuffering(false);
+    };
+
     const handlePlaying = () => {
       setIsBuffering(false);
       setIsPlaying(true);
@@ -183,12 +241,14 @@ export function CinemaPlayer({
       console.warn('[Player] Erro no video HTML5:', e);
       setHasError(true);
       setIsBuffering(false);
-      setErrorMessage('Não foi possível reproduzir este fluxo. O formato pode requerer transcodificação ou o enxame está lento.');
+      setErrorMessage('Não foi possível reproduzir este fluxo. O formato pode requerer transcodificação ou o arquivo foi movido.');
     };
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('canplaythrough', handleCanPlay);
     video.addEventListener('playing', handlePlaying);
     video.addEventListener('error', handleError);
 
@@ -196,6 +256,8 @@ export function CinemaPlayer({
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('canplaythrough', handleCanPlay);
       video.removeEventListener('playing', handlePlaying);
       video.removeEventListener('error', handleError);
 
