@@ -25,6 +25,7 @@ export function useSpatialNav({
   hasHero = true,
   rowCount = 1,
   getColCount = null,
+  headerCount = 7,
   localFilterCount = 0,
   modalItemsCount = 2,
   onBack = null,
@@ -297,7 +298,7 @@ export function useSpatialNav({
     if (code === KEYS.RIGHT || key === 'ArrowRight') {
       e.preventDefault();
       if (activeZone === 'header') {
-        setHeaderIndex(i => Math.min(5, i + 1));
+        setHeaderIndex(i => Math.min(headerCount - 1, i + 1));
       } else if (activeZone === 'local-filters') {
         setLocalFilterIndex(i => Math.min(Math.max(0, localFilterCount - 1), i + 1));
       } else if (activeZone === 'hero') {
@@ -318,7 +319,7 @@ export function useSpatialNav({
       return;
     }
   }, [
-    isPlayerOpen, isModalOpen, activeZone, activeTab, hasHero, rowCount, getColCount, localFilterCount,
+    isPlayerOpen, isModalOpen, activeZone, activeTab, hasHero, rowCount, getColCount, headerCount, localFilterCount,
     modalItemsCount, headerIndex, heroIndex, rowIndex, colIndex, modalIndex, localFilterIndex,
     searchRowIndex, searchColIndex, resultsColIndex,
     onBack, onEnter, onPlayPause, onSeek, onVolume

@@ -5,6 +5,7 @@ import { CinemaPlayer } from './components/CinemaPlayer';
 import { HomeView } from './views/HomeView';
 import { MoviesView } from './views/MoviesView';
 import { SeriesView } from './views/SeriesView';
+import { FavoritesView } from './views/FavoritesView';
 import { LocalFolderView } from './views/LocalFolderView';
 import { DownloadsView } from './views/DownloadsView';
 import { SearchView } from './views/SearchView';
@@ -282,6 +283,21 @@ export function App() {
     return rows;
   }, [localLibrary, localFilterId]);
 
+  // Seções e linhas em grade full-page (6 colunas) para a visualização de Favoritos
+  const favoritesGridRows = useMemo(() => {
+    const COL_COUNT = 6;
+    if (!favorites || favorites.length === 0) return [];
+    const rows = [];
+    for (let i = 0; i < favorites.length; i += COL_COUNT) {
+      rows.push({
+        id: `fav-grid-${i}`,
+        title: '',
+        movies: favorites.slice(i, i + COL_COUNT)
+      });
+    }
+    return rows;
+  }, [favorites]);
+
   // Filme em destaque (Hero)
   const heroMovie = useMemo(() => {
     return trendingMovies.length > 0 ? trendingMovies[0] : (localMovies[0] || null);
@@ -292,18 +308,23 @@ export function App() {
     if (activeTab === 'home') return homeSections;
     if (activeTab === 'movies') return genreSections;
     if (activeTab === 'series') return seriesGenreSections;
+    if (activeTab === 'favorites') return favoritesGridRows;
     if (activeTab === 'local') return localGridRows;
     return [];
-  }, [activeTab, homeSections, genreSections, seriesGenreSections, localGridRows]);
+  }, [activeTab, homeSections, genreSections, seriesGenreSections, favoritesGridRows, localGridRows]);
 
   const rowCount = useMemo(() => {
     if (activeTab === 'downloads') return Math.max(1, downloads.length);
     if (activeTab === 'search') return 1;
+    if (activeTab === 'favorites') return Math.max(1, favoritesGridRows.length);
     if (activeTab === 'local') return Math.max(1, localGridRows.length);
     return Math.max(1, currentSections.length);
-  }, [activeTab, downloads.length, localGridRows.length, currentSections.length]);
+  }, [activeTab, downloads.length, favoritesGridRows.length, localGridRows.length, currentSections.length]);
 
   const getColCount = useCallback((rIdx) => {
+    if (activeTab === 'favorites') {
+      return favoritesGridRows[rIdx]?.movies?.length || 1;
+    }
     if (activeTab === 'local') {
       return localGridRows[rIdx]?.movies?.length || 1;
     }
@@ -311,7 +332,7 @@ export function App() {
       return currentSections[rIdx].movies.length;
     }
     return 1;
-  }, [activeTab, localGridRows, currentSections]);
+  }, [activeTab, favoritesGridRows, localGridRows, currentSections]);
 
   // Iniciar reprodução de filme ou abrir modal de série
   const handlePlayMovieDirect = useCallback(async (movie) => {
@@ -360,6 +381,7 @@ export function App() {
     hasHero: activeTab === 'home' && Boolean(heroMovie),
     rowCount,
     getColCount,
+    headerCount: NAV_ITEMS.length,
     localFilterCount: localFilters.length,
     modalItemsCount: 5,
     onBack: () => {
@@ -371,6 +393,7 @@ export function App() {
       }
       if (selectedMovie) {
         setSelectedMovie(null);
+        refreshUserData();
         return;
       }
       if (activeTab !== 'home') {
@@ -421,6 +444,19 @@ export function App() {
           const dl = downloads[rowIndex];
           if (dl) {
             handlePlayMovieDirect(dl);
+          }
+          return;
+        }
+
+        if (activeTab === 'favorites') {
+          const row = favoritesGridRows[rowIndex];
+          if (row && row.movies && row.movies[colIndex]) {
+            const mov = row.movies[colIndex];
+            if (isPlayKey) {
+              handlePlayMovieDirect(mov);
+            } else {
+              setSelectedMovie(mov);
+            }
           }
           return;
         }
@@ -514,6 +550,17 @@ export function App() {
           />
         )}
 
+        {activeTab === 'favorites' && (
+          <FavoritesView
+            favorites={favorites}
+            gridRows={favoritesGridRows}
+            activeZone={nav.activeZone}
+            rowIndex={nav.rowIndex}
+            colIndex={nav.colIndex}
+            onSelectMovie={setSelectedMovie}
+          />
+        )}
+
         {activeTab === 'local' && (
           <LocalFolderView
             localLibrary={localLibrary}
@@ -568,10 +615,14 @@ export function App() {
           movie={selectedMovie}
           isZoneFocused={nav.activeZone === 'modal'}
           focusedIndex={nav.modalIndex}
-          onClose={() => setSelectedMovie(null)}
+          onClose={() => {
+            setSelectedMovie(null);
+            refreshUserData();
+          }}
           onPlayStream={(streamData) => {
             setSelectedMovie(null);
             setActiveStream(streamData);
+            refreshUserData();
           }}
         />
       )}
