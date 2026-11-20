@@ -313,6 +313,44 @@ export async function startDownload(params) {
   }
 }
 
+// 8.1 Buscar torrents de temporada completa (Season Packs)
+export async function getSeasonTorrents({ imdbId, season = 1, title = '' } = {}) {
+  if (!imdbId) return [];
+  try {
+    const data = await request(`/api/series/season-torrents?imdb=${encodeURIComponent(imdbId)}&season=${season}&title=${encodeURIComponent(title)}`);
+    return data.seasonPacks || data.allStreams || [];
+  } catch (err) {
+    console.error('[API] Erro ao obter season packs:', err);
+    return [];
+  }
+}
+
+// 8.2 Iniciar download de temporada completa em pasta organizada
+export async function downloadSeason(params) {
+  try {
+    return await request('/api/series/download-season', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
+    });
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+// 8.3 Iniciar download de todas as temporadas da série
+export async function downloadAllSeries(params) {
+  try {
+    return await request('/api/series/download-all', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
+    });
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
 // 9. Cancelar / Deletar download
 export async function deleteDownload(infoHash, deleteFiles = false) {
   try {

@@ -466,18 +466,25 @@ export function App() {
 
   const modalItemsCount = useMemo(() => {
     if (!selectedMovie) return 3;
+    const isSeries = Boolean(selectedMovie.isSeries || selectedMovie.type === 'series' || (selectedMovie.year && String(selectedMovie.year).includes('–')));
     const saved = getSavedProgress(selectedMovie);
     const hasResume = Boolean(saved && saved.position > 10 && (!saved.duration || saved.position / saved.duration < 0.92));
-    const baseButtons = hasResume ? 5 : 3;
+    let baseButtons = 3;
+    if (hasResume) baseButtons += 2;
+    if (isSeries) baseButtons += 1;
     const streamsCount = selectedMovie.streams ? selectedMovie.streams.length : 5;
     return baseButtons + streamsCount;
   }, [selectedMovie]);
 
   const modalStreamBaseIndex = useMemo(() => {
     if (!selectedMovie) return 3;
+    const isSeries = Boolean(selectedMovie.isSeries || selectedMovie.type === 'series' || (selectedMovie.year && String(selectedMovie.year).includes('–')));
     const saved = getSavedProgress(selectedMovie);
     const hasResume = Boolean(saved && saved.position > 10 && (!saved.duration || saved.position / saved.duration < 0.92));
-    return hasResume ? 5 : 3;
+    let baseButtons = 3;
+    if (hasResume) baseButtons += 2;
+    if (isSeries) baseButtons += 1;
+    return baseButtons;
   }, [selectedMovie]);
 
   // 3.5. Ações dinâmicas para o Menu de Ações Rápidas (Segurar OK no controle)

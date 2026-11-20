@@ -1313,6 +1313,139 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        // Iniciar Download de Todas as Temporadas ou Todos os Episódios da Série
+        if (pathname === '/api/series/download-all' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const data = JSON.parse(body);
+                    const { imdbId, seriesName, preferredQuality, seasons } = data;
+                    if (!imdbId) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'imdbId is required' }));
+                        return;
+                    }
+                    const cleanSeries = (seriesName || 'Série').replace(/[\\/:*?"<>|]/g, '').trim();
+
+                    let seasonsToDownload = Array.isArray(seasons) && seasons.length > 0 ? seasons : [];
+                    if (seasonsToDownload.length === 0) {
+                        const metaUrl = `https://v3-cinemeta.strem.io/meta/series/${encodeURIComponent(imdbId)}.json`;
+                        const metaRes = await fetchJson(metaUrl);
+                        const videos = metaRes?.meta?.videos || [];
+                        const setS = new Set(videos.map(v => v.season).filter(s => s > 0));
+                        seasonsToDownload = Array.from(setS).sort((a, b) => a - b);
+                    }
+
+                    if (seasonsToDownload.length === 0) {
+                        seasonsToDownload = [1];
+                    }
+
+                    console.log(`[TorrentService] Iniciando download de todas as temporadas (${seasonsToDownload.join(', ')}) para série "${cleanSeries}" (${imdbId})`);
+
+                    const queuedSeasons = [];
+                    for (const sNum of seasonsToDownload) {
+                        try {
+                            const sStr = `Temporada ${String(sNum).padStart(2, '0')}`;
+                            const targetPath = path.join(PLATFORM_DOWNLOAD_PATH, 'Series', cleanSeries, sStr);
+                            if (!fs.existsSync(targetPath)) {
+                                fs.mkdirSync(targetPath, { recursive: true });
+                            }
+
+                            const streamPath = `series/${imdbId}:${sNum}:1`;
+                            const [allStreamsRes, ptStreamsRes] = await Promise.allSettled([
+                                fetchJson(`https://torrentio.strem.fun/stream/${streamPath}.json`),
+                                fetchJson(`https://torrentio.strem.fun/language=portuguese/stream/${streamPath}.json`)
+                            ]);
+
+                            const streamsMap = new Map();
+                            const addStream = (s) => {
+                                const hashMatch = (s.infoHash || s.url || '').match(/([a-fA-F0-9]{40})/i);
+                                const hash = hashMatch ? hashMatch[1].toLowerCase() : (s.infoHash || '');
+                                if (!hash || streamsMap.has(hash)) return;
+
+                                const titleStr = s.title || '';
+                                const nameStr = s.name || '';
+                                const full = `${nameStr} ${titleStr}`;
+
+                                const isSeasonPack = /(completa|complete|temporada[\s\.\-_]*\d+|season[\s\.\-_]*\d+|\bS\d+[\s\.\-_]*complete)/i.test(full)
+                                    || (/([0-9]+(\.[0-9]+)?\s*GB)/i.test(titleStr) && parseFloat(titleStr.match(/([0-9]+(\.[0-9]+)?)\s*GB/i)?.[1] || '0') > 3.5);
+
+                                let quality = '1080p Full HD';
+                                if (/4k|2160p|uhd/i.test(full)) quality = '4K UHD';
+                                else if (/1080p|fhd/i.test(full)) quality = '1080p Full HD';
+                                else if (/720p/i.test(full)) quality = '720p HD';
+                                else if (/480p|sd/i.test(full)) quality = '480p SD';
+
+                                const isPt = /dublado|dual|nacional|portuguese|português|brasil|pt-br/i.test(full);
+
+                                streamsMap.set(hash, {
+                                    id: hash,
+                                    infoHash: hash,
+                                    title: titleStr,
+                                    quality,
+                                    magnet: `magnet:?xt=urn:btih:${hash}&dn=${encodeURIComponent(`${cleanSeries} S${String(sNum).padStart(2, '0')}`)}`,
+                                    isPt,
+                                    isSeasonPack
+                                });
+                            };
+
+                            if (ptStreamsRes.status === 'fulfilled' && ptStreamsRes.value?.streams) {
+                                ptStreamsRes.value.streams.forEach(addStream);
+                            }
+                            if (allStreamsRes.status === 'fulfilled' && allStreamsRes.value?.streams) {
+                                allStreamsRes.value.streams.forEach(addStream);
+                            }
+
+                            const all = Array.from(streamsMap.values());
+                            const pack = all.find(s => s.isSeasonPack && s.isPt) || all.find(s => s.isSeasonPack) || all[0];
+                            if (pack && pack.infoHash) {
+                                const existing = getActiveTorrent(pack.infoHash);
+                                if (!existing) {
+                                    const metaItem = {
+                                        id: pack.infoHash,
+                                        imdbId,
+                                        title: `${cleanSeries} - Temporada ${sNum} Completa`,
+                                        quality: pack.quality || preferredQuality || '1080p',
+                                        magnet: pack.magnet,
+                                        category: 'series',
+                                        groupName: cleanSeries,
+                                        isSeries: true,
+                                        seriesName: cleanSeries,
+                                        season: sNum,
+                                        destinationPath: `Cinelar\\Series\\${cleanSeries}\\${sStr}`,
+                                        savePath: targetPath,
+                                        status: 'downloading',
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    downloadsRegistry.set(pack.infoHash, metaItem);
+                                    client.add(pack.magnet, { path: targetPath });
+                                }
+                                queuedSeasons.push({ season: sNum, infoHash: pack.infoHash, quality: pack.quality });
+                            }
+                        } catch (errSeason) {
+                            console.error(`[TorrentService] Erro ao buscar torrents para temporada ${sNum}:`, errSeason.message);
+                        }
+                    }
+
+                    persistDownloads();
+
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        seriesName: cleanSeries,
+                        seasonsQueued: queuedSeasons.length,
+                        details: queuedSeasons,
+                        message: `${queuedSeasons.length} temporadas de "${cleanSeries}" foram adicionadas à fila de downloads!`
+                    }));
+                } catch (e) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: e.message }));
+                }
+            });
+            return;
+        }
+
         // Trending Movies (Backward-compatible, powered by SQLite)
         if (pathname === '/api/movies/trending' && req.method === 'GET') {
             const genre = urlObj.searchParams.get('genre') || 'all';
