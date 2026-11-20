@@ -8,11 +8,20 @@ import WebTorrent from 'webtorrent';
 import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites, isUserFavorite, toggleUserFavorite, updateWatchProgress, getWatchHistory, deleteWatchHistory, getMovieById } from './db.js';
 import { seedCatalog, scanLocalMovies } from './seeder.js';
 import { askAiMovieRecommendations } from './aiSearch.js';
-import { getLocalLibrary, streamLocalVideo, deleteLocalFile, renameLocalFile, invalidateLocalCache } from './localScanner.js';
+import { getLocalLibrary, streamLocalVideo, deleteLocalFile, renameLocalFile, invalidateLocalCache, removeFileFromLocalCache } from './localScanner.js';
 import { getOrganizedDownloadPath, groupMediaLibrary } from './organizer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Prevenção contra crash do processo do servidor por exceções assíncronas não tratadas
+process.on('uncaughtException', (err) => {
+    console.error('[TorrentService] Uncaught Exception interceptada:', err?.stack || err?.message || err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[TorrentService] Unhandled Rejection interceptada:', reason);
+});
 
 // Carregamento de variáveis de ambiente (.env)
 if (typeof process.loadEnvFile === 'function') {
@@ -185,76 +194,69 @@ function getActiveDownloadingPaths() {
 
 function cleanupCancelledDownload(item, torrent, saveBasePath = 'D:\\filmes') {
     const resolvedBase = path.resolve(saveBasePath).toLowerCase();
+    const torrentName = torrent?.name || null;
+    const torrentPath = torrent?.path || null;
+    const torrentFiles = (torrent && Array.isArray(torrent.files))
+        ? torrent.files.map(f => f.path).filter(Boolean)
+        : [];
 
-    // 1. Destruir torrent liberando chunks
-    if (torrent) {
-        try {
-            torrent.destroy({ destroyStore: true }, (err) => {
-                if (err) console.warn('[TorrentService] destroyStore aviso:', err.message);
-                else console.log('[TorrentService] Torrent destroyed com destroyStore.');
-            });
-        } catch (e) {
-            console.warn('[TorrentService] Falha ao destruir torrent:', e.message);
-        }
-    }
+    const removePathsFromDisk = () => {
+        // 1. Apagar pasta de destino específica se existir e for subpasta de SAVE_PATH
+        if (item && item.savePath) {
+            try {
+                const resolvedSave = path.resolve(item.savePath);
+                if (resolvedSave.toLowerCase().startsWith(resolvedBase) && resolvedSave.toLowerCase() !== resolvedBase) {
+                    if (fs.existsSync(resolvedSave)) {
+                        fs.rmSync(resolvedSave, { recursive: true, force: true });
+                        console.log(`[TorrentService] Pasta do download cancelado removida: ${resolvedSave}`);
+                    }
 
-    // 2. Apagar pasta de destino específica se existir e for subpasta de SAVE_PATH
-    if (item && item.savePath) {
-        try {
-            const resolvedSave = path.resolve(item.savePath);
-            if (resolvedSave.toLowerCase().startsWith(resolvedBase) && resolvedSave.toLowerCase() !== resolvedBase) {
-                if (fs.existsSync(resolvedSave)) {
-                    fs.rmSync(resolvedSave, { recursive: true, force: true });
-                    console.log(`[TorrentService] Pasta do download cancelado removida: ${resolvedSave}`);
-                }
-
-                // Limpar pastas vazias antecedentes (ex: Franquias ou Series vazias)
-                let parent = path.dirname(resolvedSave);
-                while (parent.toLowerCase().startsWith(resolvedBase) && parent.toLowerCase() !== resolvedBase) {
-                    try {
-                        const remaining = fs.readdirSync(parent);
-                        if (remaining.length === 0) {
-                            fs.rmSync(parent, { recursive: true, force: true });
-                            console.log(`[TorrentService] Pasta pai vazia removida: ${parent}`);
-                            parent = path.dirname(parent);
-                        } else {
+                    // Limpar pastas vazias antecedentes (ex: Franquias ou Series vazias)
+                    let parent = path.dirname(resolvedSave);
+                    while (parent.toLowerCase().startsWith(resolvedBase) && parent.toLowerCase() !== resolvedBase) {
+                        try {
+                            const remaining = fs.readdirSync(parent);
+                            if (remaining.length === 0) {
+                                fs.rmSync(parent, { recursive: true, force: true });
+                                console.log(`[TorrentService] Pasta pai vazia removida: ${parent}`);
+                                parent = path.dirname(parent);
+                            } else {
+                                break;
+                            }
+                        } catch {
                             break;
                         }
-                    } catch {
-                        break;
                     }
                 }
+            } catch (e) {
+                console.warn('[TorrentService] Erro ao remover savePath:', e.message);
             }
-        } catch (e) {
-            console.warn('[TorrentService] Erro ao remover savePath:', e.message);
         }
-    }
 
-    // 3. Apagar pasta ou arquivo criado com o nome do torrent
-    if (torrent && torrent.name) {
-        const candidates = [
-            path.join(saveBasePath, torrent.name),
-            item?.savePath ? path.join(item.savePath, torrent.name) : null
-        ].filter(Boolean);
+        // 2. Apagar pasta ou arquivo criado com o nome do torrent
+        if (torrentName) {
+            const candidates = [
+                path.join(saveBasePath, torrentName),
+                item?.savePath ? path.join(item.savePath, torrentName) : null
+            ].filter(Boolean);
 
-        for (const cand of candidates) {
-            try {
-                if (fs.existsSync(cand)) {
-                    const resolvedCand = path.resolve(cand);
-                    if (resolvedCand.toLowerCase().startsWith(resolvedBase) && resolvedCand.toLowerCase() !== resolvedBase) {
-                        fs.rmSync(resolvedCand, { recursive: true, force: true });
-                        console.log(`[TorrentService] Pasta/arquivo residual do torrent removido: ${resolvedCand}`);
+            for (const cand of candidates) {
+                try {
+                    if (fs.existsSync(cand)) {
+                        const resolvedCand = path.resolve(cand);
+                        if (resolvedCand.toLowerCase().startsWith(resolvedBase) && resolvedCand.toLowerCase() !== resolvedBase) {
+                            fs.rmSync(resolvedCand, { recursive: true, force: true });
+                            console.log(`[TorrentService] Pasta/arquivo residual do torrent removido: ${resolvedCand}`);
+                        }
                     }
-                }
-            } catch {}
+                } catch {}
+            }
         }
-    }
 
-    // 4. Apagar arquivos individuais do torrent caso ainda existam
-    if (torrent && torrent.files && Array.isArray(torrent.files)) {
-        for (const f of torrent.files) {
+        // 3. Apagar arquivos individuais do torrent caso ainda existam
+        for (const fRelPath of torrentFiles) {
             try {
-                const targetFile = path.join(torrent.path || item?.savePath || saveBasePath, f.path);
+                const targetFile = path.join(torrentPath || item?.savePath || saveBasePath, fRelPath);
                 if (fs.existsSync(targetFile)) {
                     const resolvedTarget = path.resolve(targetFile);
                     if (resolvedTarget.toLowerCase().startsWith(resolvedBase) && resolvedTarget.toLowerCase() !== resolvedBase) {
@@ -264,7 +266,24 @@ function cleanupCancelledDownload(item, torrent, saveBasePath = 'D:\\filmes') {
                 }
             } catch {}
         }
+    };
+
+    // Destruir torrent liberando chunks e fechar handles antes/depois de apagar do disco
+    if (torrent) {
+        try {
+            if (typeof torrent.pause === 'function') torrent.pause();
+            torrent.destroy({ destroyStore: true }, (err) => {
+                if (err) console.warn('[TorrentService] destroyStore aviso:', err.message);
+                else console.log('[TorrentService] Torrent destroyed com destroyStore.');
+                removePathsFromDisk();
+                setTimeout(removePathsFromDisk, 350);
+            });
+        } catch (e) {
+            console.warn('[TorrentService] Falha ao destruir torrent:', e.message);
+        }
     }
+
+    removePathsFromDisk();
 }
 
 // Public trackers list for magnet generation (atualizado sem trackers mortos e com trackers rápidos)
@@ -1859,7 +1878,7 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // Delete local movie file from disk
+        // Delete local movie file from disk (ultra-responsivo: remove do cache em O(1) e libera torrents que travem o arquivo)
         if (pathname === '/api/local/file' && req.method === 'DELETE') {
             let body = '';
             req.on('data', chunk => body += chunk);
@@ -1882,13 +1901,39 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-                    deleteLocalFile(filePath, SAVE_PATH);
-                    invalidateLocalCache();
+                    // 1. Remove do cache em memória imediatamente em O(1) sem forçar re-scan lento do disco
+                    removeFileFromLocalCache(filePath);
                     invalidateLocalSetsCache();
-                    refreshJellyfinLibrary();
+
+                    // 2. Se houver um download/torrent segurando este arquivo ou pasta, remove e fecha os handles
+                    const targetDir = path.dirname(targetPath);
+                    for (const [dlId, dlItem] of downloadsRegistry.entries()) {
+                        const dlSave = dlItem?.savePath ? path.resolve(dlItem.savePath).toLowerCase() : '';
+                        if (dlSave && (targetPath.startsWith(dlSave) || dlSave === targetDir)) {
+                            const activeT = getActiveTorrent(dlId);
+                            if (activeT) {
+                                try { activeT.destroy({ destroyStore: true }); } catch (_) {}
+                            }
+                            downloadsRegistry.delete(dlId);
+                            persistDownloads();
+                        }
+                    }
+
+                    // 3. Responde 200 OK imediatamente e executa exclusão física + atualização do banco
+                    try {
+                        deleteLocalFile(filePath, SAVE_PATH);
+                    } catch (_) {
+                        setTimeout(() => {
+                            try { deleteLocalFile(filePath, SAVE_PATH); } catch (_) {}
+                        }, 300);
+                    }
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     res.end(JSON.stringify({ success: true, message: 'Arquivo excluído do computador com sucesso' }));
+
+                    setImmediate(() => {
+                        try { refreshJellyfinLibrary(); } catch (_) {}
+                    });
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: e.message }));
@@ -2720,7 +2765,7 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // Cancel / delete download
+        // Cancel / delete download (ultra-responsivo: remove do registro e responde em <1ms, limpando disco em background)
         if (pathname.startsWith('/api/downloads/') && req.method === 'DELETE') {
             const id = pathname.replace('/api/downloads/', '').trim().toLowerCase();
             const item = downloadsRegistry.get(id);
@@ -2729,22 +2774,12 @@ const server = http.createServer(async (req, res) => {
 
             console.log(`[TorrentService] Removendo download: ${id} ("${item?.title || torrent?.name || 'desconhecido'}"), deleteFiles=${deleteFiles}`);
 
-            if (deleteFiles) {
-                cleanupCancelledDownload(item, torrent, SAVE_PATH);
-            } else if (torrent) {
-                try {
-                    torrent.destroy({ destroyStore: false });
-                } catch (_) {}
-            }
-
             downloadsRegistry.delete(id);
             persistDownloads();
 
-            if (deleteFiles) {
-                invalidateLocalCache();
+            if (deleteFiles && item?.savePath) {
+                removeFileFromLocalCache(item.savePath);
                 invalidateLocalSetsCache();
-                scanLocalMovies(SAVE_PATH);
-                refreshJellyfinLibrary();
             }
 
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -2752,6 +2787,18 @@ const server = http.createServer(async (req, res) => {
                 success: true,
                 message: deleteFiles ? 'Download e arquivos excluídos do computador com sucesso' : 'Registro removido da lista'
             }));
+
+            setImmediate(() => {
+                if (deleteFiles) {
+                    cleanupCancelledDownload(item, torrent, SAVE_PATH);
+                    scanLocalMovies(SAVE_PATH);
+                    refreshJellyfinLibrary();
+                } else if (torrent) {
+                    try {
+                        torrent.destroy({ destroyStore: false });
+                    } catch (_) {}
+                }
+            });
             return;
         }
 
