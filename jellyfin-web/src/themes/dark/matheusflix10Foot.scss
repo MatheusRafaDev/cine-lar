@@ -321,11 +321,11 @@ html.layout-tv,
     border-radius: 9999px !important;
 }
 
-/* 7. Destaque de Foco Nítido para Controle Remoto Samsung (D-Pad) */
-.layout-tv .focusable:focus,
-.layout-tv .focusable:focus-visible,
-.layout-tv button:focus,
-.layout-tv a:focus {
+/* 7. Destaque de Foco Nitido para Controle Remoto Samsung (D-Pad) */
+.layout-tv .focusable:focus:not(.skinHeader *),
+.layout-tv .focusable:focus-visible:not(.skinHeader *),
+.layout-tv button:focus:not(.skinHeader *),
+.layout-tv a:focus:not(.skinHeader *) {
     outline: 3px solid #FAF9F5 !important;
     outline-offset: 3px !important;
     box-shadow: 0 0 0 3px #FAF9F5, 0 8px 30px rgba(229, 9, 20, 0.7) !important;
@@ -335,10 +335,10 @@ html.layout-tv,
 .layout-tv .mf-home-card:focus,
 .layout-tv .mf-movie-card:focus,
 .layout-tv .mf-local-card:focus {
-    outline: 3.5px solid #FAF9F5 !important;
+    outline: 3px solid #FAF9F5 !important;
     outline-offset: 3px !important;
     transform: scale(1.08) translateZ(0) !important;
-    box-shadow: 0 0 0 3.5px #FAF9F5, 0 16px 40px rgba(0, 0, 0, 0.95), 0 0 30px rgba(229, 9, 20, 0.6) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95), 0 0 25px rgba(229, 9, 20, 0.7) !important;
     z-index: 50 !important;
     will-change: transform;
 }

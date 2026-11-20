@@ -43,18 +43,9 @@ function registerSamsungTvKeys() {
         if (!tvinput || typeof tvinput.registerKey !== 'function') return;
 
         const keys = [
-            'MediaPlay',
-            'MediaPause',
-            'MediaPlayPause',
-            'MediaStop',
-            'MediaFastForward',
-            'MediaRewind',
-            'MediaTrackPrevious',
-            'MediaTrackNext',
-            'ColorF0Red',
-            'ColorF1Green',
-            'ColorF2Yellow',
-            'ColorF3Blue',
+            'MediaPlay', 'MediaPause', 'MediaPlayPause', 'MediaStop',
+            'MediaFastForward', 'MediaRewind', 'MediaTrackPrevious', 'MediaTrackNext',
+            'ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue',
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
         ];
 
@@ -68,52 +59,82 @@ function registerSamsungTvKeys() {
 }
 
 /**
+ * Rolagem suave de card e centralizacao no carrossel e na tela
+ */
+export function smoothScrollCard(target) {
+    if (!target) return;
+
+    // 1. Rolagem horizontal no carrossel
+    const scroller = target.closest('.mf-home-scroller, .mf-row-slider-container');
+    if (scroller) {
+        const scrollerRect = scroller.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const scrollTarget = scroller.scrollLeft + (targetRect.left - scrollerRect.left) - (scroller.clientWidth / 2) + (targetRect.width / 2);
+        try {
+            scroller.scrollTo({ left: Math.max(0, scrollTarget), behavior: 'smooth' });
+        } catch (_) {
+            scroller.scrollLeft = Math.max(0, scrollTarget);
+        }
+    }
+
+    // 2. Rolagem vertical da pagina para centralizar a fileira na TV
+    const section = target.closest('.mf-home-section, .verticalSection');
+    if (section) {
+        const secRect = section.getBoundingClientRect();
+        const desiredTop = (window.pageYOffset || document.documentElement.scrollTop || 0) + secRect.top - (window.innerHeight / 2) + (secRect.height / 2);
+        try {
+            window.scrollTo({ top: Math.max(0, desiredTop), behavior: 'smooth' });
+        } catch (_) {
+            window.scrollTo(0, Math.max(0, desiredTop));
+        }
+    }
+}
+
+/**
  * Auto-foco inteligente no primeiro elemento interativo relevante da tela
  */
 export function autoFocusCurrentView() {
     if (typeof document === 'undefined') return;
 
-    // Se o player estiver ativo, nao foca na tela de fundo
     if (document.querySelector('.mf-cinema-player')) return;
 
-    // Se houver modal stremio ou confirmacao aberta, foca no botao principal do modal
-    const modal = document.querySelector('.mf-stremio-modal, .mf-confirm-modal, .mf-quickconnect-overlay');
+    const modal = document.querySelector('.mf-stremio-modal, .mf-confirm-modal, .mf-quickconnect-overlay, .mf-movie-page');
     if (modal) {
-        const primaryBtn = modal.querySelector('.mf-btn-hero-watch, .mf-btn-confirm-yes, .mf-qc-cancel-btn, button.focusable, .focusable');
-        if (primaryBtn && typeof primaryBtn.focus === 'function') {
+        const primaryBtn = modal.querySelector('.mf-btn-hero-watch:not([disabled]), .mf-btn-confirm-yes, .mf-movie-page-back-btn, button.focusable, .focusable, button');
+        if (primaryBtn && typeof primaryBtn.focus === 'function' && primaryBtn.offsetParent !== null) {
             primaryBtn.focus();
             return;
         }
     }
 
-    // Se ja ha um elemento focado que nao seja o body/html, respeita
-    if (document.activeElement && document.activeElement !== document.body && document.activeElement !== document.documentElement) {
+    if (document.activeElement && document.activeElement !== document.body && document.activeElement !== document.documentElement && document.activeElement.offsetParent !== null) {
         return;
     }
 
-    // 1. Tenta focar no botao "Assistir" do Hero Banner da Home
+    // 1. Hero Banner play
     const heroBtn = document.querySelector('.mf-btn-hero-play, .mf-btn-hero-primary');
     if (heroBtn && heroBtn.offsetParent !== null) {
         heroBtn.focus();
         return;
     }
 
-    // 2. Tenta focar no primeiro card visivel de filme
-    const firstCard = document.querySelector('.mf-home-card, .mf-movie-card, .mf-local-card');
+    // 2. Primeiro card da Home
+    const firstCard = document.querySelector('.mf-home-section .mf-home-card, .mf-home-card, .mf-movie-card, .mf-local-card');
     if (firstCard && firstCard.offsetParent !== null) {
         firstCard.focus();
+        smoothScrollCard(firstCard);
         return;
     }
 
-    // 3. Fallback: foca no primeiro botao de navegacao do cabecalho
-    const headerBtn = document.querySelector('.emby-tab-button-active, .mf-header-logo, .headerSearchButton');
+    // 3. Fallback: cabecalho
+    const headerBtn = document.querySelector('.skinHeader .emby-tab-button-active, .skinHeader .emby-tab-button, .skinHeader .headerSearchButton');
     if (headerBtn && headerBtn.offsetParent !== null) {
         headerBtn.focus();
     }
 }
 
 /**
- * Gestao de ocultacao de cursor do mouse na TV (anti-giroscopio/mouse acidental)
+ * Gestao de ocultacao de cursor do mouse na TV
  */
 function setupCursorHiding() {
     const hideCursor = () => {
@@ -132,112 +153,479 @@ function setupCursorHiding() {
 }
 
 /**
- * Navegacao Espacial D-Pad inteligente entre linhas (carrosseis)
+ * Navegacao dentro de modais (Stremio Details / Confirmacao)
+ */
+function handleModalNavigation(e, modal, active, isLeft, isUp, isRight, isDown) {
+    const backBtn = modal.querySelector('.mf-movie-page-back-btn, .mf-stremio-close-btn');
+    const closeBtn = modal.querySelector('.mf-btn-topbar-close');
+    const watchBtn = modal.querySelector('.mf-btn-hero-watch:not([disabled])');
+    const trailerBtn = modal.querySelector('.mf-btn-trailer');
+    const favBtn = modal.querySelector('.mf-btn-fav-toggle');
+    const dropBtn = modal.querySelector('.mf-btn-drop-movie');
+    const streams = Array.from(modal.querySelectorAll('.mf-stream-item'));
+    const episodes = Array.from(modal.querySelectorAll('.mf-episode-card'));
+    const seasons = Array.from(modal.querySelectorAll('.mf-season-btn'));
+
+    if (isDown) {
+        if (active === backBtn || active === closeBtn) {
+            if (watchBtn) watchBtn.focus();
+            else if (streams[0]) streams[0].focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        if (active === watchBtn || active === trailerBtn || active === favBtn || active === dropBtn) {
+            if (seasons.length > 0) {
+                seasons[0].focus();
+            } else if (episodes.length > 0) {
+                episodes[0].focus();
+                episodes[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else if (streams.length > 0) {
+                streams[0].focus();
+                streams[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        if (seasons.includes(active)) {
+            if (episodes.length > 0) {
+                episodes[0].focus();
+                episodes[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        const sIdx = streams.indexOf(active);
+        if (sIdx >= 0 && sIdx < streams.length - 1) {
+            streams[sIdx + 1].focus();
+            streams[sIdx + 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        const epIdx = episodes.indexOf(active);
+        if (epIdx >= 0 && epIdx < episodes.length - 1) {
+            episodes[epIdx + 1].focus();
+            episodes[epIdx + 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isUp) {
+        if (streams.indexOf(active) === 0) {
+            if (watchBtn) watchBtn.focus();
+            else if (backBtn) backBtn.focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        const sIdx = streams.indexOf(active);
+        if (sIdx > 0) {
+            streams[sIdx - 1].focus();
+            streams[sIdx - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        if (episodes.indexOf(active) === 0) {
+            if (seasons.length > 0) seasons[0].focus();
+            else if (watchBtn) watchBtn.focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        const epIdx = episodes.indexOf(active);
+        if (epIdx > 0) {
+            episodes[epIdx - 1].focus();
+            episodes[epIdx - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        if (seasons.includes(active)) {
+            if (watchBtn) watchBtn.focus();
+            else if (backBtn) backBtn.focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        if (active === watchBtn || active === trailerBtn || active === favBtn || active === dropBtn) {
+            if (backBtn) backBtn.focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isRight) {
+        if (active === backBtn && closeBtn) { closeBtn.focus(); e.preventDefault(); e.stopPropagation(); return true; }
+        if (active === watchBtn) {
+            if (trailerBtn) trailerBtn.focus();
+            else if (favBtn) favBtn.focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        if (active === trailerBtn && favBtn) { favBtn.focus(); e.preventDefault(); e.stopPropagation(); return true; }
+        const seaIdx = seasons.indexOf(active);
+        if (seaIdx >= 0 && seaIdx < seasons.length - 1) {
+            seasons[seaIdx + 1].focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isLeft) {
+        if (active === closeBtn && backBtn) { backBtn.focus(); e.preventDefault(); e.stopPropagation(); return true; }
+        if (active === favBtn) {
+            if (trailerBtn) trailerBtn.focus();
+            else if (watchBtn) watchBtn.focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        if (active === trailerBtn && watchBtn) { watchBtn.focus(); e.preventDefault(); e.stopPropagation(); return true; }
+        const seaIdx = seasons.indexOf(active);
+        if (seaIdx > 0) {
+            seasons[seaIdx - 1].focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    return false;
+}
+
+/**
+ * Navegacao entre botoes do Cabecalho
+ */
+function handleHeaderNavigation(e, active, isLeft, isUp, isRight, isDown) {
+    const headerBtns = Array.from(document.querySelectorAll(
+        '.skinHeader .headerBackButton, .skinHeader .emby-tab-button, .skinHeader .headerSearchButton, .skinHeader .headerUserButton'
+    )).filter(btn => btn.offsetParent !== null && !btn.classList.contains('hide') && window.getComputedStyle(btn).display !== 'none');
+
+    const idx = headerBtns.indexOf(active);
+
+    if (isRight) {
+        if (idx >= 0 && idx < headerBtns.length - 1) {
+            headerBtns[idx + 1].focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isLeft) {
+        if (idx > 0) {
+            headerBtns[idx - 1].focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isDown) {
+        const heroPlay = document.querySelector('.mf-btn-hero-play, .mf-btn-hero-primary');
+        if (heroPlay && heroPlay.offsetParent !== null) {
+            heroPlay.focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        const firstCard = document.querySelector('.mf-home-section .mf-home-card, .mf-home-card, .mf-movie-card, .mf-local-card');
+        if (firstCard && firstCard.offsetParent !== null) {
+            firstCard.focus();
+            smoothScrollCard(firstCard);
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        const searchInput = document.querySelector('input[type="search"], input.searchfields, input');
+        if (searchInput && searchInput.offsetParent !== null) {
+            searchInput.focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isUp) {
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    return false;
+}
+
+/**
+ * Navegacao no Hero Banner
+ */
+function handleHeroNavigation(e, active, isLeft, isUp, isRight, isDown) {
+    if (isDown) {
+        const firstCard = document.querySelector('.mf-home-section .mf-home-card, .mf-home-card');
+        if (firstCard && firstCard.offsetParent !== null) {
+            firstCard.focus();
+            smoothScrollCard(firstCard);
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+    }
+    if (isUp) {
+        const headerBtn = document.querySelector('.skinHeader .emby-tab-button-active, .skinHeader .emby-tab-button, .skinHeader .headerSearchButton');
+        if (headerBtn && headerBtn.offsetParent !== null) {
+            headerBtn.focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+    }
+    if (isRight) {
+        const playBtn = document.querySelector('.mf-btn-hero-play');
+        const infoBtn = document.querySelector('.mf-btn-hero-info');
+        if (active === playBtn && infoBtn && infoBtn.offsetParent !== null) {
+            infoBtn.focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+    }
+    if (isLeft) {
+        const playBtn = document.querySelector('.mf-btn-hero-play');
+        const infoBtn = document.querySelector('.mf-btn-hero-info');
+        if (active === infoBtn && playBtn && playBtn.offsetParent !== null) {
+            playBtn.focus();
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Navegacao horizontal e vertical deterministica nos carrosseis da Home
+ */
+function handleHomeCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
+    const scroller = card.closest('.mf-home-scroller');
+    const section = card.closest('.mf-home-section, .verticalSection');
+
+    if (isRight) {
+        if (scroller) {
+            const cards = Array.from(scroller.querySelectorAll('.mf-home-card'));
+            const idx = cards.indexOf(card);
+            if (idx >= 0 && idx < cards.length - 1) {
+                const nextCard = cards[idx + 1];
+                nextCard.focus();
+                smoothScrollCard(nextCard);
+                e.preventDefault(); e.stopPropagation(); return true;
+            }
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isLeft) {
+        if (scroller) {
+            const cards = Array.from(scroller.querySelectorAll('.mf-home-card'));
+            const idx = cards.indexOf(card);
+            if (idx > 0) {
+                const prevCard = cards[idx - 1];
+                prevCard.focus();
+                smoothScrollCard(prevCard);
+                e.preventDefault(); e.stopPropagation(); return true;
+            }
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isDown) {
+        const allSections = Array.from(document.querySelectorAll('.mf-home-section, .verticalSection')).filter(sec => {
+            return sec.offsetParent !== null && sec.querySelector('.mf-home-card');
+        });
+        const secIdx = allSections.indexOf(section);
+        if (secIdx >= 0 && secIdx < allSections.length - 1) {
+            const nextSec = allSections[secIdx + 1];
+            const nextCards = Array.from(nextSec.querySelectorAll('.mf-home-card'));
+            if (nextCards.length > 0) {
+                const activeRect = card.getBoundingClientRect();
+                const activeMidX = activeRect.left + (activeRect.width / 2);
+                let closestCard = nextCards[0];
+                let minDiff = Infinity;
+                for (const c of nextCards) {
+                    const r = c.getBoundingClientRect();
+                    const midX = r.left + (r.width / 2);
+                    const diff = Math.abs(activeMidX - midX);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestCard = c;
+                    }
+                }
+                closestCard.focus();
+                smoothScrollCard(closestCard);
+                e.preventDefault(); e.stopPropagation(); return true;
+            }
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isUp) {
+        const allSections = Array.from(document.querySelectorAll('.mf-home-section, .verticalSection')).filter(sec => {
+            return sec.offsetParent !== null && sec.querySelector('.mf-home-card');
+        });
+        const secIdx = allSections.indexOf(section);
+        if (secIdx > 0) {
+            const prevSec = allSections[secIdx - 1];
+            const prevCards = Array.from(prevSec.querySelectorAll('.mf-home-card'));
+            if (prevCards.length > 0) {
+                const activeRect = card.getBoundingClientRect();
+                const activeMidX = activeRect.left + (activeRect.width / 2);
+                let closestCard = prevCards[0];
+                let minDiff = Infinity;
+                for (const c of prevCards) {
+                    const r = c.getBoundingClientRect();
+                    const midX = r.left + (r.width / 2);
+                    const diff = Math.abs(activeMidX - midX);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestCard = c;
+                    }
+                }
+                closestCard.focus();
+                smoothScrollCard(closestCard);
+                e.preventDefault(); e.stopPropagation(); return true;
+            }
+        } else {
+            // Primeira fileira: sobe para o Hero Banner ou Cabecalho
+            const heroBtn = document.querySelector('.mf-btn-hero-play, .mf-btn-hero-primary');
+            if (heroBtn && heroBtn.offsetParent !== null) {
+                heroBtn.focus();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                e.preventDefault(); e.stopPropagation(); return true;
+            }
+            const headerBtn = document.querySelector('.skinHeader .emby-tab-button-active, .skinHeader .emby-tab-button, .skinHeader .headerSearchButton');
+            if (headerBtn && headerBtn.offsetParent !== null) {
+                headerBtn.focus();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                e.preventDefault(); e.stopPropagation(); return true;
+            }
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    return false;
+}
+
+/**
+ * Navegacao em grade (Catalogo, Series, Pasta Local)
+ */
+function handleGridCardNavigation(e, card, isLeft, isUp, isRight, isDown) {
+    let grid = card.closest('.mf-catalog-grid, .mf-movie-grid, .mf-local-grid, .itemsContainer, .verticalSection');
+    if (!grid) grid = document.body;
+    const cards = Array.from(grid.querySelectorAll('.mf-movie-card, .mf-local-card, .card')).filter(c => c.offsetParent !== null);
+    const idx = cards.indexOf(card);
+    if (idx === -1) return false;
+
+    if (isRight) {
+        if (idx < cards.length - 1) {
+            cards[idx + 1].focus();
+            cards[idx + 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isLeft) {
+        if (idx > 0) {
+            cards[idx - 1].focus();
+            cards[idx - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    const activeRect = card.getBoundingClientRect();
+    const activeMidX = activeRect.left + (activeRect.width / 2);
+
+    if (isDown) {
+        const below = cards.filter(c => c.getBoundingClientRect().top > activeRect.bottom - 10);
+        if (below.length > 0) {
+            const firstRowTop = below[0].getBoundingClientRect().top;
+            const sameRow = below.filter(c => Math.abs(c.getBoundingClientRect().top - firstRowTop) < 35);
+            let closest = sameRow[0];
+            let minDiff = Infinity;
+            for (const c of sameRow) {
+                const r = c.getBoundingClientRect();
+                const diff = Math.abs(activeMidX - (r.left + r.width / 2));
+                if (diff < minDiff) { minDiff = diff; closest = c; }
+            }
+            closest.focus();
+            closest.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            e.preventDefault(); e.stopPropagation(); return true;
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    if (isUp) {
+        const above = cards.filter(c => c.getBoundingClientRect().bottom < activeRect.top + 10);
+        if (above.length > 0) {
+            const lastRowBottom = above[above.length - 1].getBoundingClientRect().bottom;
+            const sameRow = above.filter(c => Math.abs(c.getBoundingClientRect().bottom - lastRowBottom) < 35);
+            let closest = sameRow[0];
+            let minDiff = Infinity;
+            for (const c of sameRow) {
+                const r = c.getBoundingClientRect();
+                const diff = Math.abs(activeMidX - (r.left + r.width / 2));
+                if (diff < minDiff) { minDiff = diff; closest = c; }
+            }
+            closest.focus();
+            closest.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            e.preventDefault(); e.stopPropagation(); return true;
+        } else {
+            const headerBtn = document.querySelector('.skinHeader .emby-tab-button-active, .skinHeader .emby-tab-button, .skinHeader .headerSearchButton');
+            if (headerBtn && headerBtn.offsetParent !== null) {
+                headerBtn.focus();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                e.preventDefault(); e.stopPropagation(); return true;
+            }
+        }
+        e.preventDefault(); e.stopPropagation(); return true;
+    }
+
+    return false;
+}
+
+/**
+ * Navegacao Espacial D-Pad inteligente entre linhas e elementos
  */
 function handleSpatialNavigation(e) {
-    const key = e.key;
+    const key = e.key || '';
     const keyCode = e.keyCode || e.which || 0;
 
-    // Apenas teclas direcionais
-    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key) && ![37, 38, 39, 40].includes(keyCode)) {
+    const isLeft = keyCode === 37 || key === 'ArrowLeft';
+    const isUp = keyCode === 38 || key === 'ArrowUp';
+    const isRight = keyCode === 39 || key === 'ArrowRight';
+    const isDown = keyCode === 40 || key === 'ArrowDown';
+
+    if (!isLeft && !isUp && !isRight && !isDown) return;
+
+    const active = document.activeElement;
+
+    // Foco perdido ou em body/html
+    if (!active || active === document.body || active === document.documentElement || active.offsetParent === null) {
+        autoFocusCurrentView();
+        e.preventDefault();
+        e.stopPropagation();
         return;
     }
 
-    const active = document.activeElement;
-    if (!active) return;
-
-    // Se o elemento ativo for um card de filme no carrossel
-    if (active.classList?.contains('mf-home-card') || active.classList?.contains('mf-movie-card')) {
-        const currentScroller = active.closest('.mf-home-scroller, .mf-row-slider-container');
-        const currentSection = active.closest('.mf-home-section, .section');
-
-        // Seta para BAIXO: Encontrar o card verticalmente mais proximo na linha de baixo
-        if (key === 'ArrowDown' || keyCode === 40) {
-            const nextSection = currentSection ? currentSection.nextElementSibling : null;
-            if (nextSection) {
-                const nextCards = Array.from(nextSection.querySelectorAll('.mf-home-card, .mf-movie-card'));
-                if (nextCards.length > 0) {
-                    e.preventDefault();
-                    const activeRect = active.getBoundingClientRect();
-                    const activeMidX = activeRect.left + (activeRect.width / 2);
-
-                    // Busca o card que tem o centro horizontal mais proximo
-                    let closestCard = nextCards[0];
-                    let minDiff = Infinity;
-                    nextCards.forEach(c => {
-                        const r = c.getBoundingClientRect();
-                        const midX = r.left + (r.width / 2);
-                        const diff = Math.abs(activeMidX - midX);
-                        if (diff < minDiff) {
-                            minDiff = diff;
-                            closestCard = c;
-                        }
-                    });
-
-                    closestCard.focus();
-                    closestCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                    return;
-                }
+    // Se estiver em campo de texto
+    if (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') {
+        if (isDown) {
+            const firstResult = document.querySelector('.mf-movie-card, .mf-home-card, .card');
+            if (firstResult) {
+                firstResult.focus();
+                smoothScrollCard(firstResult);
+                e.preventDefault();
+                e.stopPropagation();
             }
         }
-
-        // Seta para CIMA: Subir para a linha anterior ou Hero Banner
-        if (key === 'ArrowUp' || keyCode === 38) {
-            const prevSection = currentSection ? currentSection.previousElementSibling : null;
-            if (prevSection && prevSection.classList?.contains('mf-home-section')) {
-                const prevCards = Array.from(prevSection.querySelectorAll('.mf-home-card, .mf-movie-card'));
-                if (prevCards.length > 0) {
-                    e.preventDefault();
-                    const activeRect = active.getBoundingClientRect();
-                    const activeMidX = activeRect.left + (activeRect.width / 2);
-
-                    let closestCard = prevCards[0];
-                    let minDiff = Infinity;
-                    prevCards.forEach(c => {
-                        const r = c.getBoundingClientRect();
-                        const midX = r.left + (r.width / 2);
-                        const diff = Math.abs(activeMidX - midX);
-                        if (diff < minDiff) {
-                            minDiff = diff;
-                            closestCard = c;
-                        }
-                    });
-
-                    closestCard.focus();
-                    closestCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                    return;
-                }
-            } else {
-                // Subir para o Hero Banner ou Cabecalho
-                const heroBtn = document.querySelector('.mf-btn-hero-play, .mf-btn-hero-primary');
-                if (heroBtn) {
-                    e.preventDefault();
-                    heroBtn.focus();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    return;
-                }
-                const headerTab = document.querySelector('.emby-tab-button-active, .mf-header-logo');
-                if (headerTab) {
-                    e.preventDefault();
-                    headerTab.focus();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    return;
-                }
-            }
-        }
+        return;
     }
 
-    // Se estiver no Hero Banner e apertar BAIXO: desce para o primeiro card da primeira fileira
-    if (active.classList?.contains('mf-btn-hero-play') || active.classList?.contains('mf-btn-hero-info') || active.closest('.mf-hero-buttons')) {
-        if (key === 'ArrowDown' || keyCode === 40) {
-            const firstCard = document.querySelector('.mf-home-card, .mf-movie-card');
-            if (firstCard) {
-                e.preventDefault();
-                firstCard.focus();
-                firstCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                return;
-            }
-        }
+    // Modal aberto
+    const modal = document.querySelector('.mf-stremio-modal, .mf-movie-page, .mf-confirm-backdrop, .mf-shortcuts-backdrop');
+    if (modal && modal.contains(active)) {
+        handleModalNavigation(e, modal, active, isLeft, isUp, isRight, isDown);
+        return;
+    }
+
+    // Cabecalho
+    if (active.closest('.skinHeader')) {
+        handleHeaderNavigation(e, active, isLeft, isUp, isRight, isDown);
+        return;
+    }
+
+    // Hero Banner
+    if (active.closest('.mf-home-hero') || active.classList?.contains('mf-btn-hero-play') || active.classList?.contains('mf-btn-hero-info')) {
+        handleHeroNavigation(e, active, isLeft, isUp, isRight, isDown);
+        return;
+    }
+
+    // Card de Carrossel da Home
+    if (active.classList?.contains('mf-home-card') || active.closest('.mf-home-card')) {
+        const card = active.classList.contains('mf-home-card') ? active : active.closest('.mf-home-card');
+        handleHomeCardNavigation(e, card, isLeft, isUp, isRight, isDown);
+        return;
+    }
+
+    // Card em grade (Catalogo, Series, Pasta Local)
+    if (active.classList?.contains('mf-movie-card') || active.classList?.contains('mf-local-card') || active.classList?.contains('card')) {
+        handleGridCardNavigation(e, active, isLeft, isUp, isRight, isDown);
     }
 }
 
@@ -245,24 +633,21 @@ function handleSpatialNavigation(e) {
  * Tratamento global do botao Voltar do controle remoto (Tizen 10009, WebOS 461, Esc 27)
  */
 function handleTvBackButton(e) {
-    const key = e.key;
+    const key = e.key || '';
     const keyCode = e.keyCode || e.which || 0;
     const isBack = ['Escape', 'Backspace', 'BrowserBack', 'Back'].includes(key)
         || keyCode === 10009 || keyCode === 461 || keyCode === 27;
 
     if (!isBack) return;
 
-    // Se estiver em campo de texto (busca/input), deixa o comportamento padrao fechar o teclado
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         return;
     }
 
-    // 1. Se o Cinema Player estiver em execucao, o player ja trata seu proprio fechamento
     if (document.querySelector('.mf-cinema-player')) {
         return;
     }
 
-    // 2. Se houver modal de detalhes Stremio ou confirmacao aberto, fecha o modal
     const modal = document.querySelector('.mf-stremio-modal, .mf-movie-page');
     if (modal) {
         e.preventDefault();
@@ -288,7 +673,6 @@ function handleTvBackButton(e) {
         return;
     }
 
-    // 3. Se estiver em pagina secundária, volta para o Inicio
     const currentHash = window.location.hash || '';
     if (currentHash && !currentHash.startsWith('#/home') && currentHash !== '#/') {
         e.preventDefault();
@@ -296,7 +680,6 @@ function handleTvBackButton(e) {
         return;
     }
 
-    // 4. Se ja estiver na Home, exibe dialogo elegante de confirmacao para sair do App
     e.preventDefault();
     import('./confirmModal').then(({ showConfirmModal }) => {
         showConfirmModal({
@@ -334,30 +717,22 @@ export function initTvExperience() {
         console.info('[MatheusFlix] Modo Smart TV 10-Foot ativado com sucesso.');
     }
 
-    // Eventos de navegacao espacial e botoes
     window.addEventListener('keydown', handleSpatialNavigation, true);
     window.addEventListener('keydown', handleTvBackButton, false);
 
-    // Garante rolagem suave quando qualquer elemento ganha foco
-    document.addEventListener('focusin', (e) => {
-        const target = e.target;
-        if (target && target.classList?.contains('focusable') && typeof target.scrollIntoView === 'function') {
-            target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-    }, true);
+    // Auto-foco repetido em intervalos para garantir deteccao apos carregamento de rede
+    [150, 400, 800, 1500, 2500].forEach(ms => {
+        setTimeout(autoFocusCurrentView, ms);
+    });
 
-    // Auto-foco ao carregar paginas ou trocar rotas
     window.addEventListener('hashchange', () => {
-        setTimeout(autoFocusCurrentView, 400);
+        [150, 400, 800].forEach(ms => setTimeout(autoFocusCurrentView, ms));
     });
 
     document.addEventListener('viewshow', () => {
-        setTimeout(autoFocusCurrentView, 400);
+        [150, 400, 800].forEach(ms => setTimeout(autoFocusCurrentView, ms));
     });
 
-    setTimeout(autoFocusCurrentView, 600);
-
-    // API global no window para debug e controle
     if (typeof window !== 'undefined') {
         window.MatheusFlix = window.MatheusFlix || {};
         window.MatheusFlix.isTv = () => isTvMode;
@@ -369,7 +744,6 @@ export function initTvExperience() {
     }
 }
 
-// Auto-execucao
 if (typeof window !== 'undefined') {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initTvExperience);
@@ -381,5 +755,6 @@ if (typeof window !== 'undefined') {
 export default {
     initTvExperience,
     detectSmartTv,
-    autoFocusCurrentView
+    autoFocusCurrentView,
+    smoothScrollCard
 };
