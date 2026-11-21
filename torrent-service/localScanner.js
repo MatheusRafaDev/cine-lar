@@ -142,20 +142,21 @@ function fetchJson(url) {
 }
 
 export function cleanMovieName(raw) {
-    const yearMatch = raw.match(/\b(19\d\d|20\d\d)\b/);
+    const yearMatch = raw.match(/(?:^|[^0-9])(19\d\d|20\d\d)\b/);
     const year = yearMatch ? parseInt(yearMatch[1], 10) : null;
 
     let name = raw.replace(/\.(mkv|mp4|avi|ts|mov)$/i, '');
-    name = name.replace(/\(?www\.[^\)]+\)?/gi, '');
+    name = name.replace(/\(?www\.[^\)\s]+\)?/gi, ' ');
+    name = name.replace(/\b[a-z0-9\-]+\.(com|net|org|tv|me)(\.br)?\b/gi, ' ');
     name = name.replace(/\b(thepiratefilmes|bludv|wolverdonfilmes|totti9|andretpf|comandotorrents|cinecombo)\b/gi, '');
     name = name.replace(/\[ACESSE\.\.\.[^\]]+\]/gi, '');
     name = name.replace(/\((19\d\d|20\d\d)\)/g, '');
+    name = name.replace(/([a-zA-ZÀ-ÿ])(19\d\d|20\d\d)\b.*/, '$1');
     name = name.replace(/\b(19\d\d|20\d\d)\b.*/, '');
     name = name.replace(/(\.|\_)/g, ' ');
     name = name.replace(/\[[^\]]+\]/g, ' ');
-    name = name.replace(/\b(1080p|720p|2160p|4k|bluray|bdrip|dvdrip|web-dl|webrip|web|hdtv|dual|dualaudio|dublado|legendado|nacional|ac3|aac|x264|x265|hevc|h264|imax|open matte|fullhd|ch|edition|proper|remux|dts-hd|ma|5\.1|7\.1)\b.*/i, '');
+    name = name.replace(/\b(1080p|720p|2160p|4k|bluray|bdrip|brrip|dvdrip|web-dl|webrip|web|hdtv|dual|dualaudio|dublado|legendado|nacional|ac3|eac3|aac|x264|x265|hevc|h264|imax|open matte|fullhd|ch|edition|proper|remux|dts-hd|ma|5\.1|7\.1)\b.*/i, '');
     name = name.replace(/[\(\)\[\]\-]/g, ' ');
-    name = name.replace(/\b(com|net|org|br)\b/gi, '');
     // Remove trailing "1" if like "Carros 1", "Toy Story 1"
     name = name.replace(/\b([A-Za-z]+)\s+1\b/i, '$1');
     name = name.replace(/\s+/g, ' ').trim();
@@ -185,8 +186,8 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
 
     try {
         const entries = fs.readdirSync(dir, { withFileTypes: true });
-        const videoFiles = entries.filter(e => e.isFile() && /\.(mp4|mkv|avi|webm|ts)$/i.test(e.name));
-        const srtFiles = entries.filter(e => e.isFile() && /\.(srt|vtt)$/i.test(e.name));
+        const videoFiles = entries.filter(e => e.isFile() && !e.name.startsWith('.') && /\.(mp4|mkv|avi|webm|ts)$/i.test(e.name));
+        const srtFiles = entries.filter(e => e.isFile() && !e.name.startsWith('.') && /\.(srt|vtt)$/i.test(e.name));
 
         // 1. Processa vídeos encontrados no diretório atual
         if (videoFiles.length > 0) {
@@ -223,8 +224,8 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
             }
         }
 
-        // 2. Sempre pesquisa subdiretórios recursivamente até o limite de profundidade
-        const subDirs = entries.filter(e => e.isDirectory());
+        // 2. Sempre pesquisa subdiretórios recursivamente até o limite de profundidade (ignorando pastas ocultas como .tmp.driveupload e lixeiras)
+        const subDirs = entries.filter(e => e.isDirectory() && !e.name.startsWith('.') && !e.name.startsWith('$'));
         for (const sd of subDirs) {
             const fullSub = path.join(dir, sd.name);
             const resolvedSub = path.resolve(fullSub).toLowerCase();
@@ -274,11 +275,11 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                 const { title: cleanName, year: detectedYear } = cleanMovieName(rawName);
                 if (cleanName.length < 2) continue;
 
-                // 0. VERIFICAÇÃO ULTRA-RÁPIDA EM SQLite: Se o arquivo já foi indexado e não mudou, carrega instantaneamente
+                // 0. VERIFICAÇÃO ULTRA-RÁPIDA EM SQLite: Se o arquivo já foi indexado, não mudou e JÁ TEM CAPA (poster), carrega instantaneamente
                 try {
                     const cached = getLocalMediaByPath(videoFile);
                     const isStaleGenericCache = cached && String(cached.clean_name || '').toLowerCase() !== String(cleanName || '').toLowerCase();
-                    if (cached && !isStaleGenericCache && cached.file_size === stat.size && Math.abs(cached.mtime_ms - stat.mtimeMs) < 1000) {
+                    if (cached && cached.poster && !isStaleGenericCache && cached.file_size === stat.size && Math.abs(cached.mtime_ms - stat.mtimeMs) < 1000) {
                         const baseId = cached.imdb_id || `local_${encodeURIComponent(cached.clean_name || cached.title)}`;
                         results.push({
                             id: makeUniqueId(baseId, cached.file_path),
@@ -430,21 +431,21 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
             } catch (e) {}
         }
 
-        // Fallback 2: Busca direta no TMDB por nome em Português do Brasil
-        if (!movieData) {
+        // Fallback 2: Busca automática de capa e metadados no TMDB / Cinemeta / iTunes (mesmo se movieData veio sem poster!)
+        if (!movieData || !movieData.poster) {
             try {
                 const tmdbSearch = await searchPtBrMovie(cleanName, detectedYear);
                 if (tmdbSearch) {
                     movieData = {
-                        imdb_id: null,
-                        title: tmdbSearch.titleBr,
-                        original_title: tmdbSearch.originalTitle,
-                        year: tmdbSearch.year || detectedYear,
-                        genres: 'Cinema',
-                        rating: tmdbSearch.rating || 8.0,
-                        poster: tmdbSearch.poster,
-                        backdrop: tmdbSearch.backdrop,
-                        description: tmdbSearch.overviewBr || 'Filme salvo na sua pasta local.'
+                        imdb_id: movieData?.imdb_id || tmdbSearch.imdbId || null,
+                        title: tmdbSearch.titleBr || movieData?.title || cleanName,
+                        original_title: tmdbSearch.originalTitle || movieData?.original_title || cleanName,
+                        year: tmdbSearch.year || movieData?.year || detectedYear,
+                        genres: movieData?.genres || 'Cinema',
+                        rating: tmdbSearch.rating || movieData?.rating || 8.0,
+                        poster: tmdbSearch.poster || movieData?.poster || '',
+                        backdrop: tmdbSearch.backdrop || movieData?.backdrop || tmdbSearch.poster || '',
+                        description: tmdbSearch.overviewBr || movieData?.description || 'Filme salvo na sua pasta local.'
                     };
                 }
             } catch (e) {}
@@ -612,7 +613,8 @@ export function streamLocalVideo(filePath, req, res) {
 
         const args = [
             '-hide_banner',
-            '-loglevel', 'error'
+            '-loglevel', 'error',
+            '-fflags', '+genpts+discardcorrupt'
         ];
 
         if (startTimeParam > 0) {
@@ -638,6 +640,7 @@ export function streamLocalVideo(filePath, req, res) {
             ...vArgs,
             ...aArgs,
             '-sn',
+            '-avoid_negative_ts', 'make_zero',
             '-f', 'mp4',
             '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
             'pipe:1'

@@ -10,6 +10,7 @@ const LocalFolderView = lazy(() => import('./views/LocalFolderView').then(m => (
 const DownloadsView = lazy(() => import('./views/DownloadsView').then(m => ({ default: m.DownloadsView })));
 const SearchView = lazy(() => import('./views/SearchView').then(m => ({ default: m.SearchView })));
 const QuickActionsModal = lazy(() => import('./components/QuickActionsModal').then(m => ({ default: m.QuickActionsModal })));
+const DriveConfigModal = lazy(() => import('./components/DriveConfigModal').then(m => ({ default: m.DriveConfigModal })));
 import {
   getTrendingMovies,
   getMovies,
@@ -17,8 +18,10 @@ import {
   getGenres,
   getLocalMovies,
   getLocalLibraryData,
+  getDriveMovies,
   getDownloads,
   getDownloadsData,
+  startDownload,
   pauseDownload,
   resumeDownload,
   getWatchHistory,
@@ -52,6 +55,8 @@ export function App() {
     savePath: 'D:\\Filmes'
   });
   const [localFilterId, setLocalFilterId] = useState('all');
+  const [driveMovies, setDriveMovies] = useState([]);
+  const [isDriveConfigOpen, setIsDriveConfigOpen] = useState(false);
   const [downloads, setDownloads] = useState([]);
   const [downloadsStorage, setDownloadsStorage] = useState(null);
   const [downloadsStats, setDownloadsStats] = useState(null);
@@ -89,6 +94,14 @@ export function App() {
   const refreshUserData = useCallback(() => {
     setWatchHistory(getWatchHistory());
     setFavorites(getFavorites());
+  }, []);
+
+  const refreshDriveLibrary = useCallback(() => {
+    getDriveMovies().then(movies => {
+      if (Array.isArray(movies)) {
+        setDriveMovies(movies);
+      }
+    }).catch(() => {});
   }, []);
 
   const [loadedAllMovies, setLoadedAllMovies] = useState(false);
@@ -296,10 +309,11 @@ export function App() {
     return list;
   }, [watchHistory, favorites, trendingMovies, seriesGenreSections, localMovies, genreSections]);
 
-  // Filtros disponíveis na visualização local: Pasta Local | Franquias
+  // Filtros disponíveis na visualização local: Pasta Local | Nuvem (Google Drive) | Franquias
   const localFilters = useMemo(() => {
     return [
       { id: 'all', label: 'Pasta Local', icon: 'folder' },
+      { id: 'gdrive', label: 'Nuvem (Google Drive)', icon: 'cloud' },
       { id: 'collections', label: 'Franquias', icon: 'collections_bookmark' }
     ];
   }, []);
@@ -307,9 +321,26 @@ export function App() {
   // Seções e linhas em grid full-page (8 colunas) para a visualização Local
   const localGridRows = useMemo(() => {
     const COL_COUNT = 8;
+
+    // 1. Modo Nuvem / Google Drive (Cinelar)
+    if (localFilterId === 'gdrive') {
+      const gMovies = driveMovies || [];
+      const rows = [];
+      for (let i = 0; i < gMovies.length; i += COL_COUNT) {
+        rows.push({
+          id: `gdrive-grid-${i}`,
+          title: i === 0 ? 'Filmes na Nuvem (Google Drive)' : '',
+          subtitle: i === 0 ? `${gMovies.length} ${gMovies.length === 1 ? 'filme disponível' : 'filmes disponíveis'} sincronizados de D:\\filmes\\Cinelar` : '',
+          icon: 'cloud',
+          movies: gMovies.slice(i, i + COL_COUNT)
+        });
+      }
+      return rows;
+    }
+
     if (!localLibrary || !localLibrary.movies) return [];
 
-    // 1. Modo Franquias (Coleções Agrupadas)
+    // 2. Modo Franquias (Coleções Agrupadas)
     if (localFilterId === 'collections') {
       const rows = [];
       (localLibrary.franchises || []).forEach(f => {
@@ -340,7 +371,7 @@ export function App() {
       return rows;
     }
 
-    // 2. Modo Padrão: 'all' (Pasta Local - Todos os filmes salvos)
+    // 3. Modo Padrão: 'all' (Pasta Local - Todos os filmes salvos)
     const allMovies = localLibrary.movies || [];
     const rows = [];
     for (let i = 0; i < allMovies.length; i += COL_COUNT) {
@@ -352,7 +383,7 @@ export function App() {
       });
     }
     return rows;
-  }, [localLibrary, localFilterId]);
+  }, [localLibrary, localFilterId, driveMovies]);
 
   // Seções e linhas em grade full-page (8 colunas) para a visualização de Favoritos
   const favoritesGridRows = useMemo(() => {
@@ -446,6 +477,24 @@ export function App() {
         return;
       }
       setSelectedMovie({ ...movie, position: resumePos });
+      return;
+    }
+
+    // Nuvem (Google Drive)
+    if (movie.isCloud || (movie.streamUrl && (movie.streamUrl.includes('drive.google.com') || movie.streamUrl.includes('drive.usercontent.google.com')))) {
+      setActiveStream({
+        id: movie.id,
+        movieId: movie.movieId || movie.id,
+        streamUrl: movie.streamUrl,
+        title: movie.title || movie.name || 'Filme na Nuvem',
+        poster: movie.poster,
+        backdrop: movie.backdrop || movie.poster,
+        quality: movie.quality || 'Nuvem 1080p',
+        isLocal: false,
+        isCloud: true,
+        duration: movie.duration || 0,
+        resumePosition: resumePos
+      });
       return;
     }
 
@@ -878,10 +927,41 @@ export function App() {
         break;
       }
 
-      case 'download':
+      case 'download': {
         setQuickMenuMovie(null);
-        setSelectedMovie(target);
+        if (target.isSeries || target.type === 'series') {
+          setSelectedMovie(target);
+          break;
+        }
+        const movieTitle = target.title || target.name || 'Filme';
+        showToast(`Iniciando download de "${movieTitle}"...`);
+        getMovieDetails(target).then(async (full) => {
+          const streams = full?.streams || [];
+          const best = streams[0];
+          if (best && best.magnet) {
+            const res = await startDownload({
+              magnet: best.magnet,
+              title: full.title || movieTitle,
+              poster: full.poster || target.poster || '',
+              backdrop: full.backdrop || target.backdrop || full.poster || '',
+              overview: full.synopsis || target.synopsis || '',
+              year: full.year || target.year || '',
+              imdbId: full.imdbId || target.imdbId || full.id || target.id,
+              quality: best.quality || '1080p Full HD'
+            });
+            if (res && (res.id || res.success !== false)) {
+              if (res.id) deletedDownloadIdsRef.current.delete(String(res.id).toLowerCase());
+              refreshDownloadsInfo();
+              showToast(`Download de "${full.title || movieTitle}" (${best.quality || '1080p'}) iniciado em D:\\Filmes!`);
+              return;
+            }
+          }
+          setSelectedMovie(full || target);
+        }).catch(() => {
+          setSelectedMovie(target);
+        });
         break;
+      }
 
       case 'remove_history':
         clearWatchProgress(target);
@@ -1236,6 +1316,9 @@ export function App() {
               nav.setLocalFilterIndex(idx);
               nav.setRowIndex(0);
               nav.setColIndex(0);
+              if (fid === 'gdrive') {
+                refreshDriveLibrary();
+              }
             }}
             gridRows={localGridRows}
             activeZone={nav.activeZone}
@@ -1244,6 +1327,8 @@ export function App() {
             colIndex={nav.colIndex}
             onSelectMovie={handleOpenQuickMenuForMovie}
             onContextMenuMovie={handleOpenQuickMenuForMovie}
+            onOpenDriveConfig={() => setIsDriveConfigOpen(true)}
+            serverStatus={serverStatus}
           />
         )}
 
@@ -1284,6 +1369,7 @@ export function App() {
           modalActionRef={modalActionRef}
           onToggleFavorite={refreshUserData}
           onDeleteLocal={executeDeleteLocalMovie}
+          onDownloadStarted={refreshDownloadsInfo}
           onClose={() => {
             setSelectedMovie(null);
             refreshUserData();
@@ -1321,6 +1407,15 @@ export function App() {
           onClose={handleCloseQuickMenu}
           onConfirmDelete={handleConfirmDelete}
           onCancelDelete={() => setConfirmDeleteMode(false)}
+        />
+      )}
+
+      {/* Modal de Configuração do Google Drive */}
+      {isDriveConfigOpen && (
+        <DriveConfigModal
+          isOpen={isDriveConfigOpen}
+          onClose={() => setIsDriveConfigOpen(false)}
+          onSaved={refreshDriveLibrary}
         />
       )}
 

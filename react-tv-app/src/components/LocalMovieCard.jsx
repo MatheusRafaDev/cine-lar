@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
-import { getSavedProgress } from '../services/api';
+import { getSavedProgress, resolveMoviePoster } from '../services/api';
 
 function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu }) {
   const cardRef = useRef(null);
   const pointerTimerRef = useRef(null);
   const pointerLongPressedRef = useRef(false);
   const [imgFailed, setImgFailed] = useState(false);
+  const [autoPoster, setAutoPoster] = useState('');
+  const triedAutoPosterRef = useRef(false);
 
   // Auto-scroll vertical leve sem reflow de scrollIntoView
   useEffect(() => {
@@ -21,7 +23,24 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
 
   useEffect(() => {
     setImgFailed(false);
+    setAutoPoster('');
+    triedAutoPosterRef.current = false;
   }, [movie?.poster, movie?.thumbnail, movie?.id]);
+
+  useEffect(() => {
+    const rawPoster = movie?.poster || movie?.thumbnail || '';
+    if ((!rawPoster || imgFailed) && !triedAutoPosterRef.current && movie) {
+      triedAutoPosterRef.current = true;
+      let active = true;
+      resolveMoviePoster(movie).then(found => {
+        if (active && found && found !== rawPoster) {
+          setAutoPoster(found);
+          setImgFailed(false);
+        }
+      });
+      return () => { active = false; };
+    }
+  }, [movie, imgFailed]);
 
   if (!movie) return null;
 
@@ -39,7 +58,7 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
     }
   };
 
-  const poster = movie.poster || movie.thumbnail || '';
+  const poster = autoPoster || movie.poster || movie.thumbnail || '';
   const title = movie.title || movie.name || movie.cleanName || 'Sem título';
   const year = movie.year || '';
   const size = movie.sizeFormatted || '';
@@ -105,14 +124,17 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
           </div>
         )}
 
-        {franchise && (
+        {movie.isCloud ? (
+          <div className="tv-card-badge-local" style={{ background: '#4285F4', color: '#FFFFFF' }}>
+            <span className="material-icons" style={{ fontSize: '11px', marginRight: '2px' }}>cloud</span>
+            <span>Drive</span>
+          </div>
+        ) : franchise ? (
           <div className="tv-card-badge-franchise" title={`Franquia ${franchise}`}>
             <span className="material-icons" style={{ fontSize: '12px' }}>collections_bookmark</span>
             <span>{franchise}</span>
           </div>
-        )}
-
-        {!franchise && (
+        ) : (
           <div className="tv-card-badge-local">
             <span className="material-icons" style={{ fontSize: '11px', marginRight: '2px' }}>folder</span>
             <span>Local</span>

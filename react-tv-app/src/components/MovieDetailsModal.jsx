@@ -23,7 +23,8 @@ export function MovieDetailsModal({
   onPlayStream,
   modalActionRef,
   onToggleFavorite,
-  onDeleteLocal
+  onDeleteLocal,
+  onDownloadStarted
 }) {
   const [details, setDetails] = useState(movie);
   const [loading, setLoading] = useState(false);
@@ -289,6 +290,7 @@ export function MovieDetailsModal({
         });
         if (res && (res.id || res.message || res.success !== false)) {
           setDownloadSuccess(true);
+          onDownloadStarted?.();
           showToast(`Download de "${cleanTitle}" (${streamToDownload.quality || '1080p'}) iniciado em D:\\Filmes!`);
         } else {
           showToast('Erro ao iniciar download no PC.');
@@ -306,6 +308,7 @@ export function MovieDetailsModal({
         });
         if (res && (res.id || res.message || res.success !== false)) {
           setDownloadSuccess(true);
+          onDownloadStarted?.();
           showToast(`Download de "${title}" (${streamToDownload.quality || '1080p'}) iniciado em D:\\Filmes!`);
         } else {
           showToast('Erro ao iniciar download no PC.');
@@ -422,6 +425,7 @@ export function MovieDetailsModal({
       });
       if (res && res.success !== false) {
         setDownloadSuccess(true);
+        onDownloadStarted?.();
         showToast(`Download da Temporada ${selectedSeason} de "${title}" (${pack.quality || '1080p'}) iniciado em D:\\Filmes\\Series!`);
       } else {
         showToast(res?.error || 'Erro ao iniciar download da temporada.');
@@ -446,6 +450,7 @@ export function MovieDetailsModal({
       });
       if (res && res.success !== false) {
         setDownloadSuccess(true);
+        onDownloadStarted?.();
         showToast(`Download de todas as temporadas de "${title}" iniciado em D:\\Filmes\\Series!`);
       } else {
         showToast(res?.error || 'Erro ao iniciar download da série completa.');

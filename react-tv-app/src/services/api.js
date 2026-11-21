@@ -121,6 +121,8 @@ export function normalizeMovie(item) {
     ? Number(item.progress)
     : (duration > 0 && position > 0 ? Math.min(100, Math.round((position / duration) * 100)) : null);
 
+  const isCloud = Boolean(item.isCloud || item.source === 'Google Drive' || (item.streamUrl && (item.streamUrl.includes('drive.google.com') || item.streamUrl.includes('drive.usercontent.google.com'))));
+
   return {
     ...item,
     id,
@@ -133,12 +135,13 @@ export function normalizeMovie(item) {
     rating: item.rating || item.imdbRating || null,
     imdbRating: item.rating || item.imdbRating || null,
     synopsis: item.description || item.synopsis || '',
-    isLocal,
+    isLocal: isCloud ? false : isLocal,
+    isCloud,
     filePath: resolvedFilePath,
     videoPath: resolvedFilePath,
     streamUrl: item.streamUrl || (resolvedFilePath ? `/api/local/stream?file=${encodeURIComponent(resolvedFilePath)}` : ''),
     infoHash: item.infoHash || null,
-    quality: item.quality || '',
+    quality: item.quality || (isCloud ? '1080p Nuvem' : ''),
     isSeries,
     type: isSeries ? 'series' : (item.type || 'movie'),
     season: item.season || null,
@@ -247,7 +250,39 @@ export async function getLocalMovies() {
   }
 }
 
-// 4.1 Obter biblioteca local completa com franquias e filmes avulsos estruturados
+// Utilitários para formatação e limpeza de nomes de arquivos
+export function formatBytes(bytes) {
+  if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+export function cleanMovieFileName(raw) {
+  if (!raw) return 'Sem título';
+  let name = String(raw).replace(/\.(mp4|mkv|avi|webm|ts|mov)$/i, '');
+  name = name.replace(/\(?www\.[^\)\s]+\)?/gi, ' ');
+  name = name.replace(/\b[a-z0-9\-]+\.(com|net|org|tv|me)(\.br)?\b/gi, ' ');
+  name = name.replace(/\[ACESSE\.\.\.[^\]]+\]/gi, '');
+  name = name.replace(/\((19\d\d|20\d\d)\)/g, '');
+  name = name.replace(/([a-zA-ZÀ-ÿ])(19\d\d|20\d\d)\b.*/, '$1');
+  name = name.replace(/\b(19\d\d|20\d\d)\b.*/, '');
+  name = name.replace(/(\.|\_)/g, ' ');
+  name = name.replace(/\[[^\]]+\]/g, ' ');
+  name = name.replace(/\b(1080p|720p|2160p|4k|bluray|bdrip|brrip|dvdrip|web-dl|webrip|web|hdtv|dual|dualaudio|dublado|legendado|nacional|ac3|eac3|aac|x264|x265|hevc|h264|imax|open matte|fullhd)\b.*/i, '');
+  name = name.replace(/[\(\)\[\]\-]/g, ' ');
+  name = name.replace(/\s+/g, ' ').trim();
+  return name || raw;
+}
+
+export function extractYearFromName(raw) {
+  if (!raw) return '';
+  const match = String(raw).match(/(?:^|[^0-9])(19\d\d|20\d\d)\b/);
+  return match ? match[1] : '';
+}
+
+// 4.1 Obter biblioteca local completa com franquias e filmes avulsos estruturados (com persistência offline no localStorage)
 export async function getLocalLibraryData() {
   try {
     const data = await request('/api/local-movies');
@@ -262,7 +297,7 @@ export async function getLocalLibraryData() {
       episodes: (s.episodes || []).map(normalizeMovie)
     }));
 
-    return {
+    const result = {
       movies,
       franchises,
       standaloneMovies,
@@ -271,7 +306,27 @@ export async function getLocalLibraryData() {
       totalSize: data.totalSize || '',
       savePath: data.savePath || 'D:\\Filmes'
     };
+
+    try {
+      localStorage.setItem('mf_cached_local_library', JSON.stringify(result));
+    } catch (_) {}
+
+    return result;
   } catch (_) {
+    // Modo Offline: Quando o PC estiver desligado, utiliza o último catálogo em cache para nunca deixar a TV vazia
+    try {
+      const cached = localStorage.getItem('mf_cached_local_library');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && Array.isArray(parsed.movies) && parsed.movies.length > 0) {
+          return {
+            ...parsed,
+            isOfflineCached: true
+          };
+        }
+      }
+    } catch (_) {}
+
     return {
       movies: [],
       franchises: [],
@@ -282,6 +337,128 @@ export async function getLocalLibraryData() {
       savePath: 'D:\\Filmes'
     };
   }
+}
+
+// 4.2 Integração com Google Drive (Nuvem Cinelar)
+export function getDriveConfig() {
+  try {
+    return {
+      folderId: localStorage.getItem('mf_gdrive_folder_id') || '',
+      apiKey: localStorage.getItem('mf_gdrive_api_key') || ''
+    };
+  } catch (_) {
+    return { folderId: '', apiKey: '' };
+  }
+}
+
+export function setDriveConfig({ folderId = '', apiKey = '' } = {}) {
+  try {
+    if (folderId !== undefined) {
+      // Extrai o ID caso o usuário cole a URL inteira de compartilhamento do Drive
+      let cleanId = folderId.trim();
+      const match = cleanId.match(/folders\/([a-zA-Z0-9_-]+)/);
+      if (match) cleanId = match[1];
+      localStorage.setItem('mf_gdrive_folder_id', cleanId);
+    }
+    if (apiKey !== undefined) {
+      localStorage.setItem('mf_gdrive_api_key', apiKey.trim());
+    }
+  } catch (_) {}
+}
+
+export async function getDriveMovies() {
+  const config = getDriveConfig();
+  const folderId = config.folderId;
+  const apiKey = config.apiKey;
+
+  // 1. Se houver folderId configurado e apiKey, consulta diretamente a Google Drive API v3
+  if (folderId && apiKey) {
+    try {
+      const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
+      const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,size,mimeType,webContentLink,thumbnailLink)&key=${encodeURIComponent(apiKey)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        const files = (data.files || []).filter(f => /\.(mp4|mkv|avi|webm|ts)$/i.test(f.name) || (f.mimeType && f.mimeType.startsWith('video/')));
+        if (files.length > 0) {
+          const cloudMovies = files.map(f => {
+            const streamUrl = `https://drive.usercontent.google.com/download?id=${f.id}&export=download&confirm=t`;
+            return normalizeMovie({
+              id: `gdrive_${f.id}`,
+              movieId: `gdrive_${f.id}`,
+              title: cleanMovieFileName(f.name),
+              year: extractYearFromName(f.name),
+              poster: f.thumbnailLink || '',
+              backdrop: '',
+              sizeFormatted: formatBytes(Number(f.size || 0)),
+              sizeBytes: Number(f.size || 0),
+              format: (f.name.split('.').pop() || 'MP4').toUpperCase(),
+              streamUrl,
+              filePath: f.name,
+              videoPath: streamUrl,
+              isCloud: true,
+              isLocal: false,
+              source: 'Google Drive',
+              synopsis: `Arquivo sincronizado no Google Drive (Cinelar). Tamanho: ${formatBytes(Number(f.size || 0))}`
+            });
+          });
+
+          try {
+            localStorage.setItem('mf_cached_gdrive_movies', JSON.stringify(cloudMovies));
+          } catch (_) {}
+          return cloudMovies;
+        }
+      }
+    } catch (e) {
+      console.warn('[GoogleDrive] Falha ao consultar Google Drive API:', e.message);
+    }
+  }
+
+  // 2. Se o servidor local estiver online, busca a lista dos arquivos da pasta Cinelar (D:\filmes\Cinelar)
+  try {
+    const data = await request(`/api/gdrive/files${folderId ? `?folderId=${encodeURIComponent(folderId)}` : ''}`);
+    if (data && Array.isArray(data.movies) && data.movies.length > 0) {
+      const cloudMovies = data.movies.map(normalizeMovie);
+      try {
+        localStorage.setItem('mf_cached_gdrive_movies', JSON.stringify(cloudMovies));
+      } catch (_) {}
+      return cloudMovies;
+    }
+  } catch (_) {}
+
+  // 3. Fallback inteligente: Se o servidor local estiver offline e houver filmes salvos na pasta Cinelar no cache local
+  try {
+    const localCached = localStorage.getItem('mf_cached_local_library');
+    if (localCached) {
+      const parsed = JSON.parse(localCached);
+      if (parsed && Array.isArray(parsed.movies)) {
+        const cinelarMovies = parsed.movies.filter(m => {
+          const p = String(m.filePath || m.videoPath || '').toLowerCase();
+          return p.includes('cinelar') || m.isCloud;
+        });
+        if (cinelarMovies.length > 0) {
+          return cinelarMovies.map(m => normalizeMovie({
+            ...m,
+            isCloud: true,
+            quality: 'Nuvem Cinelar'
+          }));
+        }
+      }
+    }
+  } catch (_) {}
+
+  // 4. Fallback para cache de nuvem gravado anteriormente
+  try {
+    const cached = localStorage.getItem('mf_cached_gdrive_movies');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(normalizeMovie);
+      }
+    }
+  } catch (_) {}
+
+  return [];
 }
 
 // 5. Obter torrents e detalhes do filme para reprodução
@@ -336,6 +513,30 @@ export async function searchMovies(query) {
   } catch (_) {
     return [];
   }
+}
+
+// 6.1 Descobrir capa automaticamente para títulos sem poster ou cujo poster falhou ao carregar
+const posterResolveCache = new Map();
+export async function resolveMoviePoster(movie) {
+  if (!movie) return '';
+  const title = (movie.cleanName || movie.title || movie.name || '').trim();
+  const imdbId = (movie.imdbId || (String(movie.id || '').startsWith('tt') ? movie.id : '') || '').trim();
+  const year = movie.year || '';
+  if (!title && !imdbId) return '';
+
+  const cacheKey = `${imdbId.toLowerCase()}|${title.toLowerCase()}|${year}`;
+  if (posterResolveCache.has(cacheKey)) {
+    return posterResolveCache.get(cacheKey);
+  }
+
+  const promise = request(
+    `/api/movies/poster?imdbId=${encodeURIComponent(imdbId)}&title=${encodeURIComponent(title)}&year=${encodeURIComponent(year)}`
+  )
+    .then(data => (data && data.poster ? data.poster : ''))
+    .catch(() => '');
+
+  posterResolveCache.set(cacheKey, promise);
+  return promise;
 }
 
 // 7. Lista de downloads e telemetria de disco

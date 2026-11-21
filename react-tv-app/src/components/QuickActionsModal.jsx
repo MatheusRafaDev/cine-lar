@@ -156,18 +156,18 @@ export const QuickActionsModal = memo(function QuickActionsModal({
       iconColor: isFav ? '#F5C518' : 'inherit'
     });
 
-    // 5. Baixar para o Computador (apenas para títulos online)
-    if (!isLocal && !movie.isLocal) {
+    // 5. Baixar para o Computador (apenas para títulos online que não sejam da nuvem)
+    if (!isLocal && !movie.isLocal && !movie.isCloud) {
       actions.push({
         id: 'download',
         title: 'Baixar para o Computador',
-        subtitle: 'Salvar em D:\\Filmes para assistir offline',
+        subtitle: 'Salvar em D:\\Filmes\\Cinelar para sincronizar com o Drive',
         icon: 'file_download'
       });
     }
 
     // 6. Apagar do Disco (se for arquivo local de D:\Filmes)
-    if (isLocal || movie.isLocal || movie.filePath) {
+    if ((isLocal || movie.isLocal || movie.filePath) && !movie.isCloud) {
       actions.push({
         id: 'delete_local',
         title: 'Apagar do Disco (D:\\Filmes)',

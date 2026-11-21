@@ -12,7 +12,9 @@ export function LocalFolderView({
   rowIndex = 0,
   colIndex = 0,
   onSelectMovie = () => {},
-  onContextMenuMovie = () => {}
+  onContextMenuMovie = () => {},
+  onOpenDriveConfig = () => {},
+  serverStatus = 'online'
 }) {
   const isFiltersFocused = activeZone === 'local-filters';
   const isRowsFocused = activeZone === 'rows';
@@ -36,24 +38,34 @@ export function LocalFolderView({
   const savePath = localLibrary.savePath || 'D:\\Filmes';
 
   const isCollectionsMode = activeFilter === 'collections';
+  const isDriveMode = activeFilter === 'gdrive';
+  const cloudMovieCount = gridRows.reduce((acc, r) => acc + (r.movies ? r.movies.length : 0), 0);
 
   return (
     <div className="tv-view-container tv-local-view" style={{ paddingTop: '76px' }}>
-      {/* 1. Cabeçalho Editorial com Estatísticas do Disco */}
+      {/* 1. Cabeçalho Editorial com Estatísticas do Disco ou Nuvem */}
       <div className="tv-page-header tv-local-header">
         <div className="tv-page-header-row">
-          <h1 className="tv-page-title">Pasta Local</h1>
-          <span className="tv-badge-pill tv-badge-path">
-            <span className="material-icons" style={{ fontSize: '14px' }}>folder</span>
-            <span>{savePath}</span>
+          <h1 className="tv-page-title">{isDriveMode ? 'Nuvem (Google Drive)' : 'Pasta Local'}</h1>
+          <span className="tv-badge-pill tv-badge-path" style={isDriveMode ? { borderColor: '#4285F4', color: '#8AB4F8' } : {}}>
+            <span className="material-icons" style={{ fontSize: '14px' }}>{isDriveMode ? 'cloud' : 'folder'}</span>
+            <span>{isDriveMode ? 'D:\\filmes\\Cinelar ➔ Google Drive' : savePath}</span>
           </span>
           <span className="tv-badge-pill tv-badge-stats">
-            {count} filmes • {totalSize || '74 GB'} • {franchisesCount} coleções
+            {isDriveMode
+              ? `${cloudMovieCount} filmes disponíveis na nuvem`
+              : `${count} filmes • ${totalSize || '74 GB'} • ${franchisesCount} coleções`}
           </span>
+          {serverStatus === 'offline' && (
+            <span className="tv-badge-pill" style={{ background: 'rgba(234, 67, 53, 0.2)', color: '#FF8A80', borderColor: 'rgba(234, 67, 53, 0.4)' }}>
+              <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>power_off</span>
+              PC Desligado (Modo Nuvem)
+            </span>
+          )}
         </div>
       </div>
 
-      {/* 2. Alternador de Exibição: Pasta Local | Franquias */}
+      {/* 2. Alternador de Exibição: Pasta Local | Nuvem (Google Drive) | Franquias */}
       <div className="tv-local-toggle-container">
         <div className="tv-local-toggle-bar">
           {filters.map((f, idx) => {
@@ -77,11 +89,32 @@ export function LocalFolderView({
 
       {/* 3. Área de Conteúdo: Grid Full-Page Vertical (Sem Carrossel) */}
       {gridRows.length === 0 ? (
-        <div className="tv-empty-container">
-          <span className="material-icons" style={{ fontSize: '64px', color: 'var(--text-subtle)' }}>folder_off</span>
-          <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Nenhum filme encontrado nesta categoria</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Adicione arquivos à pasta {savePath} ou selecione outro filtro.</p>
-        </div>
+        isDriveMode ? (
+          <div className="tv-empty-container" style={{ padding: '60px 20px', maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
+            <span className="material-icons" style={{ fontSize: '64px', color: '#4285F4' }}>cloud_sync</span>
+            <h2 style={{ fontSize: '24px', fontWeight: 700, marginTop: '16px' }}>Sincronização com Google Drive</h2>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '15px', marginTop: '8px' }}>
+              A sua pasta <strong>D:\filmes\Cinelar</strong> é sincronizada com o Google Drive para você assistir diretamente na TV mesmo com o computador desligado.
+            </p>
+            <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="tv-local-toggle-btn active focused"
+                onClick={onOpenDriveConfig}
+                style={{ background: '#4285F4', color: '#FFF', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
+                <span className="material-icons" style={{ fontSize: '18px' }}>settings</span>
+                <span>Configurar Pasta do Drive</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="tv-empty-container">
+            <span className="material-icons" style={{ fontSize: '64px', color: 'var(--text-subtle)' }}>folder_off</span>
+            <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Nenhum filme encontrado nesta categoria</h2>
+            <p style={{ color: 'var(--text-muted)' }}>Adicione arquivos à pasta {savePath} ou selecione outro filtro.</p>
+          </div>
+        )
       ) : isCollectionsMode ? (
         /* Modo Coleções Agrupadas: Seções com Título de Franquia + Grid de cada franquia */
         <div className="tv-collections-container">

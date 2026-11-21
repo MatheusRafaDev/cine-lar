@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
-import { getSavedProgress } from '../services/api';
+import { getSavedProgress, resolveMoviePoster } from '../services/api';
 
 function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu }) {
   const cardRef = useRef(null);
   const pointerTimerRef = useRef(null);
   const pointerLongPressedRef = useRef(false);
   const [imgFailed, setImgFailed] = useState(false);
+  const [autoPoster, setAutoPoster] = useState('');
+  const triedAutoPosterRef = useRef(false);
 
   // Quando o card ganha foco, rola apenas o trilho horizontal via offsetLeft (Zero Reflow Engine)
   useEffect(() => {
@@ -23,7 +25,24 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
 
   useEffect(() => {
     setImgFailed(false);
+    setAutoPoster('');
+    triedAutoPosterRef.current = false;
   }, [movie?.poster, movie?.thumbnail, movie?.id]);
+
+  useEffect(() => {
+    const rawPoster = movie?.poster || movie?.thumbnail || '';
+    if ((!rawPoster || imgFailed) && !triedAutoPosterRef.current && movie) {
+      triedAutoPosterRef.current = true;
+      let active = true;
+      resolveMoviePoster(movie).then(found => {
+        if (active && found && found !== rawPoster) {
+          setAutoPoster(found);
+          setImgFailed(false);
+        }
+      });
+      return () => { active = false; };
+    }
+  }, [movie, imgFailed]);
 
   if (!movie) return null;
 
@@ -41,7 +60,7 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
     }
   };
 
-  const poster = movie.poster || movie.thumbnail || '';
+  const poster = autoPoster || movie.poster || movie.thumbnail || '';
   const title = movie.title || movie.name || 'Sem título';
   const year = movie.year || (movie.releaseDate ? String(movie.releaseDate).slice(0, 4) : '');
   const rating = movie.imdbRating || movie.rating || null;

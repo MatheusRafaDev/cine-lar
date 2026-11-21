@@ -27,33 +27,35 @@ trust_anchor: []
 
 # list of files in web project (.html,.css etc) and resources
 files:
-  - assets/CarouselRow-VImZgjEn.js
-  - assets/CarouselRow-legacy-Be3Pj2CZ.js
-  - assets/CinemaPlayer-legacy-BqqrIdzk.js
-  - assets/CinemaPlayer-mpUxNDVr.js
+  - assets/CarouselRow-DY0p2Rgh.js
+  - assets/CarouselRow-legacy-C6UgMVGS.js
+  - assets/CinemaPlayer-CBb1nW2V.js
+  - assets/CinemaPlayer-legacy-DYvCwWIo.js
   - assets/DownloadsView-CDsuZTFE.js
   - assets/DownloadsView-legacy-mxVpKh00.js
-  - assets/FavoritesView-D-ao3YnO.js
-  - assets/FavoritesView-legacy-ClHN5G8j.js
-  - assets/HomeView-DyTbI2qv.js
-  - assets/HomeView-legacy-CuA8Y3BT.js
-  - assets/LocalFolderView-DpFi0e4P.js
-  - assets/LocalFolderView-legacy-lkr3IMre.js
-  - assets/MovieCard-B0xlGmHN.js
-  - assets/MovieCard-legacy-B4c9J_2z.js
-  - assets/MovieDetailsModal-CtX_jKrX.js
-  - assets/MovieDetailsModal-legacy-C8aFDRGD.js
-  - assets/MoviesView-ZSSd5pMP.js
-  - assets/MoviesView-legacy-c2PMlanl.js
-  - assets/QuickActionsModal-legacy--fept1_2.js
-  - assets/QuickActionsModal-sjAdoqTR.js
-  - assets/SearchView-DHGfsbWL.js
-  - assets/SearchView-legacy-D0aY6g1s.js
-  - assets/SeriesView-DEh-UaBD.js
-  - assets/SeriesView-legacy-CxC361Qm.js
+  - assets/DriveConfigModal-BnTz_zSF.js
+  - assets/DriveConfigModal-legacy-Cf7x3WJq.js
+  - assets/FavoritesView-BYUlLWyI.js
+  - assets/FavoritesView-legacy-DFyYEFgL.js
+  - assets/HomeView-CUSXXf-B.js
+  - assets/HomeView-legacy-XwfqKoTp.js
+  - assets/LocalFolderView-Cp8q-aR5.js
+  - assets/LocalFolderView-legacy-DJ69RKnS.js
+  - assets/MovieCard-a4SCDK91.js
+  - assets/MovieCard-legacy-DOipHZd4.js
+  - assets/MovieDetailsModal-BK-C35s4.js
+  - assets/MovieDetailsModal-legacy-D15x4zqO.js
+  - assets/MoviesView-Dw5NPCoP.js
+  - assets/MoviesView-legacy-CUsw0e9g.js
+  - assets/QuickActionsModal-D_G-BC4v.js
+  - assets/QuickActionsModal-legacy-YKv-AgPh.js
+  - assets/SearchView-B8o3jCzW.js
+  - assets/SearchView-legacy-_OGnNQe1.js
+  - assets/SeriesView-CNHs4gm3.js
+  - assets/SeriesView-legacy-CzjYtvHt.js
   - assets/index-Bv-D5wR6.css
-  - assets/index-cnzvqMgP.js
-  - assets/index-legacy-CbHurQBY.js
+  - assets/index-CB0QSxEK.js
+  - assets/index-legacy-nAhv1Sbf.js
   - assets/material-icons-latin-400-normal-B5tbEuci.woff
   - assets/material-icons-latin-400-normal-kAwBdRge.woff2
   - assets/plus-jakarta-sans-latin-400-normal-BDKaGhyp.woff
@@ -66,7 +68,7 @@ files:
   - assets/plus-jakarta-sans-latin-700-normal-DqEcQeE5.woff
   - assets/plus-jakarta-sans-latin-800-normal-BRNHt2w0.woff
   - assets/plus-jakarta-sans-latin-800-normal-CusIZhrK.woff2
-  - assets/polyfills-legacy-Bn4lZXB-.js
+  - assets/polyfills-legacy-BAJ3xPB1.js
   - assets/react-vendor-DKJPOvK7.js
   - assets/react-vendor-legacy-ChsNuLM3.js
   - icon.png

@@ -8,8 +8,9 @@ import WebTorrent from 'webtorrent';
 import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites, isUserFavorite, toggleUserFavorite, updateWatchProgress, getWatchHistory, deleteWatchHistory, getMovieById } from './db.js';
 import { seedCatalog, scanLocalMovies } from './seeder.js';
 import { askAiMovieRecommendations } from './aiSearch.js';
-import { getLocalLibrary, streamLocalVideo, deleteLocalFile, renameLocalFile, invalidateLocalCache, removeFileFromLocalCache } from './localScanner.js';
+import { getLocalLibrary, streamLocalVideo, deleteLocalFile, renameLocalFile, invalidateLocalCache, removeFileFromLocalCache, getMediaInfo } from './localScanner.js';
 import { getOrganizedDownloadPath, groupMediaLibrary } from './organizer.js';
+import { fetchPtBrMetadata, searchPtBrMovie } from './tmdbHelper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -443,6 +444,79 @@ function prioritizeVideoForStreaming(torrent, file) {
         console.warn('[TorrentService] prioritizeVideoForStreaming warning:', e.message);
     }
 }
+
+function attachPermanentTorrentHandlers(torrent, infoHash) {
+    if (!torrent || torrent._permanentHandlersAttached) return;
+    torrent._permanentHandlersAttached = true;
+
+    const onReady = () => {
+        console.log(`[TorrentService] Torrent ready: "${torrent.name}" (${formatBytes(torrent.length)})`);
+        const video = selectBestVideoFile(torrent.files);
+        if (video) {
+            prioritizeVideoForStreaming(torrent, video);
+        }
+    };
+
+    if (torrent.ready) {
+        onReady();
+    } else {
+        torrent.once('ready', onReady);
+    }
+
+    torrent.on('done', () => {
+        console.log(`[TorrentService] Download COMPLETED: "${torrent.name}"!`);
+        const item = downloadsRegistry.get(infoHash);
+        if (item && item.quality !== 'Streaming') {
+            item.status = 'completed';
+            item.isPaused = false;
+            item.progress = 100;
+            item.downloaded = formatBytes(torrent.length);
+            item.total = formatBytes(torrent.length);
+            item.completedAt = new Date().toISOString();
+            persistDownloads();
+        }
+        scanLocalMovies(SAVE_PATH);
+        refreshJellyfinLibrary();
+    });
+
+    torrent.on('error', (err) => {
+        console.error(`[TorrentService] Torrent error (${infoHash}):`, err.message);
+    });
+}
+
+function ensureTorrentRunningForDownload(metaItem) {
+    if (!metaItem || !metaItem.id || metaItem.quality === 'Streaming') return null;
+    const infoHash = String(metaItem.id).trim().toLowerCase();
+    let torrent = getActiveTorrent(infoHash);
+    if (torrent) {
+        attachPermanentTorrentHandlers(torrent, infoHash);
+        return torrent;
+    }
+    if (metaItem.status === 'downloading' && !metaItem.isPaused && metaItem.magnet) {
+        const targetDir = metaItem.savePath || PLATFORM_DOWNLOAD_PATH;
+        try {
+            if (!fs.existsSync(targetDir)) {
+                fs.mkdirSync(targetDir, { recursive: true });
+            }
+            console.log(`[TorrentService] Retomando download salvo "${metaItem.title}" (${infoHash}) em ${targetDir}`);
+            torrent = client.add(metaItem.magnet, { path: targetDir });
+            attachPermanentTorrentHandlers(torrent, infoHash);
+            return torrent;
+        } catch (e) {
+            console.warn(`[TorrentService] Falha ao iniciar torrent salvo (${infoHash}):`, e.message);
+        }
+    }
+    return null;
+}
+
+// Retoma automaticamente os downloads ativos carregados do downloads.json ao iniciar o servidor
+setImmediate(() => {
+    for (const item of downloadsRegistry.values()) {
+        if (item && item.status === 'downloading' && !item.isPaused) {
+            ensureTorrentRunningForDownload(item);
+        }
+    }
+});
 
 function buildMagnet(infoHash, name, extraTrackers = []) {
     let magnet = `magnet:?xt=urn:btih:${infoHash}`;
@@ -1935,6 +2009,77 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        // Google Drive / Cloud synchronized movies from D:\filmes\Cinelar
+        if (pathname === '/api/gdrive/files' && req.method === 'GET') {
+            try {
+                const cinelarPath = path.join(SAVE_PATH, 'Cinelar');
+                let movies = [];
+                if (fs.existsSync(cinelarPath)) {
+                    movies = await getLocalLibrary(cinelarPath, false, getActiveDownloadingPaths());
+                }
+                // Se a pasta Cinelar tiver poucos filmes ou estiver vazia, filtra filmes de Cinelar na biblioteca local
+                if (movies.length === 0) {
+                    const allLocal = await getLocalLibrary(SAVE_PATH, false, getActiveDownloadingPaths());
+                    movies = allLocal.filter(m => {
+                        const p = String(m.filePath || '').toLowerCase();
+                        return p.includes('cinelar');
+                    });
+                }
+                const cloudMovies = movies.map(m => ({
+                    ...m,
+                    isCloud: true,
+                    quality: 'Nuvem 1080p',
+                    source: 'Google Drive'
+                }));
+
+                res.writeHead(200, {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Cache-Control': 'private, max-age=15'
+                });
+                res.end(JSON.stringify({
+                    movies: cloudMovies,
+                    count: cloudMovies.length,
+                    syncPath: cinelarPath
+                }));
+            } catch (err) {
+                console.error('[TorrentService] GDrive files error:', err.message);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: err.message, movies: [] }));
+            }
+            return;
+        }
+
+        // Automatic poster discovery endpoint for any movie missing or failing cover art
+        if (pathname === '/api/movies/poster' && req.method === 'GET') {
+            try {
+                const imdbId = (urlObj.searchParams.get('imdbId') || '').trim();
+                const title = (urlObj.searchParams.get('title') || '').trim();
+                const yearParam = parseInt(urlObj.searchParams.get('year'), 10) || null;
+
+                let resolved = null;
+                if (imdbId && imdbId.startsWith('tt')) {
+                    resolved = await fetchPtBrMetadata(imdbId);
+                }
+                if ((!resolved || !resolved.poster) && title) {
+                    resolved = await searchPtBrMovie(title, yearParam);
+                }
+
+                res.writeHead(200, {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Cache-Control': 'public, max-age=3600'
+                });
+                res.end(JSON.stringify({
+                    poster: resolved?.poster || '',
+                    backdrop: resolved?.backdrop || resolved?.poster || '',
+                    title: resolved?.titleBr || title
+                }));
+            } catch (err) {
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ poster: '', backdrop: '' }));
+            }
+            return;
+        }
+
         // Rescan local movies library
         if (pathname === '/api/local-movies/rescan' && req.method === 'POST') {
             try {
@@ -2084,10 +2229,15 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // List active / completed downloads
+        // List active / completed downloads (exclui sessões temporárias de streaming online)
         if (pathname === '/api/downloads' && req.method === 'GET') {
-            const list = Array.from(downloadsRegistry.values()).map(meta => {
-                const torrent = getActiveTorrent(meta.id);
+            const list = Array.from(downloadsRegistry.values())
+                .filter(meta => meta && meta.quality !== 'Streaming')
+                .map(meta => {
+                let torrent = getActiveTorrent(meta.id);
+                if (!torrent && meta.status === 'downloading' && !meta.isPaused && meta.magnet) {
+                    torrent = ensureTorrentRunningForDownload(meta);
+                }
                 let poster = meta.poster;
                 let backdrop = meta.backdrop || meta.poster;
                 if (!poster && meta.imdbId) {
@@ -2097,8 +2247,19 @@ const server = http.createServer(async (req, res) => {
                             poster = local.poster;
                             backdrop = local.backdrop || local.poster;
                         } else if (meta.imdbId.startsWith('tt')) {
-                            poster = `https://images.metahub.space/poster/medium/${meta.imdbId}/img`;
+                            poster = `https://images.metahub.space/poster/small/${meta.imdbId}/img`;
                             backdrop = `https://images.metahub.space/background/medium/${meta.imdbId}/img`;
+                        }
+                    } catch (_) {}
+                }
+                if (!poster && meta.title) {
+                    try {
+                        const found = searchCatalog(meta.title, { limit: 1 })?.[0];
+                        if (found && found.poster) {
+                            poster = found.poster;
+                            backdrop = found.backdrop || found.poster;
+                            meta.poster = poster;
+                            meta.backdrop = backdrop;
                         }
                     } catch (_) {}
                 }
@@ -2417,18 +2578,6 @@ const server = http.createServer(async (req, res) => {
 
                 // Tizen/Chromium HTML5 <video> exige container MP4 para exibir o quadro de video (MKV puro toca apenas o audio!)
                 if ((isTranscode || isMkvOrIncompatible) && RESOLVED_FFMPEG) {
-                    console.log(`[StreamingTranscode] Ativando remux/conversao em tempo real com FFmpeg para "${file.name}" (start: ${startTimeParam}s)`);
-
-                    if (req.method === 'HEAD') {
-                        res.writeHead(200, {
-                            'Content-Type': 'video/mp4',
-                            'Accept-Ranges': 'none',
-                            'Access-Control-Allow-Origin': '*'
-                        });
-                        res.end();
-                        return;
-                    }
-
                     // Tenta achar arquivo local no disco (inclusive em subpasta com o nome do release)
                     const baseNoExt = (file.name || '').replace(/\.[^.]+$/, '');
                     const dlMeta = downloadsRegistry.get(infoHash);
@@ -2452,6 +2601,22 @@ const server = http.createServer(async (req, res) => {
                             }
                         } catch (_) {}
                     }
+
+                    const mediaDur = diskFilePath ? (getMediaInfo(diskFilePath).duration || 0) : 0;
+
+                    if (req.method === 'HEAD') {
+                        res.writeHead(200, {
+                            'Content-Type': 'video/mp4',
+                            'Accept-Ranges': 'none',
+                            'X-Media-Duration': String(mediaDur),
+                            'Access-Control-Allow-Origin': '*',
+                            'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
+                        });
+                        res.end();
+                        return;
+                    }
+
+                    console.log(`[StreamingTranscode] Ativando remux/conversao em tempo real com FFmpeg para "${file.name}" (start: ${startTimeParam}s, dur: ${mediaDur}s)`);
 
                     const args = [
                         '-hide_banner',
@@ -2489,6 +2654,7 @@ const server = http.createServer(async (req, res) => {
                         ...vArgs,
                         ...aArgs,
                         '-sn',
+                        '-avoid_negative_ts', 'make_zero',
                         '-f', 'mp4',
                         '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
                         'pipe:1'
@@ -2498,6 +2664,7 @@ const server = http.createServer(async (req, res) => {
                         'Content-Type': 'video/mp4',
                         'Accept-Ranges': 'none',
                         'Cache-Control': 'no-cache, no-store',
+                        'X-Media-Duration': String(mediaDur),
                         'Access-Control-Allow-Origin': '*',
                         'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
                     });
@@ -2713,11 +2880,10 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-                    const existingTorrent = getActiveTorrent(infoHash);
-                    if (existingTorrent) {
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ message: 'Download already active', id: infoHash }));
-                        return;
+                    // Cancela qualquer timer de encerramento de stream temporário caso o usuário tenha clicado em Baixar
+                    if (streamIdleTimers.has(infoHash)) {
+                        clearTimeout(streamIdleTimers.get(infoHash));
+                        streamIdleTimers.delete(infoHash);
                     }
 
                     const org = getOrganizedDownloadPath(PLATFORM_DOWNLOAD_PATH, title, filename, { isSeries, seriesName, season, episode });
@@ -2729,18 +2895,31 @@ const server = http.createServer(async (req, res) => {
                         console.warn('[TorrentService] Could not create target directory:', e.message);
                     }
 
+                    if (!poster && title) {
+                        try {
+                            const found = searchCatalog(title, { limit: 1 })?.[0];
+                            if (found && found.poster) {
+                                poster = found.poster;
+                                backdrop = found.backdrop || found.poster;
+                            }
+                        } catch (_) {}
+                    }
+
                     console.log(`[TorrentService] Starting organized download: "${title || filename}" into ${org.targetPath} (${org.category}: ${org.groupName || 'filme'})`);
+
+                    const existingMeta = downloadsRegistry.get(infoHash);
+                    const existingTorrent = getActiveTorrent(infoHash);
 
                     const metaItem = {
                         id: infoHash,
-                        imdbId: imdbId || '',
-                        title: title || filename || 'Filme',
-                        quality: quality || '1080p',
+                        imdbId: imdbId || existingMeta?.imdbId || '',
+                        title: title || filename || existingMeta?.title || 'Filme',
+                        quality: (quality && quality !== 'Streaming') ? quality : (existingMeta?.quality && existingMeta.quality !== 'Streaming' ? existingMeta.quality : '1080p Full HD'),
                         magnet: magnet,
-                        poster: poster || '',
-                        backdrop: backdrop || '',
-                        overview: overview || '',
-                        year: year || '',
+                        poster: poster || existingMeta?.poster || '',
+                        backdrop: backdrop || existingMeta?.backdrop || poster || '',
+                        overview: overview || existingMeta?.overview || '',
+                        year: year || existingMeta?.year || '',
                         category: org.category,
                         groupName: org.groupName,
                         isSeries: Boolean(isSeries || org.category === 'series'),
@@ -2748,50 +2927,34 @@ const server = http.createServer(async (req, res) => {
                         season: season || null,
                         episode: episode || null,
                         destinationPath: org.displayPath,
-                        savePath: org.targetPath,
-                        status: 'downloading',
+                        savePath: existingTorrent?.path || org.targetPath,
+                        status: existingTorrent?.done ? 'completed' : 'downloading',
+                        progress: existingTorrent ? parseFloat((existingTorrent.progress * 100).toFixed(1)) : 0,
                         isPaused: false,
-                        createdAt: new Date().toISOString()
+                        createdAt: existingMeta?.createdAt || new Date().toISOString()
                     };
                     downloadsRegistry.set(infoHash, metaItem);
                     persistDownloads();
 
-                    const torrent = client.add(magnet, { path: org.targetPath }, (t) => {
-                        console.log(`[TorrentService] Torrent ready: "${t.name}" (${formatBytes(t.length)})`);
-                        const video = selectBestVideoFile(t.files);
-                        if (video) {
-                            prioritizeVideoForStreaming(t, video);
-                        }
-                    });
+                    if (existingTorrent) {
+                        try {
+                            if (existingTorrent.paused && typeof existingTorrent.resume === 'function') {
+                                existingTorrent.resume();
+                            }
+                        } catch (_) {}
+                        attachPermanentTorrentHandlers(existingTorrent, infoHash);
+                        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                        res.end(JSON.stringify({
+                            success: true,
+                            message: 'Download ativo vinculado com sucesso',
+                            id: infoHash,
+                            title: metaItem.title
+                        }));
+                        return;
+                    }
 
-                    torrent.on('warning', (w) => {
-                        console.warn(`[TorrentService] Torrent warning on "${title}":`, w.message);
-                    });
-
-                    torrent.on('done', () => {
-                        console.log(`[TorrentService] Download COMPLETED: "${torrent.name}"!`);
-                        const item = downloadsRegistry.get(infoHash);
-                        if (item) {
-                            item.status = 'completed';
-                            item.isPaused = false;
-                            item.progress = 100;
-                            item.downloaded = formatBytes(torrent.length);
-                            item.total = formatBytes(torrent.length);
-                            item.completedAt = new Date().toISOString();
-                            persistDownloads();
-                        }
-                        scanLocalMovies(SAVE_PATH);
-                        refreshJellyfinLibrary();
-                    });
-
-                    torrent.on('error', (err) => {
-                        console.error(`[TorrentService] Torrent error on "${title}":`, err.message);
-                        const item = downloadsRegistry.get(infoHash);
-                        if (item) {
-                            item.status = 'error';
-                            persistDownloads();
-                        }
-                    });
+                    const torrent = client.add(magnet, { path: org.targetPath });
+                    attachPermanentTorrentHandlers(torrent, infoHash);
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     res.end(JSON.stringify({

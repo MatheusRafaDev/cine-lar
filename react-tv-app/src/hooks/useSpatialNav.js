@@ -619,33 +619,8 @@ export function useSpatialNav({
       return;
     }
 
-    // B. Player Fullscreen aberto
+    // B. Player Fullscreen aberto (CinemaPlayer gerencia todas as teclas internamente em capture phase)
     if (s.isPlayerOpen) {
-      if (isEnter || isPlayPause) {
-        e.preventDefault();
-        s.onPlayPause?.();
-        return;
-      }
-      if (isLeft || code === KEYS.MEDIA_RW) {
-        e.preventDefault();
-        s.onSeek?.(-10);
-        return;
-      }
-      if (isRight || code === KEYS.MEDIA_FF) {
-        e.preventDefault();
-        s.onSeek?.(10);
-        return;
-      }
-      if (isUp) {
-        e.preventDefault();
-        s.onVolume?.(0.1);
-        return;
-      }
-      if (isDown) {
-        e.preventDefault();
-        s.onVolume?.(-0.1);
-        return;
-      }
       return;
     }
 
