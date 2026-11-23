@@ -111,6 +111,14 @@ function isPathInsideBase(targetPath, basePath) {
     return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 }
 
+function isAllowedMediaPath(targetPath) {
+    if (!targetPath) return false;
+    const resolved = path.resolve(targetPath);
+    if (SAVE_PATH && isPathInsideBase(resolved, SAVE_PATH)) return true;
+    if (PLATFORM_DOWNLOAD_PATH && isPathInsideBase(resolved, PLATFORM_DOWNLOAD_PATH)) return true;
+    return false;
+}
+
 function isTrustedMutationRequest(req) {
     if (MUTATION_API_TOKEN) {
         const headerToken = (req.headers['x-api-token'] || '').trim();
@@ -907,7 +915,7 @@ const server = http.createServer(async (req, res) => {
             }
 
             let subPath = path.resolve(queryFile);
-            if (!isPathInsideBase(subPath, SAVE_PATH)) {
+            if (!isAllowedMediaPath(subPath)) {
                 res.writeHead(403, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Acesso negado fora da pasta de mídia' }));
                 return;
@@ -1012,10 +1020,7 @@ const server = http.createServer(async (req, res) => {
                         fs.mkdirSync(newPath, { recursive: true });
                     }
                     SAVE_PATH = newPath;
-                    PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'Cinelar');
-                    if (!fs.existsSync(PLATFORM_DOWNLOAD_PATH)) {
-                        fs.mkdirSync(PLATFORM_DOWNLOAD_PATH, { recursive: true });
-                    }
+                    PLATFORM_DOWNLOAD_PATH = resolveGoogleDrivePath();
                     fs.writeFileSync(CONFIG_FILE, JSON.stringify({ savePath: SAVE_PATH }, null, 2), 'utf8');
                     try {
                         invalidateLocalCache();
@@ -2237,7 +2242,7 @@ const server = http.createServer(async (req, res) => {
                 res.end(JSON.stringify({ error: 'file query parameter is required' }));
                 return;
             }
-            if (!isPathInsideBase(filePath, SAVE_PATH)) {
+            if (!isAllowedMediaPath(filePath)) {
                 res.writeHead(403, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Acesso negado: arquivo fora da biblioteca local' }));
                 return;
@@ -2269,7 +2274,7 @@ const server = http.createServer(async (req, res) => {
 
                     const targetPath = path.resolve(filePath);
 
-                    if (!isPathInsideBase(targetPath, SAVE_PATH)) {
+                    if (!isAllowedMediaPath(targetPath)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'Acesso negado: só é permitido excluir arquivos da pasta de filmes' }));
                         return;
@@ -2334,16 +2339,20 @@ const server = http.createServer(async (req, res) => {
 
                     const targetPath = path.resolve(filePath);
 
-                    if (!isPathInsideBase(targetPath, SAVE_PATH)) {
+                    if (!isAllowedMediaPath(targetPath)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'Acesso negado: só é permitido alterar arquivos da pasta de filmes' }));
                         return;
                     }
 
-                    const newPath = renameLocalFile(filePath, newTitle, SAVE_PATH);
+                    const targetBase = (PLATFORM_DOWNLOAD_PATH && isPathInsideBase(targetPath, PLATFORM_DOWNLOAD_PATH)) ? PLATFORM_DOWNLOAD_PATH : SAVE_PATH;
+                    const newPath = renameLocalFile(filePath, newTitle, targetBase);
                     invalidateLocalCache();
                     invalidateLocalSetsCache();
                     scanLocalMovies(SAVE_PATH);
+                    if (PLATFORM_DOWNLOAD_PATH && PLATFORM_DOWNLOAD_PATH !== SAVE_PATH) {
+                        scanLocalMovies(PLATFORM_DOWNLOAD_PATH);
+                    }
                     refreshJellyfinLibrary();
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -2551,7 +2560,7 @@ const server = http.createServer(async (req, res) => {
                     path.join(PLATFORM_DOWNLOAD_PATH, dnNoExt, safeDn),
                     path.join(SAVE_PATH, safeDn),
                     path.join(SAVE_PATH, dnNoExt, safeDn)
-                ].filter(cand => isPathInsideBase(cand, SAVE_PATH));
+                ].filter(cand => isAllowedMediaPath(cand));
                 for (const cand of candidates) {
                     try {
                         if (fs.existsSync(cand) && fs.statSync(cand).isFile() && fs.statSync(cand).size > 1024 * 1024) {
@@ -2727,7 +2736,7 @@ const server = http.createServer(async (req, res) => {
                     let diskFilePath = null;
                     for (const dp of possibleDiskPaths) {
                         try {
-                            if (isPathInsideBase(dp, SAVE_PATH) && fs.existsSync(dp) && fs.statSync(dp).isFile() && fs.statSync(dp).size > 1024 * 1024) {
+                            if (isAllowedMediaPath(dp) && fs.existsSync(dp) && fs.statSync(dp).isFile() && fs.statSync(dp).size > 1024 * 1024) {
                                 diskFilePath = dp;
                                 break;
                             }
@@ -2938,7 +2947,7 @@ const server = http.createServer(async (req, res) => {
                     path.join(PLATFORM_DOWNLOAD_PATH, dnNoExt, safeDn),
                     path.join(SAVE_PATH, safeDn),
                     path.join(SAVE_PATH, dnNoExt, safeDn)
-                ].filter(cand => isPathInsideBase(cand, SAVE_PATH));
+                ].filter(cand => isAllowedMediaPath(cand));
                 for (const cand of candidates) {
                     try {
                         if (fs.existsSync(cand) && fs.statSync(cand).isFile() && fs.statSync(cand).size > 1024 * 1024) {

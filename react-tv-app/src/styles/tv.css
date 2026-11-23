@@ -20,7 +20,7 @@
   /* Margens Seguras, Espaçamento e Grade Responsiva de Cartões (Zero Cortes) */
   --tv-side-padding: 48px;
   --tv-card-gap: 16px;
-  --tv-cards-visible: 7;
+  --tv-cards-visible: 8;
 }
 
 @media (min-width: 2500px) {
@@ -573,7 +573,7 @@ button {
   gap: var(--tv-card-gap);
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 14px 0 28px 0;
+  padding: 14px 4px 28px 4px;
   scroll-behavior: auto;
   contain: layout style;
   box-sizing: border-box;

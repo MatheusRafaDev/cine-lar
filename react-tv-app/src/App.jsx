@@ -106,12 +106,40 @@ export function App() {
     }).catch(() => {});
   }, []);
 
+  const refreshLocalLibrary = useCallback(() => {
+    getLocalLibraryData().then(data => {
+      const isNotDeleted = (m) => {
+        const mp = String(m?.filePath || m?.videoPath || '').toLowerCase().trim();
+        return !mp || !deletedLocalPathsRef.current.has(mp);
+      };
+      const filteredMovies = (data.movies || []).filter(isNotDeleted);
+      const filteredFranchises = (data.franchises || [])
+        .map(f => ({ ...f, movies: (f.movies || []).filter(isNotDeleted) }))
+        .filter(f => f.movies.length > 0);
+      const filteredStandalone = (data.standaloneMovies || []).filter(isNotDeleted);
+      const filteredSeries = (data.series || [])
+        .map(s => ({ ...s, episodes: (s.episodes || []).filter(isNotDeleted) }))
+        .filter(s => s.episodes.length > 0);
+      setLocalLibrary({
+        ...data,
+        movies: filteredMovies,
+        franchises: filteredFranchises,
+        standaloneMovies: filteredStandalone,
+        series: filteredSeries,
+        count: filteredMovies.length
+      });
+      setLocalMovies(filteredMovies);
+    }).catch(() => {});
+    refreshDriveLibrary();
+  }, [refreshDriveLibrary]);
+
   const [loadedAllMovies, setLoadedAllMovies] = useState(false);
   const [loadedAllSeries, setLoadedAllSeries] = useState(false);
 
   // Inicialização leve e ultrarrápida da Home (executa apenas uma vez no mount)
   useEffect(() => {
     refreshUserData();
+    refreshLocalLibrary();
     getServerStatus().then(isOnline => setServerStatus(isOnline ? 'online' : 'offline'));
     syncFavoritesWithServer().then(favs => {
       if (favs && favs.length > 0) setFavorites(favs);
@@ -238,31 +266,10 @@ export function App() {
 
   // Atualiza automaticamente a biblioteca local ao abrir a aba Pasta Local
   useEffect(() => {
-    if (activeTab !== 'local') return;
-    getLocalLibraryData().then(data => {
-      const isNotDeleted = (m) => {
-        const mp = String(m?.filePath || m?.videoPath || '').toLowerCase().trim();
-        return !mp || !deletedLocalPathsRef.current.has(mp);
-      };
-      const filteredMovies = (data.movies || []).filter(isNotDeleted);
-      const filteredFranchises = (data.franchises || [])
-        .map(f => ({ ...f, movies: (f.movies || []).filter(isNotDeleted) }))
-        .filter(f => f.movies.length > 0);
-      const filteredStandalone = (data.standaloneMovies || []).filter(isNotDeleted);
-      const filteredSeries = (data.series || [])
-        .map(s => ({ ...s, episodes: (s.episodes || []).filter(isNotDeleted) }))
-        .filter(s => s.episodes.length > 0);
-      setLocalLibrary({
-        ...data,
-        movies: filteredMovies,
-        franchises: filteredFranchises,
-        standaloneMovies: filteredStandalone,
-        series: filteredSeries,
-        count: filteredMovies.length
-      });
-      setLocalMovies(filteredMovies);
-    });
-  }, [activeTab]);
+    if (activeTab === 'local') {
+      refreshLocalLibrary();
+    }
+  }, [activeTab, refreshLocalLibrary]);
 
   // Polling leve para downloads ativos quando na aba downloads
   useEffect(() => {
@@ -331,18 +338,31 @@ export function App() {
       });
     }
 
-    if (localMovies.length > 0) {
+    const isDriveMovie = (m) => Boolean(m.isCloud || m.isDrive || String(m.filePath || '').toLowerCase().includes('cinelar'));
+    const pcMovies = localMovies.filter(m => !isDriveMovie(m));
+    const cloudMovies = localMovies.filter(m => isDriveMovie(m));
+
+    if (pcMovies.length > 0) {
       list.push({
         id: 'local-quick',
         title: 'Disponíveis no Disco Local (D:\\Filmes)',
-        movies: localMovies.slice(0, 15)
+        movies: pcMovies.slice(0, 18)
+      });
+    }
+
+    const allDrive = cloudMovies.length > 0 ? cloudMovies : (driveMovies || []);
+    if (allDrive.length > 0) {
+      list.push({
+        id: 'drive-quick',
+        title: 'Nuvem Google Drive (G:\\Meu Drive\\cinelar)',
+        movies: allDrive.slice(0, 18)
       });
     }
 
     genreSections.slice(0, 4).forEach(s => list.push(s));
 
     return list;
-  }, [watchHistory, favorites, trendingMovies, seriesGenreSections, localMovies, genreSections]);
+  }, [watchHistory, favorites, trendingMovies, seriesGenreSections, localMovies, driveMovies, genreSections]);
 
   // Filtros disponíveis na visualização local: Pasta Local (PC) | Nuvem (Google Drive) | Todos | Franquias
   const localFilters = useMemo(() => {

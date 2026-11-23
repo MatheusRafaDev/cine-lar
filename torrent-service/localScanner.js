@@ -559,6 +559,9 @@ export function streamLocalVideo(filePath, req, res) {
         const baseName = path.basename(targetFile);
         const dirName = path.basename(path.dirname(targetFile));
         const candidates = [
+            path.join('G:\\Meu Drive\\cinelar', dirName, baseName),
+            path.join('G:\\Meu Drive\\cinelar', baseName),
+            path.join('G:\\Meu Drive\\cinelar\\Series', dirName, baseName),
             path.join('D:\\filmes', 'Cinelar', dirName, baseName),
             path.join('D:\\filmes', 'Cinelar', baseName),
             path.join('D:\\filmes', 'MatheusFlix', dirName, baseName),
@@ -807,7 +810,11 @@ export function deleteLocalFile(targetPath, baseDir = 'D:\\filmes') {
         const parentDir = path.dirname(targetPath);
         const resolvedParent = path.resolve(parentDir).toLowerCase();
         const allowedBase = path.resolve(baseDir).toLowerCase();
-        const isDriveFolder = resolvedParent.startsWith('g:\\') && resolvedParent !== 'g:\\' && resolvedParent !== 'g:\\meu drive';
+        const isDriveFolder = resolvedParent.startsWith('g:\\') &&
+            resolvedParent !== 'g:\\' &&
+            resolvedParent !== 'g:\\meu drive' &&
+            resolvedParent !== 'g:\\meu drive\\cinelar' &&
+            resolvedParent !== 'g:\\meu drive\\cinelar\\series';
         if ((resolvedParent !== allowedBase && resolvedParent.startsWith(allowedBase)) || isDriveFolder) {
             try {
                 const remaining = fs.readdirSync(parentDir);

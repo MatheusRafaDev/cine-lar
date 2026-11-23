@@ -38,9 +38,15 @@ export const QuickActionsModal = memo(function QuickActionsModal({
           <div className="tv-quick-actions-header danger-header">
             <span className="material-icons" style={{ fontSize: '32px', color: 'var(--primary)' }}>warning</span>
             <div>
-              <h2 className="tv-quick-actions-title">Excluir Arquivo do Computador?</h2>
+              <h2 className="tv-quick-actions-title">
+                {movie.isDrive || movie.storageLocation === 'drive' || String(movie.filePath || '').toLowerCase().includes('cinelar')
+                  ? 'Excluir Arquivo do Google Drive?'
+                  : 'Excluir Arquivo do Computador?'}
+              </h2>
               <p className="tv-quick-actions-subtitle">
-                O arquivo de vídeo de "{title}" será removido permanentemente de D:\Filmes.
+                {movie.isDrive || movie.storageLocation === 'drive' || String(movie.filePath || '').toLowerCase().includes('cinelar')
+                  ? `O arquivo de vídeo de "${title}" será removido permanentemente do Google Drive (G:\\Meu Drive\\cinelar).`
+                  : `O arquivo de vídeo de "${title}" será removido permanentemente de D:\\Filmes.`}
               </p>
             </div>
           </div>
