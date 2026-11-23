@@ -1,72 +1,84 @@
-# Como Instalar o MatheusFlix na Smart TV
+# Como Instalar e Usar o Cine Lar na Smart TV 📺
 
-Este guia explica como instalar e rodar o **MatheusFlix** na sua Smart TV (Samsung Tizen e Android TV).
-
----
-
-## 1. Pacote Instalavel Gerado
-
-O arquivo instalavel oficial para Samsung Smart TV foi compilado com todas as customizacoes do MatheusFlix (Cinelar TV, Stremio Details, Cinema Player, Quick Connect e Auto-login):
-
-- **Arquivo:** `MatheusFlix.wgt`
-- **Tamanho:** 36.53 MB
-- **Localizacao no PC:** `c:\Users\rafae\Documents\GitHub\matheus-flix\MatheusFlix.wgt`
-- **Link de Download na Rede Local:** `http://192.168.15.9:8085/download/MatheusFlix.wgt`
+Este guia explica passo a passo como instalar e rodar o **Cine Lar TV** na sua Smart TV (Samsung Tizen, LG WebOS, Android TV e navegadores de TV).
 
 ---
 
-## 2. Metodos de Instalacao
+## 1. Pacote Instalável Oficial Gerado
 
-### Metodo A: Navegador da TV (Mais Rapido e 100% Funcional)
-Se voce quer usar o MatheusFlix na TV agora mesmo sem precisar configurar o Modo Desenvolvedor do Tizen Studio:
+O pacote oficial para Samsung Smart TV foi compilado com todas as otimizações do Cine Lar TV (interface em React 18, aceleração por hardware, Stremio Details, Cinema Player OSD e auto-reconexão):
 
-1. Na sua Smart TV Samsung, abra o aplicativo **Internet** (navegador oficial da TV).
-2. Na barra de enderecos do navegador, digite:
+- **Arquivo:** `Cinelar-signed.wgt`
+- **Tamanho:** ~696 KB (ultraleve)
+- **Localização no PC:** `Cinelar-signed.wgt` (na raiz do projeto)
+- **Link de Download Direto na Rede:** `http://<IP_DO_COMPUTADOR>:8085/download/Cinelar.wgt`
+
+---
+
+## 2. Métodos de Instalação e Acesso
+
+### Método A: Navegador da TV (Mais Rápido e Sem Instalar Nada)
+*Recomendado para uso imediato em 100% das Smart TVs (Samsung, LG, Philips, TCL, Android TV, Fire TV).*
+
+1. No computador, execute o `iniciar-cinelar.bat` e observe o IP da máquina exibido no console (exemplo: `192.168.15.2`).
+2. Na sua Smart TV, abra o aplicativo **Internet** (navegador web padrão da TV).
+3. Na barra de endereços do navegador da TV, digite:
    ```text
-   http://192.168.15.9:8096
+   http://192.168.15.2:8085
    ```
-3. O MatheusFlix abrira instantaneamente com toda a interface, tema cinematografico, navegacao fluida e player.
-4. **Fixar na barra da TV:** No menu de opcoes do navegador da TV (icone de estrela ou tres pontinhos), clique em **"Adicionar a Tela Inicial"** (ou "Favoritar").
-5. O icone do MatheusFlix ficara salvo na barra principal de aplicativos da sua televisao, como se fosse um app nativo.
+   *(Substitua pelo IP exibido no terminal do seu PC).*
+4. O Cine Lar carregará instantaneamente com toda a interface adaptada para controle remoto, reprodução fluida e design escuro cinematográfico.
+5. **Dica de Ouro:** No menu do navegador da TV (ícone de três pontinhos ou estrela), clique em **"Adicionar à Tela Inicial"** ou **"Fixar na barra de aplicativos"**. Um atalho do Cine Lar ficará salvo diretamente na barra principal da sua televisão!
 
 ---
 
-### Metodo B: Instalacao Nativa (.wgt) via Modo Desenvolvedor Samsung
-Para instalar o arquivo `MatheusFlix.wgt` diretamente no sistema da Smart TV Samsung:
+### Método B: Instalação Nativa (.wgt) via Modo Desenvolvedor Samsung
+*Para instalar o Cine Lar diretamente no menu oficial de aplicativos do sistema Tizen da Samsung.*
 
 #### Passo 1: Habilitar o Modo Desenvolvedor na TV
-1. No controle remoto da TV, pressione o botao **Home** e va para **Apps**.
-2. No menu de Apps, aperte os botoes numericos no controle: `1` `2` `3` `4` `5`.
-3. A janela **Developer Mode** aparecera na tela:
-   - Alterne a opcao para **ON**.
-   - No campo **Host PC IP**, digite o IP do seu computador: `192.168.15.9`.
+1. No controle remoto da Smart TV Samsung, abra a tela de **Apps**.
+2. Na tela de Apps, aperte os botões numéricos na sequência: `1` `2` `3` `4` `5`.
+3. A janela **Developer Mode** aparecerá:
+   - Alterne a opção para **ON**.
+   - No campo **Host PC IP**, digite o IP do seu computador (exemplo: `192.168.15.2`).
 4. Pressione **OK**.
-5. Reinicie a TV (mantenha o botao Power do controle pressionado por 5 segundos ate a TV desligar e religar exibindo o logotipo da Samsung).
-6. Ao abrir a tela de Apps, voce vera a indicacao "Developer Mode" ativa.
+5. Reinicie a televisão: mantenha o botão **Power** do controle pressionado por 5 segundos até a TV desligar e religar exibindo o logo da Samsung.
 
-#### Passo 2: Enviar o Pacote pelo PC
-Com o Tizen Studio ou o utilitario SDB instalado no computador:
-```bash
-# Conectar na TV via rede
-sdb connect 192.168.15.5
-
-# Verificar se a TV foi reconhecida
-sdb devices
-
-# Instalar o pacote
-tizen install -n MatheusFlix.wgt -t <NOME_DO_DISPOSITIVO>
+#### Passo 2: Enviar e Instalar com 1 Comando
+No PowerShell do computador, execute:
+```powershell
+.\build-tv.ps1 -TvIp "192.168.15.5:26101"
 ```
+*(Substitua `192.168.15.5` pelo IP da sua TV Samsung, visível no menu de Rede da televisão).*
 
-Ou execute o script interativo:
-`c:\Users\rafae\Documents\GitHub\matheus-flix\instalar-na-tv.bat`
+O script irá automaticamente:
+1. Compilar os arquivos mais recentes do React TV App.
+2. Gerar o pacote assinado `Cinelar-signed.wgt`.
+3. Conectar na TV via SDB.
+4. Instalar e abrir o Cine Lar na tela da TV!
 
 ---
 
-### Metodo C: Android TV / Fire TV Stick / TV Box
-Se voce tambem tiver aparelhos Android TV (Mi Box, Fire TV Stick, Chromecast com Google TV):
-1. Instale o app oficial do Jellyfin pela Google Play Store da TV.
-2. Ao abrir o aplicativo, digite o endereco do servidor:
+### Método C: Android TV / TV Box / Fire TV Stick
+Em aparelhos com Android TV ou Google TV:
+1. Abra o navegador web da TV (ex: **Puffin TV-Browser**, **Chrome**, **Downloader** ou **JioPages**).
+2. Digite o endereço do servidor:
    ```text
-   http://192.168.15.9:8096
+   http://<IP_DO_COMPUTADOR>:8085
    ```
-3. Faca login com a sua conta do Jellyfin configurada no servidor ou use o **Quick Connect**.
+3. Navegue livremente usando o controle remoto com suporte total a D-Pad.
+
+---
+
+## 3. Resumo de Teclas no Controle Remoto da TV
+
+| Tecla / Botão | Ação |
+|---|---|
+| **Setas / D-Pad** | Navegar entre cards, categorias e menus |
+| **Enter / OK** | Abrir detalhes ou reproduzir filme/série |
+| **Segurar OK (400ms)** | Menu de ações rápidas (Favoritar, Excluir do disco) |
+| **Voltar (Back)** | Fechar modais, fechar player ou subir para o menu superior |
+| **Play / Pause** | Pausar ou despausar o filme |
+| **Esquerda / Direita no Player** | Retroceder ou avançar 10s no vídeo |
+| **Cima / Baixo no Player** | Aumentar ou diminuir o volume da TV |
+| **Tecla S** | Ligar ou desligar legendas |
