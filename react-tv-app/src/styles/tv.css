@@ -967,50 +967,250 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 10px;
+}
+
+.tv-streams-section-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tv-streams-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.tv-streams-section-hint {
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .tv-stream-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  border: none;
+  gap: 16px;
+  padding: 14px 20px;
+  background: rgba(26, 29, 41, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
   cursor: pointer;
   outline: none;
-  transition: transform 0.15s ease, background 0.15s ease;
+  position: relative;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tv-stream-item.recommended {
+  border-left: 3px solid #38bdf8;
+  background: rgba(26, 34, 52, 0.85);
 }
 
 .tv-stream-item.focused {
-  background: var(--bg-card-hover) !important;
+  background: rgba(35, 45, 68, 0.98) !important;
   outline: none !important;
-  box-shadow: 0 0 0 2px #FFFFFF !important;
-  transform: scale(1.02) !important;
+  box-shadow: 0 0 0 2px #FFFFFF, 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+  transform: scale(1.015) !important;
+  z-index: 2;
 }
 
-.tv-stream-title {
+.tv-stream-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tv-stream-number-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.tv-stream-number-badge.top {
+  background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+}
+
+.tv-stream-item.focused .tv-stream-number-badge {
+  background: #FFFFFF;
+  color: #0f172a;
+}
+
+.tv-stream-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tv-stream-main-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tv-stream-title-text {
   font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.2px;
+}
+
+.tv-stream-recommended-pill {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.tv-stream-filename-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-stream-release-tag {
+  color: #cbd5e1;
   font-weight: 600;
-  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.tv-stream-filename-text {
+  color: #64748b;
+  font-family: monospace;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-stream-provider-tag {
+  color: #94a3b8;
+  font-size: 11px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.tv-stream-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tv-stream-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+}
+
+.tv-stream-pill.health-good {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.tv-stream-pill.health-medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.tv-stream-pill.health-low {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.tv-stream-pill.health-neutral {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+
+.tv-stream-pill-size {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.tv-stream-pill-audio {
+  color: #c084fc;
+  background: rgba(168, 85, 247, 0.12);
+}
+
+.tv-stream-pill-codec {
+  color: #a3e635;
+  background: rgba(132, 204, 22, 0.12);
+  font-family: monospace;
+}
+
+.tv-stream-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .tv-stream-badge {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background: rgba(229, 9, 20, 0.2);
-  color: var(--primary);
-  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .tv-stream-badge.q-4k,
 .tv-version-badge-quality.q-4k,
 .tv-badge-pill.q-4k {
-  background: rgba(245, 197, 24, 0.25) !important;
-  color: #F5C518 !important;
-  border: none !important;
+  background: linear-gradient(135deg, rgba(245, 197, 24, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 197, 24, 0.4) !important;
+}
+
+.tv-stream-badge.q-1080p,
+.tv-version-badge-quality.q-1080p,
+.tv-badge-pill.q-1080p {
+  background: rgba(14, 165, 233, 0.18) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(14, 165, 233, 0.3) !important;
 }
 
 .tv-stream-badge.q-cam,
@@ -1018,7 +1218,20 @@ button {
 .tv-badge-pill.q-cam {
   background: rgba(249, 115, 22, 0.25) !important;
   color: #FB923C !important;
-  border: none !important;
+  border: 1px solid rgba(249, 115, 22, 0.4) !important;
+}
+
+.tv-stream-play-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-subtle);
+  font-weight: 500;
+}
+
+.tv-stream-item.focused .tv-stream-play-hint {
+  color: #FFFFFF;
 }
 
 /* 6. Video Player Fullscreen (10-Foot UI) */

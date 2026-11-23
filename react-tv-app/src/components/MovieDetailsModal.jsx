@@ -16,6 +16,80 @@ import {
   formatTime
 } from '../services/api';
 
+export function parseStreamDetails(stream, index) {
+  const isRecommended = index === 0;
+  const rawText = `${stream?.filename || ''} ${stream?.rawTitle || ''} ${stream?.rawName || ''} ${stream?.title || ''}`;
+
+  // 1. Tipo de Release (WEB-DL, BluRay, WEBRip, etc.)
+  let releaseType = 'Digital WEB-DL';
+  if (/bluray|bdrip|remux/i.test(rawText)) releaseType = 'BluRay Remux';
+  else if (/web-dl|webdl/i.test(rawText)) releaseType = 'WEB-DL Digital';
+  else if (/webrip/i.test(rawText)) releaseType = 'WEBRip';
+  else if (/hdtv/i.test(rawText)) releaseType = 'HDTV';
+  else if (stream?.isCam || /cam|telesync|ts/i.test(rawText)) releaseType = 'Cinema (HDCAM)';
+
+  // 2. Canais de Áudio e Codec
+  const has51 = /5\.1|7\.1|atmos|ddp5|ac3|dts/i.test(rawText);
+  const audioChannels = has51 ? '5.1 Surround' : 'Estéreo 2.0';
+  const isHevc = /x265|hevc|10bit/i.test(rawText);
+  const videoCodec = isHevc ? 'x265 (HEVC)' : 'x264';
+
+  // 3. Nome limpo do release para identificação
+  let cleanFilename = (stream?.filename || stream?.rawTitle?.split('\n')[0] || '')
+    .replace(/\.(mkv|mp4|avi)$/i, '')
+    .replace(/[._]/g, ' ')
+    .trim();
+
+  if (cleanFilename.length > 55) {
+    cleanFilename = cleanFilename.slice(0, 52) + '...';
+  }
+
+  // 4. Saúde / Seeds
+  const seeders = Number(stream?.seeders || 0);
+  let healthLabel = 'Conectando';
+  let healthClass = 'health-neutral';
+  let healthIcon = 'wifi';
+  if (seeders >= 25) {
+    healthLabel = `${seeders} seeds • Rápido`;
+    healthClass = 'health-good';
+    healthIcon = 'bolt';
+  } else if (seeders >= 6) {
+    healthLabel = `${seeders} seeds • Estável`;
+    healthClass = 'health-medium';
+    healthIcon = 'speed';
+  } else if (seeders > 0) {
+    healthLabel = `${seeders} seeds`;
+    healthClass = 'health-low';
+    healthIcon = 'hourglass_empty';
+  } else {
+    healthLabel = 'Buscando rede DHT';
+    healthClass = 'health-neutral';
+    healthIcon = 'sensors';
+  }
+
+  // 5. Rótulo de Qualidade e Áudio
+  const optionNumber = index + 1;
+  const quality = stream?.quality || '1080p Full HD';
+  const audio = stream?.audio || (stream?.isDubbed ? 'Dublado / Dual Áudio' : 'Legendado');
+
+  return {
+    isRecommended,
+    optionNumber,
+    quality,
+    audio,
+    releaseType,
+    audioChannels,
+    videoCodec,
+    cleanFilename,
+    seeders,
+    healthLabel,
+    healthClass,
+    healthIcon,
+    size: stream?.size || 'HD',
+    provider: stream?.provider || 'Torrentio'
+  };
+}
+
 export function MovieDetailsModal({
   movie,
   isZoneFocused,
@@ -152,7 +226,7 @@ export function MovieDetailsModal({
   const title = details?.title || movie?.title || 'Sem título';
   const poster = details?.poster || movie?.poster || '';
   const backdrop = details?.backdrop || movie?.backdrop || poster;
-  const synopsis = details?.synopsis || details?.description || movie?.synopsis || 'Sem sinopse disponível.';
+  const synopsis = details?.overviewBr || details?.synopsisBr || details?.overview || details?.synopsis || details?.description || movie?.overviewBr || movie?.overview || movie?.synopsis || movie?.description || 'Sem sinopse disponível.';
   const streams = details?.streams || [];
   const resolvedLocalPath = details?.filePath || details?.videoPath || details?.localFile?.videoPath || movie?.filePath || movie?.videoPath || '';
   const isLocal = Boolean(resolvedLocalPath);
@@ -993,27 +1067,76 @@ export function MovieDetailsModal({
                   {episodeStreams.map((stream, idx) => {
                     const streamFocusIndex = streamBaseIndex + idx;
                     const isStreamFocused = isZoneFocused && focusedIndex === streamFocusIndex;
+                    const parsed = parseStreamDetails(stream, idx);
+                    const is4K = String(parsed.quality).includes('4K');
+                    const isCam = String(parsed.quality).toLowerCase().includes('cam');
                     return (
                       <div
                         key={stream.infoHash || idx}
-                        className={`tv-stream-item ${isStreamFocused ? 'focused' : ''}`}
+                        className={`tv-stream-item ${isStreamFocused ? 'focused' : ''} ${parsed.isRecommended ? 'recommended' : ''}`}
                         onClick={() => {
                           setStreamActionTarget(stream);
                           setStreamActionIndex(0);
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                          <span className="material-icons" style={{ color: 'var(--primary)' }}>play_circle</span>
-                          <div>
-                            <div className="tv-stream-title">{stream.title || stream.name || title}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '2px' }}>
-                              Tamanho: {stream.size || 'HD'} {stream.audio ? `• ${stream.audio}` : ''}
-                            </div>
+                        <div className="tv-stream-left">
+                          <div className={`tv-stream-number-badge ${parsed.isRecommended ? 'top' : ''}`}>
+                            {parsed.isRecommended ? (
+                              <span className="material-icons" style={{ fontSize: '18px' }}>star</span>
+                            ) : (
+                              <span>#{parsed.optionNumber}</span>
+                            )}
                           </div>
                         </div>
-                        <span className={`tv-stream-badge ${String(stream.quality || '').includes('4K') ? 'q-4k' : String(stream.quality || '').toLowerCase().includes('cam') ? 'q-cam' : ''}`}>
-                          {stream.quality || '1080p Full HD'}
-                        </span>
+
+                        <div className="tv-stream-info">
+                          <div className="tv-stream-main-row">
+                            <span className="tv-stream-title-text">
+                              Opção {parsed.optionNumber}: {parsed.quality} • {parsed.audio}
+                            </span>
+                            {parsed.isRecommended && (
+                              <span className="tv-stream-recommended-pill">
+                                ★ MAIS RÁPIDO
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="tv-stream-filename-row">
+                            <span className="tv-stream-release-tag">{parsed.releaseType}</span>
+                            {parsed.cleanFilename && (
+                              <span className="tv-stream-filename-text">{parsed.cleanFilename}</span>
+                            )}
+                            <span className="tv-stream-provider-tag">via {parsed.provider}</span>
+                          </div>
+
+                          <div className="tv-stream-pills-row">
+                            <span className={`tv-stream-pill ${parsed.healthClass}`}>
+                              <span className="material-icons" style={{ fontSize: '12px' }}>{parsed.healthIcon}</span>
+                              <span>{parsed.healthLabel}</span>
+                            </span>
+                            <span className="tv-stream-pill tv-stream-pill-size">
+                              <span className="material-icons" style={{ fontSize: '12px' }}>folder_zip</span>
+                              <span>{parsed.size}</span>
+                            </span>
+                            <span className="tv-stream-pill tv-stream-pill-audio">
+                              <span className="material-icons" style={{ fontSize: '12px' }}>volume_up</span>
+                              <span>{parsed.audioChannels}</span>
+                            </span>
+                            <span className="tv-stream-pill tv-stream-pill-codec">
+                              {parsed.videoCodec}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="tv-stream-right">
+                          <span className={`tv-stream-badge ${is4K ? 'q-4k' : isCam ? 'q-cam' : 'q-1080p'}`}>
+                            {parsed.quality}
+                          </span>
+                          <div className="tv-stream-play-hint">
+                            <span className="material-icons" style={{ fontSize: '16px' }}>play_arrow</span>
+                            <span>OK para Opções</span>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
@@ -1025,41 +1148,98 @@ export function MovieDetailsModal({
           {/* Seção de Filmes: Opções de Transmissão */}
           {!isSeries && !isLocal && (
             <div className="tv-streams-section">
-              <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-                Opções de Transmissão e Qualidade:
-              </h3>
+              <div className="tv-streams-section-title-bar">
+                <h3 className="tv-streams-section-title">
+                  <span className="material-icons" style={{ fontSize: '20px', color: 'var(--focus-border)' }}>tune</span>
+                  <span>Opções de Transmissão e Qualidade</span>
+                </h3>
+                <span className="tv-streams-section-hint">
+                  {streams.length > 0 ? `${streams.length} fontes disponíveis • Selecione para assistir ou baixar` : ''}
+                </span>
+              </div>
 
               {loading && streams.length === 0 && (
-                <div style={{ color: 'var(--text-muted)' }}>Buscando melhores opções de transmissão...</div>
+                <div style={{ color: 'var(--text-muted)', padding: '12px 0' }}>Buscando melhores opções de transmissão em português...</div>
+              )}
+
+              {!loading && streams.length === 0 && (
+                <div style={{ color: 'var(--text-subtle)', padding: '12px 0' }}>Nenhuma fonte adicional encontrada no momento.</div>
               )}
 
               {streams.map((stream, idx) => {
                 const streamFocusIndex = streamBaseIndex + idx;
                 const isStreamFocused = isZoneFocused && focusedIndex === streamFocusIndex;
-                const is4K = String(stream.quality || '').includes('4K');
-                const isCam = String(stream.quality || '').toLowerCase().includes('cam');
+                const parsed = parseStreamDetails(stream, idx);
+                const is4K = String(parsed.quality).includes('4K');
+                const isCam = String(parsed.quality).toLowerCase().includes('cam');
+
                 return (
                   <div
                     key={stream.infoHash || idx}
-                    className={`tv-stream-item ${isStreamFocused ? 'focused' : ''}`}
+                    className={`tv-stream-item ${isStreamFocused ? 'focused' : ''} ${parsed.isRecommended ? 'recommended' : ''}`}
                     onClick={() => {
                       setStreamActionTarget(stream);
                       setStreamActionIndex(0);
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <span className="material-icons" style={{ color: 'var(--primary)' }}>play_circle</span>
-                      <div>
-                        <div className="tv-stream-title">{stream.title || stream.name || title}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '2px' }}>
-                          Tamanho: {stream.size || 'HD'} {stream.audio ? `• ${stream.audio}` : ''}
-                        </div>
+                    <div className="tv-stream-left">
+                      <div className={`tv-stream-number-badge ${parsed.isRecommended ? 'top' : ''}`}>
+                        {parsed.isRecommended ? (
+                          <span className="material-icons" style={{ fontSize: '18px' }}>star</span>
+                        ) : (
+                          <span>#{parsed.optionNumber}</span>
+                        )}
                       </div>
                     </div>
 
-                    <span className={`tv-stream-badge ${is4K ? 'q-4k' : isCam ? 'q-cam' : ''}`}>
-                      {stream.quality || '1080p Full HD'}
-                    </span>
+                    <div className="tv-stream-info">
+                      <div className="tv-stream-main-row">
+                        <span className="tv-stream-title-text">
+                          Opção {parsed.optionNumber}: {parsed.quality} • {parsed.audio}
+                        </span>
+                        {parsed.isRecommended && (
+                          <span className="tv-stream-recommended-pill">
+                            ★ MAIS RÁPIDO
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="tv-stream-filename-row">
+                        <span className="tv-stream-release-tag">{parsed.releaseType}</span>
+                        {parsed.cleanFilename && (
+                          <span className="tv-stream-filename-text">{parsed.cleanFilename}</span>
+                        )}
+                        <span className="tv-stream-provider-tag">via {parsed.provider}</span>
+                      </div>
+
+                      <div className="tv-stream-pills-row">
+                        <span className={`tv-stream-pill ${parsed.healthClass}`}>
+                          <span className="material-icons" style={{ fontSize: '12px' }}>{parsed.healthIcon}</span>
+                          <span>{parsed.healthLabel}</span>
+                        </span>
+                        <span className="tv-stream-pill tv-stream-pill-size">
+                          <span className="material-icons" style={{ fontSize: '12px' }}>folder_zip</span>
+                          <span>{parsed.size}</span>
+                        </span>
+                        <span className="tv-stream-pill tv-stream-pill-audio">
+                          <span className="material-icons" style={{ fontSize: '12px' }}>volume_up</span>
+                          <span>{parsed.audioChannels}</span>
+                        </span>
+                        <span className="tv-stream-pill tv-stream-pill-codec">
+                          {parsed.videoCodec}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="tv-stream-right">
+                      <span className={`tv-stream-badge ${is4K ? 'q-4k' : isCam ? 'q-cam' : 'q-1080p'}`}>
+                        {parsed.quality}
+                      </span>
+                      <div className="tv-stream-play-hint">
+                        <span className="material-icons" style={{ fontSize: '16px' }}>play_arrow</span>
+                        <span>OK para Opções</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -1123,8 +1303,9 @@ export function MovieDetailsModal({
             <div className="tv-version-picker-list">
               {currentAvailableStreams.map((st, sIdx) => {
                 const isSelected = downloadPickerIndex === sIdx;
-                const is4K = String(st.quality || '').toLowerCase().includes('4k') || String(st.title || '').toLowerCase().includes('2160p');
-                const isCam = String(st.quality || '').toLowerCase().includes('cam') || String(st.title || '').toLowerCase().includes('cam');
+                const parsed = parseStreamDetails(st, sIdx);
+                const is4K = String(parsed.quality).toLowerCase().includes('4k');
+                const isCam = String(parsed.quality).toLowerCase().includes('cam');
                 return (
                   <div
                     key={st.infoHash || sIdx}
@@ -1136,11 +1317,14 @@ export function MovieDetailsModal({
                         {downloadDestination === 'drive' ? 'cloud_download' : 'file_download'}
                       </span>
                       <div className="tv-version-item-info">
-                        <div className="tv-version-title">{st.title || st.name || title}</div>
+                        <div className="tv-version-title">
+                          Opção {parsed.optionNumber}: {parsed.quality} • {parsed.audio}
+                        </div>
                         <div className="tv-version-meta-row">
-                          <span className={`tv-version-badge-quality ${is4K ? 'q-4k' : isCam ? 'q-cam' : ''}`}>{st.quality || '1080p Full HD'}</span>
-                          {st.size && <span className="tv-version-badge-size">• {st.size}</span>}
-                          {st.audio && <span style={{ color: 'var(--text-subtle)' }}>• {st.audio}</span>}
+                          <span className={`tv-version-badge-quality ${is4K ? 'q-4k' : isCam ? 'q-cam' : 'q-1080p'}`}>{parsed.quality}</span>
+                          <span className="tv-version-badge-size">• {parsed.size}</span>
+                          <span style={{ color: '#4ade80' }}>• {parsed.healthLabel}</span>
+                          <span style={{ color: 'var(--text-subtle)' }}>• {parsed.releaseType}</span>
                         </div>
                       </div>
                     </div>
@@ -1168,10 +1352,12 @@ export function MovieDetailsModal({
           <div className="tv-stream-action-modal" onClick={e => e.stopPropagation()}>
             <div className="tv-stream-action-header">
               <span className="tv-version-badge-quality" style={{ alignSelf: 'flex-start' }}>{streamActionTarget.quality || '1080p'}</span>
-              <h2 className="tv-stream-action-title">Onde você deseja salvar este download?</h2>
-              <p className="tv-stream-action-subtitle">{streamActionTarget.title || streamActionTarget.name || title}</p>
-              <div style={{ fontSize: '13px', color: 'var(--text-subtle)', marginTop: '2px' }}>
-                Tamanho: {streamActionTarget.size || 'HD'} {streamActionTarget.audio ? `• ${streamActionTarget.audio}` : ''}
+              <h2 className="tv-stream-action-title">Opções para esta Versão</h2>
+              <p className="tv-stream-action-subtitle">
+                {title} • {streamActionTarget.quality || '1080p'} ({streamActionTarget.size || 'HD'})
+              </p>
+              <div style={{ fontSize: '13px', color: 'var(--text-subtle)', marginTop: '4px' }}>
+                {streamActionTarget.audio ? `${streamActionTarget.audio} • ` : ''}Escolha se deseja reproduzir agora ou baixar para o computador:
               </div>
             </div>
 
