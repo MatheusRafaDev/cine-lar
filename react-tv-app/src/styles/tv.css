@@ -16,6 +16,59 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
+
+  /* Margens Seguras, Espaçamento e Grade Responsiva de Cartões (Zero Cortes) */
+  --tv-side-padding: 48px;
+  --tv-card-gap: 16px;
+  --tv-cards-visible: 7;
+}
+
+@media (min-width: 2500px) {
+  :root {
+    --tv-side-padding: 72px;
+    --tv-card-gap: 20px;
+    --tv-cards-visible: 9;
+  }
+}
+
+@media (max-width: 2499px) and (min-width: 1750px) {
+  :root {
+    --tv-side-padding: 48px;
+    --tv-card-gap: 16px;
+    --tv-cards-visible: 8;
+  }
+}
+
+@media (max-width: 1749px) and (min-width: 1400px) {
+  :root {
+    --tv-side-padding: 44px;
+    --tv-card-gap: 16px;
+    --tv-cards-visible: 7;
+  }
+}
+
+@media (max-width: 1399px) and (min-width: 1100px) {
+  :root {
+    --tv-side-padding: 36px;
+    --tv-card-gap: 14px;
+    --tv-cards-visible: 6;
+  }
+}
+
+@media (max-width: 1099px) and (min-width: 850px) {
+  :root {
+    --tv-side-padding: 28px;
+    --tv-card-gap: 12px;
+    --tv-cards-visible: 5;
+  }
+}
+
+@media (max-width: 849px) {
+  :root {
+    --tv-side-padding: 20px;
+    --tv-card-gap: 10px;
+    --tv-cards-visible: 4;
+  }
 }
 
 *,
@@ -109,7 +162,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1px 48px 0 48px;
+  padding: 1px var(--tv-side-padding) 0 var(--tv-side-padding);
   z-index: 1000;
   background: #0B0B0A;
   border: none !important;
@@ -216,7 +269,7 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 0 54px 60px 54px;
+  padding: 0 var(--tv-side-padding) 60px var(--tv-side-padding);
   background-size: cover;
   background-position: center top;
   overflow: hidden;
@@ -392,7 +445,7 @@ button {
 
 .tv-home-feedback {
   min-height: 280px;
-  margin: 32px 48px;
+  margin: 32px var(--tv-side-padding);
   padding: 42px;
   display: flex;
   flex-direction: column;
@@ -430,7 +483,7 @@ button {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  padding: 0 48px;
+  padding: 0 var(--tv-side-padding);
   box-sizing: border-box;
 }
 
@@ -450,15 +503,17 @@ button {
 .tv-carousel-wrapper {
   position: relative;
   width: 100%;
+  padding: 0 var(--tv-side-padding);
+  box-sizing: border-box;
 }
 
 .tv-carousel-nav-btn {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px;
+  width: 40px;
   height: 80px;
-  background: rgba(11, 11, 10, 0.78);
+  background: rgba(11, 11, 10, 0.85);
   backdrop-filter: blur(8px);
   border: none !important;
   color: #FFFFFF;
@@ -475,11 +530,11 @@ button {
 }
 
 .tv-carousel-nav-btn.left {
-  left: 6px;
+  left: 2px;
 }
 
 .tv-carousel-nav-btn.right {
-  right: 6px;
+  right: 2px;
 }
 
 .tv-carousel-wrapper:hover .tv-carousel-nav-btn {
@@ -488,7 +543,7 @@ button {
 }
 
 .tv-carousel-nav-btn:hover {
-  background: rgba(229, 9, 20, 0.88);
+  background: rgba(229, 9, 20, 0.92);
   transform: translateY(-50%) scale(1.06);
 }
 
@@ -498,10 +553,10 @@ button {
 
 .tv-carousel-track {
   display: flex;
-  gap: 16px;
+  gap: var(--tv-card-gap);
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 12px 48px 24px 48px;
+  padding: 14px 0 28px 0;
   scroll-behavior: auto;
   contain: layout style;
   box-sizing: border-box;
@@ -513,11 +568,11 @@ button {
   display: none;
 }
 
-/* 4. Cartão de Filme (Card) - Design Cinematográfico Premium Padronizado (1080p e 4K UHD) */
-/* 8 colunas perfeitamente alinhadas entre as margens seguras (48px esquerda e 48px direita) sem corte */
+/* 4. Cartão de Filme (Card) - Grade 100% perfeitamente ajustada sem cortes de cards */
 .tv-card {
-  flex: 0 0 214px;
-  width: 214px;
+  flex: 0 0 calc((100vw - (var(--tv-side-padding) * 2) - ((var(--tv-cards-visible) - 1) * var(--tv-card-gap))) / var(--tv-cards-visible));
+  width: calc((100vw - (var(--tv-side-padding) * 2) - ((var(--tv-cards-visible) - 1) * var(--tv-card-gap))) / var(--tv-cards-visible));
+  max-width: calc((100vw - (var(--tv-side-padding) * 2) - ((var(--tv-cards-visible) - 1) * var(--tv-card-gap))) / var(--tv-cards-visible));
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -528,38 +583,7 @@ button {
   contain: layout style;
   transition: transform 0.08s ease-out;
   content-visibility: auto;
-  contain-intrinsic-size: 214px 350px;
   box-sizing: border-box;
-}
-
-@media (max-width: 1600px) {
-  .tv-card {
-    flex: 0 0 186px;
-    width: 186px;
-    contain-intrinsic-size: 186px 315px;
-  }
-}
-
-@media (max-width: 1280px) {
-  .tv-header { padding: 1px 24px 0 24px; }
-  .tv-row-title-box { padding: 0 24px; }
-  .tv-carousel-track { padding: 12px 24px 20px 24px; gap: 12px; }
-  .tv-card {
-    flex: 0 0 160px;
-    width: 160px;
-    contain-intrinsic-size: 160px 280px;
-  }
-}
-
-@media (min-width: 2500px) {
-  .tv-header { padding: 1px 80px 0 80px; }
-  .tv-row-title-box { padding: 0 80px; }
-  .tv-carousel-track { padding: 16px 80px 32px 80px; gap: 24px; }
-  .tv-card {
-    flex: 0 0 340px;
-    width: 340px;
-    contain-intrinsic-size: 340px 540px;
-  }
 }
 
 .tv-card-poster-wrap {
@@ -1064,7 +1088,7 @@ button {
 }
 
 .tv-page-header {
-  padding: 16px 48px 8px 48px;
+  padding: 16px var(--tv-side-padding) 8px var(--tv-side-padding);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1803,7 +1827,7 @@ button {
 
 /* 11. Visualização da Pasta Local e Franquias (Full-Page Grid 10-Foot) */
 .tv-local-view {
-  padding: 76px 48px 80px 48px;
+  padding: 76px var(--tv-side-padding) 80px var(--tv-side-padding);
 }
 
 .tv-local-header {
@@ -1926,11 +1950,11 @@ button {
   color: #FFFFFF;
 }
 
-/* Full-Page Grid Layout Rigorosamente Padronizado para Smart TV (8 colunas de largura idêntica) */
+/* Full-Page Grid Layout Rigorosamente Padronizado para Smart TV (colunas perfeitamente ajustadas) */
 .tv-fullpage-grid {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
-  gap: 16px;
+  grid-template-columns: repeat(var(--tv-cards-visible), minmax(0, 1fr)) !important;
+  gap: var(--tv-card-gap);
   width: 100%;
   max-width: 100%;
   padding-bottom: 30px;

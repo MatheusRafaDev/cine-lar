@@ -947,6 +947,46 @@ export function App() {
     executeDeleteLocalMovie(quickMenuMovie);
   }, [quickMenuMovie, executeDeleteLocalMovie]);
 
+  const handleStartDownloadTarget = useCallback((target, destination = 'local') => {
+    if (!target) return;
+    const isDrive = destination === 'drive' || destination === 'gdrive';
+    const destLabel = isDrive ? 'Google Drive (G:\\Meu Drive\\cinelar)' : 'Pasta Local (D:\\Filmes)';
+
+    if (target.isSeries || target.type === 'series') {
+      setSelectedMovie({ ...target, preferredDestination: destination });
+      return;
+    }
+
+    const movieTitle = target.title || target.name || 'Filme';
+    showToast(`Buscando opções para baixar "${movieTitle}" em ${destLabel}...`);
+    getMovieDetails(target).then(async (full) => {
+      const streams = full?.streams || [];
+      const best = streams[0];
+      if (best && best.magnet) {
+        const res = await startDownload({
+          magnet: best.magnet,
+          title: full.title || movieTitle,
+          poster: full.poster || target.poster || '',
+          backdrop: full.backdrop || target.backdrop || full.poster || '',
+          overview: full.synopsis || target.synopsis || '',
+          year: full.year || target.year || '',
+          imdbId: full.imdbId || target.imdbId || full.id || target.id,
+          quality: best.quality || '1080p Full HD',
+          destination: isDrive ? 'drive' : 'local'
+        });
+        if (res && (res.id || res.success !== false)) {
+          if (res.id) deletedDownloadIdsRef.current.delete(String(res.id).toLowerCase());
+          refreshDownloadsInfo();
+          showToast(`Download de "${full.title || movieTitle}" (${best.quality || '1080p'}) iniciado em ${destLabel}!`);
+          return;
+        }
+      }
+      setSelectedMovie({ ...(full || target), preferredDestination: destination });
+    }).catch(() => {
+      setSelectedMovie({ ...target, preferredDestination: destination });
+    });
+  }, [showToast, refreshDownloadsInfo]);
+
   const handleQuickActionSelect = useCallback((actionId) => {
     if (!quickMenuMovie) return;
     const target = quickMenuMovie;
@@ -984,39 +1024,21 @@ export function App() {
         break;
       }
 
+      case 'download_local': {
+        setQuickMenuMovie(null);
+        handleStartDownloadTarget(target, 'local');
+        break;
+      }
+
+      case 'download_drive': {
+        setQuickMenuMovie(null);
+        handleStartDownloadTarget(target, 'drive');
+        break;
+      }
+
       case 'download': {
         setQuickMenuMovie(null);
-        if (target.isSeries || target.type === 'series') {
-          setSelectedMovie(target);
-          break;
-        }
-        const movieTitle = target.title || target.name || 'Filme';
-        showToast(`Iniciando download de "${movieTitle}"...`);
-        getMovieDetails(target).then(async (full) => {
-          const streams = full?.streams || [];
-          const best = streams[0];
-          if (best && best.magnet) {
-            const res = await startDownload({
-              magnet: best.magnet,
-              title: full.title || movieTitle,
-              poster: full.poster || target.poster || '',
-              backdrop: full.backdrop || target.backdrop || full.poster || '',
-              overview: full.synopsis || target.synopsis || '',
-              year: full.year || target.year || '',
-              imdbId: full.imdbId || target.imdbId || full.id || target.id,
-              quality: best.quality || '1080p Full HD'
-            });
-            if (res && (res.id || res.success !== false)) {
-              if (res.id) deletedDownloadIdsRef.current.delete(String(res.id).toLowerCase());
-              refreshDownloadsInfo();
-              showToast(`Download de "${full.title || movieTitle}" (${best.quality || '1080p'}) iniciado em D:\\Filmes!`);
-              return;
-            }
-          }
-          setSelectedMovie(full || target);
-        }).catch(() => {
-          setSelectedMovie(target);
-        });
+        handleStartDownloadTarget(target, 'local');
         break;
       }
 

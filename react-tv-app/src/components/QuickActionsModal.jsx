@@ -156,13 +156,19 @@ export const QuickActionsModal = memo(function QuickActionsModal({
       iconColor: isFav ? '#F5C518' : 'inherit'
     });
 
-    // 5. Baixar para o Computador (apenas para títulos online que não sejam locais)
+    // 5. Opções de Download com escolha de destino: Pasta Local (PC) ou Google Drive (Nuvem)
     if (!isLocal && !movie.isLocal && !movie.isCloud) {
       actions.push({
-        id: 'download',
-        title: 'Baixar Filme / Série',
-        subtitle: 'Salvar na Pasta Local (PC) ou no Google Drive (Cinelar)',
-        icon: 'file_download'
+        id: 'download_local',
+        title: 'Baixar na Pasta Local (PC)',
+        subtitle: 'Salvar no computador em D:\\Filmes',
+        icon: 'folder'
+      });
+      actions.push({
+        id: 'download_drive',
+        title: 'Baixar no Google Drive (Nuvem)',
+        subtitle: 'Salvar na nuvem em G:\\Meu Drive\\cinelar',
+        icon: 'cloud'
       });
     }
 

@@ -454,6 +454,18 @@ export function useSpatialNav({
           s.modalActionRef.current.handleSubNav?.(1);
           return;
         }
+        if (isLeft) {
+          e.preventDefault();
+          e.stopPropagation();
+          s.modalActionRef.current.handleSubDir?.(-1);
+          return;
+        }
+        if (isRight) {
+          e.preventDefault();
+          e.stopPropagation();
+          s.modalActionRef.current.handleSubDir?.(1);
+          return;
+        }
         if (isEnter) {
           e.preventDefault();
           e.stopPropagation();

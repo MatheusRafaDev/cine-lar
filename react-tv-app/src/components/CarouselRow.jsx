@@ -64,13 +64,13 @@ function CarouselRowComponent({
   // Navegação direta com botões de chevron para mouse/web
   const handleScrollLeft = useCallback(() => {
     if (!trackRef.current) return;
-    const amount = Math.max(300, trackRef.current.clientWidth * 0.75);
+    const amount = trackRef.current.clientWidth || 800;
     trackRef.current.scrollBy({ left: -amount, behavior: 'smooth' });
   }, []);
 
   const handleScrollRight = useCallback(() => {
     if (!trackRef.current) return;
-    const amount = Math.max(300, trackRef.current.clientWidth * 0.75);
+    const amount = trackRef.current.clientWidth || 800;
     trackRef.current.scrollBy({ left: amount, behavior: 'smooth' });
   }, []);
 
