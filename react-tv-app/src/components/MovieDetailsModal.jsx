@@ -233,12 +233,12 @@ export function MovieDetailsModal({
 
   // Progresso salvo previamente no histórico
   const savedProgress = useMemo(() => {
-    return getSavedProgress(details || movie);
+    return getSavedProgress(details) || getSavedProgress(movie) || (movie?.position > 5 ? movie : null) || (details?.position > 5 ? details : null);
   }, [details, movie]);
 
-  const hasResume = Boolean(savedProgress && savedProgress.position > 10 && (!savedProgress.duration || (savedProgress.position / savedProgress.duration) < 0.92));
+  const hasResume = Boolean(savedProgress && savedProgress.position > 5 && (!savedProgress.duration || (savedProgress.position / savedProgress.duration) < 0.92));
   const resumePos = hasResume ? savedProgress.position : (details?.position || movie?.position || 0);
-  const isInHistory = Boolean(hasResume || savedProgress || isInWatchHistory(details || movie));
+  const isInHistory = Boolean(hasResume || savedProgress || isInWatchHistory(details) || isInWatchHistory(movie));
 
   // Ação 1: Assistir (com retomada ou do início)
   const handlePlay = useCallback((customPos) => {
@@ -579,7 +579,7 @@ export function MovieDetailsModal({
       primary: true,
       icon: 'play_arrow',
       label: hasResume
-        ? `Continuar (${formatTime(resumePos)})`
+        ? `Continuar Assistindo (${formatTime(resumePos)})`
         : isDrive
         ? 'Assistir do Google Drive'
         : isLocal

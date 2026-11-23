@@ -490,8 +490,8 @@ export function deleteWatchHistory(userId, movieId) {
     const database = getDb();
     const res = database.prepare(`
         DELETE FROM watch_history
-        WHERE user_id = ? AND movie_id = ?
-    `).run(userId, movieId);
+        WHERE user_id = ? AND (movie_id = ? OR title = ?)
+    `).run(userId, movieId, movieId);
     return res.changes > 0;
 }
 

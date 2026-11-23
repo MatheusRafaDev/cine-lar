@@ -820,6 +820,66 @@ export function getWatchHistory() {
   }
 }
 
+// Sincroniza histórico de reprodução ("Continuar Assistindo") com o banco SQLite do servidor
+export async function syncWatchHistoryWithServer() {
+  try {
+    const res = await request('/api/user/history?userId=default');
+    if (res && Array.isArray(res.history)) {
+      const serverHistory = res.history
+        .map(normalizeMovie)
+        .filter(item => item && (item.position || 0) > 5 && (!item.duration || (item.position / item.duration) < 0.92));
+
+      const localHistory = getWatchHistory();
+      const mergedMap = new Map();
+
+      // Prioriza itens do servidor SQLite
+      for (const item of serverHistory) {
+        if (!item) continue;
+        const key = String(item.id || item.imdbId || item.movieId || item.filePath || item.title).toLowerCase().trim();
+        if (key) mergedMap.set(key, item);
+      }
+
+      // Mescla com itens locais persistidos no localStorage
+      for (const item of localHistory) {
+        if (!item) continue;
+        const key = String(item.id || item.imdbId || item.movieId || item.filePath || item.title).toLowerCase().trim();
+        if (key) {
+          const existing = mergedMap.get(key);
+          if (!existing) {
+            mergedMap.set(key, item);
+          } else {
+            const serverTime = existing.updated_at ? new Date(existing.updated_at).getTime() : 0;
+            const localTime = item.updatedAt || 0;
+            if (localTime > serverTime) {
+              mergedMap.set(key, { ...existing, ...item });
+            } else {
+              mergedMap.set(key, { ...item, ...existing });
+            }
+          }
+        }
+      }
+
+      const merged = Array.from(mergedMap.values())
+        .sort((a, b) => {
+          const timeA = a.updatedAt || (a.updated_at ? new Date(a.updated_at).getTime() : 0);
+          const timeB = b.updatedAt || (b.updated_at ? new Date(b.updated_at).getTime() : 0);
+          return timeB - timeA;
+        })
+        .slice(0, 25);
+
+      _cachedWatchHistory = merged;
+      _cachedLookupMap = buildWatchLookupMap(_cachedWatchHistory);
+      try {
+        localStorage.setItem('mf_watch_history', JSON.stringify(merged));
+      } catch (_) {}
+      return merged;
+    }
+  } catch (err) {
+    console.warn('[API] Erro ao sincronizar histórico com servidor:', err);
+  }
+  return getWatchHistory();
+}
+
 // Busca o progresso salvo de qualquer filme/serie em O(1) diretamente da memoria
 export function getSavedProgress(movie) {
   if (!movie) return null;
@@ -1020,16 +1080,23 @@ export function clearWatchProgress(movieOrId) {
       localStorage.setItem('mf_watch_history', JSON.stringify(history));
     } catch (_) {}
 
-    const primaryId = typeof movieOrId === 'object'
-      ? (movieOrId.id || movieOrId.imdbId || movieOrId.movieId || movieOrId.filePath || movieOrId.title)
-      : movieOrId;
-    if (primaryId) {
+    const idsToDelete = new Set();
+    if (typeof movieOrId === 'object') {
+      if (movieOrId.id) idsToDelete.add(movieOrId.id);
+      if (movieOrId.movieId) idsToDelete.add(movieOrId.movieId);
+      if (movieOrId.imdbId) idsToDelete.add(movieOrId.imdbId);
+      if (movieOrId.title) idsToDelete.add(movieOrId.title);
+    } else if (movieOrId) {
+      idsToDelete.add(movieOrId);
+    }
+
+    idsToDelete.forEach(pid => {
       try {
-        fetch(`${getServerUrl()}/api/user/history?movieId=${encodeURIComponent(primaryId)}&userId=default`, {
+        fetch(`${getServerUrl()}/api/user/history?movieId=${encodeURIComponent(pid)}&userId=default`, {
           method: 'DELETE'
         }).catch(() => {});
       } catch (_) {}
-    }
+    });
   } catch (_) {}
 }
 

@@ -27,6 +27,7 @@ import {
   pauseDownload,
   resumeDownload,
   getWatchHistory,
+  syncWatchHistoryWithServer,
   getSavedProgress,
   getFavorites,
   syncFavoritesWithServer,
@@ -98,6 +99,11 @@ export function App() {
   const refreshUserData = useCallback(() => {
     setWatchHistory(getWatchHistory());
     setFavorites(getFavorites());
+    syncWatchHistoryWithServer().then(hist => {
+      if (Array.isArray(hist) && hist.length > 0) {
+        setWatchHistory(hist);
+      }
+    }).catch(() => {});
   }, []);
 
   const refreshDriveLibrary = useCallback(() => {
@@ -145,6 +151,9 @@ export function App() {
     getServerStatus().then(isOnline => setServerStatus(isOnline ? 'online' : 'offline'));
     syncFavoritesWithServer().then(favs => {
       if (favs && favs.length > 0) setFavorites(favs);
+    });
+    syncWatchHistoryWithServer().then(hist => {
+      if (hist && hist.length > 0) setWatchHistory(hist);
     });
 
     // Trending & Destaque
@@ -1361,11 +1370,7 @@ export function App() {
         if (sec && sec.movies && sec.movies[colIndex]) {
           const mov = sec.movies[colIndex];
           if (sec.id === 'continue-watching') {
-            if (isPlayKey) {
-              handlePlayMovieDirect(mov);
-            } else {
-              handleOpenQuickMenuForMovie(mov, true);
-            }
+            handlePlayMovieDirect(mov);
           } else if (isPlayKey) {
             handlePlayMovieDirect(mov);
           } else {
@@ -1438,7 +1443,7 @@ export function App() {
                 colIndex={nav.colIndex}
                 onSelectMovie={(mov, isContinue) => {
                   if (isContinue) {
-                    handleOpenQuickMenuForMovie(mov, true);
+                    handlePlayMovieDirect(mov);
                   } else {
                     setSelectedMovie(mov);
                   }
