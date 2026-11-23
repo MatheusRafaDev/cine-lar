@@ -122,7 +122,8 @@ export function normalizeMovie(item) {
     : (duration > 0 && position > 0 ? Math.min(100, Math.round((position / duration) * 100)) : null);
 
   const isCinelarFolder = Boolean(resolvedFilePath && (resolvedFilePath.toLowerCase().includes('\\cinelar\\') || resolvedFilePath.toLowerCase().includes('/cinelar/')));
-  const isCloud = Boolean(item.isCloud || item.source === 'Google Drive' || isCinelarFolder || (item.streamUrl && (item.streamUrl.includes('drive.google.com') || item.streamUrl.includes('drive.usercontent.google.com'))));
+  const isGDrivePath = Boolean(resolvedFilePath && (resolvedFilePath.toLowerCase().startsWith('g:\\') || resolvedFilePath.toLowerCase().startsWith('g:/') || resolvedFilePath.toLowerCase().includes('meu drive')));
+  const isCloud = Boolean(item.isCloud || item.source === 'Google Drive' || isCinelarFolder || isGDrivePath || (item.streamUrl && (item.streamUrl.includes('drive.google.com') || item.streamUrl.includes('drive.usercontent.google.com'))));
   const hasSubtitle = Boolean(item.hasSubtitle || item.srtPath);
   const subtitleUrl = item.srtPath
     ? `/api/local/subtitle?file=${encodeURIComponent(item.srtPath)}`
@@ -147,7 +148,7 @@ export function normalizeMovie(item) {
     isCloud,
     isDrive: isCloud,
     storageLocation,
-    storageLabel: isCloud ? 'Google Drive (Nuvem)' : (isLocal ? 'Pasta Local (D:\\Filmes)' : 'Streaming Sob Demanda'),
+    storageLabel: isCloud ? 'Google Drive (G:\\Meu Drive\\cinelar)' : (isLocal ? 'Pasta Local (D:\\Filmes)' : 'Streaming Sob Demanda'),
     filePath: resolvedFilePath,
     videoPath: resolvedFilePath,
     hasSubtitle,

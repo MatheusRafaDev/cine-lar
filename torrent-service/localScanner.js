@@ -798,8 +798,10 @@ export function deleteLocalFile(targetPath, baseDir = 'D:\\filmes') {
 
         // Se o diretório pai for uma pasta específica do filme dentro da pasta base e estiver vazia, remove a pasta
         const parentDir = path.dirname(targetPath);
-        const allowedBase = path.resolve(baseDir);
-        if (path.resolve(parentDir) !== allowedBase && path.resolve(parentDir).startsWith(allowedBase)) {
+        const resolvedParent = path.resolve(parentDir).toLowerCase();
+        const allowedBase = path.resolve(baseDir).toLowerCase();
+        const isDriveFolder = resolvedParent.startsWith('g:\\') && resolvedParent !== 'g:\\' && resolvedParent !== 'g:\\meu drive';
+        if ((resolvedParent !== allowedBase && resolvedParent.startsWith(allowedBase)) || isDriveFolder) {
             try {
                 const remaining = fs.readdirSync(parentDir);
                 if (remaining.length === 0 || remaining.every(f => /\.(srt|vtt|nfo|jpg|png|txt)$/i.test(f))) {

@@ -337,7 +337,7 @@ export function App() {
     // 1. Apenas Pasta Local do PC (D:\Filmes, excluindo subpasta Cinelar/Drive)
     if (localFilterId === 'local-only') {
       const all = localLibrary?.movies || [];
-      const pcOnly = all.filter(m => !m.isCloud && !m.isDrive && !String(m.filePath || '').toLowerCase().includes('cinelar'));
+      const pcOnly = all.filter(m => !m.isCloud && !m.isDrive && !String(m.filePath || '').toLowerCase().includes('cinelar') && !String(m.filePath || '').toLowerCase().startsWith('g:\\') && !String(m.filePath || '').toLowerCase().includes('meu drive'));
       const rows = [];
       for (let i = 0; i < pcOnly.length; i += COL_COUNT) {
         rows.push({
@@ -351,17 +351,17 @@ export function App() {
       return rows;
     }
 
-    // 2. Modo Nuvem / Google Drive (D:\Filmes\Cinelar ou Nuvem Direta)
+    // 2. Modo Nuvem / Google Drive (G:\Meu Drive\cinelar ou Nuvem Direta)
     if (localFilterId === 'gdrive') {
       const gMovies = (driveMovies && driveMovies.length > 0)
         ? driveMovies
-        : (localLibrary?.movies || []).filter(m => m.isCloud || m.isDrive || String(m.filePath || '').toLowerCase().includes('cinelar'));
+        : (localLibrary?.movies || []).filter(m => m.isCloud || m.isDrive || String(m.filePath || '').toLowerCase().includes('cinelar') || String(m.filePath || '').toLowerCase().startsWith('g:\\') || String(m.filePath || '').toLowerCase().includes('meu drive'));
       const rows = [];
       for (let i = 0; i < gMovies.length; i += COL_COUNT) {
         rows.push({
           id: `gdrive-grid-${i}`,
           title: i === 0 ? 'Filmes na Nuvem (Google Drive)' : '',
-          subtitle: i === 0 ? `${gMovies.length} ${gMovies.length === 1 ? 'filme disponível' : 'filmes disponíveis'} sincronizados com Google Drive (D:\\Filmes\\Cinelar)` : '',
+          subtitle: i === 0 ? `${gMovies.length} ${gMovies.length === 1 ? 'filme disponível' : 'filmes disponíveis'} sincronizados com Google Drive (G:\\Meu Drive\\cinelar)` : '',
           icon: 'cloud',
           movies: gMovies.slice(i, i + COL_COUNT)
         });

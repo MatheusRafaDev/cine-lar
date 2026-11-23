@@ -124,7 +124,7 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
           </div>
         )}
 
-        {movie.isCloud || movie.isDrive || String(movie.filePath || '').toLowerCase().includes('cinelar') ? (
+        {movie.isCloud || movie.isDrive || String(movie.filePath || '').toLowerCase().includes('cinelar') || String(movie.filePath || '').toLowerCase().startsWith('g:\\') || String(movie.filePath || '').toLowerCase().includes('meu drive') ? (
           <div className="tv-card-badge-local" style={{ background: '#4285F4', color: '#FFFFFF', fontWeight: 700, boxShadow: '0 2px 6px rgba(66,133,244,0.4)' }}>
             <span className="material-icons" style={{ fontSize: '11px', marginRight: '3px' }}>cloud</span>
             <span>Google Drive</span>

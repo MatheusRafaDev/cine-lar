@@ -52,12 +52,12 @@ export function LocalFolderView({
     : 'Todos os Arquivos';
 
   const viewLocationPath = isDriveMode
-    ? 'D:\\Filmes\\Cinelar ➔ Google Drive'
+    ? 'G:\\Meu Drive\\cinelar ➔ Google Drive'
     : isLocalOnlyMode
     ? 'D:\\Filmes (Local PC)'
     : isCollectionsMode
     ? 'D:\\Filmes\\Franquias'
-    : 'D:\\Filmes (Local + Drive)';
+    : 'D:\\Filmes (Local) + G:\\Meu Drive (Nuvem)';
 
   const viewStatsLabel = isDriveMode
     ? `${filteredMovieCount} filmes na nuvem`
@@ -123,7 +123,7 @@ export function LocalFolderView({
             <span className="material-icons" style={{ fontSize: '64px', color: '#4285F4' }}>cloud_sync</span>
             <h2 style={{ fontSize: '24px', fontWeight: 700, marginTop: '16px' }}>Sincronização com Google Drive</h2>
             <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '15px', marginTop: '8px' }}>
-              A sua pasta <strong>D:\filmes\Cinelar</strong> é sincronizada com o Google Drive para você assistir diretamente na TV mesmo com o computador desligado.
+              A sua pasta <strong>G:\Meu Drive\cinelar</strong> é sincronizada com o Google Drive para você assistir diretamente na TV mesmo com o computador desligado.
             </p>
             <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button

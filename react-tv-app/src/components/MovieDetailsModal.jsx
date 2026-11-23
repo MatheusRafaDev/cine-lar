@@ -275,7 +275,7 @@ export function MovieDetailsModal({
     }
     setDownloading(true);
     const isDrive = destination === 'drive' || destination === 'gdrive';
-    const destLabel = isDrive ? 'Google Drive (Cinelar)' : 'Pasta Local (D:\\Filmes)';
+    const destLabel = isDrive ? 'Google Drive (G:\\Meu Drive\\cinelar)' : 'Pasta Local (D:\\Filmes)';
     try {
       if (isSeries) {
         const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
@@ -426,7 +426,7 @@ export function MovieDetailsModal({
     }
     setDownloading(true);
     const isDrive = destination === 'drive' || destination === 'gdrive';
-    const destLabel = isDrive ? 'Google Drive (Cinelar\\Series)' : 'Pasta Local (D:\\Filmes\\Series)';
+    const destLabel = isDrive ? 'Google Drive (G:\\Meu Drive\\cinelar\\Series)' : 'Pasta Local (D:\\Filmes\\Series)';
     try {
       const imdb = details?.imdbId || movie?.imdbId || details?.id || movie?.id;
       const res = await downloadSeason({
@@ -455,7 +455,7 @@ export function MovieDetailsModal({
   const handleExecuteDownloadAllSeasons = useCallback(async (destination = 'local') => {
     setDownloading(true);
     const isDrive = destination === 'drive' || destination === 'gdrive';
-    const destLabel = isDrive ? 'Google Drive (Cinelar\\Series)' : 'Pasta Local (D:\\Filmes\\Series)';
+    const destLabel = isDrive ? 'Google Drive (G:\\Meu Drive\\cinelar\\Series)' : 'Pasta Local (D:\\Filmes\\Series)';
     try {
       const imdb = details?.imdbId || movie?.imdbId || details?.id || movie?.id;
       const seasonsList = Array.from(new Set(seriesMeta?.videos?.map(v => v.season).filter(s => s > 0) || [])).sort((a, b) => a - b);
@@ -1078,7 +1078,7 @@ export function MovieDetailsModal({
                   onClick={() => setDownloadDestination('drive')}
                 >
                   <span className="material-icons" style={{ fontSize: '16px' }}>cloud</span>
-                  <span>☁️ Google Drive (Cinelar)</span>
+                  <span>☁️ Google Drive (G:\Meu Drive)</span>
                 </button>
               </div>
             </div>
@@ -1214,7 +1214,7 @@ export function MovieDetailsModal({
                 }}
               >
                 <span className="material-icons">cloud</span>
-                <span>☁️ Baixar no Google Drive (Cinelar)</span>
+                <span>☁️ Baixar no Google Drive (G:\Meu Drive)</span>
               </button>
 
               {/* Botão 3: Cancelar */}
@@ -1241,7 +1241,7 @@ export function MovieDetailsModal({
                 <div>
                   <h2 className="tv-series-download-title">Download de Episódios da Série</h2>
                   <div className="tv-series-download-subtitle">
-                    {title} • {seasons.length > 0 ? `${seasons.length} Temporadas` : 'Temporada 1'} • Salvar em {seriesDownloadDestination === 'drive' ? 'D:\\Filmes\\Cinelar\\Series' : 'D:\\Filmes\\Series'}
+                    {title} • {seasons.length > 0 ? `${seasons.length} Temporadas` : 'Temporada 1'} • Salvar em {seriesDownloadDestination === 'drive' ? 'G:\\Meu Drive\\cinelar\\Series' : 'D:\\Filmes\\Series'}
                   </div>
                 </div>
               </div>
@@ -1284,7 +1284,7 @@ export function MovieDetailsModal({
                   onClick={() => setSeriesDownloadDestination('drive')}
                 >
                   <span className="material-icons" style={{ fontSize: '15px' }}>cloud</span>
-                  <span>☁️ Google Drive (Cinelar\Series)</span>
+                  <span>☁️ Google Drive (G:\Meu Drive\Series)</span>
                 </button>
               </div>
             </div>

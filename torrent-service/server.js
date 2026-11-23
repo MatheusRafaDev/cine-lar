@@ -59,7 +59,33 @@ try {
     console.warn('[TorrentService] Could not load config.json:', e.message);
 }
 
-let PLATFORM_DOWNLOAD_PATH = path.join(SAVE_PATH, 'Cinelar');
+export function resolveGoogleDrivePath() {
+    const candidates = [
+        'G:\\Meu Drive\\cinelar',
+        'G:\\Meu Drive\\Cinelar',
+        'G:\\Meu Drive',
+        'G:\\cinelar',
+        'G:\\',
+        path.join(SAVE_PATH, 'Cinelar')
+    ];
+    for (const c of candidates) {
+        if (fs.existsSync(c)) {
+            if (c.toLowerCase() === 'g:\\meu drive' || c.toLowerCase() === 'g:\\') {
+                const target = path.join(c, 'cinelar');
+                try {
+                    if (!fs.existsSync(target)) fs.mkdirSync(target, { recursive: true });
+                    return target;
+                } catch (_) {
+                    return c;
+                }
+            }
+            return c;
+        }
+    }
+    return path.join(SAVE_PATH, 'Cinelar');
+}
+
+let PLATFORM_DOWNLOAD_PATH = resolveGoogleDrivePath();
 const JELLYFIN_URL = process.env.JELLYFIN_URL || 'http://localhost:8096';
 const JELLYFIN_USER = process.env.JELLYFIN_USER || 'usuario';
 const JELLYFIN_PW = process.env.JELLYFIN_PW || '';
@@ -2099,25 +2125,32 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // Google Drive / Cloud synchronized movies from D:\filmes\Cinelar
+        // Google Drive / Cloud synchronized movies from G:\Meu Drive\cinelar (ou D:\filmes\Cinelar)
         if (pathname === '/api/gdrive/files' && req.method === 'GET') {
             try {
-                const cinelarPath = path.join(SAVE_PATH, 'Cinelar');
+                const cinelarPath = PLATFORM_DOWNLOAD_PATH;
                 let movies = [];
                 if (fs.existsSync(cinelarPath)) {
                     movies = await getLocalLibrary(cinelarPath, false, getActiveDownloadingPaths());
                 }
-                // Se a pasta Cinelar tiver poucos filmes ou estiver vazia, filtra filmes de Cinelar na biblioteca local
-                if (movies.length === 0) {
-                    const allLocal = await getLocalLibrary(SAVE_PATH, false, getActiveDownloadingPaths());
-                    movies = allLocal.filter(m => {
-                        const p = String(m.filePath || '').toLowerCase();
-                        return p.includes('cinelar');
-                    });
+                // Se houver pasta Cinelar no D:\Filmes diferente do Google Drive atual, unifica
+                const legacyCinelar = path.join(SAVE_PATH, 'Cinelar');
+                if (fs.existsSync(legacyCinelar) && path.resolve(legacyCinelar).toLowerCase() !== path.resolve(cinelarPath).toLowerCase()) {
+                    const legacyMovies = await getLocalLibrary(legacyCinelar, false, getActiveDownloadingPaths());
+                    movies = movies.concat(legacyMovies);
+                }
+                // Se ainda estiver vazia, verifica se há vídeos em G:\Meu Drive
+                if (movies.length === 0 && fs.existsSync('G:\\Meu Drive')) {
+                    const gDriveMovies = await getLocalLibrary('G:\\Meu Drive', false, getActiveDownloadingPaths());
+                    if (gDriveMovies.length > 0) {
+                        movies = gDriveMovies;
+                    }
                 }
                 const cloudMovies = movies.map(m => ({
                     ...m,
                     isCloud: true,
+                    isDrive: true,
+                    storageLocation: 'drive',
                     quality: 'Nuvem 1080p',
                     source: 'Google Drive'
                 }));
@@ -2253,11 +2286,12 @@ const server = http.createServer(async (req, res) => {
                     }
 
                     // 3. Responde 200 OK imediatamente e executa exclusão física + atualização do banco
+                    const targetBase = (filePath.toLowerCase().startsWith('g:\\') || filePath.toLowerCase().includes('meu drive')) ? PLATFORM_DOWNLOAD_PATH : SAVE_PATH;
                     try {
-                        deleteLocalFile(filePath, SAVE_PATH);
+                        deleteLocalFile(filePath, targetBase);
                     } catch (_) {
                         setTimeout(() => {
-                            try { deleteLocalFile(filePath, SAVE_PATH); } catch (_) {}
+                            try { deleteLocalFile(filePath, targetBase); } catch (_) {}
                         }, 300);
                     }
 
