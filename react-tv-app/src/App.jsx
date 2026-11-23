@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Header, NAV_ITEMS } from './components/Header';
 const MovieDetailsModal = lazy(() => import('./components/MovieDetailsModal').then(m => ({ default: m.MovieDetailsModal })));
 const CinemaPlayer = lazy(() => import('./components/CinemaPlayer').then(m => ({ default: m.CinemaPlayer })));
@@ -248,7 +249,16 @@ export function App() {
         return !deletedDownloadIdsRef.current.has(did);
       });
       const snapshot = JSON.stringify({
-        downloads: filtered.map(d => [d.infoHash || d.id, d.status, d.progress, d.downloaded, d.speed, d.peers]),
+        downloads: filtered.map(d => [
+          d.infoHash || d.id,
+          d.status,
+          d.stage,
+          d.progress,
+          d.downloaded,
+          d.downloadSpeed,
+          d.numPeers,
+          d.errorMessage
+        ]),
         storage: data.storage,
         stats: data.stats
       });
@@ -264,6 +274,13 @@ export function App() {
     }
   }, []);
 
+  const activeDownloadsCount = useMemo(() => {
+    return (downloads || []).filter(d => {
+      const isDl = d.status === 'downloading' || d.stage === 'searching_peers' || d.stage === 'connecting' || d.stage === 'downloading';
+      return isDl && !d.isPaused;
+    }).length;
+  }, [downloads]);
+
   // Atualiza automaticamente a biblioteca local ao abrir a aba Pasta Local
   useEffect(() => {
     if (activeTab === 'local') {
@@ -271,11 +288,11 @@ export function App() {
     }
   }, [activeTab, refreshLocalLibrary]);
 
-  // Polling leve para downloads ativos quando na aba downloads
+  // Polling para downloads ativos: a cada 2s na aba Downloads, a cada 5s nas demais abas
   useEffect(() => {
-    if (activeTab !== 'downloads') return;
     refreshDownloadsInfo();
-    const interval = setInterval(refreshDownloadsInfo, 3000);
+    const intervalMs = activeTab === 'downloads' ? 2000 : 5000;
+    const interval = setInterval(refreshDownloadsInfo, intervalMs);
     return () => clearInterval(interval);
   }, [activeTab, refreshDownloadsInfo]);
 
@@ -1352,142 +1369,211 @@ export function App() {
           isZoneFocused={nav.activeZone === 'header'}
           focusedIndex={nav.headerIndex}
           serverStatus={serverStatus}
+          activeDownloadsCount={activeDownloadsCount}
         />
       </div>
 
       <main className="tv-main-content" style={hiddenUnderPlayerStyle}>
-        {activeTab === 'home' && (
-          <HomeView
-            heroMovie={heroMovie}
-            sections={homeSections}
-            activeZone={nav.activeZone}
-            heroIndex={nav.heroIndex}
-            rowIndex={nav.rowIndex}
-            colIndex={nav.colIndex}
-            onSelectMovie={(mov, isContinue) => {
-              if (isContinue) {
-                handleOpenQuickMenuForMovie(mov, true);
-              } else {
-                setSelectedMovie(mov);
-              }
-            }}
-            onContextMenuMovie={(mov) => handleOpenQuickMenuForMovie(mov, true)}
-            onPlayHero={() => handlePlayMovieDirect(heroMovie)}
-            onInfoHero={() => setSelectedMovie(heroMovie)}
-            isLoading={isHomeLoading}
-            serverStatus={serverStatus}
-          />
-        )}
+        <AnimatePresence mode="wait">
+          {activeTab === 'home' && (
+            <motion.div
+              key="home"
+              className="tv-view-motion-wrapper"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <HomeView
+                heroMovie={heroMovie}
+                sections={homeSections}
+                activeZone={nav.activeZone}
+                heroIndex={nav.heroIndex}
+                rowIndex={nav.rowIndex}
+                colIndex={nav.colIndex}
+                onSelectMovie={(mov, isContinue) => {
+                  if (isContinue) {
+                    handleOpenQuickMenuForMovie(mov, true);
+                  } else {
+                    setSelectedMovie(mov);
+                  }
+                }}
+                onContextMenuMovie={(mov) => handleOpenQuickMenuForMovie(mov, true)}
+                onPlayHero={() => handlePlayMovieDirect(heroMovie)}
+                onInfoHero={() => setSelectedMovie(heroMovie)}
+                isLoading={isHomeLoading}
+                serverStatus={serverStatus}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'movies' && (
-          <MoviesView
-            genreSections={genreSections}
-            activeZone={nav.activeZone}
-            rowIndex={nav.rowIndex}
-            colIndex={nav.colIndex}
-            onSelectMovie={setSelectedMovie}
-            onContextMenuMovie={handleOpenQuickMenuForMovie}
-          />
-        )}
+          {activeTab === 'movies' && (
+            <motion.div
+              key="movies"
+              className="tv-view-motion-wrapper"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <MoviesView
+                genreSections={genreSections}
+                activeZone={nav.activeZone}
+                rowIndex={nav.rowIndex}
+                colIndex={nav.colIndex}
+                onSelectMovie={setSelectedMovie}
+                onContextMenuMovie={handleOpenQuickMenuForMovie}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'series' && (
-          <SeriesView
-            genreSections={seriesGenreSections}
-            activeZone={nav.activeZone}
-            rowIndex={nav.rowIndex}
-            colIndex={nav.colIndex}
-            onSelectSeries={setSelectedMovie}
-            onContextMenuMovie={handleOpenQuickMenuForMovie}
-          />
-        )}
+          {activeTab === 'series' && (
+            <motion.div
+              key="series"
+              className="tv-view-motion-wrapper"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <SeriesView
+                genreSections={seriesGenreSections}
+                activeZone={nav.activeZone}
+                rowIndex={nav.rowIndex}
+                colIndex={nav.colIndex}
+                onSelectSeries={setSelectedMovie}
+                onContextMenuMovie={handleOpenQuickMenuForMovie}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'favorites' && (
-          <FavoritesView
-            favorites={favorites}
-            gridRows={favoritesGridRows}
-            activeZone={nav.activeZone}
-            rowIndex={nav.rowIndex}
-            colIndex={nav.colIndex}
-            onSelectMovie={setSelectedMovie}
-            onContextMenuMovie={handleOpenQuickMenuForMovie}
-          />
-        )}
+          {activeTab === 'favorites' && (
+            <motion.div
+              key="favorites"
+              className="tv-view-motion-wrapper"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <FavoritesView
+                favorites={favorites}
+                gridRows={favoritesGridRows}
+                activeZone={nav.activeZone}
+                rowIndex={nav.rowIndex}
+                colIndex={nav.colIndex}
+                onSelectMovie={setSelectedMovie}
+                onContextMenuMovie={handleOpenQuickMenuForMovie}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'local' && (
-          <LocalFolderView
-            localLibrary={localLibrary}
-            filters={localFilters}
-            activeFilter={localFilterId}
-            onSelectFilter={(fid, idx) => {
-              setLocalFilterId(fid);
-              nav.setLocalFilterIndex(idx);
-              nav.setRowIndex(0);
-              nav.setColIndex(0);
-              if (fid === 'gdrive') {
-                refreshDriveLibrary();
-              }
-            }}
-            gridRows={localGridRows}
-            activeZone={nav.activeZone}
-            localFilterIndex={nav.localFilterIndex}
-            rowIndex={nav.rowIndex}
-            colIndex={nav.colIndex}
-            onSelectMovie={handleOpenQuickMenuForMovie}
-            onContextMenuMovie={handleOpenQuickMenuForMovie}
-            onOpenDriveConfig={() => setIsDriveConfigOpen(true)}
-            serverStatus={serverStatus}
-          />
-        )}
+          {activeTab === 'local' && (
+            <motion.div
+              key="local"
+              className="tv-view-motion-wrapper"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <LocalFolderView
+                localLibrary={localLibrary}
+                filters={localFilters}
+                activeFilter={localFilterId}
+                onSelectFilter={(fid, idx) => {
+                  setLocalFilterId(fid);
+                  nav.setLocalFilterIndex(idx);
+                  nav.setRowIndex(0);
+                  nav.setColIndex(0);
+                  if (fid === 'gdrive') {
+                    refreshDriveLibrary();
+                  }
+                }}
+                gridRows={localGridRows}
+                activeZone={nav.activeZone}
+                localFilterIndex={nav.localFilterIndex}
+                rowIndex={nav.rowIndex}
+                colIndex={nav.colIndex}
+                onSelectMovie={handleOpenQuickMenuForMovie}
+                onContextMenuMovie={handleOpenQuickMenuForMovie}
+                onOpenDriveConfig={() => setIsDriveConfigOpen(true)}
+                serverStatus={serverStatus}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'downloads' && (
-          <DownloadsView
-            downloads={downloads}
-            storage={downloadsStorage}
-            stats={downloadsStats}
-            activeZone={nav.activeZone}
-            focusedIndex={nav.rowIndex}
-            actionIndex={nav.colIndex}
-            onPlayDownload={handlePlayMovieDirect}
-            onPauseDownload={handlePauseDownload}
-            onResumeDownload={handleResumeDownload}
-            onCancelDownload={handleCancelDownload}
-            onContextMenu={handleOpenQuickMenuForMovie}
-          />
-        )}
+          {activeTab === 'downloads' && (
+            <motion.div
+              key="downloads"
+              className="tv-view-motion-wrapper"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <DownloadsView
+                downloads={downloads}
+                storage={downloadsStorage}
+                stats={downloadsStats}
+                activeZone={nav.activeZone}
+                focusedIndex={nav.rowIndex}
+                actionIndex={nav.colIndex}
+                onPlayDownload={handlePlayMovieDirect}
+                onPauseDownload={handlePauseDownload}
+                onResumeDownload={handleResumeDownload}
+                onCancelDownload={handleCancelDownload}
+                onContextMenu={handleOpenQuickMenuForMovie}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'search' && (
-          <SearchView
-            activeZone={nav.activeZone}
-            searchRowIndex={nav.searchRowIndex}
-            searchColIndex={nav.searchColIndex}
-            resultsColIndex={nav.resultsColIndex}
-            onSelectMovie={setSelectedMovie}
-            searchActionRef={searchInputRef}
-          />
-        )}
+          {activeTab === 'search' && (
+            <motion.div
+              key="search"
+              className="tv-view-motion-wrapper"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <SearchView
+                activeZone={nav.activeZone}
+                searchRowIndex={nav.searchRowIndex}
+                searchColIndex={nav.searchColIndex}
+                resultsColIndex={nav.resultsColIndex}
+                onSelectMovie={setSelectedMovie}
+                searchActionRef={searchInputRef}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Modal de Detalhes do Filme ou Série */}
-      {selectedMovie && (
-        <MovieDetailsModal
-          movie={selectedMovie}
-          isZoneFocused={nav.activeZone === 'modal'}
-          focusedIndex={nav.modalIndex}
-          modalActionRef={modalActionRef}
-          onToggleFavorite={refreshUserData}
-          onDeleteLocal={executeDeleteLocalMovie}
-          onDownloadStarted={refreshDownloadsInfo}
-          onClose={() => {
-            setSelectedMovie(null);
-            refreshUserData();
-          }}
-          onPlayStream={(streamData) => {
-            setSelectedMovie(null);
-            setActiveStream(streamData);
-            refreshUserData();
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {selectedMovie && (
+          <MovieDetailsModal
+            key={selectedMovie.id || selectedMovie.imdbId || 'movie-modal'}
+            movie={selectedMovie}
+            isZoneFocused={nav.activeZone === 'modal'}
+            focusedIndex={nav.modalIndex}
+            modalActionRef={modalActionRef}
+            onToggleFavorite={refreshUserData}
+            onDeleteLocal={executeDeleteLocalMovie}
+            onDownloadStarted={refreshDownloadsInfo}
+            onClose={() => {
+              setSelectedMovie(null);
+              refreshUserData();
+            }}
+            onPlayStream={(streamData) => {
+              setSelectedMovie(null);
+              setActiveStream(streamData);
+              refreshUserData();
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Player de Cinema Fullscreen com Limpeza Total de Mídia */}
       {activeStream && (
@@ -1502,37 +1588,52 @@ export function App() {
       )}
 
       {/* Menu de Ações Rápidas (Segurar OK no controle) */}
-      {quickMenuMovie && (
-        <QuickActionsModal
-          movie={quickMenuMovie}
-          context={quickMenuContext}
-          isFav={isFavorite(quickMenuMovie.id, quickMenuMovie.imdbId, quickMenuMovie.title)}
-          isOpen={Boolean(quickMenuMovie)}
-          focusedIndex={nav.quickMenuIndex}
-          confirmDeleteMode={confirmDeleteMode}
-          onSelectAction={handleQuickActionSelect}
-          onClose={handleCloseQuickMenu}
-          onConfirmDelete={handleConfirmDelete}
-          onCancelDelete={() => setConfirmDeleteMode(false)}
-        />
-      )}
+      <AnimatePresence>
+        {quickMenuMovie && (
+          <QuickActionsModal
+            key="quick-menu"
+            movie={quickMenuMovie}
+            context={quickMenuContext}
+            isFav={isFavorite(quickMenuMovie.id, quickMenuMovie.imdbId, quickMenuMovie.title)}
+            isOpen={Boolean(quickMenuMovie)}
+            focusedIndex={nav.quickMenuIndex}
+            confirmDeleteMode={confirmDeleteMode}
+            onSelectAction={handleQuickActionSelect}
+            onClose={handleCloseQuickMenu}
+            onConfirmDelete={handleConfirmDelete}
+            onCancelDelete={() => setConfirmDeleteMode(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Modal de Configuração do Google Drive */}
-      {isDriveConfigOpen && (
-        <DriveConfigModal
-          isOpen={isDriveConfigOpen}
-          onClose={() => setIsDriveConfigOpen(false)}
-          onSaved={refreshDriveLibrary}
-        />
-      )}
+      <AnimatePresence>
+        {isDriveConfigOpen && (
+          <DriveConfigModal
+            key="drive-config"
+            isOpen={isDriveConfigOpen}
+            onClose={() => setIsDriveConfigOpen(false)}
+            onSaved={refreshDriveLibrary}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Notificação Toast Global */}
-      {toastMessage && (
-        <div className="tv-global-toast">
-          <span className="material-icons" style={{ fontSize: '20px', color: '#22C55E' }}>check_circle</span>
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            key="toast"
+            className="tv-global-toast"
+            initial={{ opacity: 0, y: 25, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 15, scale: 0.96 }}
+            transition={{ duration: 0.2 }}
+          >
+            <span className="material-icons" style={{ fontSize: '20px', color: '#22C55E' }}>check_circle</span>
+            <span>{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Barra de Atalhos Coloridos do Controle da TV (Samsung / Tizen) */}
       {!activeStream && !selectedMovie && !quickMenuMovie && (

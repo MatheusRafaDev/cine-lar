@@ -1,32 +1,48 @@
-# Builds e caches
-node_modules/
-jellyfin-web/node_modules/
-jellyfin-web/dist/
-jellyfin-web_git_backup/
+# =======================================================
+# Cine Lar - Git Ignore
+# =======================================================
 
-# Logs e temporários
+# Dependências (Node.js)
+node_modules/
+*/node_modules/
+
+# Builds e pacotes compilados (gerados automaticamente pelo build-tv.ps1 e vite build)
+dist/
+react-tv-app/dist/
+tizen-package/
+*.wgt
+.tizen-rds/
+
+# Logs e relatórios de debug
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Variáveis de ambiente
+# Variáveis de ambiente e credenciais locais
 .env
 *.env
 .env.local
+.env.*.local
+!.env.example
 
-# Banco de dados e journals locais
+# Banco de dados local SQLite e estado transitório de downloads
 *.db
+*.db-journal
 *.db-wal
 *.db-shm
+downloads.json
 torrent-service/downloads.json
 
-# Sistema
+# Arquivos de sistema e temporários
 .DS_Store
 Thumbs.db
-
-# React TV App & Temporários Locais
-react-tv-app/node_modules/
-react-tv-app/dist/
-tizen-package/Debug/
-*.wgt
+desktop.ini
 scratch/
+.tmp/
+*.tmp
 
+# Diretórios legados removidos
+jellyfin-web/
+jellyfin-web_git_backup/

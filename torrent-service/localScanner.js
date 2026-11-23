@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import https from 'https';
 import http from 'http';
 import { spawn, execFileSync } from 'child_process';
@@ -10,8 +11,9 @@ import { fetchPtBrMetadata, searchPtBrMovie } from './tmdbHelper.js';
 // Localizar ffmpeg e ffprobe para suporte a reprodução e detecção precisa de metadados
 const FFMPEG_CANDIDATES = [
     process.env.FFMPEG_PATH,
-    'C:\\Program Files\\Jellyfin\\Server\\ffmpeg.exe',
     'C:\\ffmpeg\\bin\\ffmpeg.exe',
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'bin', 'ffmpeg.exe'),
+    'C:\\Program Files\\Jellyfin\\Server\\ffmpeg.exe',
     'ffmpeg'
 ].filter(Boolean);
 
@@ -29,8 +31,9 @@ for (const p of FFMPEG_CANDIDATES) {
 
 const FFPROBE_CANDIDATES = [
     process.env.FFPROBE_PATH,
-    'C:\\Program Files\\Jellyfin\\Server\\ffprobe.exe',
     'C:\\ffmpeg\\bin\\ffprobe.exe',
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'bin', 'ffprobe.exe'),
+    'C:\\Program Files\\Jellyfin\\Server\\ffprobe.exe',
     'ffprobe'
 ].filter(Boolean);
 

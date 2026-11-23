@@ -26,39 +26,39 @@ A solucao e estruturada em tres camadas funcionais:
              v
 +--------------------------------------------------------------+
 |                    CAMADA DE APRESENTACAO                    |
-|             jellyfin-web (Porta 8080 - Webpack)              |
+|             react-tv-app (Porta 8085 - Vite + React 18)      |
 |                                                              |
-|  - Roteamento e Modulos Cinelar TV                           |
+|  - Roteamento e Modulos Cinelar TV (10-Foot UI)              |
+|  - Animacoes Fluidas de Tela com Framer Motion               |
 |  - Player de Video com Controles OSD Inteligentes            |
-|  - Modais de Detalhes e Gerenciamento de Preferencias        |
+|  - Modais de Detalhes, Acoes Rapidas e Nuvem Google Drive    |
++------------------------------+-------------------------------+
+                               | HTTP / REST (Nativo)
+                               v
++--------------------------------------------------------------+
+|             BACKEND INTEGRADO & STREAMING PROPRIETARIO       |
+|             torrent-service (Porta 8085 - Node.js)           |
+|                                                              |
+|  - Engine WebTorrent Sequencial para Streaming Instantaneo   |
+|  - Scanner de Midia Local (D:\Filmes) e Nuvem (Google Drive) |
+|  - Banco de Dados SQLite (Perfis, Favoritos e Historico)     |
+|  - Organizador Automatico de Franquias e Series              |
+|  - Servidor Web Estatico com Cache e Compressao Gzip         |
 +------------------------------+-------------------------------+
                                |
-            +------------------+------------------+
-            | HTTP / REST                         | HTTP / API
-            v                                     v
-+-------------------------------+   +--------------------------+
-|      SERVICO DE TORRENT       |   |     JELLYFIN SERVER      |
-|    torrent-service (Porta 8085) |   |    (Porta 8096)          |
-|                               |   |                          |
-|  - Engine WebTorrent          |   |  - Servidor de Midia     |
-|  - Streaming Sequencial HTTP  |   |  - Transcode Suporte     |
-|  - Scanner de Midia Local     |   |  - Autenticacao Base     |
-|  - Banco de Dados SQLite      |   +--------------------------+
-|  - Organizador de Franquias   |
-+---------------+---------------+
-                |
-                v
-+-------------------------------+
-|      DISCO LOCAL (STORAGE)    |
-|       (Ex.: D:\filmes)        |
-+-------------------------------+
+                               v
++--------------------------------------------------------------+
+|                      STORAGE & DISCOS                        |
+|       - Disco Local (PC): D:\Filmes (266+ GB)                |
+|       - Google Drive: G:\Meu Drive\cinelar                   |
++--------------------------------------------------------------+
 ```
 
 ---
 
-## 3. Modulos do Frontend (`jellyfin-web`)
+## 3. Modulos do Frontend (`react-tv-app`)
 
-O frontend reside no diretorio `jellyfin-web/` e e baseado na estrutura do Jellyfin Web, enriquecido com controladores independentes para a experiencia MatheusFlix:
+O frontend reside no diretorio `react-tv-app/` e foi desenvolvido sob medida para a experiencia Cinelar TV (Smart TVs e Navegadores Modernos):
 
 ### 3.1. `homeSectionsEmbed.js` (Tela 1 - Inicio)
 - **Funcao:** Renderiza o banner Hero principal com metadados do titulo em destaque (badge de resolucao 4K, audio dublado, nota IMDb) e botoes de acao rapida ("Assistir" e "Mais informacoes").
@@ -354,14 +354,13 @@ O MatheusFlix adota integralmente as diretrizes do **Cinelar TV Design System**:
 ### 7.1. Pre-requisitos
 - Sistema operacional Windows 10/11 ou Linux x64.
 - Node.js instalado (versao 18 ou superior).
-- Jellyfin Server instalado localmente.
 
 ### 7.2. Passo a Passo de Execucao
 1. Clone o projeto para o diretorio desejado.
 2. No diretorio `torrent-service`, execute `npm install`.
-3. No diretorio `jellyfin-web`, execute `npm install`.
-4. Execute o script `iniciar-matheusflix.bat` na raiz ou inicialize os terminais individualmente.
-5. Abra o navegador ou dispositivo em `http://localhost:8080`.
+3. No diretorio `react-tv-app`, execute `npm install`.
+4. Execute o script `iniciar-cinelar.bat` na raiz do projeto.
+5. Acesse no computador em `http://localhost:8085` ou na Smart TV no IP da rede local.
 
 ---
 

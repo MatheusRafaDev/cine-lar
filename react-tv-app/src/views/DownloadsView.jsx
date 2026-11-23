@@ -67,6 +67,19 @@ export function DownloadsView({
         </div>
       </div>
 
+      {/* Banner de Aviso de Espaço Reduzido no Google Drive */}
+      {storage?.drive && storage.drive.freeGB !== null && storage.drive.freeGB < 2.0 && (
+        <div className="tv-downloads-warning-banner">
+          <span className="material-icons tv-downloads-warning-icon">info</span>
+          <div className="tv-downloads-warning-content">
+            <span className="tv-downloads-warning-title">Atenção ao Espaço no Google Drive ({storage.drive.freeGB} GB Livres)</span>
+            <span className="tv-downloads-warning-sub">
+              Para baixar filmes e séries em alta definição (que exigem de 2 a 5 GB), use a <strong>Pasta Local (D:\Filmes)</strong> com {storage.local?.freeGB || storage.freeSpaceGB || 260}+ GB livres. Downloads enviados ao Drive podem pausar se o arquivo for maior que o espaço disponível.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Grid de Métricas do Servidor e Disco */}
       <div className="tv-downloads-stats-grid">
         {/* Card 1: Velocidade Agregada */}
@@ -125,9 +138,13 @@ export function DownloadsView({
               </div>
             )}
             <span className="tv-downloads-stat-sub">
-              {storage?.totalSpaceGB
-                ? `${storage.usedSpaceGB} GB usados de ${storage.totalSpaceGB} GB (${diskPercent}% usado)`
-                : 'Destino D:\\Filmes'}
+              {storage?.drive?.freeGB !== null && storage?.drive?.freeGB !== undefined ? (
+                <>PC: {storage.freeSpaceGB} GB livres • Drive: {storage.drive.freeGB} GB</>
+              ) : storage?.totalSpaceGB ? (
+                `${storage.usedSpaceGB} GB usados de ${storage.totalSpaceGB} GB (${diskPercent}% usado)`
+              ) : (
+                'Destino D:\\Filmes'
+              )}
             </span>
           </div>
         </div>
@@ -153,30 +170,50 @@ export function DownloadsView({
           {downloads.map((item, idx) => {
             const isItemFocused = isListFocused && focusedIndex === idx;
             const progress = Math.min(100, Math.max(0, parseFloat(item.progress) || 0));
-            const isDone = item.status === 'completed' || progress >= 100;
-            const isPaused = Boolean(item.isPaused || item.status === 'paused');
+            const isDone = item.status === 'completed' || item.stage === 'completed' || progress >= 100;
+            const isPaused = Boolean(item.isPaused || item.status === 'paused' || item.stage === 'paused');
+            const isError = item.status === 'error' || item.stage === 'error' || Boolean(item.errorMessage);
+            const stage = item.stage || (isError ? 'error' : isDone ? 'completed' : isPaused ? 'paused' : 'downloading');
             const itemId = item.infoHash || item.id || idx;
 
-            // Cores e status
-            let statusLabel = 'Baixando';
+            // Cores, ícones e rótulos baseados no ciclo de vida
+            let statusLabel = item.stageLabel || 'Baixando';
             let statusBadgeClass = 'tv-download-badge-active';
             let statusIcon = 'arrow_downward';
+            let barFillClass = 'active';
 
-            if (isDone) {
+            if (isError) {
+              statusLabel = item.stageLabel || 'Atenção';
+              statusBadgeClass = 'tv-download-badge-error';
+              statusIcon = 'error_outline';
+              barFillClass = 'error';
+            } else if (isDone) {
               statusLabel = 'Concluído';
               statusBadgeClass = 'tv-download-badge-done';
               statusIcon = 'check_circle';
+              barFillClass = 'done';
             } else if (isPaused) {
               statusLabel = 'Pausado';
               statusBadgeClass = 'tv-download-badge-paused';
               statusIcon = 'pause_circle';
+              barFillClass = 'paused';
+            } else if (stage === 'searching_peers') {
+              statusLabel = item.stageLabel || 'Buscando Fontes';
+              statusBadgeClass = 'tv-download-badge-searching';
+              statusIcon = 'travel_explore';
+              barFillClass = 'searching';
+            } else if (stage === 'connecting') {
+              statusLabel = item.stageLabel || 'Conectando';
+              statusBadgeClass = 'tv-download-badge-connecting';
+              statusIcon = 'sync';
+              barFillClass = 'connecting';
             }
 
             return (
               <div
                 key={itemId}
                 ref={(el) => (cardRefs.current[idx] = el)}
-                className={`tv-download-card ${isItemFocused ? 'focused' : ''} ${isDone ? 'completed' : ''}`}
+                className={`tv-download-card ${isItemFocused ? 'focused' : ''} ${isDone ? 'completed' : ''} ${isError ? 'error' : ''}`}
                 onClick={() => onPlayDownload?.(item)}
                 onContextMenu={(e) => handleCardContextMenu(e, item)}
               >
@@ -250,13 +287,27 @@ export function DownloadsView({
                         </span>
                       )}
                     </div>
+
+                    {/* Explicação Clara do Status em Tempo Real */}
+                    <div className={`tv-download-status-explanation ${stage}`}>
+                      <span className="material-icons" style={{ fontSize: '15px' }}>
+                        {stage === 'searching_peers' ? 'travel_explore' :
+                         stage === 'connecting' ? 'sync' :
+                         stage === 'error' ? 'error_outline' :
+                         stage === 'paused' ? 'pause_circle_filled' :
+                         stage === 'completed' ? 'check_circle' : 'cloud_download'}
+                      </span>
+                      <span>
+                        {item.stageMessage || (isDone ? 'Download concluído e gravado no disco.' : isPaused ? 'Download pausado. Clique em Retomar quando quiser continuar.' : isError ? (item.errorMessage || 'Falha no download.') : 'Baixando...')}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Barra de Progresso com Percentual */}
                   <div className="tv-download-progress-container">
                     <div className="tv-download-bar-track">
                       <div
-                        className={`tv-download-bar-fill ${isDone ? 'done' : (isPaused ? 'paused' : 'active')}`}
+                        className={`tv-download-bar-fill ${barFillClass}`}
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -267,31 +318,33 @@ export function DownloadsView({
                   <div className="tv-download-telemetry-row">
                     <div className="tv-download-telemetry-item">
                       <span className="material-icons tv-telemetry-icon">save</span>
-                      <span>{item.downloaded || '0 B'} de {item.total || '0 B'}</span>
+                      <span>{item.downloaded || '0 B'} de {item.total || 'Calculando...'}</span>
                     </div>
 
-                    {!isDone && !isPaused && (
+                    {!isDone && !isPaused && !isError && (
                       <div className="tv-download-telemetry-item" style={{ color: '#38bdf8' }}>
                         <span className="material-icons tv-telemetry-icon">arrow_downward</span>
                         <span>{item.downloadSpeed || '0 B/s'}</span>
                       </div>
                     )}
 
-                    {!isDone && (
+                    {!isDone && !isError && (
                       <div className="tv-download-telemetry-item">
                         <span className="material-icons tv-telemetry-icon">people</span>
-                        <span>{item.numPeers || 0} peers</span>
+                        <span>{item.numPeers || 0} fonte(s) conectada(s)</span>
                       </div>
                     )}
 
                     <div className="tv-download-telemetry-item">
                       <span className="material-icons tv-telemetry-icon">schedule</span>
-                      <span>{isDone ? 'Download Concluído' : (isPaused ? 'Download Pausado' : `Restam ${item.timeRemaining || 'Calculando...'}`)}</span>
+                      <span>{isDone ? 'Concluído' : (isPaused ? 'Pausado' : isError ? 'Interrompido' : `Restam ${item.timeRemaining || 'Calculando...'}`)}</span>
                     </div>
 
-                    <div className="tv-download-telemetry-item tv-download-path-tag" title={item.destinationPath}>
-                      <span className="material-icons tv-telemetry-icon">folder_open</span>
-                      <span>{item.destinationPath || 'D:\\Filmes'}</span>
+                    <div className="tv-download-telemetry-item tv-download-path-tag" title={item.destinationPath || item.savePath}>
+                      <span className="material-icons tv-telemetry-icon">
+                        {item.destination === 'drive' ? 'cloud' : 'folder_open'}
+                      </span>
+                      <span>{item.destinationPath || (item.destination === 'drive' ? 'Google Drive' : 'D:\\Filmes')}</span>
                     </div>
                   </div>
                 </div>

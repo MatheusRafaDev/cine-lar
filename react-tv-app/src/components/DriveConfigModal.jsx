@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { getDriveConfig, setDriveConfig } from '../services/api';
 
 export function DriveConfigModal({ isOpen, onClose, onSaved }) {
@@ -27,11 +28,23 @@ export function DriveConfigModal({ isOpen, onClose, onSaved }) {
   };
 
   return (
-    <div className="tv-quick-actions-backdrop" onClick={onClose} style={{ zIndex: 12000 }}>
-      <div
+    <motion.div
+      className="tv-quick-actions-backdrop"
+      onClick={onClose}
+      style={{ zIndex: 12000 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div
         className="tv-quick-actions-modal"
         onClick={e => e.stopPropagation()}
         style={{ maxWidth: '580px', width: '90%', padding: '28px', borderRadius: '16px' }}
+        initial={{ opacity: 0, scale: 0.92, y: 22 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 16 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 360 }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
           <span className="material-icons" style={{ fontSize: '36px', color: '#4285F4' }}>cloud</span>
@@ -106,7 +119,7 @@ export function DriveConfigModal({ isOpen, onClose, onSaved }) {
             Salvar e Conectar
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

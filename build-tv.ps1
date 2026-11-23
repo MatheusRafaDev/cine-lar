@@ -30,9 +30,9 @@ if (Test-Path $iconSrc) {
 
 $configXml = @"
 <?xml version="1.0" encoding="UTF-8"?>
-<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://jellyfin.org/Jellyfin" version="2.0.0" viewmodes="fullscreen">
+<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://cinelar.tv/Cinelar" version="2.0.0" viewmodes="fullscreen">
     <access origin="*" subdomains="true"></access>
-    <tizen:application id="AprZAARz4r.Jellyfin" package="AprZAARz4r" required_version="2.3"/>
+    <tizen:application id="AprZAARz4r.Cinelar" package="AprZAARz4r" required_version="2.3"/>
     <author href="http://192.168.15.9:8085" email="apps@cinelar.local">Cinelar</author>
     <content src="index.html"/>
     <description>Cinelar TV App para Samsung Smart TV</description>

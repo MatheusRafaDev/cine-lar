@@ -122,7 +122,7 @@ A interface conta com as seguintes seções estruturadas no Design System Cinela
 - **Node.js:** Versão 18.0.0 ou superior (Node.js 20 LTS recomendado).
 - **FFmpeg e FFprobe (Opcional, mas Recomendado):**
   - Utilizado para detecção de codecs e remux MKV->MP4 sob demanda.
-  - Reconhecido automaticamente em `C:\Program Files\Jellyfin\Server\ffmpeg.exe`, `C:\ffmpeg\bin\ffmpeg.exe` ou via `PATH`.
+  - Reconhecido automaticamente em `C:\ffmpeg\bin\ffmpeg.exe` ou via `PATH` do sistema.
 - **Armazenamento:** Mínimo de 10 GB livres recomendados para downloads (pasta padrão configurável em `D:\Filmes`).
 - **Smart TV (para instalação nativa .wgt):** Samsung Smart TV modelo 2017 a 2026 com Modo Desenvolvedor ativo e perfil de certificado Tizen configurado.
 

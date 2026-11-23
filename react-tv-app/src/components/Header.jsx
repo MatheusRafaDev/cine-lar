@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import { motion } from 'framer-motion';
 
 export const NAV_ITEMS = [
   { id: 'home', label: 'Início' },
@@ -10,7 +11,7 @@ export const NAV_ITEMS = [
   { id: 'search', label: 'Buscar' }
 ];
 
-function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, serverStatus = 'checking' }) {
+function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, serverStatus = 'checking', activeDownloadsCount = 0 }) {
   const [clockTime, setClockTime] = React.useState(() => {
     const d = new Date();
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -46,7 +47,20 @@ function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, 
               className={`tv-nav-btn ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}`}
               onClick={() => onSelectTab(item.id)}
             >
-              {item.label}
+              {isActive && (
+                <motion.div
+                  layoutId="activeTabBadge"
+                  className="tv-nav-active-indicator"
+                  transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                />
+              )}
+              <span className="tv-nav-btn-text">{item.label}</span>
+              {item.id === 'downloads' && activeDownloadsCount > 0 && (
+                <span className="tv-nav-download-badge">
+                  <span className="tv-nav-download-dot" />
+                  <span>{activeDownloadsCount}</span>
+                </span>
+              )}
             </button>
           );
         })}

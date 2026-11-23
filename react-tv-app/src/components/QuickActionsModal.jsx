@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import { motion } from 'framer-motion';
 
 /**
  * QuickActionsModal - Menu de Ações Rápidas acionado ao segurar o OK no controle da TV.
@@ -33,8 +34,22 @@ export const QuickActionsModal = memo(function QuickActionsModal({
     ];
 
     return (
-      <div className="tv-quick-actions-backdrop" onClick={onCancelDelete}>
-        <div className="tv-quick-actions-modal danger-mode" onClick={(e) => e.stopPropagation()}>
+      <motion.div
+        className="tv-quick-actions-backdrop"
+        onClick={onCancelDelete}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.18 }}
+      >
+        <motion.div
+          className="tv-quick-actions-modal danger-mode"
+          onClick={(e) => e.stopPropagation()}
+          initial={{ opacity: 0, scale: 0.92, y: 22 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.94, y: 16 }}
+          transition={{ type: 'spring', damping: 28, stiffness: 360 }}
+        >
           <div className="tv-quick-actions-header danger-header">
             <span className="material-icons" style={{ fontSize: '32px', color: 'var(--primary)' }}>warning</span>
             <div>
@@ -78,8 +93,8 @@ export const QuickActionsModal = memo(function QuickActionsModal({
           <div className="tv-quick-actions-footer">
             <span>UP/DOWN: Navegar • OK: Confirmar • VOLTAR: Cancelar</span>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     );
   }
 
@@ -192,8 +207,22 @@ export const QuickActionsModal = memo(function QuickActionsModal({
   }
 
   return (
-    <div className="tv-quick-actions-backdrop" onClick={onClose}>
-      <div className="tv-quick-actions-modal" onClick={(e) => e.stopPropagation()}>
+    <motion.div
+      className="tv-quick-actions-backdrop"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div
+        className="tv-quick-actions-modal"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.92, y: 22 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 16 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 360 }}
+      >
         {/* Cabeçalho do Card */}
         <div className="tv-quick-actions-header">
           <img src={poster} alt={title} className="tv-quick-actions-poster" />
@@ -263,7 +292,7 @@ export const QuickActionsModal = memo(function QuickActionsModal({
         <div className="tv-quick-actions-footer">
           <span>Navegue com UP/DOWN • Pressione OK para selecionar • VOLTAR para fechar</span>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 });

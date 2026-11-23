@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import { motion } from 'framer-motion';
 
 function HeroBannerComponent({ movie, isZoneFocused, focusedIndex, onPlay, onInfo, onContextMenu }) {
   if (!movie) return null;
@@ -21,7 +22,13 @@ function HeroBannerComponent({ movie, isZoneFocused, focusedIndex, onPlay, onInf
     >
       <div className="tv-hero-gradient" />
 
-      <div className="tv-hero-content">
+      <motion.div
+        key={movie.id || movie.title || 'hero'}
+        className="tv-hero-content"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+      >
         <div className="tv-hero-badges">
           {movie.imdbRating && (
             <span className="tv-badge-pill tv-badge-imdb">
@@ -65,7 +72,7 @@ function HeroBannerComponent({ movie, isZoneFocused, focusedIndex, onPlay, onInf
             <span>Mais Informações</span>
           </button>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

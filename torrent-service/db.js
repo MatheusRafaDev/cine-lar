@@ -177,6 +177,13 @@ export function initDb() {
                 PRIMARY KEY (user_id, movie_id)
             );
             CREATE INDEX IF NOT EXISTS idx_watch_hist_updated ON watch_history(user_id, updated_at DESC);
+
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                is_admin INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL
+            );
         `);
     } catch (e) {
         console.warn('[Database] User tables initialization warning:', e.message);
@@ -486,6 +493,42 @@ export function deleteWatchHistory(userId, movieId) {
         WHERE user_id = ? AND movie_id = ?
     `).run(userId, movieId);
     return res.changes > 0;
+}
+
+// Perfis de Usuário 100% Nativos (Sem dependência de serviços externos)
+export function getUserProfiles() {
+    const database = getDb();
+    let rows = [];
+    try {
+        rows = database.prepare('SELECT id, name, is_admin FROM user_profiles ORDER BY created_at ASC').all();
+    } catch (_) {}
+
+    if (!rows || rows.length === 0) {
+        const defaultId = 'cinelar_default';
+        const defaultName = 'Principal';
+        const now = new Date().toISOString();
+        try {
+            database.prepare('INSERT OR IGNORE INTO user_profiles (id, name, is_admin, created_at) VALUES (?, ?, 1, ?)').run(defaultId, defaultName, now);
+        } catch (_) {}
+        return [{ id: defaultId, name: defaultName, hasPassword: false, isAdmin: true }];
+    }
+
+    return rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        hasPassword: false,
+        isAdmin: Boolean(r.is_admin)
+    }));
+}
+
+export function createUserProfile(name) {
+    if (!name || typeof name !== 'string') throw new Error('Nome de perfil inválido');
+    const database = getDb();
+    const cleanName = name.trim();
+    const id = 'user_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+    const now = new Date().toISOString();
+    database.prepare('INSERT INTO user_profiles (id, name, is_admin, created_at) VALUES (?, ?, 0, ?)').run(id, cleanName, now);
+    return { id, name: cleanName, hasPassword: false, isAdmin: false };
 }
 
 // 6. Gerenciamento Estruturado e Ultraleve da Tabela local_media

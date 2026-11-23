@@ -7,7 +7,7 @@ import zlib from 'zlib';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import WebTorrent from 'webtorrent';
-import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites, isUserFavorite, toggleUserFavorite, updateWatchProgress, getWatchHistory, deleteWatchHistory, getMovieById } from './db.js';
+import { initDb, upsertMovie, searchCatalog, getGenresSummary, getUserFavorites, isUserFavorite, toggleUserFavorite, updateWatchProgress, getWatchHistory, deleteWatchHistory, getMovieById, getUserProfiles, createUserProfile } from './db.js';
 import { seedCatalog, scanLocalMovies } from './seeder.js';
 import { askAiMovieRecommendations } from './aiSearch.js';
 import { getLocalLibrary, streamLocalVideo, deleteLocalFile, renameLocalFile, invalidateLocalCache, removeFileFromLocalCache, getMediaInfo } from './localScanner.js';
@@ -82,9 +82,6 @@ export function resolveGoogleDrivePath() {
 }
 
 let PLATFORM_DOWNLOAD_PATH = resolveGoogleDrivePath();
-const JELLYFIN_URL = process.env.JELLYFIN_URL || 'http://localhost:8096';
-const JELLYFIN_USER = process.env.JELLYFIN_USER || 'usuario';
-const JELLYFIN_PW = process.env.JELLYFIN_PW || '';
 const MUTATION_API_TOKEN = (process.env.MUTATION_API_TOKEN || '').trim();
 
 function getLocalIpAddress() {
@@ -415,8 +412,9 @@ const DEFAULT_TRACKERS = [
 // Helper para localizar instâncias de ffmpeg disponíveis no sistema
 const FFMPEG_CANDIDATES = [
     process.env.FFMPEG_PATH,
-    'C:\\Program Files\\Jellyfin\\Server\\ffmpeg.exe',
     'C:\\ffmpeg\\bin\\ffmpeg.exe',
+    path.join(__dirname, 'bin', 'ffmpeg.exe'),
+    'C:\\Program Files\\Jellyfin\\Server\\ffmpeg.exe',
     'ffmpeg'
 ].filter(Boolean);
 
@@ -522,11 +520,22 @@ function attachPermanentTorrentHandlers(torrent, infoHash) {
             persistDownloads();
         }
         scanLocalMovies(SAVE_PATH);
-        refreshJellyfinLibrary();
     });
 
     torrent.on('error', (err) => {
         console.error(`[TorrentService] Torrent error (${infoHash}):`, err.message);
+        const item = downloadsRegistry.get(infoHash);
+        if (item) {
+            item.status = 'error';
+            item.error = err.message;
+            if (err.message?.includes('ENOSPC') || err.code === 'ENOSPC' || err.message?.toLowerCase().includes('space')) {
+                item.errorMessage = 'Espaço em disco insuficiente no destino selecionado.';
+            } else {
+                item.errorMessage = `Erro de transferência: ${err.message}`;
+            }
+            item.isPaused = true;
+            persistDownloads();
+        }
     });
 }
 
@@ -661,146 +670,6 @@ function fetchJson(url, customTtl = 0) {
             reject(new Error(`Timeout fetching ${url}`));
         });
     });
-}
-
-// Jellyfin Library Refresh
-async function refreshJellyfinLibrary() {
-    console.log('[TorrentService] Triggering Jellyfin library refresh...');
-    try {
-        const authPayload = JSON.stringify({ Username: JELLYFIN_USER, Pw: JELLYFIN_PW });
-        const authRes = await new Promise((resolve) => {
-            const req = http.request({
-                hostname: 'localhost',
-                port: 8096,
-                path: '/Users/AuthenticateByName',
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Emby-Authorization': 'MediaBrowser Client="Cinelar TorrentService", Device="Node", DeviceId="cinelar_torrent", Version="2.0.0"'
-                }
-            }, (res) => {
-                let data = '';
-                res.on('data', c => data += c);
-                res.on('end', () => {
-                    try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
-                });
-            });
-            req.on('error', () => resolve(null));
-            req.write(authPayload);
-            req.end();
-        });
-
-        const token = authRes?.AccessToken;
-        if (!token) {
-            console.warn('[TorrentService] Could not authenticate with Jellyfin for library refresh');
-            return;
-        }
-
-        const refreshReq = http.request({
-            hostname: 'localhost',
-            port: 8096,
-            path: '/Library/Refresh',
-            method: 'POST',
-            headers: {
-                'X-Emby-Token': token
-            }
-        }, (res) => {
-            console.log('[TorrentService] Jellyfin library refresh status:', res.statusCode);
-        });
-        refreshReq.on('error', (e) => console.warn('[TorrentService] Error requesting library refresh:', e.message));
-        refreshReq.end();
-    } catch (e) {
-        console.error('[TorrentService] Failed to trigger library refresh:', e.message);
-    }
-}
-
-async function getJellyfinAdminToken() {
-    try {
-        const authPayload = JSON.stringify({ Username: JELLYFIN_USER, Pw: JELLYFIN_PW });
-        return await new Promise((resolve) => {
-            const req = http.request({
-                hostname: 'localhost',
-                port: 8096,
-                path: '/Users/AuthenticateByName',
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Emby-Authorization': 'MediaBrowser Client="Cinelar Backend", Device="Node", DeviceId="cinelar_backend", Version="2.0.0"'
-                }
-            }, (res) => {
-                let data = '';
-                res.on('data', c => data += c);
-                res.on('end', () => {
-                    try {
-                        const json = JSON.parse(data);
-                        resolve(json?.AccessToken || null);
-                    } catch {
-                        resolve(null);
-                    }
-                });
-            });
-            req.on('error', () => resolve(null));
-            req.write(authPayload);
-            req.end();
-        });
-    } catch {
-        return null;
-    }
-}
-
-async function createJellyfinUserProfile(name) {
-    const token = await getJellyfinAdminToken();
-    if (!token) throw new Error('Não foi possível autenticar como administrador no Jellyfin');
-
-    const newUser = await new Promise((resolve, reject) => {
-        const req = http.request({
-            hostname: 'localhost',
-            port: 8096,
-            path: '/Users/New',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Emby-Token': token
-            }
-        }, (res) => {
-            let data = '';
-            res.on('data', c => data += c);
-            res.on('end', () => {
-                try {
-                    resolve(JSON.parse(data));
-                } catch (e) {
-                    reject(e);
-                }
-            });
-        });
-        req.on('error', reject);
-        req.write(JSON.stringify({ Name: name }));
-        req.end();
-    });
-
-    if (newUser?.Id) {
-        // Desoculta o perfil para aparecer na tela inicial estilo Netflix
-        await new Promise((resolve) => {
-            const req = http.request({
-                hostname: 'localhost',
-                port: 8096,
-                path: `/Users/${newUser.Id}/Policy`,
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Emby-Token': token
-                }
-            }, () => resolve());
-            req.on('error', () => resolve());
-            req.write(JSON.stringify({
-                ...(newUser.Policy || {}),
-                IsHidden: false
-            }));
-            req.end();
-        });
-    }
-
-    return newUser;
 }
 
 let cachedLocalSets = null;
@@ -1113,16 +982,10 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // Perfis de usuários estilo Netflix (Totalmente sem senhas)
+        // Perfis de usuários estilo Netflix (Totalmente sem senhas, nativo no SQLite)
         if (pathname === '/api/user/profiles' && req.method === 'GET') {
             try {
-                const publicUsers = await fetchJson(`${JELLYFIN_URL}/Users/Public`);
-                const profiles = (publicUsers || []).map(u => ({
-                    id: u.Id,
-                    name: u.Name,
-                    hasPassword: false, // Perfis no Cinelar são 100% livres de senhas
-                    isAdmin: Boolean(u.Policy?.IsAdministrator)
-                }));
+                const profiles = getUserProfiles();
                 res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                 res.end(JSON.stringify({ profiles }));
             } catch (e) {
@@ -1140,53 +1003,19 @@ const server = http.createServer(async (req, res) => {
                 try {
                     const data = JSON.parse(body);
                     const name = (data.name || '').trim();
-                    if (!name) {
-                        res.writeHead(400, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ error: 'Nome de perfil obrigatório' }));
-                        return;
+                    const profiles = getUserProfiles();
+                    let profile = profiles.find(p => p.name.toLowerCase() === name.toLowerCase());
+                    if (!profile) {
+                        profile = createUserProfile(name || 'Principal');
                     }
-
-                    console.log(`[TorrentService] Alternando para o perfil sem senha: "${name}"`);
-                    const pw = (name.toLowerCase() === JELLYFIN_USER.toLowerCase()) ? JELLYFIN_PW : '';
-                    const authRes = await new Promise((resolve, reject) => {
-                        const reqAuth = http.request({
-                            hostname: 'localhost',
-                            port: 8096,
-                            path: '/Users/AuthenticateByName',
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-Emby-Authorization': 'MediaBrowser Client="Cinelar Web", Device="Browser", DeviceId="cinelar_client", Version="2.0.0"'
-                            }
-                        }, (r) => {
-                            let d = '';
-                            r.on('data', c => d += c);
-                            r.on('end', () => {
-                                try {
-                                    resolve(JSON.parse(d));
-                                } catch {
-                                    reject(new Error('Falha ao autenticar com o Jellyfin'));
-                                }
-                            });
-                        });
-                        reqAuth.on('error', reject);
-                        reqAuth.write(JSON.stringify({ Username: name, Pw: pw }));
-                        reqAuth.end();
-                    });
-
-                    if (!authRes?.AccessToken) {
-                        res.writeHead(401, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ error: 'Não foi possível autenticar o perfil' }));
-                        return;
-                    }
-
+                    console.log(`[TorrentService] Perfil ativo: "${profile.name}" (${profile.id})`);
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     res.end(JSON.stringify({
                         success: true,
-                        accessToken: authRes.AccessToken,
-                        userId: authRes.User?.Id,
-                        user: authRes.User,
-                        serverId: authRes.ServerId
+                        accessToken: `cinelar_${profile.id}`,
+                        userId: profile.id,
+                        user: { Id: profile.id, Name: profile.name },
+                        serverId: 'cinelar_local'
                     }));
                 } catch (err) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -1208,9 +1037,9 @@ const server = http.createServer(async (req, res) => {
                         res.end(JSON.stringify({ error: 'Nome de perfil inválido' }));
                         return;
                     }
-                    const newUser = await createJellyfinUserProfile(name);
+                    const profile = createUserProfile(name);
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-                    res.end(JSON.stringify({ success: true, profile: { id: newUser.Id, name: newUser.Name } }));
+                    res.end(JSON.stringify({ success: true, profile }));
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: e.message }));
@@ -2220,7 +2049,6 @@ const server = http.createServer(async (req, res) => {
         if (pathname === '/api/local-movies/rescan' && req.method === 'POST') {
             try {
                 const movies = await getLocalLibrary(SAVE_PATH, true, getActiveDownloadingPaths());
-                refreshJellyfinLibrary();
                 res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                 res.end(JSON.stringify({
                     success: true,
@@ -2310,10 +2138,6 @@ const server = http.createServer(async (req, res) => {
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     res.end(JSON.stringify({ success: true, message: 'Arquivo excluído do computador com sucesso' }));
-
-                    setImmediate(() => {
-                        try { refreshJellyfinLibrary(); } catch (_) {}
-                    });
                 } catch (e) {
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: e.message }));
@@ -2353,7 +2177,6 @@ const server = http.createServer(async (req, res) => {
                     if (PLATFORM_DOWNLOAD_PATH && PLATFORM_DOWNLOAD_PATH !== SAVE_PATH) {
                         scanLocalMovies(PLATFORM_DOWNLOAD_PATH);
                     }
-                    refreshJellyfinLibrary();
 
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
                     res.end(JSON.stringify({
@@ -2405,74 +2228,89 @@ const server = http.createServer(async (req, res) => {
                     } catch (_) {}
                 }
 
-                if (torrent) {
-                    const isDone = Boolean(torrent.done || meta.status === 'completed');
-                    const isPaused = Boolean(torrent.paused || meta.isPaused);
-                    return {
-                        id: meta.id,
-                        infoHash: meta.id,
-                        imdbId: meta.imdbId,
-                        title: meta.title,
-                        quality: meta.quality,
-                        name: torrent.name || meta.title,
-                        poster: poster || '',
-                        backdrop: backdrop || '',
-                        overview: meta.overview || '',
-                        year: meta.year || '',
-                        progress: isDone ? 100 : parseFloat((torrent.progress * 100).toFixed(1)),
-                        downloadSpeed: (isDone || isPaused) ? '0 B/s' : formatBytes(torrent.downloadSpeed) + '/s',
-                        uploadSpeed: (isDone || isPaused) ? '0 B/s' : formatBytes(torrent.uploadSpeed) + '/s',
-                        downloaded: formatBytes(torrent.downloaded),
-                        total: formatBytes(torrent.length),
-                        totalBytes: torrent.length || 0,
-                        downloadedBytes: torrent.downloaded || 0,
-                        numPeers: isPaused ? 0 : torrent.numPeers,
-                        timeRemaining: isDone ? 'Concluído' : (isPaused ? 'Pausado' : formatTime(torrent.timeRemaining)),
-                        status: isDone ? 'completed' : (isPaused ? 'paused' : 'downloading'),
-                        isPaused: isPaused,
-                        canPlay: Boolean(torrent.ready || isDone),
-                        streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || torrent.magnetURI || '')}&title=${encodeURIComponent(meta.title)}`,
-                        magnet: meta.magnet || torrent.magnetURI || '',
-                        destinationPath: meta.destinationPath || `Cinelar\\${meta.title}`,
-                        savePath: meta.savePath || '',
-                        category: meta.category || 'movie',
-                        groupName: meta.groupName || null,
-                        season: meta.season || null,
-                        episode: meta.episode || null,
-                        isSeries: Boolean(meta.isSeries),
-                        createdAt: meta.createdAt
-                    };
+                const isDone = Boolean(torrent?.done || meta.status === 'completed' || (meta.progress && meta.progress >= 100));
+                const isPaused = Boolean(torrent?.paused || meta.isPaused || meta.status === 'paused');
+                const hasError = Boolean(meta.status === 'error' || meta.errorMessage || meta.error);
+
+                let stage = 'downloading';
+                let stageLabel = 'Baixando';
+                let stageMessage = '';
+
+                if (hasError) {
+                    stage = 'error';
+                    stageLabel = 'Atenção';
+                    stageMessage = meta.errorMessage || meta.error || 'Falha na gravação ou espaço em disco insuficiente.';
+                } else if (isDone) {
+                    stage = 'completed';
+                    stageLabel = 'Concluído';
+                    stageMessage = 'Download concluído e gravado no disco.';
+                } else if (isPaused) {
+                    stage = 'paused';
+                    stageLabel = 'Pausado';
+                    stageMessage = 'Download pausado. Clique em Retomar para continuar.';
+                } else if (!torrent) {
+                    stage = 'searching_peers';
+                    stageLabel = 'Iniciando';
+                    stageMessage = 'Preparando download e alocando recursos...';
+                } else if (torrent.numPeers === 0 && (!torrent.downloaded || torrent.downloaded === 0)) {
+                    stage = 'searching_peers';
+                    stageLabel = 'Buscando Fontes';
+                    stageMessage = 'Localizando sementes (peers/seeds) ativas na rede DHT...';
+                } else if (torrent.numPeers > 0 && (!torrent.downloadSpeed || torrent.downloadSpeed === 0) && (!torrent.downloaded || torrent.downloaded === 0)) {
+                    stage = 'connecting';
+                    stageLabel = 'Conectando';
+                    stageMessage = `Conectado a ${torrent.numPeers} semente(s). Negociando mapa de peças...`;
+                } else {
+                    stage = 'downloading';
+                    stageLabel = 'Baixando';
+                    const speedStr = formatBytes(torrent.downloadSpeed) + '/s';
+                    stageMessage = `Baixando a ${speedStr} de ${torrent.numPeers} fonte(s) ativas.`;
                 }
 
-                const isDone = meta.status === 'completed';
-                const isPaused = Boolean(meta.isPaused || meta.status === 'paused');
+                const progressVal = isDone ? 100 : (torrent ? parseFloat((torrent.progress * 100).toFixed(1)) : (meta.progress || 0));
+                const dlSpeed = (isDone || isPaused || !torrent) ? '0 B/s' : formatBytes(torrent.downloadSpeed) + '/s';
+                const ulSpeed = (isDone || isPaused || !torrent) ? '0 B/s' : formatBytes(torrent.uploadSpeed) + '/s';
+                const dlBytes = torrent ? torrent.downloaded : (meta.downloadedBytes || 0);
+                const totBytes = torrent ? torrent.length : (meta.totalBytes || 0);
+                const peers = (isPaused || !torrent) ? 0 : torrent.numPeers;
+                const timeRem = isDone ? 'Concluído' : (isPaused ? 'Pausado' : (torrent ? formatTime(torrent.timeRemaining) : 'Calculando...'));
+                const canPlay = Boolean(isDone || torrent?.ready || dlBytes > 1024 * 1024 || progressVal > 0.05);
+
+                const isDriveTarget = meta.destination === 'drive' || String(meta.destinationPath || meta.savePath || '').toLowerCase().includes('cinelar') || String(meta.destinationPath || meta.savePath || '').toLowerCase().startsWith('g:\\');
+
                 return {
                     id: meta.id,
                     infoHash: meta.id,
                     imdbId: meta.imdbId,
                     title: meta.title,
                     quality: meta.quality,
-                    name: meta.title,
+                    name: torrent?.name || meta.title,
                     poster: poster || '',
                     backdrop: backdrop || '',
                     overview: meta.overview || '',
                     year: meta.year || '',
-                    progress: meta.progress || (isDone ? 100 : 0),
-                    downloadSpeed: '0 B/s',
-                    uploadSpeed: '0 B/s',
-                    downloaded: meta.downloaded || (isDone ? 'Concluído' : '0 B'),
-                    total: meta.total || '',
-                    totalBytes: 0,
-                    downloadedBytes: 0,
-                    numPeers: 0,
-                    timeRemaining: isDone ? 'Concluído' : (isPaused ? 'Pausado' : 'Aguardando'),
-                    status: isDone ? 'completed' : (isPaused ? 'paused' : 'downloading'),
+                    progress: progressVal,
+                    downloadSpeed: dlSpeed,
+                    uploadSpeed: ulSpeed,
+                    downloaded: torrent ? formatBytes(torrent.downloaded) : (meta.downloaded || (isDone ? 'Concluído' : '0 B')),
+                    total: torrent ? formatBytes(torrent.length) : (meta.total || ''),
+                    totalBytes: totBytes,
+                    downloadedBytes: dlBytes,
+                    numPeers: peers,
+                    timeRemaining: timeRem,
+                    status: hasError ? 'error' : (isDone ? 'completed' : (isPaused ? 'paused' : 'downloading')),
                     isPaused: isPaused,
-                    canPlay: isDone,
-                    streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || '')}&title=${encodeURIComponent(meta.title)}`,
-                    magnet: meta.magnet || '',
-                    destinationPath: meta.destinationPath || `Cinelar\\${meta.title}`,
-                    savePath: meta.savePath || '',
+                    stage: stage,
+                    stageLabel: stageLabel,
+                    stageMessage: stageMessage,
+                    errorMessage: meta.errorMessage || meta.error || null,
+                    canPlay: canPlay,
+                    streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || torrent?.magnetURI || '')}&title=${encodeURIComponent(meta.title)}`,
+                    magnet: meta.magnet || torrent?.magnetURI || '',
+                    destination: isDriveTarget ? 'drive' : 'local',
+                    destinationPath: meta.destinationPath || (isDriveTarget ? `Cinelar\\${meta.title}` : `Filmes\\${meta.title}`),
+                    savePath: meta.savePath || (isDriveTarget ? PLATFORM_DOWNLOAD_PATH : SAVE_PATH),
+                    saveLocation: isDriveTarget ? 'Google Drive (Cinelar)' : 'Pasta Local (D:\\Filmes)',
                     category: meta.category || 'movie',
                     groupName: meta.groupName || null,
                     season: meta.season || null,
@@ -2482,7 +2320,7 @@ const server = http.createServer(async (req, res) => {
                 };
             });
 
-            // Disco / Armazenamento em D:\Filmes
+            // Armazenamento em D:\Filmes (Local PC)
             let freeSpaceGB = null;
             let totalSpaceGB = null;
             let usedSpaceGB = null;
@@ -2495,6 +2333,19 @@ const server = http.createServer(async (req, res) => {
                 }
             } catch (_) {}
 
+            // Armazenamento em Google Drive (G:\Meu Drive\cinelar) se configurado
+            let driveFreeGB = null;
+            let driveTotalGB = null;
+            let driveUsedGB = null;
+            try {
+                if (PLATFORM_DOWNLOAD_PATH && PLATFORM_DOWNLOAD_PATH !== SAVE_PATH && fs.existsSync(PLATFORM_DOWNLOAD_PATH)) {
+                    const st = fs.statfsSync(PLATFORM_DOWNLOAD_PATH);
+                    driveFreeGB = parseFloat(((st.bfree * st.bsize) / (1024 ** 3)).toFixed(1));
+                    driveTotalGB = parseFloat(((st.blocks * st.bsize) / (1024 ** 3)).toFixed(1));
+                    driveUsedGB = parseFloat((driveTotalGB - driveFreeGB).toFixed(1));
+                }
+            } catch (_) {}
+
             // Métricas agregadas
             let totalDownloadSpeedBytes = 0;
             let totalUploadSpeedBytes = 0;
@@ -2503,14 +2354,14 @@ const server = http.createServer(async (req, res) => {
             let pausedCount = 0;
 
             list.forEach(item => {
-                if (item.status === 'downloading' && !item.isPaused) {
+                if ((item.status === 'downloading' || item.stage === 'searching_peers' || item.stage === 'connecting' || item.stage === 'downloading') && !item.isPaused) {
                     activeCount++;
                     const t = getActiveTorrent(item.id);
                     if (t) {
                         totalDownloadSpeedBytes += t.downloadSpeed || 0;
                         totalUploadSpeedBytes += t.uploadSpeed || 0;
                     }
-                } else if (item.status === 'completed') {
+                } else if (item.status === 'completed' || item.stage === 'completed') {
                     completedCount++;
                 } else if (item.status === 'paused' || item.isPaused) {
                     pausedCount++;
@@ -2524,7 +2375,20 @@ const server = http.createServer(async (req, res) => {
                     freeSpaceGB,
                     totalSpaceGB,
                     usedSpaceGB,
-                    savePath: SAVE_PATH
+                    savePath: SAVE_PATH,
+                    local: {
+                        path: SAVE_PATH,
+                        freeGB: freeSpaceGB,
+                        totalGB: totalSpaceGB,
+                        usedGB: usedSpaceGB
+                    },
+                    drive: PLATFORM_DOWNLOAD_PATH && PLATFORM_DOWNLOAD_PATH !== SAVE_PATH ? {
+                        path: PLATFORM_DOWNLOAD_PATH,
+                        freeGB: driveFreeGB,
+                        totalGB: driveTotalGB,
+                        usedGB: driveUsedGB,
+                        isLowSpace: driveFreeGB !== null && driveFreeGB < 2.0
+                    } : null
                 },
                 stats: {
                     activeCount,
@@ -2693,7 +2557,6 @@ const server = http.createServer(async (req, res) => {
                         metaItem.total = formatBytes(torrent.length);
                         persistDownloads();
                         scanLocalMovies(SAVE_PATH);
-                        refreshJellyfinLibrary();
                     }
                 });
             }
@@ -3076,6 +2939,8 @@ const server = http.createServer(async (req, res) => {
                         status: existingTorrent?.done ? 'completed' : 'downloading',
                         progress: existingTorrent ? parseFloat((existingTorrent.progress * 100).toFixed(1)) : 0,
                         isPaused: false,
+                        errorMessage: null,
+                        error: null,
                         createdAt: existingMeta?.createdAt || new Date().toISOString()
                     };
                     downloadsRegistry.set(infoHash, metaItem);
@@ -3161,20 +3026,7 @@ const server = http.createServer(async (req, res) => {
                             prioritizeVideoForStreaming(t, video);
                         }
                     });
-                    torrent.on('done', () => {
-                        console.log(`[TorrentService] Download COMPLETED: "${torrent.name}"!`);
-                        if (meta) {
-                            meta.status = 'completed';
-                            meta.isPaused = false;
-                            meta.progress = 100;
-                            meta.downloaded = formatBytes(torrent.length);
-                            meta.total = formatBytes(torrent.length);
-                            meta.completedAt = new Date().toISOString();
-                            persistDownloads();
-                        }
-                        scanLocalMovies(SAVE_PATH);
-                        refreshJellyfinLibrary();
-                    });
+                    attachPermanentTorrentHandlers(torrent, id);
                 } catch (e) {
                     console.warn(`[TorrentService] Erro ao re-adicionar torrent para retomada:`, e.message);
                 }
@@ -3183,6 +3035,8 @@ const server = http.createServer(async (req, res) => {
             if (meta) {
                 meta.status = 'downloading';
                 meta.isPaused = false;
+                meta.errorMessage = null;
+                meta.error = null;
                 persistDownloads();
             }
 
@@ -3261,7 +3115,6 @@ const server = http.createServer(async (req, res) => {
                         } catch (_) {}
                     }
                     scanLocalMovies(SAVE_PATH);
-                    refreshJellyfinLibrary();
                 } else if (torrent) {
                     try {
                         torrent.destroy({ destroyStore: false });

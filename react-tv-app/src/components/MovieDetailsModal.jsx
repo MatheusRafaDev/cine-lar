@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
   getMovieDetails,
   getSeriesMeta,
@@ -792,8 +793,22 @@ export function MovieDetailsModal({
     .sort((a, b) => (a.episode || a.number || 0) - (b.episode || b.number || 0));
 
   return (
-    <div className="tv-modal-backdrop" onClick={onClose}>
-      <div className="tv-modal-container" onClick={e => e.stopPropagation()}>
+    <motion.div
+      className="tv-modal-backdrop"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.div
+        className="tv-modal-container"
+        onClick={e => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.94, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 15 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+      >
         {/* Banner Superior do Modal */}
         <div
           className="tv-modal-hero"
@@ -1051,7 +1066,7 @@ export function MovieDetailsModal({
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* 1. Diálogo de Escolha de Versão para Download */}
       {downloadPickerOpen && (
@@ -1476,7 +1491,7 @@ export function MovieDetailsModal({
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 export default MovieDetailsModal;
