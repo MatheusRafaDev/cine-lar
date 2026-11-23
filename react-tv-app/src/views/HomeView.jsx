@@ -20,7 +20,7 @@ export function HomeView({
   const isRowsFocused = activeZone === 'rows';
 
   return (
-    <div className="tv-view-container tv-home-view">
+    <div className="tv-view-container tv-home-view" style={!heroMovie ? { paddingTop: '76px' } : undefined}>
       {heroMovie && (
         <HeroBanner
           movie={heroMovie}

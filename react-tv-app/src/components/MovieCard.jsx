@@ -15,7 +15,8 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
       const el = cardRef.current;
       const track = el.parentElement;
       if (track && track.classList.contains('tv-carousel-track')) {
-        const targetLeft = el.offsetLeft - (track.clientWidth / 2) + ((el.offsetWidth || 176) / 2);
+        const cardWidth = el.offsetWidth || 214;
+        const targetLeft = el.offsetLeft - (track.clientWidth / 2) + (cardWidth / 2);
         track.scrollLeft = Math.max(0, targetLeft);
       } else {
         el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
