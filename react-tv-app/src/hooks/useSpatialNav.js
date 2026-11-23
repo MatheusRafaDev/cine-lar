@@ -33,6 +33,7 @@ export function useSpatialNav({
   headerCount = 7,
   localFilterCount = 0,
   modalItemsCount = 3,
+  searchActionRef = null,
   onBack = null,
   onEnter = null,
   onLongPress = null,
@@ -80,6 +81,7 @@ export function useSpatialNav({
     headerCount,
     localFilterCount,
     modalItemsCount,
+    searchActionRef,
     headerIndex,
     heroIndex,
     rowIndex,
@@ -139,12 +141,15 @@ export function useSpatialNav({
     if (tabChangeTimerRef.current) clearTimeout(tabChangeTimerRef.current);
   }, []);
 
-  // 1. Registro permanente de teclas de mídia no sistema Tizen da Samsung
+  // 1. Registro permanente de teclas de mídia e controle no sistema Tizen da Samsung
   useEffect(() => {
     if (typeof window !== 'undefined' && window.tizen && window.tizen.tvinputdevice) {
       const tvKeys = [
         'MediaPlay', 'MediaPause', 'MediaStop', 'MediaPlayPause',
-        'MediaRewind', 'MediaFastForward', '0', '1', '2', '3', '4', '5'
+        'MediaRewind', 'MediaFastForward',
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        'ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue',
+        'Caption', 'Info'
       ];
       tvKeys.forEach(k => {
         try {
@@ -375,6 +380,55 @@ export function useSpatialNav({
     const isRight = code === KEYS.RIGHT || key === 'ArrowRight';
     const isUp = code === KEYS.UP || key === 'ArrowUp';
     const isDown = code === KEYS.DOWN || key === 'ArrowDown';
+
+    // Teclas Coloridas do Controle Remoto da TV (Samsung / Tizen)
+    const isRedKey = code === 403 || key === 'ColorF0Red';
+    const isGreenKey = code === 404 || key === 'ColorF1Green';
+    const isYellowKey = code === 405 || key === 'ColorF2Yellow';
+    const isBlueKey = code === 406 || key === 'ColorF3Blue';
+
+    if (!s.isPlayerOpen && !s.isModalOpen && !s.isQuickMenuOpen) {
+      if (isRedKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        s.onTabChange?.(6); // Buscar
+        return;
+      }
+      if (isGreenKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        s.onTabChange?.(4); // Pasta Local / Google Drive
+        return;
+      }
+      if (isYellowKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        s.onTabChange?.(3); // Favoritos / Minha Lista
+        return;
+      }
+      if (isBlueKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        s.onTabChange?.(5); // Downloads
+        return;
+      }
+    }
+
+    // Digitação direta em teclado USB / controle com teclado quando na aba de busca
+    if (s.activeTab === 'search' && !s.isModalOpen && !s.isPlayerOpen && !s.isQuickMenuOpen) {
+      if (key && key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && code !== 13) {
+        e.preventDefault();
+        e.stopPropagation();
+        s.searchActionRef?.current?.typeDirect?.(key.toUpperCase());
+        return;
+      }
+      if (code === 8 && s.activeZone === 'search-keyboard') {
+        e.preventDefault();
+        e.stopPropagation();
+        s.searchActionRef?.current?.typeDirect?.('APAGAR');
+        return;
+      }
+    }
 
     // Cancela detecção de long press se o usuário navegar ou apertar voltar
     if (isBack || isLeft || isRight || isUp || isDown) {

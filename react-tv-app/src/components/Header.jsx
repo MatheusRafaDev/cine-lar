@@ -11,6 +11,19 @@ export const NAV_ITEMS = [
 ];
 
 function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, serverStatus = 'checking' }) {
+  const [clockTime, setClockTime] = React.useState(() => {
+    const d = new Date();
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  });
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      const d = new Date();
+      setClockTime(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    }, 15000);
+    return () => clearInterval(timer);
+  }, []);
+
   const statusLabel = serverStatus === 'online'
     ? 'PC Ligado: Acesso via Drive + Torrent Streaming + Pasta Local'
     : serverStatus === 'offline'
@@ -38,13 +51,16 @@ function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, 
           );
         })}
       </nav>
-      <div className={`tv-server-status ${serverStatus}`} title={statusLabel} aria-label={statusLabel}>
-        {serverStatus === 'offline' ? (
-          <span className="material-icons" style={{ fontSize: '13px', color: '#4285F4', marginRight: '3px' }}>cloud</span>
-        ) : (
-          <span className="tv-server-status-dot" />
-        )}
-        <span>{serverStatus === 'online' ? 'PC Ligado' : serverStatus === 'offline' ? 'Modo Drive' : 'Conectando'}</span>
+      <div className="tv-header-right">
+        <div className={`tv-server-status ${serverStatus}`} title={statusLabel} aria-label={statusLabel}>
+          {serverStatus === 'offline' ? (
+            <span className="material-icons" style={{ fontSize: '13px', color: '#4285F4', marginRight: '3px' }}>cloud</span>
+          ) : (
+            <span className="tv-server-status-dot" />
+          )}
+          <span>{serverStatus === 'online' ? 'PC Ligado' : serverStatus === 'offline' ? 'Modo Drive' : 'Conectando'}</span>
+        </div>
+        <span className="tv-header-clock">{clockTime}</span>
       </div>
     </header>
   );

@@ -81,6 +81,9 @@ export function SearchView({
             handleKeyPress(row[c]);
           }
         },
+        typeDirect: (char) => {
+          handleKeyPress(char);
+        },
         selectResult: (colIdx) => {
           if (results && results[colIdx]) {
             onSelectMovie(results[colIdx]);

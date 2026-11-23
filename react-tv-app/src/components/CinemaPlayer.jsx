@@ -417,6 +417,30 @@ export function CinemaPlayer({
     }
   ];
 
+  // Desativa o ScreenSaver do Tizen durante a reprodução para não desligar a tela na TV
+  useEffect(() => {
+    const updateTizenScreenSaver = (active) => {
+      if (typeof window !== 'undefined' && window.webapis && window.webapis.appcommon) {
+        try {
+          const state = active
+            ? window.webapis.appcommon.AppCommonScreenSaverState.SCREEN_SAVER_OFF
+            : window.webapis.appcommon.AppCommonScreenSaverState.SCREEN_SAVER_ON;
+          window.webapis.appcommon.setScreenSaver(state);
+        } catch (_) {}
+      }
+    };
+
+    if (isPlaying) {
+      updateTizenScreenSaver(true);
+    } else {
+      updateTizenScreenSaver(false);
+    }
+
+    return () => {
+      updateTizenScreenSaver(false);
+    };
+  }, [isPlaying]);
+
   // Listener de controle remoto direto e prioritário durante a reprodução
   useEffect(() => {
     const handlePlayerKeyDown = (e) => {
@@ -432,6 +456,37 @@ export function CinemaPlayer({
       const isUp = code === 38 || key === 'ArrowUp';
       const isDown = code === 40 || key === 'ArrowDown';
       const isBack = code === 10009 || code === 27 || code === 8 || key === 'Back' || key === 'Escape';
+
+      // 0. Teclas Numéricas (0-9) para saltar para porcentagem do vídeo (0%, 10%, ..., 90%)
+      if ((code >= 48 && code <= 57) || (code >= 96 && code <= 105)) {
+        const num = code >= 96 ? code - 96 : code - 48;
+        const totalDur = getEffectiveDuration();
+        if (totalDur > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          const target = (totalDur * num) / 10;
+          commitSeek(target);
+          showOsd(num === 0 ? 'replay' : 'fast_forward', `Ir para ${num * 10}% (${formatSeconds(target)})`);
+          return;
+        }
+      }
+
+      // 0b. Tecla de Legenda dedicada do controle (Tizen / Webapis)
+      if (code === 10221 || key === 'Caption' || key === 'Subtitle') {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleSubtitles();
+        return;
+      }
+
+      // 0c. Tecla Info dedicada do controle (Tizen / Webapis)
+      if (code === 457 || key === 'Info') {
+        e.preventDefault();
+        e.stopPropagation();
+        showControlsTemporarily();
+        showOsd('info', streamStats ? `Velocidade: ${streamStats.downloadSpeed || '0 KB/s'} • Buffer: ${streamStats.progress || 0}%` : `${effectiveQuality}`);
+        return;
+      }
 
       // 1. Teclas dedicadas de mídia no controle da TV
       if (isMediaPlayPause) {

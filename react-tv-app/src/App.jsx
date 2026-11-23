@@ -90,6 +90,7 @@ export function App() {
   const modalActionRef = useRef({});
   const deletedDownloadIdsRef = useRef(new Set());
   const deletedLocalPathsRef = useRef(new Set());
+  const lastBackPressRef = useRef(0);
 
   // 1. Carrega dados de usuário (sem disparar requisições pesadas de catálogo)
   const refreshUserData = useCallback(() => {
@@ -1136,6 +1137,7 @@ export function App() {
     headerCount: NAV_ITEMS.length,
     localFilterCount: localFilters.length,
     modalItemsCount,
+    searchActionRef: searchInputRef,
     onLongPress: handleLongPress,
     onCloseQuickMenu: handleCloseQuickMenu,
     onQuickMenuSelect: (idx) => {
@@ -1179,13 +1181,19 @@ export function App() {
         nav.setColIndex(0);
         return true;
       }
-      // Se já está no header da página inicial e pressionou voltar novamente, sai do aplicativo Tizen
-      if (typeof window !== 'undefined' && window.tizen && window.tizen.application) {
-        try {
-          window.tizen.application.getCurrentApplication().exit();
-        } catch (_) {}
+      // Se já está no header da página inicial e pressionou voltar novamente, solicita confirmação para não fechar por acidente na TV
+      const now = Date.now();
+      if (lastBackPressRef.current && (now - lastBackPressRef.current < 2500)) {
+        if (typeof window !== 'undefined' && window.tizen && window.tizen.application) {
+          try {
+            window.tizen.application.getCurrentApplication().exit();
+          } catch (_) {}
+        }
+        return false;
       }
-      return false;
+      lastBackPressRef.current = now;
+      showToast('Pressione VOLTAR novamente para sair do Cinelar');
+      return true;
     },
     onEnter: ({ zone, index, headerIndex, heroIndex, rowIndex, colIndex, filterIndex, searchRowIndex, searchColIndex, resultsColIndex, isPlayKey }) => {
       if (zone === 'modal') {
@@ -1504,6 +1512,28 @@ export function App() {
           <span className="material-icons" style={{ fontSize: '20px', color: '#22C55E' }}>check_circle</span>
           <span>{toastMessage}</span>
         </div>
+      )}
+
+      {/* Barra de Atalhos Coloridos do Controle da TV (Samsung / Tizen) */}
+      {!activeStream && !selectedMovie && !quickMenuMovie && (
+        <aside className="tv-remote-hints" aria-label="Atalhos coloridos do controle remoto">
+          <div className="tv-hint-item">
+            <span className="tv-hint-dot red" />
+            <span>Buscar</span>
+          </div>
+          <div className="tv-hint-item">
+            <span className="tv-hint-dot green" />
+            <span>Drive / Local</span>
+          </div>
+          <div className="tv-hint-item">
+            <span className="tv-hint-dot yellow" />
+            <span>Favoritos</span>
+          </div>
+          <div className="tv-hint-item">
+            <span className="tv-hint-dot blue" />
+            <span>Downloads</span>
+          </div>
+        </aside>
       )}
     </div>
     </Suspense>
