@@ -7,8 +7,8 @@ echo =======================================================
 echo.
 echo Pacote gerado:
 echo [Arquivo] %~dp0Cinelar-signed.wgt
-echo [Servidor Web e API] http://192.168.15.9:8085
-echo [Download direto na rede] http://192.168.15.9:8085/download/Cinelar.wgt
+echo [Servidor Web e API] http://192.168.15.2:8085
+echo [Download direto na rede] http://192.168.15.2:8085/download/Cinelar.wgt
 echo.
 echo =======================================================
 echo ESCOLHA COMO DESEJA INSTALAR NA SUA TV:
@@ -16,7 +16,7 @@ echo =======================================================
 echo.
 echo [1] Metodo Oficial Samsung (Tizen Studio / SDB via Developer Mode)
 echo [2] Metodo Mais Rapido: Navegador Web da TV (Sem instalar nada)
-echo [3] Testar conexao com a Smart TV (IP: 192.168.15.5)
+echo [3] Testar conexao com a Smart TV (IP: 192.168.15.4)
 echo [4] Abrir pasta do pacote Cinelar-signed.wgt
 echo [5] Sair
 echo.
@@ -47,7 +47,7 @@ echo 5. No computador:
 where sdb >nul 2>&1
 if %errorlevel% equ 0 (
     echo SDB detectado! Conectando na TV...
-    sdb connect 192.168.15.5
+    sdb connect 192.168.15.4
     echo Instalando Cinelar-signed.wgt...
     if exist "%~dp0Cinelar-signed.wgt" (
         tizen install -n "%~dp0Cinelar-signed.wgt"
@@ -71,7 +71,7 @@ echo.
 echo 1. Na sua Smart TV, abra o aplicativo "Internet" (Navegador).
 echo 2. Digite na barra de enderecos:
 echo.
-echo    http://192.168.15.9:8085
+echo    http://192.168.15.2:8085
 echo.
 echo 3. O Cine Lar carregara imediatamente com:
 echo    - Layout TV completo (10-foot UI adaptada para controle remoto).
@@ -88,10 +88,10 @@ goto fim
 :ping_tv
 cls
 echo =======================================================
-echo TESTANDO CONEXAO COM A SMART TV (192.168.15.5)...
+echo TESTANDO CONEXAO COM A SMART TV (192.168.15.4)...
 echo =======================================================
 echo.
-ping 192.168.15.5 -n 4
+ping 192.168.15.4 -n 4
 echo.
 pause
 goto fim

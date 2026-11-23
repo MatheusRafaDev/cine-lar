@@ -1,6 +1,6 @@
 # Script de Build e Deploy do Cinelar TV para Samsung Smart TV (Tizen)
 param (
-    [string]$TvIp = "192.168.15.5:26101",
+    [string]$TvIp = "192.168.15.4:26101",
     [bool]$Deploy = $true,
     [bool]$Launch = $true
 )
@@ -33,7 +33,7 @@ $configXml = @"
 <widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://cinelar.tv/Cinelar" version="2.0.0" viewmodes="fullscreen">
     <access origin="*" subdomains="true"></access>
     <tizen:application id="AprZAARz4r.Cinelar" package="AprZAARz4r" required_version="2.3"/>
-    <author href="http://192.168.15.9:8085" email="apps@cinelar.local">Cinelar</author>
+    <author href="http://192.168.15.2:8085" email="apps@cinelar.local">Cinelar</author>
     <content src="index.html"/>
     <description>Cinelar TV App para Samsung Smart TV</description>
     <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>

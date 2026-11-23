@@ -1,5 +1,5 @@
 // Cinelar API Client - Conecta diretamente ao torrent-service local
-const DEFAULT_HOST = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SERVER_HOST) || '192.168.15.9';
+const DEFAULT_HOST = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SERVER_HOST) || '192.168.15.2';
 const DEFAULT_PORT = Number((typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SERVER_PORT) || 8085);
 const DEFAULT_API_TOKEN = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_TOKEN) || '';
 const catalogCache = new Map();
