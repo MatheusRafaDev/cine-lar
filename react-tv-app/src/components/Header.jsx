@@ -11,7 +11,11 @@ export const NAV_ITEMS = [
 ];
 
 function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, serverStatus = 'checking' }) {
-  const statusLabel = serverStatus === 'online' ? 'Servidor conectado' : serverStatus === 'offline' ? 'Servidor indisponível' : 'Verificando servidor';
+  const statusLabel = serverStatus === 'online'
+    ? 'PC Ligado: Acesso via Drive + Torrent Streaming + Pasta Local'
+    : serverStatus === 'offline'
+    ? 'PC Desligado: Acesso direto via Google Drive (Nuvem)'
+    : 'Verificando conexão com o servidor local...';
   return (
     <header className="tv-header">
       <div className="tv-logo-box" onClick={() => onSelectTab('home')}>
@@ -35,8 +39,12 @@ function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, 
         })}
       </nav>
       <div className={`tv-server-status ${serverStatus}`} title={statusLabel} aria-label={statusLabel}>
-        <span className="tv-server-status-dot" />
-        <span>{serverStatus === 'online' ? 'Online' : serverStatus === 'offline' ? 'Offline' : 'Conectando'}</span>
+        {serverStatus === 'offline' ? (
+          <span className="material-icons" style={{ fontSize: '13px', color: '#4285F4', marginRight: '3px' }}>cloud</span>
+        ) : (
+          <span className="tv-server-status-dot" />
+        )}
+        <span>{serverStatus === 'online' ? 'PC Ligado' : serverStatus === 'offline' ? 'Modo Drive' : 'Conectando'}</span>
       </div>
     </header>
   );

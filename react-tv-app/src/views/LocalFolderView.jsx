@@ -39,27 +39,56 @@ export function LocalFolderView({
 
   const isCollectionsMode = activeFilter === 'collections';
   const isDriveMode = activeFilter === 'gdrive';
-  const cloudMovieCount = gridRows.reduce((acc, r) => acc + (r.movies ? r.movies.length : 0), 0);
+  const isLocalOnlyMode = activeFilter === 'local-only';
+  const isAllMode = activeFilter === 'all';
+  const filteredMovieCount = gridRows.reduce((acc, r) => acc + (r.movies ? r.movies.length : 0), 0);
+
+  const viewTitle = isDriveMode
+    ? 'Nuvem (Google Drive)'
+    : isLocalOnlyMode
+    ? 'Pasta Local (PC)'
+    : isCollectionsMode
+    ? 'Coleções & Franquias'
+    : 'Todos os Arquivos';
+
+  const viewLocationPath = isDriveMode
+    ? 'D:\\Filmes\\Cinelar ➔ Google Drive'
+    : isLocalOnlyMode
+    ? 'D:\\Filmes (Local PC)'
+    : isCollectionsMode
+    ? 'D:\\Filmes\\Franquias'
+    : 'D:\\Filmes (Local + Drive)';
+
+  const viewStatsLabel = isDriveMode
+    ? `${filteredMovieCount} filmes na nuvem`
+    : isLocalOnlyMode
+    ? `${filteredMovieCount} filmes no PC`
+    : isCollectionsMode
+    ? `${franchisesCount} franquias • ${filteredMovieCount} filmes`
+    : `${filteredMovieCount || count} filmes no total`;
 
   return (
     <div className="tv-view-container tv-local-view" style={{ paddingTop: '76px' }}>
       {/* 1. Cabeçalho Editorial com Estatísticas do Disco ou Nuvem */}
       <div className="tv-page-header tv-local-header">
         <div className="tv-page-header-row">
-          <h1 className="tv-page-title">{isDriveMode ? 'Nuvem (Google Drive)' : 'Pasta Local'}</h1>
-          <span className="tv-badge-pill tv-badge-path" style={isDriveMode ? { borderColor: '#4285F4', color: '#8AB4F8' } : {}}>
+          <h1 className="tv-page-title">{viewTitle}</h1>
+          <span className="tv-badge-pill tv-badge-path" style={isDriveMode ? { borderColor: '#4285F4', color: '#8AB4F8' } : isLocalOnlyMode ? { borderColor: '#10B981', color: '#34D399' } : {}}>
             <span className="material-icons" style={{ fontSize: '14px' }}>{isDriveMode ? 'cloud' : 'folder'}</span>
-            <span>{isDriveMode ? 'D:\\filmes\\Cinelar ➔ Google Drive' : savePath}</span>
+            <span>{viewLocationPath}</span>
           </span>
           <span className="tv-badge-pill tv-badge-stats">
-            {isDriveMode
-              ? `${cloudMovieCount} filmes disponíveis na nuvem`
-              : `${count} filmes • ${totalSize || '74 GB'} • ${franchisesCount} coleções`}
+            {viewStatsLabel}
           </span>
-          {serverStatus === 'offline' && (
-            <span className="tv-badge-pill" style={{ background: 'rgba(234, 67, 53, 0.2)', color: '#FF8A80', borderColor: 'rgba(234, 67, 53, 0.4)' }}>
-              <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>power_off</span>
-              PC Desligado (Modo Nuvem)
+          {serverStatus === 'online' ? (
+            <span className="tv-badge-pill" style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', borderColor: 'rgba(34, 197, 94, 0.4)' }}>
+              <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>desktop_windows</span>
+              PC Ligado: Local + Drive + Torrent Streaming
+            </span>
+          ) : (
+            <span className="tv-badge-pill" style={{ background: 'rgba(66, 133, 244, 0.2)', color: '#8AB4F8', borderColor: 'rgba(66, 133, 244, 0.4)' }}>
+              <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>cloud</span>
+              PC Desligado: Acesso Direto via Google Drive
             </span>
           )}
         </div>

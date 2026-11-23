@@ -55,7 +55,7 @@ export function App() {
     totalSize: '',
     savePath: 'D:\\Filmes'
   });
-  const [localFilterId, setLocalFilterId] = useState('all');
+  const [localFilterId, setLocalFilterId] = useState('local-only');
   const [driveMovies, setDriveMovies] = useState([]);
   const [isDriveConfigOpen, setIsDriveConfigOpen] = useState(false);
   const [downloads, setDownloads] = useState([]);
@@ -320,11 +320,12 @@ export function App() {
     return list;
   }, [watchHistory, favorites, trendingMovies, seriesGenreSections, localMovies, genreSections]);
 
-  // Filtros disponíveis na visualização local: Pasta Local | Nuvem (Google Drive) | Franquias
+  // Filtros disponíveis na visualização local: Pasta Local (PC) | Nuvem (Google Drive) | Todos | Franquias
   const localFilters = useMemo(() => {
     return [
-      { id: 'all', label: 'Pasta Local', icon: 'folder' },
+      { id: 'local-only', label: 'Pasta Local (PC)', icon: 'folder' },
       { id: 'gdrive', label: 'Nuvem (Google Drive)', icon: 'cloud' },
+      { id: 'all', label: 'Todos os Arquivos', icon: 'auto_awesome_motion' },
       { id: 'collections', label: 'Franquias', icon: 'collections_bookmark' }
     ];
   }, []);
@@ -333,15 +334,34 @@ export function App() {
   const localGridRows = useMemo(() => {
     const COL_COUNT = 8;
 
-    // 1. Modo Nuvem / Google Drive (Cinelar)
+    // 1. Apenas Pasta Local do PC (D:\Filmes, excluindo subpasta Cinelar/Drive)
+    if (localFilterId === 'local-only') {
+      const all = localLibrary?.movies || [];
+      const pcOnly = all.filter(m => !m.isCloud && !m.isDrive && !String(m.filePath || '').toLowerCase().includes('cinelar'));
+      const rows = [];
+      for (let i = 0; i < pcOnly.length; i += COL_COUNT) {
+        rows.push({
+          id: `local-only-grid-${i}`,
+          title: i === 0 ? 'Filmes na Pasta Local do PC (D:\\Filmes)' : '',
+          subtitle: i === 0 ? `${pcOnly.length} ${pcOnly.length === 1 ? 'filme salvo' : 'filmes salvos'} no computador` : '',
+          icon: 'folder',
+          movies: pcOnly.slice(i, i + COL_COUNT)
+        });
+      }
+      return rows;
+    }
+
+    // 2. Modo Nuvem / Google Drive (D:\Filmes\Cinelar ou Nuvem Direta)
     if (localFilterId === 'gdrive') {
-      const gMovies = driveMovies || [];
+      const gMovies = (driveMovies && driveMovies.length > 0)
+        ? driveMovies
+        : (localLibrary?.movies || []).filter(m => m.isCloud || m.isDrive || String(m.filePath || '').toLowerCase().includes('cinelar'));
       const rows = [];
       for (let i = 0; i < gMovies.length; i += COL_COUNT) {
         rows.push({
           id: `gdrive-grid-${i}`,
           title: i === 0 ? 'Filmes na Nuvem (Google Drive)' : '',
-          subtitle: i === 0 ? `${gMovies.length} ${gMovies.length === 1 ? 'filme disponível' : 'filmes disponíveis'} sincronizados de D:\\filmes\\Cinelar` : '',
+          subtitle: i === 0 ? `${gMovies.length} ${gMovies.length === 1 ? 'filme disponível' : 'filmes disponíveis'} sincronizados com Google Drive (D:\\Filmes\\Cinelar)` : '',
           icon: 'cloud',
           movies: gMovies.slice(i, i + COL_COUNT)
         });
@@ -349,12 +369,10 @@ export function App() {
       return rows;
     }
 
-    if (!localLibrary || !localLibrary.movies) return [];
-
-    // 2. Modo Franquias (Coleções Agrupadas)
+    // 3. Modo Franquias (Coleções Agrupadas)
     if (localFilterId === 'collections') {
       const rows = [];
-      (localLibrary.franchises || []).forEach(f => {
+      (localLibrary?.franchises || []).forEach(f => {
         const fMovies = f.movies || [];
         for (let i = 0; i < fMovies.length; i += COL_COUNT) {
           rows.push({
@@ -367,7 +385,7 @@ export function App() {
         }
       });
 
-      if (localLibrary.standaloneMovies && localLibrary.standaloneMovies.length > 0) {
+      if (localLibrary?.standaloneMovies && localLibrary.standaloneMovies.length > 0) {
         const stMovies = localLibrary.standaloneMovies;
         for (let i = 0; i < stMovies.length; i += COL_COUNT) {
           rows.push({
@@ -382,14 +400,15 @@ export function App() {
       return rows;
     }
 
-    // 3. Modo Padrão: 'all' (Pasta Local - Todos os filmes salvos)
-    const allMovies = localLibrary.movies || [];
+    // 4. Modo Padrão: 'all' (Todos os Arquivos - Local PC + Google Drive)
+    const allMovies = localLibrary?.movies || [];
     const rows = [];
     for (let i = 0; i < allMovies.length; i += COL_COUNT) {
       rows.push({
         id: `all-grid-${i}`,
-        title: '',
-        subtitle: '',
+        title: i === 0 ? 'Todos os Arquivos (Pasta Local + Google Drive)' : '',
+        subtitle: i === 0 ? `${allMovies.length} filmes no total salvos no PC e sincronizados` : '',
+        icon: 'auto_awesome_motion',
         movies: allMovies.slice(i, i + COL_COUNT)
       });
     }

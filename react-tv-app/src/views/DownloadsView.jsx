@@ -224,6 +224,26 @@ export function DownloadsView({
                       <span className="tv-badge-pill tv-download-quality-pill">
                         {item.quality || '1080p Full HD'}
                       </span>
+                      {(() => {
+                        const isDrive = item.destination === 'drive' || String(item.destinationPath || item.savePath || '').toLowerCase().includes('cinelar');
+                        return (
+                          <span
+                            className="tv-badge-pill"
+                            style={{
+                              background: isDrive ? 'rgba(66, 133, 244, 0.25)' : 'rgba(16, 185, 129, 0.25)',
+                              color: isDrive ? '#8AB4F8' : '#34D399',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            <span className="material-icons" style={{ fontSize: '12px' }}>{isDrive ? 'cloud' : 'folder'}</span>
+                            <span>{isDrive ? 'Google Drive' : 'Local PC'}</span>
+                          </span>
+                        );
+                      })()}
                       {item.category && (
                         <span className="tv-badge-pill" style={{ fontSize: '11px', textTransform: 'capitalize' }}>
                           {item.category === 'series' ? 'Série' : 'Filme'}

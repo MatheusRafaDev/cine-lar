@@ -124,10 +124,10 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
           </div>
         )}
 
-        {movie.isCloud ? (
-          <div className="tv-card-badge-local" style={{ background: '#4285F4', color: '#FFFFFF' }}>
-            <span className="material-icons" style={{ fontSize: '11px', marginRight: '2px' }}>cloud</span>
-            <span>Drive</span>
+        {movie.isCloud || movie.isDrive || String(movie.filePath || '').toLowerCase().includes('cinelar') ? (
+          <div className="tv-card-badge-local" style={{ background: '#4285F4', color: '#FFFFFF', fontWeight: 700, boxShadow: '0 2px 6px rgba(66,133,244,0.4)' }}>
+            <span className="material-icons" style={{ fontSize: '11px', marginRight: '3px' }}>cloud</span>
+            <span>Google Drive</span>
           </div>
         ) : franchise ? (
           <div className="tv-card-badge-franchise" title={`Franquia ${franchise}`}>
@@ -135,9 +135,9 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
             <span>{franchise}</span>
           </div>
         ) : (
-          <div className="tv-card-badge-local">
-            <span className="material-icons" style={{ fontSize: '11px', marginRight: '2px' }}>folder</span>
-            <span>Local</span>
+          <div className="tv-card-badge-local" style={{ background: '#10B981', color: '#FFFFFF', fontWeight: 700, boxShadow: '0 2px 6px rgba(16,185,129,0.3)' }}>
+            <span className="material-icons" style={{ fontSize: '11px', marginRight: '3px' }}>folder</span>
+            <span>Local PC</span>
           </div>
         )}
 

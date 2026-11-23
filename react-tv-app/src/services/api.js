@@ -114,18 +114,22 @@ export function normalizeMovie(item) {
   const id = item.imdb_id || item.imdbId || item.id || item.filePath || '';
   const isSeries = Boolean(item.isSeries || item.type === 'series' || (item.year && String(item.year).includes('–')));
   const resolvedFilePath = item.filePath || item.videoPath || item.localFile?.videoPath || '';
-  const isLocal = Boolean(resolvedFilePath);
+  const hasFilePath = Boolean(resolvedFilePath);
   const position = Number(item.position || item.position_seconds || 0);
   const duration = Number(item.duration || item.duration_seconds || 0);
   const progress = item.progress !== undefined && item.progress !== null
     ? Number(item.progress)
     : (duration > 0 && position > 0 ? Math.min(100, Math.round((position / duration) * 100)) : null);
 
-  const isCloud = Boolean(item.isCloud || item.source === 'Google Drive' || (item.streamUrl && (item.streamUrl.includes('drive.google.com') || item.streamUrl.includes('drive.usercontent.google.com'))));
+  const isCinelarFolder = Boolean(resolvedFilePath && (resolvedFilePath.toLowerCase().includes('\\cinelar\\') || resolvedFilePath.toLowerCase().includes('/cinelar/')));
+  const isCloud = Boolean(item.isCloud || item.source === 'Google Drive' || isCinelarFolder || (item.streamUrl && (item.streamUrl.includes('drive.google.com') || item.streamUrl.includes('drive.usercontent.google.com'))));
   const hasSubtitle = Boolean(item.hasSubtitle || item.srtPath);
   const subtitleUrl = item.srtPath
     ? `/api/local/subtitle?file=${encodeURIComponent(item.srtPath)}`
     : (hasSubtitle && resolvedFilePath ? `/api/local/subtitle?file=${encodeURIComponent(resolvedFilePath)}` : (item.subtitleUrl || ''));
+
+  const isLocal = isCloud ? false : hasFilePath;
+  const storageLocation = isCloud ? 'drive' : (isLocal ? 'local' : 'online');
 
   return {
     ...item,
@@ -139,8 +143,11 @@ export function normalizeMovie(item) {
     rating: item.rating || item.imdbRating || null,
     imdbRating: item.rating || item.imdbRating || null,
     synopsis: item.description || item.synopsis || '',
-    isLocal: isCloud ? false : isLocal,
+    isLocal,
     isCloud,
+    isDrive: isCloud,
+    storageLocation,
+    storageLabel: isCloud ? 'Google Drive (Nuvem)' : (isLocal ? 'Pasta Local (D:\\Filmes)' : 'Streaming Sob Demanda'),
     filePath: resolvedFilePath,
     videoPath: resolvedFilePath,
     hasSubtitle,

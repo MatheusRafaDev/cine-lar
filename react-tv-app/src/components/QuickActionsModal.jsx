@@ -156,22 +156,23 @@ export const QuickActionsModal = memo(function QuickActionsModal({
       iconColor: isFav ? '#F5C518' : 'inherit'
     });
 
-    // 5. Baixar para o Computador (apenas para títulos online que não sejam da nuvem)
+    // 5. Baixar para o Computador (apenas para títulos online que não sejam locais)
     if (!isLocal && !movie.isLocal && !movie.isCloud) {
       actions.push({
         id: 'download',
-        title: 'Baixar para o Computador',
-        subtitle: 'Salvar em D:\\Filmes\\Cinelar para sincronizar com o Drive',
+        title: 'Baixar Filme / Série',
+        subtitle: 'Salvar na Pasta Local (PC) ou no Google Drive (Cinelar)',
         icon: 'file_download'
       });
     }
 
-    // 6. Apagar do Disco (se for arquivo local de D:\Filmes)
+    // 6. Apagar do Disco (se for arquivo salvo localmente ou sincronizado)
     if ((isLocal || movie.isLocal || movie.filePath) && !movie.isCloud) {
+      const isDriveFolder = String(movie.filePath || '').toLowerCase().includes('cinelar');
       actions.push({
         id: 'delete_local',
-        title: 'Apagar do Disco (D:\\Filmes)',
-        subtitle: 'Excluir arquivo de vídeo permanentemente do PC',
+        title: isDriveFolder ? 'Apagar do Google Drive (Cinelar)' : 'Apagar da Pasta Local (D:\\Filmes)',
+        subtitle: isDriveFolder ? 'Excluir arquivo sincronizado com a nuvem' : 'Excluir arquivo de vídeo permanentemente do computador',
         icon: 'delete_forever',
         danger: true
       });

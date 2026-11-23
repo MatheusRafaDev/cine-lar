@@ -1464,11 +1464,13 @@ const server = http.createServer(async (req, res) => {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body);
-                    const { imdbId, seriesName, season, magnet, quality, episodes } = data;
+                    const { imdbId, seriesName, season, magnet, quality, episodes, destination } = data;
                     const sNum = parseInt(season, 10) || 1;
                     const cleanSeries = (seriesName || 'Série').replace(/[\\/:*?"<>|]/g, '').trim();
                     const sStr = `Temporada ${String(sNum).padStart(2, '0')}`;
-                    const targetPath = path.join(PLATFORM_DOWNLOAD_PATH, 'Series', cleanSeries, sStr);
+                    const isDriveTarget = destination === 'drive' || destination === 'gdrive';
+                    const baseSeries = isDriveTarget ? path.join(PLATFORM_DOWNLOAD_PATH, 'Series') : path.join(SAVE_PATH, 'Series');
+                    const targetPath = path.join(baseSeries, cleanSeries, sStr);
 
                     if (!fs.existsSync(targetPath)) {
                         fs.mkdirSync(targetPath, { recursive: true });
@@ -1497,7 +1499,9 @@ const server = http.createServer(async (req, res) => {
                                 isSeries: true,
                                 seriesName: cleanSeries,
                                 season: sNum,
-                                destinationPath: `Cinelar\\Series\\${cleanSeries}\\${sStr}`,
+                                destination: isDriveTarget ? 'drive' : 'local',
+                                destinationPath: isDriveTarget ? `Cinelar\\Series\\${cleanSeries}\\${sStr}` : `Series\\${cleanSeries}\\${sStr}`,
+                                savePath: targetPath,
                                 savePath: targetPath,
                                 status: 'downloading',
                                 createdAt: new Date().toISOString()
@@ -1579,13 +1583,15 @@ const server = http.createServer(async (req, res) => {
             req.on('end', async () => {
                 try {
                     const data = JSON.parse(body);
-                    const { imdbId, seriesName, preferredQuality, seasons } = data;
+                    const { imdbId, seriesName, preferredQuality, seasons, destination } = data;
                     if (!imdbId) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'imdbId is required' }));
                         return;
                     }
                     const cleanSeries = (seriesName || 'Série').replace(/[\\/:*?"<>|]/g, '').trim();
+                    const isDriveTarget = destination === 'drive' || destination === 'gdrive';
+                    const baseSeries = isDriveTarget ? path.join(PLATFORM_DOWNLOAD_PATH, 'Series') : path.join(SAVE_PATH, 'Series');
 
                     let seasonsToDownload = Array.isArray(seasons) && seasons.length > 0 ? seasons : [];
                     if (seasonsToDownload.length === 0) {
@@ -1600,13 +1606,13 @@ const server = http.createServer(async (req, res) => {
                         seasonsToDownload = [1];
                     }
 
-                    console.log(`[TorrentService] Iniciando download de todas as temporadas (${seasonsToDownload.join(', ')}) para série "${cleanSeries}" (${imdbId})`);
+                    console.log(`[TorrentService] Iniciando download de todas as temporadas (${seasonsToDownload.join(', ')}) para série "${cleanSeries}" (${imdbId}) destino: ${isDriveTarget ? 'Google Drive' : 'Pasta Local'}`);
 
                     const queuedSeasons = [];
                     for (const sNum of seasonsToDownload) {
                         try {
                             const sStr = `Temporada ${String(sNum).padStart(2, '0')}`;
-                            const targetPath = path.join(PLATFORM_DOWNLOAD_PATH, 'Series', cleanSeries, sStr);
+                            const targetPath = path.join(baseSeries, cleanSeries, sStr);
                             if (!fs.existsSync(targetPath)) {
                                 fs.mkdirSync(targetPath, { recursive: true });
                             }
@@ -1672,8 +1678,10 @@ const server = http.createServer(async (req, res) => {
                                         isSeries: true,
                                         seriesName: cleanSeries,
                                         season: sNum,
-                                        destinationPath: `Cinelar\\Series\\${cleanSeries}\\${sStr}`,
+                                        destination: isDriveTarget ? 'drive' : 'local',
+                                        destinationPath: isDriveTarget ? `Cinelar\\Series\\${cleanSeries}\\${sStr}` : `Series\\${cleanSeries}\\${sStr}`,
                                         savePath: targetPath,
+                                        saveLocation: isDriveTarget ? 'Google Drive (Cinelar)' : 'Pasta Local (D:\\Filmes)',
                                         status: 'downloading',
                                         createdAt: new Date().toISOString()
                                     };
@@ -2968,7 +2976,9 @@ const server = http.createServer(async (req, res) => {
                         streamIdleTimers.delete(infoHash);
                     }
 
-                    const org = getOrganizedDownloadPath(PLATFORM_DOWNLOAD_PATH, title, filename, { isSeries, seriesName, season, episode });
+                    const isDriveTarget = data.destination === 'drive' || data.destination === 'gdrive';
+                    const baseFolder = isDriveTarget ? PLATFORM_DOWNLOAD_PATH : SAVE_PATH;
+                    const org = getOrganizedDownloadPath(baseFolder, title, filename, { isSeries, seriesName, season, episode });
                     try {
                         if (!fs.existsSync(org.targetPath)) {
                             fs.mkdirSync(org.targetPath, { recursive: true });
@@ -2987,7 +2997,7 @@ const server = http.createServer(async (req, res) => {
                         } catch (_) {}
                     }
 
-                    console.log(`[TorrentService] Starting organized download: "${title || filename}" into ${org.targetPath} (${org.category}: ${org.groupName || 'filme'})`);
+                    console.log(`[TorrentService] Starting organized download: "${title || filename}" into ${org.targetPath} (Destino: ${isDriveTarget ? 'Google Drive' : 'Pasta Local'}, ${org.category}: ${org.groupName || 'filme'})`);
 
                     const existingMeta = downloadsRegistry.get(infoHash);
                     const existingTorrent = getActiveTorrent(infoHash);
@@ -3008,8 +3018,10 @@ const server = http.createServer(async (req, res) => {
                         seriesName: seriesName || org.groupName,
                         season: season || null,
                         episode: episode || null,
+                        destination: isDriveTarget ? 'drive' : 'local',
                         destinationPath: org.displayPath,
                         savePath: existingTorrent?.path || org.targetPath,
+                        saveLocation: isDriveTarget ? 'Google Drive (Cinelar)' : 'Pasta Local (D:\\Filmes)',
                         status: existingTorrent?.done ? 'completed' : 'downloading',
                         progress: existingTorrent ? parseFloat((existingTorrent.progress * 100).toFixed(1)) : 0,
                         isPaused: false,
