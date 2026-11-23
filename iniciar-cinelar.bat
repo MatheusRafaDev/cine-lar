@@ -24,11 +24,11 @@ if not exist "%~dp0react-tv-app\dist\index.html" (
 )
 
 :: Verifica se o backend já está ativo na porta 8085
-tasklist /fi "imagename eq node.exe" 2>nul | find /i "node.exe" >nul
+netstat -ano | findstr :8085 >nul 2>&1
 if %errorlevel% equ 0 (
-    echo [OK] Backend Torrent e Servidor Web ja estao ativos na porta 8085.
+    echo [OK] Servidor Cine Lar ja esta ativo na porta 8085.
 ) else (
-    echo [2/2] Iniciando Cinelar Torrent ^& Streaming Service (Porta 8085)...
+    echo [2/2] Iniciando Servidor Cine Lar (Porta 8085)...
     cd /d "%~dp0torrent-service"
     start "Cinelar Backend" /min node server.js
     cd /d "%~dp0"
@@ -45,11 +45,14 @@ if "%LOCAL_IP%"=="" set LOCAL_IP=localhost
 
 echo.
 echo ========================================================
-echo  STATUS: Servicos do Cine Lar iniciados com sucesso!
+echo  STATUS: Cine Lar pronto para uso!
 echo.
-echo  - Acesso no Computador:      http://localhost:8085
-echo  - Acesso na Smart TV / Rede: http://%LOCAL_IP%:8085
-echo  - Pacote Tizen para TV:      %~dp0Cinelar-signed.wgt
+echo  - No Computador:         http://localhost:8085
+echo  - Na Smart TV / Celular: http://%LOCAL_IP%:8085
+echo.
+echo  Origens de Midia Mapeadas:
+echo  - Pasta Local (PC):      D:\Filmes
+echo  - Google Drive (Nuvem):  G:\Meu Drive\cinelar
 echo.
 echo  DICA: Na TV Samsung ou celular, basta abrir o navegador
 echo  e acessar http://%LOCAL_IP%:8085 para assistir instantaneamente!

@@ -703,6 +703,11 @@ button {
   z-index: 3;
 }
 
+.tv-card-badge-local.cloud {
+  background: #3B82F6 !important;
+  color: #FFFFFF !important;
+}
+
 .tv-card-progress-bar {
   position: absolute;
   bottom: 0;

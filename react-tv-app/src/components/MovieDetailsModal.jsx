@@ -63,6 +63,13 @@ export function MovieDetailsModal({
   }, [movie?.preferredDestination]);
 
   const isSeries = Boolean(details?.isSeries || details?.type === 'series' || movie?.isSeries || movie?.type === 'series');
+  const isDrive = Boolean(
+    details?.isCloud || details?.isDrive || details?.storageLocation === 'drive' ||
+    movie?.isCloud || movie?.isDrive || movie?.storageLocation === 'drive' ||
+    String(details?.filePath || movie?.filePath || '').toLowerCase().includes('cinelar') ||
+    String(details?.filePath || movie?.filePath || '').toLowerCase().startsWith('g:\\') ||
+    String(details?.filePath || movie?.filePath || '').toLowerCase().includes('meu drive')
+  );
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -498,14 +505,16 @@ export function MovieDetailsModal({
       icon: 'play_arrow',
       label: hasResume
         ? `Continuar (${formatTime(resumePos)})`
+        : isDrive
+        ? 'Assistir do Google Drive'
         : isLocal
-        ? 'Assistir do Disco Local'
+        ? 'Assistir do Computador'
         : isSeries
         ? `Assistir Episódio ${selectedEpisode?.episode || selectedEpisode?.number || 1}`
         : loading
         ? 'Buscando Fontes...'
         : streams.length > 0
-        ? `Assistir Agora (${streams[0].quality || '1080p Full HD'})`
+        ? `Assistir Agora (${streams[0].quality || '1080p'})`
         : 'Assistir',
       action: () => handlePlay(hasResume ? resumePos : 0)
     });
@@ -525,7 +534,7 @@ export function MovieDetailsModal({
       list.push({
         id: 'delete_local',
         icon: 'delete_forever',
-        label: 'Excluir do PC',
+        label: isDrive ? 'Excluir do Drive' : 'Excluir do PC',
         warning: true,
         action: () => onDeleteLocal({ ...movie, ...details })
       });
@@ -539,15 +548,17 @@ export function MovieDetailsModal({
           : downloading
           ? 'sync'
           : 'file_download',
-        label: isLocal
-          ? 'Salvo no PC (D:\\Filmes)'
+        label: isDrive
+          ? 'Salvo no Google Drive'
+          : isLocal
+          ? 'Salvo no Computador'
           : downloadSuccess
           ? 'Download Iniciado!'
           : downloading
-          ? 'Baixando para o PC...'
+          ? 'Baixando...'
           : isSeries
           ? `Baixar Episódio ${selectedEpisode?.episode || selectedEpisode?.number || 1}`
-          : 'Baixar para o PC (D:\\Filmes)',
+          : 'Baixar Filme',
         isDownload: true,
         action: handleDownload
       });

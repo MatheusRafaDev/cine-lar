@@ -74,6 +74,14 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
   const year = movie.year || (movie.releaseDate ? String(movie.releaseDate).slice(0, 4) : '');
   const rating = movie.imdbRating || movie.rating || null;
   const isLocal = Boolean(movie.isLocal || movie.filePath || movie.videoPath);
+  const isDrive = Boolean(
+    movie.isCloud ||
+    movie.isDrive ||
+    movie.storageLocation === 'drive' ||
+    String(movie.filePath || '').toLowerCase().includes('cinelar') ||
+    String(movie.filePath || '').toLowerCase().startsWith('g:\\') ||
+    String(movie.filePath || '').toLowerCase().includes('meu drive')
+  );
 
   const saved = getSavedProgress(movie);
   const progress = (movie.progress !== undefined && movie.progress !== null) ? movie.progress : (saved?.progress || null);
@@ -171,9 +179,11 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
         )}
 
         {isLocal && (
-          <div className="tv-card-badge-local">
-            <span className="material-icons" style={{ fontSize: '11px', marginRight: '2px' }}>folder</span>
-            <span>Local</span>
+          <div className={`tv-card-badge-local ${isDrive ? 'cloud' : ''}`}>
+            <span className="material-icons" style={{ fontSize: '11px', marginRight: '2px' }}>
+              {isDrive ? 'cloud' : 'folder'}
+            </span>
+            <span>{isDrive ? 'Drive' : 'PC'}</span>
           </div>
         )}
 

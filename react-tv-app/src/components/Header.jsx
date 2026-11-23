@@ -5,7 +5,7 @@ export const NAV_ITEMS = [
   { id: 'movies', label: 'Filmes' },
   { id: 'series', label: 'Séries' },
   { id: 'favorites', label: 'Favoritos' },
-  { id: 'local', label: 'Pasta Local' },
+  { id: 'local', label: 'Local / Drive' },
   { id: 'downloads', label: 'Downloads' },
   { id: 'search', label: 'Buscar' }
 ];
