@@ -24,11 +24,88 @@ function getCatalogCache(key, loader, ttlMs = 5 * 60 * 1000) {
   return requestPromise;
 }
 
-function getStoredServerIp() {
+export function getStoredServerIp() {
   try {
     return localStorage.getItem('mf_server_ip') || '';
   } catch (_) {
     return '';
+  }
+}
+
+export function setStoredServerIp(ip) {
+  try {
+    if (ip && typeof ip === 'string' && ip.trim()) {
+      localStorage.setItem('mf_server_ip', ip.trim());
+    } else {
+      localStorage.removeItem('mf_server_ip');
+    }
+  } catch (_) {}
+}
+
+export async function rescanLocalLibrary() {
+  try {
+    return await request('/api/local-movies/rescan', { method: 'POST' });
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function getSavePathConfig() {
+  try {
+    return await request('/api/settings/save-path');
+  } catch (_) {
+    return { savePath: 'D:\\Filmes' };
+  }
+}
+
+export async function updateSavePathConfig(newPath) {
+  try {
+    return await request('/api/settings/save-path', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ savePath: newPath })
+    });
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function getServerDetailedStatus() {
+  try {
+    return await request('/api/status');
+  } catch (_) {
+    return { status: 'offline' };
+  }
+}
+
+export function clearAppOfflineCache() {
+  try {
+    localStorage.removeItem('mf_cached_local_library');
+    localStorage.removeItem('mf_cached_gdrive_movies');
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function clearAllWatchHistory() {
+  try {
+    _cachedWatchHistory = [];
+    _cachedLookupMap = new Map();
+    localStorage.removeItem('mf_watch_history');
+    await request('/api/user/history', { method: 'DELETE' });
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+export async function getStorageTelemetry() {
+  try {
+    const data = await request('/api/downloads');
+    return data.storage || null;
+  } catch (_) {
+    return null;
   }
 }
 
@@ -441,10 +518,10 @@ export async function getDriveMovies() {
     }
   }
 
-  // 2. Se o servidor local estiver online, busca a lista dos arquivos da pasta Cinelar (D:\filmes\Cinelar)
+  // 2. Se o servidor local estiver online, busca a lista dos arquivos da pasta Cinelar (G:\Meu Drive\cinelar)
   try {
     const data = await request(`/api/gdrive/files${folderId ? `?folderId=${encodeURIComponent(folderId)}` : ''}`);
-    if (data && Array.isArray(data.movies) && data.movies.length > 0) {
+    if (data && Array.isArray(data.movies)) {
       const cloudMovies = data.movies.map(normalizeMovie);
       try {
         localStorage.setItem('mf_cached_gdrive_movies', JSON.stringify(cloudMovies));

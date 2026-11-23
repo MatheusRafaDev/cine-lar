@@ -10,6 +10,7 @@ const FavoritesView = lazy(() => import('./views/FavoritesView').then(m => ({ de
 const LocalFolderView = lazy(() => import('./views/LocalFolderView').then(m => ({ default: m.LocalFolderView })));
 const DownloadsView = lazy(() => import('./views/DownloadsView').then(m => ({ default: m.DownloadsView })));
 const SearchView = lazy(() => import('./views/SearchView').then(m => ({ default: m.SearchView })));
+const SettingsView = lazy(() => import('./views/SettingsView').then(m => ({ default: m.SettingsView })));
 const QuickActionsModal = lazy(() => import('./components/QuickActionsModal').then(m => ({ default: m.QuickActionsModal })));
 const DriveConfigModal = lazy(() => import('./components/DriveConfigModal').then(m => ({ default: m.DriveConfigModal })));
 import {
@@ -359,11 +360,20 @@ export function App() {
       if (!m) return false;
       const p = String(m.filePath || m.videoPath || '').toLowerCase();
       if (p.startsWith('d:\\') || p.startsWith('d:/') || p.startsWith('c:\\') || p.startsWith('c:/')) return false;
-      return Boolean(p.startsWith('g:\\') || p.startsWith('g:/') || p.includes('meu drive') || (m.streamUrl && (m.streamUrl.includes('drive.google.com') || m.streamUrl.includes('drive.usercontent.google.com'))) || String(m.id || '').startsWith('gdrive_') || (m.isCloud && !m.isLocal));
+      if (m.storageLocation === 'local') return false;
+      return Boolean(
+        p.startsWith('g:\\') || 
+        p.startsWith('g:/') || 
+        p.includes('meu drive') || 
+        (m.streamUrl && (m.streamUrl.includes('drive.google.com') || m.streamUrl.includes('drive.usercontent.google.com'))) || 
+        String(m.id || '').startsWith('gdrive_') || 
+        m.storageLocation === 'drive' ||
+        (m.isCloud && !m.isLocal)
+      );
     };
 
     const pcMovies = localMovies.filter(m => !isStrictDriveMovie(m));
-    const cloudMovies = (driveMovies && driveMovies.length > 0 ? driveMovies : localMovies).filter(isStrictDriveMovie);
+    const cloudMovies = (driveMovies || []).filter(isStrictDriveMovie);
 
     if (pcMovies.length > 0) {
       list.push({
@@ -404,7 +414,16 @@ export function App() {
       const p = String(m.filePath || m.videoPath || '').toLowerCase();
       // Arquivos no disco D: ou C: são SEMPRE locais do computador
       if (p.startsWith('d:\\') || p.startsWith('d:/') || p.startsWith('c:\\') || p.startsWith('c:/')) return false;
-      return Boolean(p.startsWith('g:\\') || p.startsWith('g:/') || p.includes('meu drive') || (m.streamUrl && (m.streamUrl.includes('drive.google.com') || m.streamUrl.includes('drive.usercontent.google.com'))) || String(m.id || '').startsWith('gdrive_') || (m.isCloud && !m.isLocal));
+      if (m.storageLocation === 'local') return false;
+      return Boolean(
+        p.startsWith('g:\\') || 
+        p.startsWith('g:/') || 
+        p.includes('meu drive') || 
+        (m.streamUrl && (m.streamUrl.includes('drive.google.com') || m.streamUrl.includes('drive.usercontent.google.com'))) || 
+        String(m.id || '').startsWith('gdrive_') || 
+        m.storageLocation === 'drive' ||
+        (m.isCloud && !m.isLocal)
+      );
     };
 
     // 1. Apenas Pasta Local do PC (D:\Filmes, excluindo qualquer pasta da nuvem)
@@ -426,10 +445,7 @@ export function App() {
 
     // 2. Modo Nuvem / Google Drive (G:\Meu Drive\cinelar) - NUNCA exibe arquivos do disco D:
     if (localFilterId === 'gdrive') {
-      const sourceList = (driveMovies && driveMovies.length > 0)
-        ? driveMovies
-        : (localLibrary?.movies || []);
-      const gMovies = sourceList.filter(isStrictDriveMovie);
+      const gMovies = (driveMovies || []).filter(isStrictDriveMovie);
       const rows = [];
       for (let i = 0; i < gMovies.length; i += COL_COUNT) {
         rows.push({
@@ -522,6 +538,7 @@ export function App() {
   const rowCount = useMemo(() => {
     if (activeTab === 'downloads') return Math.max(1, downloads.length);
     if (activeTab === 'search') return 1;
+    if (activeTab === 'settings') return 5;
     if (activeTab === 'favorites') return Math.max(1, favoritesGridRows.length);
     if (activeTab === 'local') return Math.max(1, localGridRows.length);
     return Math.max(1, currentSections.length);
@@ -532,6 +549,9 @@ export function App() {
       const item = downloads[rIdx];
       const isDone = item && (item.status === 'completed' || (item.progress && item.progress >= 100));
       return isDone ? 2 : 3;
+    }
+    if (activeTab === 'settings') {
+      return 1;
     }
     if (activeTab === 'favorites') {
       return favoritesGridRows[rIdx]?.movies?.length || 1;
@@ -1285,6 +1305,13 @@ export function App() {
       }
 
       if (zone === 'rows') {
+        if (activeTab === 'settings') {
+          if (rowIndex === 1) {
+            setIsDriveConfigOpen(true);
+          }
+          return;
+        }
+
         if (activeTab === 'downloads') {
           const dl = downloads[rowIndex];
           if (dl) {
@@ -1562,6 +1589,26 @@ export function App() {
                 resultsColIndex={nav.resultsColIndex}
                 onSelectMovie={setSelectedMovie}
                 searchActionRef={searchInputRef}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'settings' && (
+            <motion.div
+              key="settings"
+              className="tv-view-motion-wrapper"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <SettingsView
+                activeZone={nav.activeZone}
+                focusedIndex={nav.rowIndex}
+                actionIndex={nav.colIndex}
+                serverStatus={serverStatus}
+                onOpenDriveConfig={() => setIsDriveConfigOpen(true)}
+                onRefreshLibrary={refreshLocalLibrary}
               />
             </motion.div>
           )}

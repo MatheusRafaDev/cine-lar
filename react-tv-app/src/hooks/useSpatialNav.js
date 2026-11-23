@@ -169,7 +169,8 @@ export function useSpatialNav({
     favorites: { activeZone: 'rows', rowIndex: 0, colIndex: 0 },
     local: { activeZone: 'rows', rowIndex: 0, colIndex: 0, localFilterIndex: 0 },
     downloads: { activeZone: 'rows', rowIndex: 0, colIndex: 0 },
-    search: { activeZone: 'search-keyboard', searchRowIndex: 0, searchColIndex: 0, resultsColIndex: 0 }
+    search: { activeZone: 'search-keyboard', searchRowIndex: 0, searchColIndex: 0, resultsColIndex: 0 },
+    settings: { activeZone: 'rows', rowIndex: 0, colIndex: 0 }
   });
 
   // 2. Transições de zona para Modal, Player e Menu de Ações (com memória cirúrgica da posição exata)
@@ -713,7 +714,8 @@ export function useSpatialNav({
       e.preventDefault();
 
       const isDownloadActionButton = s.activeTab === 'downloads' && s.activeZone === 'rows' && s.colIndex > 0;
-      const isCardZone = !isDownloadActionButton && (s.activeZone === 'rows' || s.activeZone === 'hero' || s.activeZone === 'search-results');
+      const isSettingsTab = s.activeTab === 'settings';
+      const isCardZone = !isDownloadActionButton && !isSettingsTab && (s.activeZone === 'rows' || s.activeZone === 'hero' || s.activeZone === 'search-results');
 
       // Se não for zona de cards (ex: header, local-filters, search-keyboard, modal, ou botões de ação em Downloads), dispara imediato no keydown
       if (!isCardZone) {

@@ -8,7 +8,8 @@ export const NAV_ITEMS = [
   { id: 'favorites', label: 'Favoritos' },
   { id: 'local', label: 'Local / Drive' },
   { id: 'downloads', label: 'Downloads' },
-  { id: 'search', label: 'Buscar' }
+  { id: 'search', label: 'Buscar' },
+  { id: 'settings', label: 'Configurações' }
 ];
 
 function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, serverStatus = 'checking', activeDownloadsCount = 0 }) {
