@@ -191,7 +191,10 @@ export function MovieDetailsModal({
         isLocal: true,
         filePath: resolvedLocalPath,
         duration: details?.localFile?.duration || details.duration || movie.duration || 0,
-        resumePosition: posToResume
+        resumePosition: posToResume,
+        hasSubtitle: Boolean(details?.hasSubtitle || movie?.hasSubtitle || details?.localFile?.hasSubtitle),
+        srtPath: details?.srtPath || movie?.srtPath || details?.localFile?.srtPath || '',
+        subtitleUrl: details?.subtitleUrl || movie?.subtitleUrl || ''
       });
       return;
     }

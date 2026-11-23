@@ -35,7 +35,8 @@ import {
   clearWatchProgress,
   isInWatchHistory,
   deleteLocalFile,
-  getServerStatus
+  getServerStatus,
+  prefetchCatalogs
 } from './services/api';
 import { useSpatialNav } from './hooks/useSpatialNav';
 
@@ -122,7 +123,7 @@ export function App() {
     });
 
     // Biblioteca e Filmes Locais (com franquias estruturadas)
-    // Carrega apenas 4 gêneros essenciais de filmes e 1 de séries para a Home ser ultrarrápida
+    // Carrega os 4 gêneros essenciais de filmes e 1 de séries para a Home instantaneamente
     const catalogTimer = setTimeout(() => getGenres().then(async genres => {
       const topMovieGenres = genres.filter(g => g.id !== 'all').slice(0, 4);
 
@@ -148,9 +149,19 @@ export function App() {
       if (sSections && sSections.length > 0) {
         setSeriesGenreSections(sSections);
       }
-    }), 700);
+    }), 20);
 
-    return () => clearTimeout(catalogTimer);
+    // Pré-carregamento em background durante o tempo ocioso para troca de abas instantânea (0ms de espera)
+    const prefetchTimer = setTimeout(() => {
+      try {
+        prefetchCatalogs();
+      } catch (_) {}
+    }, 1200);
+
+    return () => {
+      clearTimeout(catalogTimer);
+      clearTimeout(prefetchTimer);
+    };
   }, []);
 
   // Lazy loading sob demanda para a aba Filmes
@@ -256,7 +267,7 @@ export function App() {
   useEffect(() => {
     if (activeTab !== 'downloads') return;
     refreshDownloadsInfo();
-    const interval = setInterval(refreshDownloadsInfo, 5000);
+    const interval = setInterval(refreshDownloadsInfo, 3000);
     return () => clearInterval(interval);
   }, [activeTab, refreshDownloadsInfo]);
 
@@ -517,7 +528,10 @@ export function App() {
         isLocal: true,
         filePath,
         duration: movie.duration || 0,
-        resumePosition: resumePos
+        resumePosition: resumePos,
+        hasSubtitle: Boolean(movie.hasSubtitle || movie.srtPath),
+        srtPath: movie.srtPath || '',
+        subtitleUrl: movie.subtitleUrl || ''
       });
       return;
     }

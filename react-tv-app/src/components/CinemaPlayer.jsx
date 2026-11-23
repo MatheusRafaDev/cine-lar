@@ -37,7 +37,10 @@ export function CinemaPlayer({
     season = null,
     episode = null,
     episodeName = '',
-    year = ''
+    year = '',
+    subtitleUrl = '',
+    hasSubtitle = false,
+    srtPath = ''
   } = streamConfig;
 
   const videoRef = useRef(null);
@@ -58,6 +61,13 @@ export function CinemaPlayer({
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [effectiveQuality, setEffectiveQuality] = useState(quality);
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
+
+  const rawSubUrl = subtitleUrl || (srtPath ? `/api/local/subtitle?file=${encodeURIComponent(srtPath)}` : (hasSubtitle && (filePath || videoPath) ? `/api/local/subtitle?file=${encodeURIComponent(filePath || videoPath)}` : ''));
+  const safeSubUrl = typeof rawSubUrl === 'string' ? rawSubUrl.trim() : '';
+  const fullSubtitleUrl = safeSubUrl.startsWith('http')
+    ? safeSubUrl
+    : (safeSubUrl ? `${getServerUrl()}${safeSubUrl.startsWith('/') ? safeSubUrl : `/${safeSubUrl}`}` : '');
 
   useEffect(() => {
     setEffectiveQuality(quality);
@@ -340,6 +350,20 @@ export function CinemaPlayer({
     showControlsTemporarily();
   }, [showOsd, showControlsTemporarily]);
 
+  const toggleSubtitles = useCallback(() => {
+    setSubtitlesEnabled(prev => {
+      const next = !prev;
+      const video = videoRef.current;
+      if (video && video.textTracks && video.textTracks.length > 0) {
+        for (let i = 0; i < video.textTracks.length; i++) {
+          video.textTracks[i].mode = next ? 'showing' : 'disabled';
+        }
+      }
+      showOsd('subtitles', next ? 'Legendas: Ativadas' : 'Legendas: Desativadas');
+      return next;
+    });
+  }, [showOsd]);
+
   // Botões de controle rápido na barra inferior
   const playerButtons = [
     {
@@ -379,6 +403,12 @@ export function CinemaPlayer({
       label: '+5 min',
       action: () => seekRelative(300)
     },
+    ...(fullSubtitleUrl ? [{
+      id: 'subtitles',
+      icon: subtitlesEnabled ? 'subtitles' : 'subtitles_off',
+      label: subtitlesEnabled ? 'Legenda: Ligada' : 'Legenda: Desligada',
+      action: toggleSubtitles
+    }] : []),
     {
       id: 'restart',
       icon: 'replay',
@@ -420,6 +450,14 @@ export function CinemaPlayer({
         e.preventDefault();
         e.stopPropagation();
         scheduleScrub(1);
+        return;
+      }
+
+      // Atalho de Legendas (Tecla S ou botão dedicado)
+      if ((key === 's' || key === 'S') && fullSubtitleUrl) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleSubtitles();
         return;
       }
 
@@ -784,7 +822,18 @@ export function CinemaPlayer({
         className="tv-player-video"
         playsInline
         preload="auto"
-      />
+        crossOrigin="anonymous"
+      >
+        {fullSubtitleUrl && (
+          <track
+            kind="subtitles"
+            src={fullSubtitleUrl}
+            srcLang="pt"
+            label="Português"
+            default={subtitlesEnabled}
+          />
+        )}
+      </video>
 
       {/* OSD Feedback Central (Pausado, +10s, Scrubbing, Volume) */}
       {osd.visible && (

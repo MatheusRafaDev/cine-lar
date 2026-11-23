@@ -2,6 +2,8 @@ import http from 'http';
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
+import zlib from 'zlib';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import WebTorrent from 'webtorrent';
@@ -62,6 +64,20 @@ const JELLYFIN_URL = process.env.JELLYFIN_URL || 'http://localhost:8096';
 const JELLYFIN_USER = process.env.JELLYFIN_USER || 'usuario';
 const JELLYFIN_PW = process.env.JELLYFIN_PW || '';
 const MUTATION_API_TOKEN = (process.env.MUTATION_API_TOKEN || '').trim();
+
+function getLocalIpAddress() {
+    try {
+        const nets = os.networkInterfaces();
+        for (const name of Object.keys(nets)) {
+            for (const net of nets[name]) {
+                if (net.family === 'IPv4' && !net.internal && (net.address.startsWith('192.168.') || net.address.startsWith('10.') || net.address.startsWith('172.'))) {
+                    return net.address;
+                }
+            }
+        }
+    } catch (_) {}
+    return '127.0.0.1';
+}
 
 function isPathInsideBase(targetPath, basePath) {
     if (!targetPath || !basePath) return false;
@@ -855,6 +871,72 @@ const server = http.createServer(async (req, res) => {
             } else {
                 res.writeHead(404, { 'Content-Type': 'text/plain' });
                 res.end('Cinelar.wgt not found');
+                return;
+            }
+        }
+
+        // Endpoint de legendas locais (SRT/VTT com conversão automática WebVTT para Smart TV e Web)
+        if (pathname === '/api/local/subtitle' && (req.method === 'GET' || req.method === 'HEAD')) {
+            const queryFile = urlObj.searchParams.get('file') || urlObj.searchParams.get('path');
+            if (!queryFile) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Parâmetro file é obrigatório' }));
+                return;
+            }
+
+            let subPath = path.resolve(queryFile);
+            if (!isPathInsideBase(subPath, SAVE_PATH)) {
+                res.writeHead(403, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Acesso negado fora da pasta de mídia' }));
+                return;
+            }
+
+            if (!/\.(srt|vtt)$/i.test(subPath)) {
+                const baseName = subPath.replace(/\.[^.]+$/, '');
+                const candidates = [
+                    `${baseName}.srt`,
+                    `${baseName}.pt.srt`,
+                    `${baseName}.pt-br.srt`,
+                    `${baseName}.vtt`,
+                    path.join(path.dirname(subPath), 'subs.srt'),
+                    path.join(path.dirname(subPath), 'subtitles.srt')
+                ];
+                const found = candidates.find(c => fs.existsSync(c));
+                if (found) subPath = found;
+            }
+
+            if (!fs.existsSync(subPath)) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Legenda não encontrada');
+                return;
+            }
+
+            try {
+                const content = fs.readFileSync(subPath, 'utf8');
+                let vttContent = content;
+                if (subPath.toLowerCase().endsWith('.srt')) {
+                    vttContent = 'WEBVTT\n\n' + content
+                        .replace(/\r\n/g, '\n')
+                        .replace(/\r/g, '\n')
+                        .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+                }
+
+                const vttBuffer = Buffer.from(vttContent, 'utf8');
+                res.writeHead(200, {
+                    'Content-Type': 'text/vtt; charset=utf-8',
+                    'Content-Length': vttBuffer.length,
+                    'Access-Control-Allow-Origin': '*',
+                    'Cache-Control': 'public, max-age=86400'
+                });
+                if (req.method === 'HEAD') {
+                    res.end();
+                    return;
+                }
+                res.end(vttBuffer);
+                return;
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('Erro ao ler legenda: ' + err.message);
                 return;
             }
         }
@@ -3198,6 +3280,86 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        // -----------------------------------------------------------------
+        // Servidor Web Estático Cine Lar TV (react-tv-app/dist) com Gzip e Cache
+        // -----------------------------------------------------------------
+        if (req.method === 'GET' || req.method === 'HEAD') {
+            const DIST_DIR = path.resolve(__dirname, '..', 'react-tv-app', 'dist');
+            if (fs.existsSync(DIST_DIR)) {
+                let reqPath = pathname;
+                if (reqPath === '/' || !reqPath) reqPath = '/index.html';
+
+                const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
+                let filePath = path.join(DIST_DIR, safePath);
+
+                // Rota SPA: se arquivo não existe e não tem extensão, entrega index.html
+                if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+                    if (!path.extname(safePath)) {
+                        filePath = path.join(DIST_DIR, 'index.html');
+                    }
+                }
+
+                if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+                    const ext = path.extname(filePath).toLowerCase();
+                    const mimeTypes = {
+                        '.html': 'text/html; charset=utf-8',
+                        '.js': 'application/javascript; charset=utf-8',
+                        '.css': 'text/css; charset=utf-8',
+                        '.json': 'application/json; charset=utf-8',
+                        '.png': 'image/png',
+                        '.jpg': 'image/jpeg',
+                        '.jpeg': 'image/jpeg',
+                        '.webp': 'image/webp',
+                        '.svg': 'image/svg+xml',
+                        '.ico': 'image/x-icon',
+                        '.woff': 'font/woff',
+                        '.woff2': 'font/woff2',
+                        '.wgt': 'application/vnd.tizen.wgt'
+                    };
+                    const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+                    const headers = {
+                        'Content-Type': contentType,
+                        'Access-Control-Allow-Origin': '*'
+                    };
+
+                    if (pathname.startsWith('/assets/')) {
+                        headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+                    } else if (ext === '.html') {
+                        headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+                    } else {
+                        headers['Cache-Control'] = 'public, max-age=86400';
+                    }
+
+                    const acceptEncoding = req.headers['accept-encoding'] || '';
+                    const canGzip = /\bgzip\b/.test(acceptEncoding) && ['.html', '.js', '.css', '.json', '.svg'].includes(ext);
+
+                    if (canGzip) {
+                        headers['Content-Encoding'] = 'gzip';
+                        res.writeHead(200, headers);
+                        if (req.method === 'HEAD') {
+                            res.end();
+                            return;
+                        }
+                        const rawStream = fs.createReadStream(filePath);
+                        const gzip = zlib.createGzip({ level: 6 });
+                        rawStream.pipe(gzip).pipe(res);
+                        return;
+                    } else {
+                        const stat = fs.statSync(filePath);
+                        headers['Content-Length'] = stat.size;
+                        res.writeHead(200, headers);
+                        if (req.method === 'HEAD') {
+                            res.end();
+                            return;
+                        }
+                        fs.createReadStream(filePath).pipe(res);
+                        return;
+                    }
+                }
+            }
+        }
+
         // 404 for unknown routes
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Not found' }));
@@ -3209,11 +3371,12 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
+    const localIp = getLocalIpAddress();
     console.log(`=======================================================`);
-    console.log(`Cinelar Torrent & Discovery Service iniciado!`);
-    console.log(`Porta: http://localhost:${PORT}`);
-    console.log(`Pasta de Destino: ${SAVE_PATH}`);
-    console.log(`Jellyfin Server: ${JELLYFIN_URL}`);
+    console.log(`Cine Lar TV - Servidor e Plataforma de Streaming`);
+    console.log(`Local:             http://localhost:${PORT}`);
+    console.log(`Smart TV / Rede:   http://${localIp}:${PORT}`);
+    console.log(`Pasta de Midia:    ${SAVE_PATH}`);
     console.log(`=======================================================`);
 
     // Start background catalog seeding

@@ -122,6 +122,10 @@ export function normalizeMovie(item) {
     : (duration > 0 && position > 0 ? Math.min(100, Math.round((position / duration) * 100)) : null);
 
   const isCloud = Boolean(item.isCloud || item.source === 'Google Drive' || (item.streamUrl && (item.streamUrl.includes('drive.google.com') || item.streamUrl.includes('drive.usercontent.google.com'))));
+  const hasSubtitle = Boolean(item.hasSubtitle || item.srtPath);
+  const subtitleUrl = item.srtPath
+    ? `/api/local/subtitle?file=${encodeURIComponent(item.srtPath)}`
+    : (hasSubtitle && resolvedFilePath ? `/api/local/subtitle?file=${encodeURIComponent(resolvedFilePath)}` : (item.subtitleUrl || ''));
 
   return {
     ...item,
@@ -139,6 +143,9 @@ export function normalizeMovie(item) {
     isCloud,
     filePath: resolvedFilePath,
     videoPath: resolvedFilePath,
+    hasSubtitle,
+    srtPath: item.srtPath || '',
+    subtitleUrl,
     streamUrl: item.streamUrl || (resolvedFilePath ? `/api/local/stream?file=${encodeURIComponent(resolvedFilePath)}` : ''),
     infoHash: item.infoHash || null,
     quality: item.quality || (isCloud ? '1080p Nuvem' : ''),
@@ -237,6 +244,15 @@ export async function getGenres() {
   } catch (_) {
     return [];
   }
+}
+
+// 3.1 Pré-carregamento em background para navegação instantânea (0ms delay nas abas)
+export function prefetchCatalogs() {
+  getGenres().then(genres => {
+    const topMovieGenres = genres.filter(g => g.id !== 'all').slice(0, 8);
+    topMovieGenres.forEach(g => getMovies({ genre: g.id, limit: 12 }));
+    getSeries({ limit: 12 });
+  }).catch(() => {});
 }
 
 // 4. Obter filmes locais da pasta D:\Filmes

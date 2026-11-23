@@ -13,10 +13,15 @@ npm-debug.log*
 *.env
 .env.local
 
+# Banco de dados e journals locais
+*.db
+*.db-wal
+*.db-shm
+torrent-service/downloads.json
+
 # Sistema
 .DS_Store
 Thumbs.db
-
 
 # React TV App & Temporários Locais
 react-tv-app/node_modules/
@@ -24,3 +29,4 @@ react-tv-app/dist/
 tizen-package/Debug/
 *.wgt
 scratch/
+
