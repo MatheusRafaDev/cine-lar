@@ -355,9 +355,15 @@ export function App() {
       });
     }
 
-    const isDriveMovie = (m) => Boolean(m.isCloud || m.isDrive || String(m.filePath || '').toLowerCase().includes('cinelar'));
-    const pcMovies = localMovies.filter(m => !isDriveMovie(m));
-    const cloudMovies = localMovies.filter(m => isDriveMovie(m));
+    const isStrictDriveMovie = (m) => {
+      if (!m) return false;
+      const p = String(m.filePath || m.videoPath || '').toLowerCase();
+      if (p.startsWith('d:\\') || p.startsWith('d:/') || p.startsWith('c:\\') || p.startsWith('c:/')) return false;
+      return Boolean(p.startsWith('g:\\') || p.startsWith('g:/') || p.includes('meu drive') || (m.streamUrl && (m.streamUrl.includes('drive.google.com') || m.streamUrl.includes('drive.usercontent.google.com'))) || String(m.id || '').startsWith('gdrive_') || (m.isCloud && !m.isLocal));
+    };
+
+    const pcMovies = localMovies.filter(m => !isStrictDriveMovie(m));
+    const cloudMovies = (driveMovies && driveMovies.length > 0 ? driveMovies : localMovies).filter(isStrictDriveMovie);
 
     if (pcMovies.length > 0) {
       list.push({
@@ -367,12 +373,11 @@ export function App() {
       });
     }
 
-    const allDrive = cloudMovies.length > 0 ? cloudMovies : (driveMovies || []);
-    if (allDrive.length > 0) {
+    if (cloudMovies.length > 0) {
       list.push({
         id: 'drive-quick',
         title: 'Nuvem Google Drive (G:\\Meu Drive\\cinelar)',
-        movies: allDrive.slice(0, 18)
+        movies: cloudMovies.slice(0, 18)
       });
     }
 
@@ -394,12 +399,18 @@ export function App() {
   // Seções e linhas em grid full-page (8 colunas) para a visualização Local
   const localGridRows = useMemo(() => {
     const COL_COUNT = 8;
-    const isDriveMovie = (m) => Boolean(m.isCloud || m.isDrive || String(m.filePath || '').toLowerCase().includes('cinelar'));
+    const isStrictDriveMovie = (m) => {
+      if (!m) return false;
+      const p = String(m.filePath || m.videoPath || '').toLowerCase();
+      // Arquivos no disco D: ou C: são SEMPRE locais do computador
+      if (p.startsWith('d:\\') || p.startsWith('d:/') || p.startsWith('c:\\') || p.startsWith('c:/')) return false;
+      return Boolean(p.startsWith('g:\\') || p.startsWith('g:/') || p.includes('meu drive') || (m.streamUrl && (m.streamUrl.includes('drive.google.com') || m.streamUrl.includes('drive.usercontent.google.com'))) || String(m.id || '').startsWith('gdrive_') || (m.isCloud && !m.isLocal));
+    };
 
-    // 1. Apenas Pasta Local do PC (D:\Filmes, excluindo pasta mapeada do Google Drive)
+    // 1. Apenas Pasta Local do PC (D:\Filmes, excluindo qualquer pasta da nuvem)
     if (localFilterId === 'local-only') {
       const all = localLibrary?.movies || [];
-      const pcOnly = all.filter(m => !isDriveMovie(m));
+      const pcOnly = all.filter(m => !isStrictDriveMovie(m));
       const rows = [];
       for (let i = 0; i < pcOnly.length; i += COL_COUNT) {
         rows.push({
@@ -413,11 +424,12 @@ export function App() {
       return rows;
     }
 
-    // 2. Modo Nuvem / Google Drive (G:\Meu Drive\cinelar)
+    // 2. Modo Nuvem / Google Drive (G:\Meu Drive\cinelar) - NUNCA exibe arquivos do disco D:
     if (localFilterId === 'gdrive') {
-      const gMovies = (driveMovies && driveMovies.length > 0)
+      const sourceList = (driveMovies && driveMovies.length > 0)
         ? driveMovies
-        : (localLibrary?.movies || []).filter(isDriveMovie);
+        : (localLibrary?.movies || []);
+      const gMovies = sourceList.filter(isStrictDriveMovie);
       const rows = [];
       for (let i = 0; i < gMovies.length; i += COL_COUNT) {
         rows.push({
@@ -1193,6 +1205,9 @@ export function App() {
         setLocalFilterId(targetFilter.id);
         nav.setRowIndex(0);
         nav.setColIndex(0);
+        if (targetFilter.id === 'gdrive') {
+          refreshDriveLibrary();
+        }
       }
     },
     onBack: () => {
@@ -1210,9 +1225,9 @@ export function App() {
         refreshUserData();
         return true; // Modal fechado: useSpatialNav restaura o foco exato do card de origem
       }
-      // Se estiver na aba local e com filtro de coleção/franquia ativo, voltar desfaz o filtro antes de sair
-      if (activeTab === 'local' && localFilterId !== 'all') {
-        setLocalFilterId('all');
+      // Se estiver na aba local e com filtro de coleção/franquia ou drive ativo, voltar restaura para a Pasta Local do PC
+      if (activeTab === 'local' && localFilterId !== 'local-only') {
+        setLocalFilterId('local-only');
         nav.setLocalFilterIndex(0);
         nav.setRowIndex(0);
         nav.setColIndex(0);
@@ -1259,6 +1274,9 @@ export function App() {
         const targetFilter = localFilters[filterIndex];
         if (targetFilter) {
           setLocalFilterId(targetFilter.id);
+          if (targetFilter.id === 'gdrive') {
+            refreshDriveLibrary();
+          }
         }
         nav.setActiveZone('rows');
         nav.setRowIndex(0);

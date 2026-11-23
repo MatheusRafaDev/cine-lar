@@ -138,12 +138,12 @@ export function MovieDetailsModal({
   }, [movie?.preferredDestination]);
 
   const isSeries = Boolean(details?.isSeries || details?.type === 'series' || movie?.isSeries || movie?.type === 'series');
-  const isDrive = Boolean(
+  const targetCheckPath = String(details?.filePath || details?.videoPath || movie?.filePath || movie?.videoPath || '').toLowerCase();
+  const isLocalDisk = targetCheckPath.startsWith('d:\\') || targetCheckPath.startsWith('d:/') || targetCheckPath.startsWith('c:\\') || targetCheckPath.startsWith('c:/');
+  const isDrive = !isLocalDisk && Boolean(
+    targetCheckPath.startsWith('g:\\') || targetCheckPath.startsWith('g:/') || targetCheckPath.includes('meu drive') ||
     details?.isCloud || details?.isDrive || details?.storageLocation === 'drive' ||
-    movie?.isCloud || movie?.isDrive || movie?.storageLocation === 'drive' ||
-    String(details?.filePath || movie?.filePath || '').toLowerCase().includes('cinelar') ||
-    String(details?.filePath || movie?.filePath || '').toLowerCase().startsWith('g:\\') ||
-    String(details?.filePath || movie?.filePath || '').toLowerCase().includes('meu drive')
+    movie?.isCloud || movie?.isDrive || movie?.storageLocation === 'drive'
   );
 
   const showToast = (msg) => {

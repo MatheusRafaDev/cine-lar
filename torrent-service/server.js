@@ -70,15 +70,14 @@ export function resolveGoogleDrivePath() {
 
     const candidates = [
         'G:\\Meu Drive\\cinelar',
-        'G:\\Meu Drive\\Cinelar',
-        path.join(SAVE_PATH, 'Cinelar')
+        'G:\\Meu Drive\\Cinelar'
     ];
     for (const c of candidates) {
         if (fs.existsSync(c)) {
             return c;
         }
     }
-    return path.join(SAVE_PATH, 'Cinelar');
+    return preferredDrive;
 }
 
 let PLATFORM_DOWNLOAD_PATH = resolveGoogleDrivePath();
@@ -1356,9 +1355,9 @@ const server = http.createServer(async (req, res) => {
                                 seriesName: cleanSeries,
                                 season: sNum,
                                 destination: isDriveTarget ? 'drive' : 'local',
-                                destinationPath: isDriveTarget ? `Cinelar\\Series\\${cleanSeries}\\${sStr}` : `Series\\${cleanSeries}\\${sStr}`,
+                                destinationPath: isDriveTarget ? `Google Drive\\Series\\${cleanSeries}\\${sStr}` : `Series\\${cleanSeries}\\${sStr}`,
                                 savePath: targetPath,
-                                savePath: targetPath,
+                                saveLocation: isDriveTarget ? 'Google Drive (G:\\Meu Drive\\cinelar)' : 'Pasta Local (D:\\Filmes)',
                                 status: 'downloading',
                                 createdAt: new Date().toISOString()
                             };
@@ -1535,9 +1534,9 @@ const server = http.createServer(async (req, res) => {
                                         seriesName: cleanSeries,
                                         season: sNum,
                                         destination: isDriveTarget ? 'drive' : 'local',
-                                        destinationPath: isDriveTarget ? `Cinelar\\Series\\${cleanSeries}\\${sStr}` : `Series\\${cleanSeries}\\${sStr}`,
+                                        destinationPath: isDriveTarget ? `Google Drive\\Series\\${cleanSeries}\\${sStr}` : `Series\\${cleanSeries}\\${sStr}`,
                                         savePath: targetPath,
-                                        saveLocation: isDriveTarget ? 'Google Drive (Cinelar)' : 'Pasta Local (D:\\Filmes)',
+                                        saveLocation: isDriveTarget ? 'Google Drive (G:\\Meu Drive\\cinelar)' : 'Pasta Local (D:\\Filmes)',
                                         status: 'downloading',
                                         createdAt: new Date().toISOString()
                                     };
@@ -1979,14 +1978,9 @@ const server = http.createServer(async (req, res) => {
             try {
                 const cinelarPath = PLATFORM_DOWNLOAD_PATH;
                 let movies = [];
-                if (fs.existsSync(cinelarPath)) {
+                const isRealDrive = cinelarPath && (cinelarPath.toLowerCase().startsWith('g:\\') || cinelarPath.toLowerCase().includes('meu drive'));
+                if (isRealDrive && fs.existsSync(cinelarPath)) {
                     movies = await getLocalLibrary(cinelarPath, false, getActiveDownloadingPaths());
-                }
-                // Se houver pasta Cinelar legada no D:\Filmes diferente da pasta mapeada atual, unifica
-                const legacyCinelar = path.join(SAVE_PATH, 'Cinelar');
-                if (fs.existsSync(legacyCinelar) && path.resolve(legacyCinelar).toLowerCase() !== path.resolve(cinelarPath).toLowerCase()) {
-                    const legacyMovies = await getLocalLibrary(legacyCinelar, false, getActiveDownloadingPaths());
-                    movies = movies.concat(legacyMovies);
                 }
                 const cloudMovies = movies.map(m => ({
                     ...m,
@@ -1999,7 +1993,7 @@ const server = http.createServer(async (req, res) => {
 
                 res.writeHead(200, {
                     'Content-Type': 'application/json; charset=utf-8',
-                    'Cache-Control': 'private, max-age=15'
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
                 });
                 res.end(JSON.stringify({
                     movies: cloudMovies,
@@ -2276,7 +2270,9 @@ const server = http.createServer(async (req, res) => {
                 const timeRem = isDone ? 'Concluído' : (isPaused ? 'Pausado' : (torrent ? formatTime(torrent.timeRemaining) : 'Calculando...'));
                 const canPlay = Boolean(isDone || torrent?.ready || dlBytes > 1024 * 1024 || progressVal > 0.05);
 
-                const isDriveTarget = meta.destination === 'drive' || String(meta.destinationPath || meta.savePath || '').toLowerCase().includes('cinelar') || String(meta.destinationPath || meta.savePath || '').toLowerCase().startsWith('g:\\');
+                const targetCheckPath = String(meta.destinationPath || meta.savePath || '').toLowerCase();
+                const isLocalDisk = targetCheckPath.startsWith('d:\\') || targetCheckPath.startsWith('d:/') || targetCheckPath.startsWith('c:\\') || targetCheckPath.startsWith('c:/');
+                const isDriveTarget = !isLocalDisk && (meta.destination === 'drive' || targetCheckPath.startsWith('g:\\') || targetCheckPath.startsWith('g:/') || targetCheckPath.includes('meu drive'));
 
                 return {
                     id: meta.id,
@@ -2308,9 +2304,9 @@ const server = http.createServer(async (req, res) => {
                     streamUrl: `/api/stream/${meta.id}?magnet=${encodeURIComponent(meta.magnet || torrent?.magnetURI || '')}&title=${encodeURIComponent(meta.title)}`,
                     magnet: meta.magnet || torrent?.magnetURI || '',
                     destination: isDriveTarget ? 'drive' : 'local',
-                    destinationPath: meta.destinationPath || (isDriveTarget ? `Cinelar\\${meta.title}` : `Filmes\\${meta.title}`),
+                    destinationPath: meta.destinationPath || (isDriveTarget ? `Google Drive\\${meta.title}` : `Filmes\\${meta.title}`),
                     savePath: meta.savePath || (isDriveTarget ? PLATFORM_DOWNLOAD_PATH : SAVE_PATH),
-                    saveLocation: isDriveTarget ? 'Google Drive (Cinelar)' : 'Pasta Local (D:\\Filmes)',
+                    saveLocation: isDriveTarget ? 'Google Drive (G:\\Meu Drive\\cinelar)' : 'Pasta Local (D:\\Filmes)',
                     category: meta.category || 'movie',
                     groupName: meta.groupName || null,
                     season: meta.season || null,
@@ -2935,7 +2931,7 @@ const server = http.createServer(async (req, res) => {
                         destination: isDriveTarget ? 'drive' : 'local',
                         destinationPath: org.displayPath,
                         savePath: existingTorrent?.path || org.targetPath,
-                        saveLocation: isDriveTarget ? 'Google Drive (Cinelar)' : 'Pasta Local (D:\\Filmes)',
+                        saveLocation: isDriveTarget ? 'Google Drive (G:\\Meu Drive\\cinelar)' : 'Pasta Local (D:\\Filmes)',
                         status: existingTorrent?.done ? 'completed' : 'downloading',
                         progress: existingTorrent ? parseFloat((existingTorrent.progress * 100).toFixed(1)) : 0,
                         isPaused: false,

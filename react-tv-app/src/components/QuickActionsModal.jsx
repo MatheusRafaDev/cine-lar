@@ -53,16 +53,23 @@ export const QuickActionsModal = memo(function QuickActionsModal({
           <div className="tv-quick-actions-header danger-header">
             <span className="material-icons" style={{ fontSize: '32px', color: 'var(--primary)' }}>warning</span>
             <div>
-              <h2 className="tv-quick-actions-title">
-                {movie.isDrive || movie.storageLocation === 'drive' || String(movie.filePath || '').toLowerCase().includes('cinelar')
-                  ? 'Excluir Arquivo do Google Drive?'
-                  : 'Excluir Arquivo do Computador?'}
-              </h2>
-              <p className="tv-quick-actions-subtitle">
-                {movie.isDrive || movie.storageLocation === 'drive' || String(movie.filePath || '').toLowerCase().includes('cinelar')
-                  ? `O arquivo de vídeo de "${title}" será removido permanentemente do Google Drive (G:\\Meu Drive\\cinelar).`
-                  : `O arquivo de vídeo de "${title}" será removido permanentemente de D:\\Filmes.`}
-              </p>
+              {(() => {
+                const p = String(movie.filePath || movie.videoPath || '').toLowerCase();
+                const isLocal = p.startsWith('d:\\') || p.startsWith('d:/') || p.startsWith('c:\\') || p.startsWith('c:/');
+                const isDrive = !isLocal && (p.startsWith('g:\\') || p.startsWith('g:/') || p.includes('meu drive') || movie.isCloud || movie.isDrive || movie.storageLocation === 'drive');
+                return (
+                  <>
+                    <h2 className="tv-quick-actions-title">
+                      {isDrive ? 'Excluir Arquivo do Google Drive?' : 'Excluir Arquivo do Computador?'}
+                    </h2>
+                    <p className="tv-quick-actions-subtitle">
+                      {isDrive
+                        ? `O arquivo de vídeo de "${title}" será removido permanentemente do Google Drive (G:\\Meu Drive\\cinelar).`
+                        : `O arquivo de vídeo de "${title}" será removido permanentemente de D:\\Filmes.`}
+                    </p>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
@@ -194,12 +201,14 @@ export const QuickActionsModal = memo(function QuickActionsModal({
     }
 
     // 6. Apagar do Disco (se for arquivo salvo localmente ou sincronizado)
-    if ((isLocal || movie.isLocal || movie.filePath) && !movie.isCloud) {
-      const isDriveFolder = String(movie.filePath || '').toLowerCase().includes('cinelar');
+    if (isLocal || movie.isLocal || movie.filePath) {
+      const p = String(movie.filePath || movie.videoPath || '').toLowerCase();
+      const isLocalDisk = p.startsWith('d:\\') || p.startsWith('d:/') || p.startsWith('c:\\') || p.startsWith('c:/');
+      const isDriveFolder = !isLocalDisk && (p.startsWith('g:\\') || p.startsWith('g:/') || p.includes('meu drive') || movie.isCloud || movie.isDrive);
       actions.push({
         id: 'delete_local',
-        title: isDriveFolder ? 'Apagar do Google Drive (Cinelar)' : 'Apagar da Pasta Local (D:\\Filmes)',
-        subtitle: isDriveFolder ? 'Excluir arquivo sincronizado com a nuvem' : 'Excluir arquivo de vídeo permanentemente do computador',
+        title: isDriveFolder ? 'Apagar do Google Drive (Nuvem)' : 'Apagar da Pasta Local (D:\\Filmes)',
+        subtitle: isDriveFolder ? 'Excluir arquivo sincronizado com o Google Drive' : 'Excluir arquivo de vídeo permanentemente do computador',
         icon: 'delete_forever',
         danger: true
       });

@@ -152,22 +152,34 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
           </div>
         )}
 
-        {movie.isCloud || movie.isDrive || String(movie.filePath || '').toLowerCase().includes('cinelar') || String(movie.filePath || '').toLowerCase().startsWith('g:\\') || String(movie.filePath || '').toLowerCase().includes('meu drive') ? (
-          <div className="tv-card-badge-local" style={{ background: '#4285F4', color: '#FFFFFF', fontWeight: 700, boxShadow: '0 2px 6px rgba(66,133,244,0.4)' }}>
-            <span className="material-icons" style={{ fontSize: '11px', marginRight: '3px' }}>cloud</span>
-            <span>Google Drive</span>
-          </div>
-        ) : franchise ? (
-          <div className="tv-card-badge-franchise" title={`Franquia ${franchise}`}>
-            <span className="material-icons" style={{ fontSize: '12px' }}>collections_bookmark</span>
-            <span>{franchise}</span>
-          </div>
-        ) : (
-          <div className="tv-card-badge-local" style={{ background: '#10B981', color: '#FFFFFF', fontWeight: 700, boxShadow: '0 2px 6px rgba(16,185,129,0.3)' }}>
-            <span className="material-icons" style={{ fontSize: '11px', marginRight: '3px' }}>folder</span>
-            <span>Local PC</span>
-          </div>
-        )}
+        {(() => {
+          const moviePath = String(movie.filePath || movie.videoPath || '').toLowerCase();
+          const isLocalDisk = moviePath.startsWith('d:\\') || moviePath.startsWith('d:/') || moviePath.startsWith('c:\\') || moviePath.startsWith('c:/');
+          const isDriveItem = !isLocalDisk && (moviePath.startsWith('g:\\') || moviePath.startsWith('g:/') || moviePath.includes('meu drive') || movie.isCloud || movie.isDrive || (movie.streamUrl && (movie.streamUrl.includes('drive.google.com') || movie.streamUrl.includes('drive.usercontent.google.com'))));
+
+          if (isDriveItem) {
+            return (
+              <div className="tv-card-badge-local" style={{ background: '#4285F4', color: '#FFFFFF', fontWeight: 700, boxShadow: '0 2px 6px rgba(66,133,244,0.4)' }}>
+                <span className="material-icons" style={{ fontSize: '11px', marginRight: '3px' }}>cloud</span>
+                <span>Google Drive</span>
+              </div>
+            );
+          }
+          if (franchise) {
+            return (
+              <div className="tv-card-badge-franchise" title={`Franquia ${franchise}`}>
+                <span className="material-icons" style={{ fontSize: '12px' }}>collections_bookmark</span>
+                <span>{franchise}</span>
+              </div>
+            );
+          }
+          return (
+            <div className="tv-card-badge-local" style={{ background: '#10B981', color: '#FFFFFF', fontWeight: 700, boxShadow: '0 2px 6px rgba(16,185,129,0.3)' }}>
+              <span className="material-icons" style={{ fontSize: '11px', marginRight: '3px' }}>folder</span>
+              <span>Local PC</span>
+            </div>
+          );
+        })()}
 
         <div className="tv-card-badge-quality">
           {quality}

@@ -121,9 +121,11 @@ export function normalizeMovie(item) {
     ? Number(item.progress)
     : (duration > 0 && position > 0 ? Math.min(100, Math.round((position / duration) * 100)) : null);
 
-  const isCinelarFolder = Boolean(resolvedFilePath && (resolvedFilePath.toLowerCase().includes('\\cinelar\\') || resolvedFilePath.toLowerCase().includes('/cinelar/')));
-  const isGDrivePath = Boolean(resolvedFilePath && (resolvedFilePath.toLowerCase().startsWith('g:\\') || resolvedFilePath.toLowerCase().startsWith('g:/') || resolvedFilePath.toLowerCase().includes('meu drive')));
-  const isCloud = Boolean(item.isCloud || item.source === 'Google Drive' || isCinelarFolder || isGDrivePath || (item.streamUrl && (item.streamUrl.includes('drive.google.com') || item.streamUrl.includes('drive.usercontent.google.com'))));
+  const normPath = resolvedFilePath.toLowerCase();
+  const isLocalDisk = Boolean(normPath.startsWith('d:\\') || normPath.startsWith('d:/') || normPath.startsWith('c:\\') || normPath.startsWith('c:/'));
+  const isGDrivePath = Boolean(!isLocalDisk && (normPath.startsWith('g:\\') || normPath.startsWith('g:/') || normPath.includes('meu drive')));
+  const isDriveUrl = Boolean(item.streamUrl && (item.streamUrl.includes('drive.google.com') || item.streamUrl.includes('drive.usercontent.google.com') || String(item.id || '').startsWith('gdrive_')));
+  const isCloud = Boolean(!isLocalDisk && (isGDrivePath || isDriveUrl || item.source === 'Google Drive' || (item.isCloud && !isLocalDisk)));
   const hasSubtitle = Boolean(item.hasSubtitle || item.srtPath);
   const subtitleUrl = item.srtPath
     ? `/api/local/subtitle?file=${encodeURIComponent(item.srtPath)}`
@@ -451,34 +453,40 @@ export async function getDriveMovies() {
     }
   } catch (_) {}
 
-  // 3. Fallback inteligente: Se o servidor local estiver offline e houver filmes salvos na pasta Cinelar no cache local
+  // 3. Fallback inteligente: Se o servidor local estiver offline e houver filmes salvos do Google Drive no cache local
   try {
     const localCached = localStorage.getItem('mf_cached_local_library');
     if (localCached) {
       const parsed = JSON.parse(localCached);
       if (parsed && Array.isArray(parsed.movies)) {
-        const cinelarMovies = parsed.movies.filter(m => {
+        const driveOnlyMovies = parsed.movies.filter(m => {
           const p = String(m.filePath || m.videoPath || '').toLowerCase();
-          return p.includes('cinelar') || m.isCloud;
+          if (p.startsWith('d:\\') || p.startsWith('d:/') || p.startsWith('c:\\') || p.startsWith('c:/')) return false;
+          return p.startsWith('g:\\') || p.startsWith('g:/') || p.includes('meu drive') || m.isCloud;
         });
-        if (cinelarMovies.length > 0) {
-          return cinelarMovies.map(m => normalizeMovie({
+        if (driveOnlyMovies.length > 0) {
+          return driveOnlyMovies.map(m => normalizeMovie({
             ...m,
             isCloud: true,
-            quality: 'Nuvem Cinelar'
+            quality: 'Google Drive'
           }));
         }
       }
     }
   } catch (_) {}
 
-  // 4. Fallback para cache de nuvem gravado anteriormente
+  // 4. Fallback para cache de nuvem gravado anteriormente (filtrando qualquer resquício de arquivo local)
   try {
     const cached = localStorage.getItem('mf_cached_gdrive_movies');
     if (cached) {
       const parsed = JSON.parse(cached);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map(normalizeMovie);
+        return parsed
+          .filter(m => {
+            const p = String(m?.filePath || m?.videoPath || '').toLowerCase();
+            return !p.startsWith('d:\\') && !p.startsWith('d:/') && !p.startsWith('c:\\') && !p.startsWith('c:/');
+          })
+          .map(normalizeMovie);
       }
     }
   } catch (_) {}

@@ -262,7 +262,9 @@ export function DownloadsView({
                         {item.quality || '1080p Full HD'}
                       </span>
                       {(() => {
-                        const isDrive = item.destination === 'drive' || String(item.destinationPath || item.savePath || '').toLowerCase().includes('cinelar') || String(item.destinationPath || item.savePath || '').toLowerCase().startsWith('g:\\');
+                        const targetPath = String(item.destinationPath || item.savePath || '').toLowerCase();
+                        const isLocalDisk = targetPath.startsWith('d:\\') || targetPath.startsWith('d:/') || targetPath.startsWith('c:\\') || targetPath.startsWith('c:/');
+                        const isDrive = !isLocalDisk && (item.destination === 'drive' || targetPath.startsWith('g:\\') || targetPath.startsWith('g:/') || targetPath.includes('meu drive'));
                         return (
                           <span
                             className="tv-badge-pill"
