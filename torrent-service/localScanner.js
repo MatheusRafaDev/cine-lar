@@ -109,9 +109,8 @@ export function getVideoDuration(filePath) {
     return getMediaInfo(filePath).duration;
 }
 
-let localCache = null;
-let lastScanTime = 0;
-let inFlightScanPromise = null;
+const localCachesByPath = new Map();
+const inFlightScansByPath = new Map();
 
 function fetchJson(url) {
     return new Promise((resolve, reject) => {
@@ -239,20 +238,21 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
 }
 
 export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, downloadingPaths = []) {
+    const normPath = path.resolve(savePath).toLowerCase();
     const now = Date.now();
-    if (!force && localCache && (now - lastScanTime < 60000)) {
-        return localCache;
+    const cachedEntry = localCachesByPath.get(normPath);
+    if (!force && cachedEntry && (now - cachedEntry.lastScanTime < 60000)) {
+        return cachedEntry.cache;
     }
 
-    if (!force && inFlightScanPromise) {
-        return inFlightScanPromise;
+    if (!force && inFlightScansByPath.has(normPath)) {
+        return inFlightScansByPath.get(normPath);
     }
 
-    inFlightScanPromise = (async () => {
+    const scanPromise = (async () => {
         try {
             if (!fs.existsSync(savePath)) {
-                localCache = [];
-                lastScanTime = Date.now();
+                localCachesByPath.set(normPath, { cache: [], lastScanTime: Date.now() });
                 return [];
             }
 
@@ -541,15 +541,15 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
             // Sort alphabetically by title
             results.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
 
-            localCache = results;
-            lastScanTime = Date.now();
+            localCachesByPath.set(normPath, { cache: results, lastScanTime: Date.now() });
             return results;
         } finally {
-            inFlightScanPromise = null;
+            inFlightScansByPath.delete(normPath);
         }
     })();
 
-    return inFlightScanPromise;
+    inFlightScansByPath.set(normPath, scanPromise);
+    return scanPromise;
 }
 
 export function streamLocalVideo(filePath, req, res) {
@@ -760,21 +760,28 @@ export function streamLocalVideo(filePath, req, res) {
     }
 }
 
-export function invalidateLocalCache() {
-    localCache = null;
-    lastScanTime = 0;
+export function invalidateLocalCache(savePath = null) {
+    if (savePath) {
+        localCachesByPath.delete(path.resolve(savePath).toLowerCase());
+    } else {
+        localCachesByPath.clear();
+    }
 }
 
 export function removeFileFromLocalCache(targetPath) {
-    if (!targetPath || !Array.isArray(localCache)) return;
+    if (!targetPath) return;
     try {
         const norm = path.resolve(targetPath).toLowerCase();
-        localCache = localCache.filter(m => {
-            const vp = m.videoPath || m.filePath || '';
-            if (!vp) return true;
-            const resolvedVp = path.resolve(vp).toLowerCase();
-            return resolvedVp !== norm && !resolvedVp.startsWith(norm + path.sep);
-        });
+        for (const [key, entry] of localCachesByPath.entries()) {
+            if (entry && Array.isArray(entry.cache)) {
+                entry.cache = entry.cache.filter(m => {
+                    const vp = m.videoPath || m.filePath || '';
+                    if (!vp) return true;
+                    const resolvedVp = path.resolve(vp).toLowerCase();
+                    return resolvedVp !== norm && !resolvedVp.startsWith(norm + path.sep);
+                });
+            }
+        }
     } catch (_) {}
 }
 

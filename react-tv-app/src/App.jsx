@@ -333,11 +333,12 @@ export function App() {
   // Seções e linhas em grid full-page (8 colunas) para a visualização Local
   const localGridRows = useMemo(() => {
     const COL_COUNT = 8;
+    const isDriveMovie = (m) => Boolean(m.isCloud || m.isDrive || String(m.filePath || '').toLowerCase().includes('cinelar'));
 
-    // 1. Apenas Pasta Local do PC (D:\Filmes, excluindo subpasta Cinelar/Drive)
+    // 1. Apenas Pasta Local do PC (D:\Filmes, excluindo pasta mapeada do Google Drive)
     if (localFilterId === 'local-only') {
       const all = localLibrary?.movies || [];
-      const pcOnly = all.filter(m => !m.isCloud && !m.isDrive && !String(m.filePath || '').toLowerCase().includes('cinelar') && !String(m.filePath || '').toLowerCase().startsWith('g:\\') && !String(m.filePath || '').toLowerCase().includes('meu drive'));
+      const pcOnly = all.filter(m => !isDriveMovie(m));
       const rows = [];
       for (let i = 0; i < pcOnly.length; i += COL_COUNT) {
         rows.push({
@@ -351,11 +352,11 @@ export function App() {
       return rows;
     }
 
-    // 2. Modo Nuvem / Google Drive (G:\Meu Drive\cinelar ou Nuvem Direta)
+    // 2. Modo Nuvem / Google Drive (G:\Meu Drive\cinelar)
     if (localFilterId === 'gdrive') {
       const gMovies = (driveMovies && driveMovies.length > 0)
         ? driveMovies
-        : (localLibrary?.movies || []).filter(m => m.isCloud || m.isDrive || String(m.filePath || '').toLowerCase().includes('cinelar') || String(m.filePath || '').toLowerCase().startsWith('g:\\') || String(m.filePath || '').toLowerCase().includes('meu drive'));
+        : (localLibrary?.movies || []).filter(isDriveMovie);
       const rows = [];
       for (let i = 0; i < gMovies.length; i += COL_COUNT) {
         rows.push({

@@ -60,25 +60,21 @@ try {
 }
 
 export function resolveGoogleDrivePath() {
+    const preferredDrive = path.normalize('G:\\Meu Drive\\cinelar');
+    try {
+        if (!fs.existsSync(preferredDrive)) {
+            fs.mkdirSync(preferredDrive, { recursive: true });
+        }
+        return preferredDrive;
+    } catch (_) {}
+
     const candidates = [
         'G:\\Meu Drive\\cinelar',
         'G:\\Meu Drive\\Cinelar',
-        'G:\\Meu Drive',
-        'G:\\cinelar',
-        'G:\\',
         path.join(SAVE_PATH, 'Cinelar')
     ];
     for (const c of candidates) {
         if (fs.existsSync(c)) {
-            if (c.toLowerCase() === 'g:\\meu drive' || c.toLowerCase() === 'g:\\') {
-                const target = path.join(c, 'cinelar');
-                try {
-                    if (!fs.existsSync(target)) fs.mkdirSync(target, { recursive: true });
-                    return target;
-                } catch (_) {
-                    return c;
-                }
-            }
             return c;
         }
     }
@@ -2096,11 +2092,29 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // Get local movies library (from D:\filmes with posters and metadata)
+        // Get local movies library (from D:\filmes and G:\Meu Drive\cinelar)
         if (pathname === '/api/local-movies' && req.method === 'GET') {
             try {
                 const force = urlObj.searchParams.get('force') === 'true';
-                const movies = await getLocalLibrary(SAVE_PATH, force, getActiveDownloadingPaths());
+                let movies = await getLocalLibrary(SAVE_PATH, force, getActiveDownloadingPaths());
+
+                // Se houver filmes na pasta mapeada do Google Drive (G:\Meu Drive\cinelar), unifica identificando origem
+                if (PLATFORM_DOWNLOAD_PATH && fs.existsSync(PLATFORM_DOWNLOAD_PATH)) {
+                    const normSave = path.resolve(SAVE_PATH).toLowerCase();
+                    const normPlatform = path.resolve(PLATFORM_DOWNLOAD_PATH).toLowerCase();
+                    if (normPlatform !== normSave && !normPlatform.startsWith(normSave + path.sep)) {
+                        const driveItems = await getLocalLibrary(PLATFORM_DOWNLOAD_PATH, force, getActiveDownloadingPaths());
+                        const taggedDriveItems = driveItems.map(m => ({
+                            ...m,
+                            isCloud: true,
+                            isDrive: true,
+                            storageLocation: 'drive',
+                            source: 'Google Drive'
+                        }));
+                        movies = movies.concat(taggedDriveItems);
+                    }
+                }
+
                 const totalBytes = movies.reduce((acc, m) => acc + (m.sizeBytes || 0), 0);
                 const grouped = groupMediaLibrary(movies);
 
@@ -2115,7 +2129,8 @@ const server = http.createServer(async (req, res) => {
                     franchises: grouped.franchises,
                     series: grouped.series,
                     standaloneMovies: grouped.standaloneMovies,
-                    savePath: SAVE_PATH
+                    savePath: SAVE_PATH,
+                    drivePath: PLATFORM_DOWNLOAD_PATH
                 }));
             } catch (err) {
                 console.error('[TorrentService] Local movies error:', err.message);
@@ -2125,7 +2140,7 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
-        // Google Drive / Cloud synchronized movies from G:\Meu Drive\cinelar (ou D:\filmes\Cinelar)
+        // Google Drive / Cloud synchronized movies strictly from G:\Meu Drive\cinelar
         if (pathname === '/api/gdrive/files' && req.method === 'GET') {
             try {
                 const cinelarPath = PLATFORM_DOWNLOAD_PATH;
@@ -2133,25 +2148,18 @@ const server = http.createServer(async (req, res) => {
                 if (fs.existsSync(cinelarPath)) {
                     movies = await getLocalLibrary(cinelarPath, false, getActiveDownloadingPaths());
                 }
-                // Se houver pasta Cinelar no D:\Filmes diferente do Google Drive atual, unifica
+                // Se houver pasta Cinelar legada no D:\Filmes diferente da pasta mapeada atual, unifica
                 const legacyCinelar = path.join(SAVE_PATH, 'Cinelar');
                 if (fs.existsSync(legacyCinelar) && path.resolve(legacyCinelar).toLowerCase() !== path.resolve(cinelarPath).toLowerCase()) {
                     const legacyMovies = await getLocalLibrary(legacyCinelar, false, getActiveDownloadingPaths());
                     movies = movies.concat(legacyMovies);
-                }
-                // Se ainda estiver vazia, verifica se há vídeos em G:\Meu Drive
-                if (movies.length === 0 && fs.existsSync('G:\\Meu Drive')) {
-                    const gDriveMovies = await getLocalLibrary('G:\\Meu Drive', false, getActiveDownloadingPaths());
-                    if (gDriveMovies.length > 0) {
-                        movies = gDriveMovies;
-                    }
                 }
                 const cloudMovies = movies.map(m => ({
                     ...m,
                     isCloud: true,
                     isDrive: true,
                     storageLocation: 'drive',
-                    quality: 'Nuvem 1080p',
+                    quality: 'Google Drive',
                     source: 'Google Drive'
                 }));
 
