@@ -816,7 +816,7 @@ export function CinemaPlayer({
   const isTimelineFocused = controlsVisible && focusZone === 'timeline';
 
   return (
-    <div className="tv-player-wrap" onClick={showControlsTemporarily}>
+    <div className="tv-player-wrap" onClick={showControlsTemporarily} onMouseMove={showControlsTemporarily}>
       <video
         ref={videoRef}
         className="tv-player-video"

@@ -10,6 +10,7 @@ function CarouselRowComponent({
   onContextMenuMovie
 }) {
   const rowRef = useRef(null);
+  const trackRef = useRef(null);
 
   // Callbacks estaveis: os pais passam funcoes inline (nova identidade a cada render),
   // o que forcava TODOS os cards da linha focada a re-renderizar a cada toque no controle.
@@ -27,6 +28,52 @@ function CarouselRowComponent({
     }
   }, [isRowFocused]);
 
+  // Suporte à roda do mouse no site: converte rolagem vertical (wheel) em horizontal do carrossel
+  const handleWheel = useCallback((e) => {
+    if (!trackRef.current) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      trackRef.current.scrollLeft += e.deltaY * 1.3;
+    } else if (Math.abs(e.deltaX) > 0) {
+      trackRef.current.scrollLeft += e.deltaX;
+    }
+  }, []);
+
+  // Drag-to-Scroll suave com o mouse
+  const isMouseDownRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+
+  const handleMouseDown = useCallback((e) => {
+    if (e.button !== 0 || !trackRef.current) return;
+    isMouseDownRef.current = true;
+    startXRef.current = e.pageX - trackRef.current.offsetLeft;
+    scrollLeftRef.current = trackRef.current.scrollLeft;
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isMouseDownRef.current || !trackRef.current) return;
+    const x = e.pageX - trackRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.4;
+    trackRef.current.scrollLeft = scrollLeftRef.current - walk;
+  }, []);
+
+  const handleMouseUpOrLeave = useCallback(() => {
+    isMouseDownRef.current = false;
+  }, []);
+
+  // Navegação direta com botões de chevron para mouse/web
+  const handleScrollLeft = useCallback(() => {
+    if (!trackRef.current) return;
+    const amount = Math.max(300, trackRef.current.clientWidth * 0.75);
+    trackRef.current.scrollBy({ left: -amount, behavior: 'smooth' });
+  }, []);
+
+  const handleScrollRight = useCallback(() => {
+    if (!trackRef.current) return;
+    const amount = Math.max(300, trackRef.current.clientWidth * 0.75);
+    trackRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+  }, []);
+
   if (!movies || movies.length === 0) return null;
 
   return (
@@ -36,19 +83,49 @@ function CarouselRowComponent({
         <span className="tv-row-count">{movies.length} títulos</span>
       </div>
 
-      <div className="tv-carousel-track">
-        {movies.map((movie, idx) => {
-          const isCardFocused = isRowFocused && focusedColIndex === idx;
-          return (
-            <MovieCard
-              key={movie.id || movie.imdbId || `${title}-${idx}`}
-              movie={movie}
-              isFocused={isCardFocused}
-              onSelect={stableOnSelect}
-              onContextMenu={onContextMenuMovie ? stableOnContextMenu : undefined}
-            />
-          );
-        })}
+      <div className="tv-carousel-wrapper">
+        <button
+          type="button"
+          className="tv-carousel-nav-btn left"
+          onClick={handleScrollLeft}
+          aria-label="Rolar para esquerda"
+          tabIndex={-1}
+        >
+          <span className="material-icons">chevron_left</span>
+        </button>
+
+        <div
+          ref={trackRef}
+          className="tv-carousel-track"
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+        >
+          {movies.map((movie, idx) => {
+            const isCardFocused = isRowFocused && focusedColIndex === idx;
+            return (
+              <MovieCard
+                key={movie.id || movie.imdbId || `${title}-${idx}`}
+                movie={movie}
+                isFocused={isCardFocused}
+                onSelect={stableOnSelect}
+                onContextMenu={onContextMenuMovie ? stableOnContextMenu : undefined}
+              />
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          className="tv-carousel-nav-btn right"
+          onClick={handleScrollRight}
+          aria-label="Rolar para direita"
+          tabIndex={-1}
+        >
+          <span className="material-icons">chevron_right</span>
+        </button>
       </div>
     </section>
   );

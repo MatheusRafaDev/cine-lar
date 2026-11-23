@@ -5,6 +5,8 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
   const cardRef = useRef(null);
   const pointerTimerRef = useRef(null);
   const pointerLongPressedRef = useRef(false);
+  const dragStartPosRef = useRef({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
   const [imgFailed, setImgFailed] = useState(false);
   const [autoPoster, setAutoPoster] = useState('');
   const triedAutoPosterRef = useRef(false);
@@ -48,6 +50,12 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
   if (!movie) return null;
 
   const handleClick = (e) => {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (pointerLongPressedRef.current) {
       pointerLongPressedRef.current = false;
       e.preventDefault();
@@ -75,7 +83,14 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
       ? Math.max(1, Math.round((movie.duration - movie.position) / 60))
       : null);
 
-  const handlePointerDown = () => {
+  const handlePointerDown = (e) => {
+    dragStartPosRef.current = { x: e.clientX, y: e.clientY };
+    isDraggingRef.current = false;
+
+    // Se for clique com o mouse (mouse pointer), não ativa timer de long-press
+    // No mouse, o clique com o botão direito (onContextMenu) já abre o menu rápido nativamente.
+    if (e.pointerType === 'mouse') return;
+
     pointerLongPressedRef.current = false;
     if (!onContextMenu) return;
     pointerTimerRef.current = setTimeout(() => {
@@ -83,6 +98,19 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
       pointerTimerRef.current = null;
       onContextMenu(movie);
     }, 450);
+  };
+
+  const handlePointerMove = (e) => {
+    if (
+      Math.abs(e.clientX - dragStartPosRef.current.x) > 6 ||
+      Math.abs(e.clientY - dragStartPosRef.current.y) > 6
+    ) {
+      isDraggingRef.current = true;
+      if (pointerTimerRef.current) {
+        clearTimeout(pointerTimerRef.current);
+        pointerTimerRef.current = null;
+      }
+    }
   };
 
   const handlePointerClear = () => {
@@ -105,6 +133,7 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
         }
       }}
       onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
       onPointerUp={handlePointerClear}
       onPointerLeave={handlePointerClear}
       onPointerCancel={handlePointerClear}

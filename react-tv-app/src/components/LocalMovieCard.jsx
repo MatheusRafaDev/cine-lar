@@ -5,6 +5,8 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
   const cardRef = useRef(null);
   const pointerTimerRef = useRef(null);
   const pointerLongPressedRef = useRef(false);
+  const dragStartPosRef = useRef({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
   const [imgFailed, setImgFailed] = useState(false);
   const [autoPoster, setAutoPoster] = useState('');
   const triedAutoPosterRef = useRef(false);
@@ -45,6 +47,12 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
   if (!movie) return null;
 
   const handleClick = (e) => {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (pointerLongPressedRef.current) {
       pointerLongPressedRef.current = false;
       e.preventDefault();
@@ -71,7 +79,13 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
     ? Math.max(1, Math.round((saved.duration - saved.position) / 60))
     : null;
 
-  const handlePointerDown = () => {
+  const handlePointerDown = (e) => {
+    dragStartPosRef.current = { x: e.clientX, y: e.clientY };
+    isDraggingRef.current = false;
+
+    // Se for clique com o mouse (mouse pointer), não ativa o long-press de 450ms
+    if (e.pointerType === 'mouse') return;
+
     pointerLongPressedRef.current = false;
     if (!onContextMenu) return;
     pointerTimerRef.current = setTimeout(() => {
@@ -79,6 +93,19 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
       pointerTimerRef.current = null;
       onContextMenu(movie);
     }, 450);
+  };
+
+  const handlePointerMove = (e) => {
+    if (
+      Math.abs(e.clientX - dragStartPosRef.current.x) > 6 ||
+      Math.abs(e.clientY - dragStartPosRef.current.y) > 6
+    ) {
+      isDraggingRef.current = true;
+      if (pointerTimerRef.current) {
+        clearTimeout(pointerTimerRef.current);
+        pointerTimerRef.current = null;
+      }
+    }
   };
 
   const handlePointerClear = () => {
@@ -101,6 +128,7 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
         }
       }}
       onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
       onPointerUp={handlePointerClear}
       onPointerLeave={handlePointerClear}
       onPointerCancel={handlePointerClear}

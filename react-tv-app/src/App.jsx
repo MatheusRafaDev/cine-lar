@@ -271,6 +271,29 @@ export function App() {
     return () => clearInterval(interval);
   }, [activeTab, refreshDownloadsInfo]);
 
+  // Suporte Híbrido TV / Web: visibilidade inteligente do cursor do mouse
+  useEffect(() => {
+    let hideTimer = null;
+    const handleMouseMove = () => {
+      document.body.classList.remove('hide-cursor');
+      clearTimeout(hideTimer);
+    };
+    const handleKeyDown = (e) => {
+      // Teclas direcionais do controle remoto da TV ocultam o cursor para não atrapalhar a tela
+      const tvKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'];
+      if (tvKeys.includes(e.key) || (e.keyCode >= 37 && e.keyCode <= 40)) {
+        document.body.classList.add('hide-cursor');
+      }
+    };
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    window.addEventListener('keydown', handleKeyDown, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(hideTimer);
+    };
+  }, []);
+
   // 2. Seções da Home
   const homeSections = useMemo(() => {
     const list = [];
