@@ -15,8 +15,7 @@ function formatSeconds(sec) {
 
 export function CinemaPlayer({
   streamConfig = {},
-  onClose,
-  spatialNavControls
+  onClose
 }) {
   const {
     id = '',
@@ -60,6 +59,7 @@ export function CinemaPlayer({
   const [isBuffering, setIsBuffering] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorActionIndex, setErrorActionIndex] = useState(0);
   const [effectiveQuality, setEffectiveQuality] = useState(quality);
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
 
@@ -82,6 +82,7 @@ export function CinemaPlayer({
   const lastScrubKeyTimeRef = useRef(0);
   const hasResumedRef = useRef(false);
   const lastSavedPosRef = useRef(0);
+  const wasPlayingBeforeHideRef = useRef(false);
 
   // Função centralizada para salvar e persistir o progresso de exibição
   const persistProgress = useCallback((pos, dur) => {
@@ -334,6 +335,29 @@ export function CinemaPlayer({
     }
   }, [commitSeek, showOsd, showControlsTemporarily, getEffectiveDuration, persistProgress]);
 
+  const playPlayback = useCallback((message = 'Reproduzindo') => {
+    const video = videoRef.current;
+    if (!video || !video.paused) return;
+    Promise.resolve(video.play()).then(() => {
+      setIsPlaying(true);
+      setIsBuffering(false);
+      showOsd('play_arrow', message);
+      showControlsTemporarily();
+    }).catch((e) => {
+      console.warn('[Player] Erro ao retomar reproducao:', e);
+    });
+  }, [showOsd, showControlsTemporarily]);
+
+  const pausePlayback = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || video.paused) return;
+    video.pause();
+    setIsPlaying(false);
+    setControlsVisible(true);
+    showOsd('pause', 'Pausado');
+    persistProgress(streamOffsetRef.current + video.currentTime, getEffectiveDuration());
+  }, [showOsd, persistProgress, getEffectiveDuration]);
+
   const restartVideo = useCallback(() => {
     commitSeek(0);
     showOsd('replay', 'Reiniciado do início');
@@ -403,6 +427,18 @@ export function CinemaPlayer({
       label: '+5 min',
       action: () => seekRelative(300)
     },
+    {
+      id: 'volume_down',
+      icon: 'volume_down',
+      label: 'Volume −',
+      action: () => adjustVolume(-0.1)
+    },
+    {
+      id: 'volume_up',
+      icon: 'volume_up',
+      label: 'Volume +',
+      action: () => adjustVolume(0.1)
+    },
     ...(fullSubtitleUrl ? [{
       id: 'subtitles',
       icon: subtitlesEnabled ? 'subtitles' : 'subtitles_off',
@@ -441,6 +477,40 @@ export function CinemaPlayer({
     };
   }, [isPlaying]);
 
+  // Save playback state when the TV hides the app and restore it when the app returns.
+  useEffect(() => {
+    const pauseForBackground = () => {
+      const video = videoRef.current;
+      if (!video) return;
+      wasPlayingBeforeHideRef.current = wasPlayingBeforeHideRef.current || !video.paused;
+      if (!video.paused) {
+        persistProgress(streamOffsetRef.current + video.currentTime, getEffectiveDuration());
+        video.pause();
+        setIsPlaying(false);
+      }
+    };
+
+    const resumeFromBackground = () => {
+      if (!wasPlayingBeforeHideRef.current) return;
+      wasPlayingBeforeHideRef.current = false;
+      playPlayback('Retomando reprodução');
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') pauseForBackground();
+      else resumeFromBackground();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', pauseForBackground);
+    window.addEventListener('pageshow', resumeFromBackground);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', pauseForBackground);
+      window.removeEventListener('pageshow', resumeFromBackground);
+    };
+  }, [getEffectiveDuration, persistProgress, playPlayback]);
+
   // Listener de controle remoto direto e prioritário durante a reprodução
   useEffect(() => {
     const handlePlayerKeyDown = (e) => {
@@ -448,7 +518,10 @@ export function CinemaPlayer({
       const key = e.key || '';
 
       const isEnter = code === 13 || key === 'Enter';
-      const isMediaPlayPause = code === 10252 || code === 415 || code === 19 || code === 32 || key === 'MediaPlayPause' || key === ' ';
+      const isMediaPlayPause = code === 10252 || code === 32 || key === 'MediaPlayPause' || key === ' ';
+      const isMediaPlay = code === 415 || key === 'MediaPlay';
+      const isMediaPause = code === 19 || key === 'MediaPause';
+      const isMediaStop = code === 413 || key === 'MediaStop';
       const isLeft = code === 37 || key === 'ArrowLeft';
       const isRight = code === 39 || key === 'ArrowRight';
       const isRewindKey = code === 412 || key === 'MediaRewind';
@@ -456,6 +529,39 @@ export function CinemaPlayer({
       const isUp = code === 38 || key === 'ArrowUp';
       const isDown = code === 40 || key === 'ArrowDown';
       const isBack = code === 10009 || code === 27 || code === 8 || key === 'Back' || key === 'Escape';
+
+      if (hasError) {
+        if (isBack || isMediaStop) {
+          e.preventDefault();
+          e.stopPropagation();
+          onClose?.();
+          return;
+        }
+        if (isLeft || isRight) {
+          e.preventDefault();
+          e.stopPropagation();
+          setErrorActionIndex(isLeft ? 0 : 1);
+          return;
+        }
+        if (isEnter) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (errorActionIndex === 0) {
+            onClose?.();
+          } else {
+            setHasError(false);
+            setIsBuffering(true);
+            if (videoRef.current) {
+              videoRef.current.src = fullStreamUrl;
+              videoRef.current.load();
+            }
+          }
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
 
       // 0. Teclas Numéricas (0-9) para saltar para porcentagem do vídeo (0%, 10%, ..., 90%)
       if ((code >= 48 && code <= 57) || (code >= 96 && code <= 105)) {
@@ -493,6 +599,19 @@ export function CinemaPlayer({
         e.preventDefault();
         e.stopPropagation();
         togglePlay();
+        return;
+      }
+      if (isMediaPlay || isMediaPause) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isMediaPlay) playPlayback();
+        else pausePlayback();
+        return;
+      }
+      if (isMediaStop) {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose?.();
         return;
       }
       if (isRewindKey) {
@@ -615,11 +734,16 @@ export function CinemaPlayer({
     window.addEventListener('keydown', handlePlayerKeyDown, true);
     return () => window.removeEventListener('keydown', handlePlayerKeyDown, true);
   }, [
+    hasError,
+    errorActionIndex,
+    fullStreamUrl,
     controlsVisible,
     focusZone,
     focusedBtnIndex,
     playerButtons,
     togglePlay,
+    playPlayback,
+    pausePlayback,
     scheduleScrub,
     commitSeek,
     adjustVolume,
@@ -834,8 +958,6 @@ export function CinemaPlayer({
           persistProgress(finalPos, finalDur);
         }
         video.pause();
-        video.muted = true;
-        video.volume = 0;
         video.removeAttribute('src');
         video.src = '';
         video.load();
@@ -902,7 +1024,7 @@ export function CinemaPlayer({
 
       {/* Tela de Erro com Recuperação */}
       {hasError && (
-        <div className="tv-buffer-overlay" style={{ background: 'rgba(11, 11, 10, 0.95)' }}>
+        <div className="tv-buffer-overlay" role="alert" aria-label="Falha na reprodução" style={{ background: 'rgba(11, 11, 10, 0.95)' }}>
           <span className="material-icons" style={{ fontSize: '64px', color: '#ef4444' }}>error_outline</span>
           <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Falha na Reprodução</h2>
           <p style={{ color: 'var(--text-muted)', maxWidth: '600px', textAlign: 'center', lineHeight: 1.5 }}>
@@ -911,7 +1033,7 @@ export function CinemaPlayer({
           <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
             <button
               type="button"
-              className="tv-btn tv-btn-primary focused"
+              className={`tv-btn tv-btn-primary ${errorActionIndex === 0 ? 'focused' : ''}`}
               onClick={onClose}
             >
               <span className="material-icons">list</span>
@@ -919,7 +1041,7 @@ export function CinemaPlayer({
             </button>
             <button
               type="button"
-              className="tv-btn tv-btn-secondary"
+              className={`tv-btn tv-btn-secondary ${errorActionIndex === 1 ? 'focused' : ''}`}
               onClick={() => {
                 setHasError(false);
                 setIsBuffering(true);

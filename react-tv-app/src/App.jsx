@@ -71,6 +71,8 @@ export function App() {
   const [quickMenuMovie, setQuickMenuMovie] = useState(null);
   const [quickMenuContext, setQuickMenuContext] = useState({ isInContinueWatching: false, isLocal: false });
   const [confirmDeleteMode, setConfirmDeleteMode] = useState(false);
+  const [exitPromptOpen, setExitPromptOpen] = useState(false);
+  const [exitPromptChoice, setExitPromptChoice] = useState(0);
   const [toastMessage, setToastMessage] = useState('');
   const [serverStatus, setServerStatus] = useState('checking');
   const [isHomeLoading, setIsHomeLoading] = useState(true);
@@ -90,12 +92,53 @@ export function App() {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
   }, []);
 
-  const playerControlsRef = useRef({});
+  const confirmAppExit = useCallback(() => {
+    try {
+      const application = window.tizen?.application?.getCurrentApplication?.();
+      if (application?.exit) {
+        application.exit();
+        return;
+      }
+    } catch (_) {}
+    setExitPromptOpen(false);
+    showToast('O encerramento direto está disponível no app Samsung Tizen.');
+  }, [showToast]);
+
+  useEffect(() => {
+    if (!exitPromptOpen) return undefined;
+
+    const handleExitPromptKey = (event) => {
+      const code = event.keyCode || event.which || 0;
+      const key = event.key || '';
+      const isBack = code === 10009 || code === 27 || code === 8 || key === 'Back' || key === 'Escape';
+      const isConfirm = code === 13 || key === 'Enter';
+      const isLeft = code === 37 || key === 'ArrowLeft';
+      const isRight = code === 39 || key === 'ArrowRight';
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation?.();
+
+      if (isBack) {
+        setExitPromptOpen(false);
+      } else if (isLeft) {
+        setExitPromptChoice(0);
+      } else if (isRight) {
+        setExitPromptChoice(1);
+      } else if (isConfirm) {
+        if (exitPromptChoice === 1) confirmAppExit();
+        else setExitPromptOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleExitPromptKey, true);
+    return () => window.removeEventListener('keydown', handleExitPromptKey, true);
+  }, [exitPromptOpen, exitPromptChoice, confirmAppExit]);
+
   const searchInputRef = useRef({ handleKeyPress: null });
   const modalActionRef = useRef({});
   const deletedDownloadIdsRef = useRef(new Set());
   const deletedLocalPathsRef = useRef(new Set());
-  const lastBackPressRef = useRef(0);
 
   // 1. Carrega dados de usuário (sem disparar requisições pesadas de catálogo)
   const refreshUserData = useCallback(() => {
@@ -1322,17 +1365,12 @@ export function App() {
         return true;
       }
       // Se já está no header da página inicial e pressionou voltar novamente, solicita confirmação para não fechar por acidente na TV
-      const now = Date.now();
-      if (lastBackPressRef.current && (now - lastBackPressRef.current < 2500)) {
-        if (typeof window !== 'undefined' && window.tizen && window.tizen.application) {
-          try {
-            window.tizen.application.getCurrentApplication().exit();
-          } catch (_) {}
-        }
-        return false;
+      if (exitPromptOpen) {
+        setExitPromptOpen(false);
+        return true;
       }
-      lastBackPressRef.current = now;
-      showToast('Pressione VOLTAR novamente para sair do Cinelar');
+      setExitPromptChoice(0);
+      setExitPromptOpen(true);
       return true;
     },
     onEnter: ({ zone, index, headerIndex, heroIndex, rowIndex, colIndex, filterIndex, searchRowIndex, searchColIndex, resultsColIndex, isPlayKey }) => {
@@ -1460,10 +1498,7 @@ export function App() {
         else if (serverStatus !== 'online') retryServerConnection();
         return;
       }
-    },
-    onPlayPause: () => playerControlsRef.current.onPlayPause?.(),
-    onSeek: (delta) => playerControlsRef.current.onSeek?.(delta),
-    onVolume: (delta) => playerControlsRef.current.onVolume?.(delta)
+    }
   });
 
   const handleSelectTab = (tabId) => {
@@ -1729,9 +1764,8 @@ export function App() {
           streamConfig={activeStream}
           onClose={() => {
             setActiveStream(null);
-            refreshUserData();
-          }}
-          spatialNavControls={playerControlsRef.current}
+          refreshUserData();
+        }}
         />
       )}
 
@@ -1767,6 +1801,50 @@ export function App() {
       </AnimatePresence>
 
       {/* Notificação Toast Global */}
+      <AnimatePresence>
+        {exitPromptOpen && (
+          <motion.div
+            className="tv-exit-overlay"
+            role="presentation"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setExitPromptOpen(false)}
+          >
+            <motion.section
+              className="tv-exit-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="tv-exit-title"
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h2 id="tv-exit-title">Deseja sair do Cinelar?</h2>
+              <p>Você pode voltar para continuar assistindo a qualquer momento.</p>
+              <div className="tv-exit-actions">
+                <button
+                  type="button"
+                  className={`tv-btn tv-btn-secondary ${exitPromptChoice === 0 ? 'focused' : ''}`}
+                  onClick={() => setExitPromptOpen(false)}
+                >
+                  Continuar assistindo
+                </button>
+                <button
+                  type="button"
+                  className={`tv-btn tv-btn-primary ${exitPromptChoice === 1 ? 'focused' : ''}`}
+                  onClick={confirmAppExit}
+                >
+                  Sair
+                </button>
+              </div>
+              <p style={{ marginTop: '18px', fontSize: '13px' }}>Esquerda/direita seleciona · OK confirma · Voltar cancela</p>
+            </motion.section>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {toastMessage && (
           <motion.div

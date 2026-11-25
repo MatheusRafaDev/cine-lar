@@ -1334,8 +1334,15 @@ button {
 
 .tv-player-btns-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+}
+
+.tv-player-btns-row .tv-btn {
+  height: 48px;
+  padding: 0 20px;
+  font-size: 14px;
 }
 
 /* Feedback OSD (Pausado, +10s, Volume) */
@@ -3086,6 +3093,52 @@ button {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
   pointer-events: none;
   animation: tvToastIn 0.28s ease both;
+}
+
+.tv-exit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(0, 0, 0, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.tv-exit-dialog {
+  width: min(620px, 90vw);
+  padding: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  background: #171715;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.7);
+  text-align: center;
+}
+
+.tv-exit-dialog h2 {
+  margin-bottom: 12px;
+  font-size: 30px;
+}
+
+.tv-exit-dialog p {
+  color: var(--text-muted);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.tv-exit-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.tv-exit-actions .focused {
+  outline: 3px solid #FFFFFF !important;
+  outline-offset: 3px;
+  transform: scale(1.05);
 }
 
 @keyframes tvToastIn {
