@@ -4,6 +4,8 @@ import {
   getServerStatus,
   getStoredServerIp,
   setStoredServerIp,
+  getStoredApiToken,
+  setStoredApiToken,
   rescanLocalLibrary,
   getDriveConfig,
   setDriveConfig,
@@ -31,6 +33,7 @@ export function SettingsView({
 }) {
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [serverIp, setServerIp] = useState(() => getStoredServerIp() || '');
+  const [apiToken, setApiToken] = useState(() => getStoredApiToken());
   const [isEditingIp, setIsEditingIp] = useState(false);
   const [detailedStatus, setDetailedStatus] = useState(null);
   const [storageData, setStorageData] = useState(null);
@@ -86,6 +89,11 @@ export function SettingsView({
     setIsEditingIp(false);
     showToast(serverIp ? `IP do servidor atualizado para: ${serverIp}` : 'IP redefinido para detecção automática');
     handleTestConnection();
+  };
+
+  const handleSaveApiToken = () => {
+    setStoredApiToken(apiToken);
+    showToast(apiToken.trim() ? 'Token de acesso salvo neste dispositivo.' : 'Token local removido.');
   };
 
   const handleRescan = async () => {
@@ -341,6 +349,42 @@ export function SettingsView({
                     style={{ padding: '12px 20px', borderRadius: '10px', fontWeight: 700 }}
                   >
                     {isTestingConnection ? 'Testando...' : 'Testar Conexão'}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ background: 'rgba(255, 255, 255, 0.04)', padding: '20px', borderRadius: '14px', marginBottom: '20px' }}>
+                <label htmlFor="server-api-token" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#FFFFFF', marginBottom: '8px' }}>
+                  Token de acesso da API
+                </label>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
+                  Digite o mesmo valor de MUTATION_API_TOKEN configurado no .env do servidor. O token fica salvo neste dispositivo.
+                </p>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <input
+                    id="server-api-token"
+                    type="password"
+                    autoComplete="off"
+                    value={apiToken}
+                    onChange={e => setApiToken(e.target.value)}
+                    placeholder="Token configurado no computador"
+                    style={{
+                      flex: 1,
+                      padding: '12px 16px',
+                      background: 'rgba(0, 0, 0, 0.5)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      borderRadius: '10px',
+                      color: '#FFF',
+                      fontSize: '14px'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="tv-btn tv-btn-primary"
+                    onClick={handleSaveApiToken}
+                    style={{ padding: '12px 20px', borderRadius: '10px', fontWeight: 700 }}
+                  >
+                    Salvar token
                   </button>
                 </div>
               </div>

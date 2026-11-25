@@ -38,7 +38,8 @@ import {
   isInWatchHistory,
   deleteLocalFile,
   getServerStatus,
-  prefetchCatalogs
+  prefetchCatalogs,
+  clearCatalogCache
 } from './services/api';
 import { useSpatialNav } from './hooks/useSpatialNav';
 
@@ -73,6 +74,8 @@ export function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [serverStatus, setServerStatus] = useState('checking');
   const [isHomeLoading, setIsHomeLoading] = useState(true);
+  const [isMoviesLoading, setIsMoviesLoading] = useState(false);
+  const [isSeriesLoading, setIsSeriesLoading] = useState(false);
   const toastTimerRef = useRef(null);
   const downloadsRequestInFlightRef = useRef(false);
   const downloadsSnapshotRef = useRef('');
@@ -138,110 +141,126 @@ export function App() {
   const [loadedAllMovies, setLoadedAllMovies] = useState(false);
   const [loadedAllSeries, setLoadedAllSeries] = useState(false);
 
-  // Inicialização leve e ultrarrápida da Home (executa apenas uma vez no mount)
+  const loadHomeCatalog = useCallback(async () => {
+    setIsHomeLoading(true);
+    try {
+      const [trending, genres] = await Promise.all([getTrendingMovies(), getGenres()]);
+      setTrendingMovies(trending);
+      const topMovieGenres = genres.filter(g => g.id !== 'all').slice(0, 4);
+      const [movieSections, seriesList] = await Promise.all([
+        Promise.all(topMovieGenres.map(async genre => {
+          try {
+            const movies = await getMovies({ genre: genre.id, limit: 12 });
+            return movies.length ? { id: genre.id, title: genre.name, movies } : null;
+          } catch (_) {
+            return null;
+          }
+        })),
+        getSeries({ limit: 12 }).catch(() => [])
+      ]);
+      const availableMovieSections = movieSections.filter(Boolean);
+      setGenreSections(availableMovieSections);
+      setSeriesGenreSections(seriesList.length
+        ? [{ id: 'series-popular', title: 'Séries em Destaque', movies: seriesList }]
+        : []);
+      if (!trending.length && !availableMovieSections.length && !seriesList.length) {
+        const isStillOnline = await getServerStatus();
+        if (!isStillOnline) setServerStatus('offline');
+      }
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      setIsHomeLoading(false);
+    }
+  }, []);
+
+  // Inicialização leve da Home: valida conexão antes de buscar o catálogo.
   useEffect(() => {
     refreshUserData();
     refreshLocalLibrary();
-    getServerStatus().then(isOnline => setServerStatus(isOnline ? 'online' : 'offline'));
-    syncFavoritesWithServer().then(favs => {
-      if (favs && favs.length > 0) setFavorites(favs);
-    });
-
-    // Trending & Destaque
-    getTrendingMovies().then(movies => {
-      setTrendingMovies(movies);
-      setIsHomeLoading(false);
-    });
-
-    // Biblioteca e Filmes Locais (com franquias estruturadas)
-    // Carrega os 4 gêneros essenciais de filmes e 1 de séries para a Home instantaneamente
-    const catalogTimer = setTimeout(() => getGenres().then(async genres => {
-      const topMovieGenres = genres.filter(g => g.id !== 'all').slice(0, 4);
-
-      const mPromises = topMovieGenres.map(async g => {
-        try {
-          const list = await getMovies({ genre: g.id, limit: 12 });
-          return list.length > 0 ? { id: g.id, title: g.name, movies: list } : null;
-        } catch (_) {
-          return null;
-        }
-      });
-
-      const sPromise = getSeries({ limit: 12 }).then(list => {
-        return list && list.length > 0 ? [{ id: 'series-popular', title: 'Séries em Destaque', movies: list }] : [];
-      }).catch(() => []);
-
-      const [mSections, sSections] = await Promise.all([
-        Promise.all(mPromises),
-        sPromise
-      ]);
-
-      setGenreSections(mSections.filter(Boolean));
-      if (sSections && sSections.length > 0) {
-        setSeriesGenreSections(sSections);
+    let cancelled = false;
+    getServerStatus().then(async isOnline => {
+      if (cancelled) return;
+      setServerStatus(isOnline ? 'online' : 'offline');
+      if (!isOnline) {
+        setIsHomeLoading(false);
+        return;
       }
-    }), 20);
-
-    // Pré-carregamento em background durante o tempo ocioso para troca de abas instantânea (0ms de espera)
-    const prefetchTimer = setTimeout(() => {
-      try {
-        prefetchCatalogs();
-      } catch (_) {}
-    }, 1200);
-
-    return () => {
-      clearTimeout(catalogTimer);
-      clearTimeout(prefetchTimer);
-    };
-  }, []);
+      const favoritesPromise = syncFavoritesWithServer().then(favs => {
+        if (!cancelled && favs?.length) setFavorites(favs);
+      }).catch(() => {});
+      await loadHomeCatalog();
+      await favoritesPromise;
+      if (!cancelled) {
+        try { prefetchCatalogs(); } catch (_) {}
+      }
+    }).catch(() => {
+      if (!cancelled) {
+        setServerStatus('offline');
+        setIsHomeLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [refreshUserData, refreshLocalLibrary, loadHomeCatalog]);
 
   // Lazy loading sob demanda para a aba Filmes
   useEffect(() => {
-    if (activeTab !== 'movies' || loadedAllMovies) return;
-
+    if (activeTab !== 'movies' || loadedAllMovies || serverStatus !== 'online') return;
+    let cancelled = false;
+    setIsMoviesLoading(true);
     getGenres().then(async genres => {
       const allGenres = genres.filter(g => g.id !== 'all').slice(0, 10);
-      const mPromises = allGenres.map(async g => {
+      const sections = (await Promise.all(allGenres.map(async genre => {
         try {
-          const list = await getMovies({ genre: g.id, limit: 12 });
-          return list.length > 0 ? { id: g.id, title: g.name, movies: list } : null;
-        } catch (_) {
-          return null;
+          const movies = await getMovies({ genre: genre.id, limit: 12 });
+          return movies.length ? { id: genre.id, title: genre.name, movies } : null;
+        } catch (_) { return null; }
+      }))).filter(Boolean);
+      if (!cancelled) {
+        setGenreSections(sections);
+        setLoadedAllMovies(true);
+        if (!sections.length) {
+          const isStillOnline = await getServerStatus();
+          if (!isStillOnline && !cancelled) setServerStatus('offline');
         }
-      });
-      const mSections = (await Promise.all(mPromises)).filter(Boolean);
-      if (mSections.length > 0) {
-        setGenreSections(mSections);
       }
-      setLoadedAllMovies(true);
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setIsMoviesLoading(false);
     });
-  }, [activeTab, loadedAllMovies]);
+    return () => { cancelled = true; };
+  }, [activeTab, loadedAllMovies, serverStatus]);
 
   // Lazy loading sob demanda para a aba Séries
   useEffect(() => {
-    if (activeTab !== 'series' || loadedAllSeries) return;
-
+    if (activeTab !== 'series' || loadedAllSeries || serverStatus !== 'online') return;
+    let cancelled = false;
+    setIsSeriesLoading(true);
     getGenres().then(async genres => {
       const allGenres = genres.filter(g => g.id !== 'all').slice(0, 8);
-      const sPromises = allGenres.map(async g => {
+      const sections = (await Promise.all(allGenres.map(async genre => {
         try {
-          const sList = await getSeries({ genre: g.id, limit: 12 });
-          return sList.length > 0 ? { id: `series-${g.id}`, title: `Séries de ${g.name}`, movies: sList } : null;
-        } catch (_) {
-          return null;
+          const series = await getSeries({ genre: genre.id, limit: 12 });
+          return series.length ? { id: `series-${genre.id}`, title: `Séries de ${genre.name}`, movies: series } : null;
+        } catch (_) { return null; }
+      }))).filter(Boolean);
+      if (!cancelled) {
+        setSeriesGenreSections(sections);
+        setLoadedAllSeries(true);
+        if (!sections.length) {
+          const isStillOnline = await getServerStatus();
+          if (!isStillOnline && !cancelled) setServerStatus('offline');
         }
-      });
-      const sSections = (await Promise.all(sPromises)).filter(Boolean);
-      if (sSections.length > 0) {
-        setSeriesGenreSections(sSections);
       }
-      setLoadedAllSeries(true);
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setIsSeriesLoading(false);
     });
-  }, [activeTab, loadedAllSeries]);
+    return () => { cancelled = true; };
+  }, [activeTab, loadedAllSeries, serverStatus]);
 
   // Função centralizada para atualizar lista e métricas de downloads (ignorando itens recém-excluídos)
   const refreshDownloadsInfo = useCallback(async () => {
-    if (downloadsRequestInFlightRef.current || document.hidden) return;
+    if (serverStatus !== 'online' || downloadsRequestInFlightRef.current || document.hidden) return;
     downloadsRequestInFlightRef.current = true;
     try {
       const data = await getDownloadsData();
@@ -273,7 +292,35 @@ export function App() {
     } finally {
       downloadsRequestInFlightRef.current = false;
     }
-  }, []);
+  }, [serverStatus]);
+
+  const retryServerConnection = useCallback(async () => {
+    setServerStatus('checking');
+    const isOnline = await getServerStatus();
+    setServerStatus(isOnline ? 'online' : 'offline');
+    if (!isOnline) return false;
+
+    clearCatalogCache();
+    setLoadedAllMovies(false);
+    setLoadedAllSeries(false);
+    if (activeTab === 'home') {
+      await loadHomeCatalog();
+      syncFavoritesWithServer().then(favs => {
+        if (favs?.length) setFavorites(favs);
+      }).catch(() => {});
+    } else if (activeTab === 'movies') {
+      setIsMoviesLoading(true);
+      setLoadedAllMovies(false);
+    } else if (activeTab === 'series') {
+      setIsSeriesLoading(true);
+      setLoadedAllSeries(false);
+    } else if (activeTab === 'local') {
+      refreshLocalLibrary();
+    } else if (activeTab === 'downloads') {
+      refreshDownloadsInfo();
+    }
+    return true;
+  }, [activeTab, loadHomeCatalog, refreshLocalLibrary, refreshDownloadsInfo]);
 
   const activeDownloadsCount = useMemo(() => {
     return (downloads || []).filter(d => {
@@ -821,10 +868,15 @@ export function App() {
   }, []);
 
   // Ações de download (100% otimistas - resposta em 0ms na interface)
-  const handlePauseDownload = useCallback((item) => {
+  const handlePauseDownload = useCallback(async (item) => {
     const id = item.infoHash || item.id;
     if (!id) return;
     const normId = String(id).toLowerCase();
+    const previousState = {
+      isPaused: item.isPaused,
+      status: item.status,
+      downloadSpeed: item.downloadSpeed
+    };
 
     setDownloads(prev => prev.map(d => {
       if (String(d.infoHash || d.id || '').toLowerCase() === normId) {
@@ -832,16 +884,30 @@ export function App() {
       }
       return d;
     }));
+    const result = await pauseDownload(id);
+    if (!result || result.success === false) {
+      setDownloads(prev => prev.map(d => (
+        String(d.infoHash || d.id || '').toLowerCase() === normId
+          ? { ...d, ...previousState }
+          : d
+      )));
+      showToast(result?.error || 'Não foi possível pausar o download.');
+      return;
+    }
     showToast(`Download de "${item.title || 'Filme'}" pausado.`);
-
-    pauseDownload(id).then(() => refreshDownloadsInfo());
+    refreshDownloadsInfo();
   }, [refreshDownloadsInfo, showToast]);
 
-  const handleResumeDownload = useCallback((item) => {
+  const handleResumeDownload = useCallback(async (item) => {
     const id = item.infoHash || item.id;
     if (!id) return;
     const normId = String(id).toLowerCase();
     deletedDownloadIdsRef.current.delete(normId);
+    const previousState = {
+      isPaused: item.isPaused,
+      status: item.status,
+      downloadSpeed: item.downloadSpeed
+    };
 
     setDownloads(prev => prev.map(d => {
       if (String(d.infoHash || d.id || '').toLowerCase() === normId) {
@@ -849,9 +915,18 @@ export function App() {
       }
       return d;
     }));
+    const result = await resumeDownload(id);
+    if (!result || result.success === false) {
+      setDownloads(prev => prev.map(d => (
+        String(d.infoHash || d.id || '').toLowerCase() === normId
+          ? { ...d, ...previousState }
+          : d
+      )));
+      showToast(result?.error || 'Não foi possível retomar o download.');
+      return;
+    }
     showToast(`Download de "${item.title || 'Filme'}" retomado.`);
-
-    resumeDownload(id).then(() => refreshDownloadsInfo());
+    refreshDownloadsInfo();
   }, [refreshDownloadsInfo, showToast]);
 
   const findMatchingLocalMovie = useCallback((target) => {
@@ -1327,6 +1402,8 @@ export function App() {
             } else if ((isDone && colIndex === 1) || (!isDone && colIndex === 2)) {
               handleCancelDownload(dl, true);
             }
+          } else if (serverStatus !== 'online') {
+            retryServerConnection();
           }
           return;
         }
@@ -1371,6 +1448,8 @@ export function App() {
           } else {
             setSelectedMovie(mov);
           }
+        } else if ((activeTab === 'movies' || activeTab === 'series' || activeTab === 'home') && serverStatus !== 'online') {
+          retryServerConnection();
         }
         return;
       }
@@ -1383,9 +1462,9 @@ export function App() {
       }
 
       if (zone === 'search-results') {
-        if (searchInputRef.current && searchInputRef.current.selectResult) {
-          searchInputRef.current.selectResult(resultsColIndex);
-        }
+        const result = searchInputRef.current?.getResult?.(resultsColIndex);
+        if (result) searchInputRef.current?.selectResult?.(resultsColIndex);
+        else if (serverStatus !== 'online') retryServerConnection();
         return;
       }
     },
@@ -1448,6 +1527,7 @@ export function App() {
                 onInfoHero={() => setSelectedMovie(heroMovie)}
                 isLoading={isHomeLoading}
                 serverStatus={serverStatus}
+                onRetryConnection={retryServerConnection}
               />
             </motion.div>
           )}
@@ -1468,6 +1548,9 @@ export function App() {
                 colIndex={nav.colIndex}
                 onSelectMovie={setSelectedMovie}
                 onContextMenuMovie={handleOpenQuickMenuForMovie}
+                serverStatus={serverStatus}
+                isLoading={isMoviesLoading}
+                onRetryConnection={retryServerConnection}
               />
             </motion.div>
           )}
@@ -1488,6 +1571,9 @@ export function App() {
                 colIndex={nav.colIndex}
                 onSelectSeries={setSelectedMovie}
                 onContextMenuMovie={handleOpenQuickMenuForMovie}
+                serverStatus={serverStatus}
+                isLoading={isSeriesLoading}
+                onRetryConnection={retryServerConnection}
               />
             </motion.div>
           )}
@@ -1564,6 +1650,8 @@ export function App() {
                 activeZone={nav.activeZone}
                 focusedIndex={nav.rowIndex}
                 actionIndex={nav.colIndex}
+                serverStatus={serverStatus}
+                onRetryConnection={retryServerConnection}
                 onPlayDownload={handlePlayMovieDirect}
                 onPauseDownload={handlePauseDownload}
                 onResumeDownload={handleResumeDownload}
@@ -1589,6 +1677,8 @@ export function App() {
                 resultsColIndex={nav.resultsColIndex}
                 onSelectMovie={setSelectedMovie}
                 searchActionRef={searchInputRef}
+                serverStatus={serverStatus}
+                onRetryConnection={retryServerConnection}
               />
             </motion.div>
           )}

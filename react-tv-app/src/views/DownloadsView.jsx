@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ServerStatusPanel } from '../components/StatusStatePanel';
 
 export function DownloadsView({
   downloads = [],
@@ -7,6 +8,8 @@ export function DownloadsView({
   activeZone = 'rows',
   focusedIndex = 0,
   actionIndex = 0,
+  serverStatus = 'checking',
+  onRetryConnection,
   onPlayDownload,
   onPauseDownload,
   onResumeDownload,
@@ -81,7 +84,7 @@ export function DownloadsView({
       )}
 
       {/* Grid de Métricas do Servidor e Disco */}
-      <div className="tv-downloads-stats-grid">
+      {serverStatus === 'online' && <div className="tv-downloads-stats-grid">
         {/* Card 1: Velocidade Agregada */}
         <div className="tv-downloads-stat-card">
           <div className="tv-downloads-stat-icon-wrapper" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' }}>
@@ -148,10 +151,19 @@ export function DownloadsView({
             </span>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Lista de Downloads ou Estado Vazio */}
       {downloads.length === 0 ? (
+        serverStatus !== 'online' ? (
+          <ServerStatusPanel
+            status={serverStatus}
+            title="Downloads indisponíveis"
+            message="Os downloads ficam salvos no computador. Conecte-se ao servidor para ver a fila e o histórico."
+            onRetry={onRetryConnection}
+            isFocused={isListFocused && focusedIndex === 0}
+          />
+        ) : (
         <div className="tv-empty-container tv-downloads-empty-box">
           <div className="tv-downloads-empty-icon">
             <span className="material-icons" style={{ fontSize: '56px', color: 'var(--text-subtle)' }}>cloud_download</span>
@@ -165,6 +177,7 @@ export function DownloadsView({
             <span>Pasta de destino configurada: {storage?.savePath || 'D:\\Filmes'}</span>
           </div>
         </div>
+        )
       ) : (
         <div className="tv-downloads-list">
           {downloads.map((item, idx) => {

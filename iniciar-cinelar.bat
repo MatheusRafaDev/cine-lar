@@ -10,7 +10,14 @@ echo.
 where node >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERRO] Node.js nao foi detectado no PATH do sistema.
-    echo Por favor, instale o Node.js v18+ para continuar.
+    echo Por favor, instale o Node.js v22.13.0+ para continuar.
+    pause
+    exit /b 1
+)
+
+node -e "const [major, minor] = process.versions.node.split('.').map(Number); if (major < 22 || (major === 22 && minor < 13)) process.exit(1)"
+if %errorlevel% neq 0 (
+    echo [ERRO] Este backend requer Node.js v22.13.0 ou superior por causa do node:sqlite.
     pause
     exit /b 1
 )

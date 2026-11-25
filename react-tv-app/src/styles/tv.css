@@ -555,6 +555,9 @@ button {
 
 .tv-home-feedback strong { color: var(--text-main); font-size: 21px; }
 .tv-home-feedback.offline .material-icons { font-size: 42px; color: #f87171; }
+.tv-server-state-panel .tv-server-state-icon-checking { animation: tvSpin 1s linear infinite; }
+.tv-server-state-button { margin-top: 8px; min-width: 190px; }
+.tv-home-feedback:not(.offline) > .material-icons { font-size: 38px; color: var(--text-subtle); }
 
 .tv-home-spinner {
   width: 42px;

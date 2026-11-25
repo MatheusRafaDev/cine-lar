@@ -4,6 +4,9 @@
   "description": "Companion service for Cinelar TV: Movie discovery and Torrent downloader",
   "type": "module",
   "main": "server.js",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "start": "node server.js"
   },

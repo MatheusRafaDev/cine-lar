@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import zlib from 'zlib';
+import { timingSafeEqual } from 'crypto';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import WebTorrent from 'webtorrent';
@@ -115,43 +116,156 @@ function isAllowedMediaPath(targetPath) {
     return false;
 }
 
-function isTrustedMutationRequest(req) {
-    if (MUTATION_API_TOKEN) {
-        const headerToken = (req.headers['x-api-token'] || '').trim();
-        const authHeader = (req.headers.authorization || '').trim();
-        const bearerToken = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : '';
-        if (headerToken !== MUTATION_API_TOKEN && bearerToken !== MUTATION_API_TOKEN) {
-            return false;
-        }
+function requireConfiguredMutationToken(req, res) {
+    if (!MUTATION_API_TOKEN) {
+        res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+            error: 'As operações de escrita estão desativadas: configure MUTATION_API_TOKEN no arquivo .env do servidor.',
+            code: 'MUTATION_AUTH_NOT_CONFIGURED'
+        }));
+        return true;
     }
 
-    const origin = req.headers.origin;
-    // Aplicativos Tizen instalados normalmente enviam Origin "null" ou não enviam Origin.
-    if (!origin || origin === 'null') return true;
+    const headerToken = typeof req.headers['x-api-token'] === 'string' ? req.headers['x-api-token'].trim() : '';
+    const authHeader = typeof req.headers.authorization === 'string' ? req.headers.authorization.trim() : '';
+    const bearerToken = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : '';
+    const expected = Buffer.from(MUTATION_API_TOKEN, 'utf8');
+    const matches = [headerToken, bearerToken].some(token => {
+        const supplied = Buffer.from(token, 'utf8');
+        return supplied.length === expected.length && timingSafeEqual(supplied, expected);
+    });
 
-    try {
-        const originUrl = new URL(origin);
-        const requestUrl = new URL(`http://${req.headers.host || `localhost:${PORT}`}`);
-        if (originUrl.hostname === requestUrl.hostname) return true;
-        if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1' || originUrl.hostname.startsWith('192.168.') || originUrl.hostname.startsWith('10.')) {
-            return true;
-        }
-
-        const configuredOrigins = (process.env.ALLOWED_MUTATION_ORIGINS || '')
-            .split(',')
-            .map(value => value.trim())
-            .filter(Boolean);
-        return configuredOrigins.includes(origin);
-    } catch (_) {
-        return false;
-    }
+    if (matches) return false;
+    res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ error: 'Token de acesso inválido ou ausente', code: 'INVALID_API_TOKEN' }));
+    return true;
 }
 
-function rejectUntrustedMutation(req, res) {
-    if (isTrustedMutationRequest(req)) return false;
-    res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Origem não autorizada para alterar a biblioteca' }));
+const MAX_JSON_BODY_BYTES = 1024 * 1024;
+const BODY_READ_FAILED = Symbol('body-read-failed');
+const CORS_METHODS = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE']);
+const CORS_HEADERS = new Set(['content-type', 'authorization', 'x-emby-token', 'x-api-token']);
+const ALLOWED_CORS_ORIGINS = new Set(
+    [process.env.ALLOWED_ORIGINS || '', process.env.ALLOWED_MUTATION_ORIGINS || '']
+        .flatMap(value => value.split(','))
+        .map(value => value.trim())
+        .filter(Boolean)
+);
+
+function applyCorsHeaders(req, res) {
+    const origin = req.headers.origin;
+    if (typeof origin !== 'string' || !origin) return true;
+
+    res.setHeader('Vary', 'Origin');
+    if (!ALLOWED_CORS_ORIGINS.has(origin)) return false;
+
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', [...CORS_METHODS, 'OPTIONS'].join(', '));
+    res.setHeader('Access-Control-Allow-Headers', [...CORS_HEADERS].join(', '));
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration');
     return true;
+}
+
+function handleCorsPreflight(req, res, originAllowed) {
+    if (req.method !== 'OPTIONS') return false;
+
+    const requestedMethod = (req.headers['access-control-request-method'] || '').toUpperCase();
+    const requestedHeaders = (req.headers['access-control-request-headers'] || '')
+        .split(',')
+        .map(header => header.trim().toLowerCase())
+        .filter(Boolean);
+
+    if (!originAllowed) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Origem não autorizada pelo CORS', code: 'CORS_ORIGIN_NOT_ALLOWED' }));
+    } else if (requestedMethod && !CORS_METHODS.has(requestedMethod)) {
+        res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Método não permitido pelo CORS', code: 'CORS_METHOD_NOT_ALLOWED' }));
+    } else if (requestedHeaders.some(header => !CORS_HEADERS.has(header))) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Cabeçalho não permitido pelo CORS', code: 'CORS_HEADER_NOT_ALLOWED' }));
+    } else {
+        res.writeHead(204);
+        res.end();
+    }
+
+    return true;
+}
+
+function sendRequestBodyError(res, statusCode, message, code) {
+    if (res.destroyed || res.writableEnded || res.headersSent) return;
+    res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ error: message, code }));
+}
+
+function readJsonBody(req, res, maxBytes = MAX_JSON_BODY_BYTES) {
+    return new Promise(resolve => {
+        let receivedBytes = 0;
+        let settled = false;
+        const chunks = [];
+
+        const removeBodyListeners = () => {
+            req.off('data', onData);
+            req.off('end', onEnd);
+        };
+
+        const fail = (statusCode, message, code, drainRequest = false) => {
+            if (settled) return;
+            settled = true;
+            chunks.length = 0;
+            removeBodyListeners();
+            sendRequestBodyError(res, statusCode, message, code);
+            resolve(BODY_READ_FAILED);
+            if (drainRequest) req.resume();
+        };
+
+        const onData = chunk => {
+            receivedBytes += chunk.length;
+            if (receivedBytes > maxBytes) {
+                fail(413, 'O corpo da requisição excede o limite permitido de 1 MiB.', 'BODY_TOO_LARGE', true);
+                return;
+            }
+            chunks.push(chunk);
+        };
+
+        const onEnd = () => {
+            if (settled) return;
+            settled = true;
+            removeBodyListeners();
+            req.off('aborted', onAborted);
+            req.off('error', onError);
+
+            const rawBody = Buffer.concat(chunks).toString('utf8');
+            if (!rawBody.trim()) {
+                resolve({});
+                return;
+            }
+
+            try {
+                resolve(JSON.parse(rawBody));
+            } catch (_) {
+                sendRequestBodyError(res, 400, 'O corpo da requisição precisa conter JSON válido.', 'INVALID_JSON');
+                resolve(BODY_READ_FAILED);
+            }
+        };
+
+        const onAborted = () => fail(400, 'A requisição foi interrompida antes do fim do corpo.', 'REQUEST_BODY_ABORTED');
+        const onError = () => fail(400, 'Não foi possível ler o corpo da requisição.', 'INVALID_REQUEST_BODY');
+
+        req.on('data', onData);
+        req.once('end', onEnd);
+        req.once('aborted', onAborted);
+        req.once('error', onError);
+        req.once('close', () => {
+            req.off('aborted', onAborted);
+            req.off('error', onError);
+        });
+
+        const contentLength = Number(req.headers['content-length']);
+        if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+            fail(413, 'O corpo da requisição excede o limite permitido de 1 MiB.', 'BODY_TOO_LARGE', true);
+        }
+    });
 }
 
 // Initialize SQLite database
@@ -727,20 +841,16 @@ async function markLocalMoviesInList(movieList) {
 
 // Create HTTP server
 const server = http.createServer(async (req, res) => {
-    // Enable CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS, HEAD');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Emby-Token, X-Api-Token');
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration');
-
-    if (req.method === 'OPTIONS') {
-        res.writeHead(204);
-        res.end();
-        return;
-    }
+    const originAllowed = applyCorsHeaders(req, res);
+    if (handleCorsPreflight(req, res, originAllowed)) return;
 
     const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost:8085'}`);
     const pathname = urlObj.pathname;
+
+    // Protege toda a API de escrita em um único ponto, incluindo novas rotas.
+    if (pathname.startsWith('/api/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (requireConfiguredMutationToken(req, res)) return;
+    }
 
     try {
         // Download Cinelar.wgt (ou MatheusFlix.wgt) for Smart TV
@@ -756,8 +866,7 @@ const server = http.createServer(async (req, res) => {
                 res.writeHead(200, {
                     'Content-Type': 'application/vnd.tizen.wgt',
                     'Content-Length': stat.size,
-                    'Content-Disposition': 'attachment; filename="Cinelar.wgt"',
-                    'Access-Control-Allow-Origin': '*'
+                    'Content-Disposition': 'attachment; filename="Cinelar.wgt"'
                 });
                 if (req.method === 'HEAD') {
                     res.end();
@@ -823,7 +932,6 @@ const server = http.createServer(async (req, res) => {
                 res.writeHead(200, {
                     'Content-Type': 'text/vtt; charset=utf-8',
                     'Content-Length': vttBuffer.length,
-                    'Access-Control-Allow-Origin': '*',
                     'Cache-Control': 'public, max-age=86400'
                 });
                 if (req.method === 'HEAD') {
@@ -871,12 +979,10 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (pathname === '/api/settings/save-path' && req.method === 'POST') {
-            if (rejectUntrustedMutation(req, res)) return;
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            readJsonBody(req, res).then(body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = JSON.parse(body);
+                    const data = body;
                     let newPath = (data.savePath || '').trim();
                     if (!newPath) {
                         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -924,11 +1030,10 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (pathname === '/api/user/favorites/toggle' && req.method === 'POST') {
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            readJsonBody(req, res).then(body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = JSON.parse(body);
+                    const data = body;
                     const { userId = 'default', movie } = data;
                     const result = toggleUserFavorite(userId, movie);
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -964,11 +1069,10 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (pathname === '/api/user/progress' && req.method === 'POST') {
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            readJsonBody(req, res).then(body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = JSON.parse(body);
+                    const data = body;
                     const { userId = 'default', movieId, title, poster, position, duration } = data;
                     updateWatchProgress(userId, movieId, title, poster, position, duration);
                     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -996,11 +1100,10 @@ const server = http.createServer(async (req, res) => {
 
         // Login direto de perfis no backend sem senhas
         if (pathname === '/api/user/profiles/login' && req.method === 'POST') {
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', async () => {
+            readJsonBody(req, res).then(async body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = JSON.parse(body);
+                    const data = body;
                     const name = (data.name || '').trim();
                     const profiles = getUserProfiles();
                     let profile = profiles.find(p => p.name.toLowerCase() === name.toLowerCase());
@@ -1025,11 +1128,10 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (pathname === '/api/user/profiles/create' && req.method === 'POST') {
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', async () => {
+            readJsonBody(req, res).then(async body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = JSON.parse(body);
+                    const data = body;
                     const name = (data.name || '').trim();
                     if (!name) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1083,15 +1185,9 @@ const server = http.createServer(async (req, res) => {
             };
 
             if (req.method === 'POST') {
-                let body = '';
-                req.on('data', chunk => body += chunk);
-                req.on('end', () => {
-                    try {
-                        const parsed = JSON.parse(body || '{}');
-                        handleAi(parsed.prompt || parsed.q || query);
-                    } catch (e) {
-                        handleAi(query);
-                    }
+                readJsonBody(req, res).then(body => {
+                    if (body === BODY_READ_FAILED) return;
+                    handleAi(body?.prompt || body?.q || query);
                 });
             } else {
                 handleAi(query);
@@ -1314,11 +1410,10 @@ const server = http.createServer(async (req, res) => {
 
         // Iniciar Download de Temporada Completa em Pasta Organizada da Série
         if (pathname === '/api/series/download-season' && req.method === 'POST') {
-            let body = '';
-            req.on('data', chunk => { body += chunk; });
-            req.on('end', async () => {
+            readJsonBody(req, res).then(async body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = JSON.parse(body);
+                    const data = body;
                     const { imdbId, seriesName, season, magnet, quality, episodes, destination } = data;
                     const sNum = parseInt(season, 10) || 1;
                     const cleanSeries = (seriesName || 'Série').replace(/[\\/:*?"<>|]/g, '').trim();
@@ -1433,11 +1528,10 @@ const server = http.createServer(async (req, res) => {
 
         // Iniciar Download de Todas as Temporadas ou Todos os Episódios da Série
         if (pathname === '/api/series/download-all' && req.method === 'POST') {
-            let body = '';
-            req.on('data', chunk => { body += chunk; });
-            req.on('end', async () => {
+            readJsonBody(req, res).then(async body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = JSON.parse(body);
+                    const data = body;
                     const { imdbId, seriesName, preferredQuality, seasons, destination } = data;
                     if (!imdbId) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -2081,12 +2175,10 @@ const server = http.createServer(async (req, res) => {
 
         // Delete local movie file from disk (ultra-responsivo: remove do cache em O(1) e libera torrents que travem o arquivo)
         if (pathname === '/api/local/file' && req.method === 'DELETE') {
-            if (rejectUntrustedMutation(req, res)) return;
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            readJsonBody(req, res).then(body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = body ? JSON.parse(body) : {};
+                    const data = body;
                     const filePath = data.path || urlObj.searchParams.get('path');
                     if (!filePath) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -2142,12 +2234,10 @@ const server = http.createServer(async (req, res) => {
 
         // Rename local movie / video file
         if (pathname === '/api/local/rename' && req.method === 'POST') {
-            if (rejectUntrustedMutation(req, res)) return;
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            readJsonBody(req, res).then(body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = body ? JSON.parse(body) : {};
+                    const data = body;
                     const { filePath, newTitle } = data;
                     if (!filePath || !newTitle) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -2608,9 +2698,7 @@ const server = http.createServer(async (req, res) => {
                         res.writeHead(200, {
                             'Content-Type': 'video/mp4',
                             'Accept-Ranges': 'none',
-                            'X-Media-Duration': String(mediaDur),
-                            'Access-Control-Allow-Origin': '*',
-                            'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
+                            'X-Media-Duration': String(mediaDur)
                         });
                         res.end();
                         return;
@@ -2664,9 +2752,7 @@ const server = http.createServer(async (req, res) => {
                         'Content-Type': 'video/mp4',
                         'Accept-Ranges': 'none',
                         'Cache-Control': 'no-cache, no-store',
-                        'X-Media-Duration': String(mediaDur),
-                        'Access-Control-Allow-Origin': '*',
-                        'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, X-Media-Duration'
+                        'X-Media-Duration': String(mediaDur)
                     });
 
                     const ffmpegProc = spawn(RESOLVED_FFMPEG, args, { stdio: [ffmpegUsePipe ? 'pipe' : 'ignore', 'pipe', 'ignore'] });
@@ -2842,12 +2928,10 @@ const server = http.createServer(async (req, res) => {
 
         // Start a download
         if (pathname === '/api/downloads/start' && req.method === 'POST') {
-            if (rejectUntrustedMutation(req, res)) return;
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', async () => {
+            readJsonBody(req, res).then(async body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = JSON.parse(body);
+                    const data = body;
                     const { magnet, imdbId, title, quality, filename, isSeries, seriesName, season, episode, overview, year } = data;
                     let poster = data.poster || '';
                     let backdrop = data.backdrop || poster;
@@ -2979,7 +3063,6 @@ const server = http.createServer(async (req, res) => {
 
         // Pause download
         if (pathname.startsWith('/api/downloads/') && pathname.endsWith('/pause') && req.method === 'POST') {
-            if (rejectUntrustedMutation(req, res)) return;
             const id = pathname.replace('/api/downloads/', '').replace('/pause', '').trim().toLowerCase();
             const torrent = getActiveTorrent(id);
             if (torrent) {
@@ -3002,7 +3085,6 @@ const server = http.createServer(async (req, res) => {
 
         // Resume download
         if (pathname.startsWith('/api/downloads/') && pathname.endsWith('/resume') && req.method === 'POST') {
-            if (rejectUntrustedMutation(req, res)) return;
             const id = pathname.replace('/api/downloads/', '').replace('/resume', '').trim().toLowerCase();
             let torrent = getActiveTorrent(id);
             const meta = downloadsRegistry.get(id);
@@ -3043,7 +3125,6 @@ const server = http.createServer(async (req, res) => {
 
         // Cancel / delete download (ultra-responsivo: remove do registro e responde em <1ms, limpando disco em background)
         if (pathname.startsWith('/api/downloads/') && req.method === 'DELETE') {
-            if (rejectUntrustedMutation(req, res)) return;
             const rawId = decodeURIComponent(pathname.replace('/api/downloads/', '')).trim();
             const id = rawId.toLowerCase();
             let targetKey = id;
@@ -3122,12 +3203,10 @@ const server = http.createServer(async (req, res) => {
 
         // Rename download title
         if (pathname === '/api/downloads/rename' && req.method === 'POST') {
-            if (rejectUntrustedMutation(req, res)) return;
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            readJsonBody(req, res).then(body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = body ? JSON.parse(body) : {};
+                    const data = body;
                     const { id, newTitle } = data;
                     if (!id || !newTitle) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -3162,12 +3241,10 @@ const server = http.createServer(async (req, res) => {
 
         // Launch in qBittorrent directly
         if (pathname === '/api/qbittorrent/open' && req.method === 'POST') {
-            if (rejectUntrustedMutation(req, res)) return;
-            let body = '';
-            req.on('data', chunk => body += chunk);
-            req.on('end', () => {
+            readJsonBody(req, res).then(body => {
+                if (body === BODY_READ_FAILED) return;
                 try {
-                    const data = JSON.parse(body);
+                    const data = body;
                     const magnet = typeof data.magnet === 'string' ? data.magnet.trim() : '';
                     if (!magnet || !/^magnet:\?xt=urn:btih:/i.test(magnet)) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -3231,8 +3308,7 @@ const server = http.createServer(async (req, res) => {
                     const contentType = mimeTypes[ext] || 'application/octet-stream';
 
                     const headers = {
-                        'Content-Type': contentType,
-                        'Access-Control-Allow-Origin': '*'
+                        'Content-Type': contentType
                     };
 
                     if (pathname.startsWith('/assets/')) {
