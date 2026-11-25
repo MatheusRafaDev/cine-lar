@@ -946,18 +946,19 @@ export function App() {
     }) || null;
   }, [localMovies]);
 
-  const handleCancelDownload = useCallback((item, deleteFiles = true) => {
+  const handleCancelDownload = useCallback(async (item, deleteFiles = true) => {
     if (!item) return;
     const matchedLocal = findMatchingLocalMovie(item);
     const localPath = item.filePath || item.videoPath || matchedLocal?.filePath || matchedLocal?.videoPath || '';
     const id = item.infoHash || item.id;
     if (!id && !localPath) return;
+    const normId = id ? String(id).toLowerCase() : '';
+    const removedIndex = id
+      ? downloads.findIndex(d => String(d.infoHash || d.id || '').toLowerCase() === normId)
+      : -1;
 
     if (id) {
-      const normId = String(id).toLowerCase();
       deletedDownloadIdsRef.current.add(normId);
-
-      // 1. Remove instantaneamente da lista de downloads na tela (0ms)
       setDownloads(prev => {
         const next = prev.filter(d => String(d.infoHash || d.id || '').toLowerCase() !== normId);
         if (activeTab === 'downloads') {
@@ -968,70 +969,60 @@ export function App() {
       });
     }
 
-    // 2. Remove também da biblioteca local e histórico se existir
+    showToast(deleteFiles ? 'Removendo download e arquivo…' : 'Removendo download da fila…');
+    const result = id
+      ? await deleteDownload(id, deleteFiles)
+      : await deleteLocalFile(localPath);
+
+    if (!result || result.success === false) {
+      if (id) {
+        deletedDownloadIdsRef.current.delete(normId);
+        setDownloads(prev => {
+          if (prev.some(d => String(d.infoHash || d.id || '').toLowerCase() === normId)) return prev;
+          const next = [...prev];
+          const insertAt = Math.max(0, Math.min(removedIndex, next.length));
+          next.splice(insertAt, 0, item);
+          return next;
+        });
+        if (activeTab === 'downloads') {
+          nav.setRowIndex?.(Math.max(0, removedIndex));
+          nav.setColIndex?.(0);
+        }
+      }
+      showToast(result?.error || 'Não foi possível remover o download.');
+      return;
+    }
+
     if (deleteFiles) {
       removeLocalMovieFromState(matchedLocal || item);
       clearWatchProgress(item);
       refreshUserData();
     }
 
-    showToast(`Download de "${item.title || 'Filme'}" cancelado e excluído do PC.`);
+    showToast(deleteFiles
+      ? `Download de "${item.title || 'Filme'}" cancelado e excluído do PC.`
+      : `Download de "${item.title || 'Filme'}" removido da fila.`);
 
-    // 3. Executa exclusão física no backend em background sem travar a UI
-    if (localPath && deleteFiles) {
-      deleteLocalFile(localPath).catch(() => {});
-    }
     if (id) {
-      deleteDownload(id, deleteFiles).then(() => {
-        refreshDownloadsInfo();
-        if (deleteFiles) {
-          getLocalLibraryData().then(data => {
-            const isNotDeleted = (m) => {
-              const mp = String(m?.filePath || m?.videoPath || '').toLowerCase().trim();
-              return !mp || !deletedLocalPathsRef.current.has(mp);
-            };
-            const filteredMovies = (data.movies || []).filter(isNotDeleted);
-            const filteredFranchises = (data.franchises || [])
-              .map(f => ({ ...f, movies: (f.movies || []).filter(isNotDeleted) }))
-              .filter(f => f.movies.length > 0);
-            const filteredStandalone = (data.standaloneMovies || []).filter(isNotDeleted);
-            const filteredSeries = (data.series || [])
-              .map(s => ({ ...s, episodes: (s.episodes || []).filter(isNotDeleted) }))
-              .filter(s => s.episodes.length > 0);
-            setLocalLibrary({
-              ...data,
-              movies: filteredMovies,
-              franchises: filteredFranchises,
-              standaloneMovies: filteredStandalone,
-              series: filteredSeries,
-              count: filteredMovies.length
-            });
-            setLocalMovies(filteredMovies);
-          });
-        }
-      });
+      refreshDownloadsInfo();
+      if (deleteFiles) refreshLocalLibrary();
     }
-  }, [activeTab, findMatchingLocalMovie, refreshDownloadsInfo, showToast, removeLocalMovieFromState, refreshUserData]);
+  }, [activeTab, downloads, findMatchingLocalMovie, refreshDownloadsInfo, refreshLocalLibrary, showToast, removeLocalMovieFromState, refreshUserData]);
 
   // Exclusão ultra-responsiva de arquivo local (0ms na interface)
-  const executeDeleteLocalMovie = useCallback((target) => {
+  const executeDeleteLocalMovie = useCallback(async (target) => {
     if (!target) return;
+    const matchedLocal = findMatchingLocalMovie(target);
+    const fPath = target.filePath || target.videoPath || matchedLocal?.filePath || matchedLocal?.videoPath || target.savePath || '';
+    if (!fPath) {
+      showToast('O caminho do arquivo n\u00e3o foi encontrado. Atualize a biblioteca e tente novamente.');
+      return;
+    }
+
     setConfirmDeleteMode(false);
     setQuickMenuMovie(null);
     setSelectedMovie(null);
-
-    const matchedLocal = findMatchingLocalMovie(target);
-    const fPath = target.filePath || target.videoPath || matchedLocal?.filePath || matchedLocal?.videoPath || target.savePath || '';
     const displayTitle = target.title || target.cleanName || matchedLocal?.title || 'Arquivo';
-
-    // 1. Atualização otimista instantânea (remove o card na mesma hora)
-    removeLocalMovieFromState(matchedLocal ? { ...target, filePath: fPath } : target);
-    clearWatchProgress(target);
-    refreshUserData();
-    if (activeTab === 'local') {
-      nav.setColIndex?.(c => Math.max(0, c - 1));
-    }
-
     const tImdb = String(target.imdbId || target.id || '').toLowerCase().trim();
     const tTitle = String(target.title || target.cleanName || target.name || '').toLowerCase().trim();
     const matchedDl = downloads.find(d => {
@@ -1042,50 +1033,51 @@ export function App() {
       return false;
     });
     const dlId = matchedDl?.infoHash || matchedDl?.id || target.infoHash || (target.id && /^[a-f0-9]{40}$/i.test(String(target.id)) ? target.id : null);
+    const normalizedPath = String(fPath).toLowerCase().trim();
+    const normalizedDlId = dlId ? String(dlId).toLowerCase() : '';
+    const removedDownloadIndex = dlId
+      ? downloads.findIndex(d => String(d.infoHash || d.id || '').toLowerCase() === normalizedDlId)
+      : -1;
 
+    removeLocalMovieFromState(matchedLocal ? { ...target, filePath: fPath } : target);
+    if (activeTab === 'local') nav.setColIndex?.(c => Math.max(0, c - 1));
     if (dlId) {
-      const normDlId = String(dlId).toLowerCase();
-      deletedDownloadIdsRef.current.add(normDlId);
-      setDownloads(prev => prev.filter(d => String(d.infoHash || d.id || '').toLowerCase() !== normDlId));
+      deletedDownloadIdsRef.current.add(normalizedDlId);
+      setDownloads(prev => prev.filter(d => String(d.infoHash || d.id || '').toLowerCase() !== normalizedDlId));
     }
 
-    showToast(`"${displayTitle}" excluído do computador!`);
+    showToast('Excluindo "' + displayTitle + '"...');
+    const result = dlId
+      ? await deleteDownload(dlId, true)
+      : await deleteLocalFile(fPath);
 
-    // 2. Dispara remoção física em background no servidor
-    if (fPath) {
-      deleteLocalFile(fPath).then((res) => {
-        if (res && res.success === false) {
-          showToast(res.error || 'Aviso ao excluir arquivo no disco');
-        }
-        getLocalLibraryData().then(data => {
-          const isNotDeleted = (m) => {
-            const mp = String(m?.filePath || m?.videoPath || '').toLowerCase().trim();
-            return !mp || !deletedLocalPathsRef.current.has(mp);
-          };
-          const filteredMovies = (data.movies || []).filter(isNotDeleted);
-          const filteredFranchises = (data.franchises || [])
-            .map(f => ({ ...f, movies: (f.movies || []).filter(isNotDeleted) }))
-            .filter(f => f.movies.length > 0);
-          const filteredStandalone = (data.standaloneMovies || []).filter(isNotDeleted);
-          const filteredSeries = (data.series || [])
-            .map(s => ({ ...s, episodes: (s.episodes || []).filter(isNotDeleted) }))
-            .filter(s => s.episodes.length > 0);
-          setLocalLibrary({
-            ...data,
-            movies: filteredMovies,
-            franchises: filteredFranchises,
-            standaloneMovies: filteredStandalone,
-            series: filteredSeries,
-            count: filteredMovies.length
+    if (!result || result.success === false) {
+      deletedLocalPathsRef.current.delete(normalizedPath);
+      if (dlId) {
+        deletedDownloadIdsRef.current.delete(normalizedDlId);
+        const isTorrentHash = /^[a-f0-9]{40}$/i.test(String(target.id || ''));
+        const downloadToRestore = matchedDl || (target.infoHash || isTorrentHash ? target : null);
+        if (downloadToRestore) {
+          setDownloads(prev => {
+            if (prev.some(d => String(d.infoHash || d.id || '').toLowerCase() === normalizedDlId)) return prev;
+            const next = [...prev];
+            const insertAt = Math.max(0, Math.min(removedDownloadIndex, next.length));
+            next.splice(insertAt, 0, downloadToRestore);
+            return next;
           });
-          setLocalMovies(filteredMovies);
-        });
-      }).catch(() => {});
+        }
+      }
+      refreshLocalLibrary();
+      showToast(result?.error || 'N\u00e3o foi poss\u00edvel excluir o arquivo.');
+      return;
     }
-    if (dlId) {
-      deleteDownload(dlId, true).then(() => refreshDownloadsInfo()).catch(() => {});
-    }
-  }, [activeTab, downloads, findMatchingLocalMovie, removeLocalMovieFromState, refreshUserData, showToast, refreshDownloadsInfo]);
+
+    clearWatchProgress(target);
+    refreshUserData();
+    showToast('"' + displayTitle + '" exclu\u00eddo do computador!');
+    if (dlId) refreshDownloadsInfo();
+    refreshLocalLibrary();
+  }, [activeTab, downloads, findMatchingLocalMovie, removeLocalMovieFromState, refreshUserData, showToast, refreshDownloadsInfo, refreshLocalLibrary]);
 
   const handleConfirmDelete = useCallback(() => {
     if (!quickMenuMovie) return;
@@ -1196,7 +1188,8 @@ export function App() {
         break;
 
       case 'delete_local':
-        executeDeleteLocalMovie(target);
+        setConfirmDeleteMode(true);
+        nav.setQuickMenuIndex?.(0);
         break;
 
       case 'confirm_delete':
