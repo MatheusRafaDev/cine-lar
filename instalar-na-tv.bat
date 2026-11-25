@@ -5,22 +5,18 @@ echo =======================================================
 echo          CINE LAR TV - INSTALADOR PARA SMART TV
 echo =======================================================
 echo.
-echo Pacote gerado:
-echo [Arquivo] %~dp0Cinelar-signed.wgt
-echo [Servidor Web e API] http://192.168.15.9:8085
-echo [Download direto na rede] http://192.168.15.9:8085/download/Cinelar.wgt
+echo Pacote: %~dp0Cinelar-signed.wgt
+echo Servidor: http://IP_DO_COMPUTADOR:8085
 echo.
-echo =======================================================
-echo ESCOLHA COMO DESEJA INSTALAR NA SUA TV:
-echo =======================================================
-echo.
-echo [1] Metodo Oficial Samsung (Tizen Studio / SDB via Developer Mode)
-echo [2] Metodo Mais Rapido: Navegador Web da TV (Sem instalar nada)
-echo [3] Testar conexao com a Smart TV (IP: 192.168.15.5)
-echo [4] Abrir pasta do pacote Cinelar-signed.wgt
+echo A opcao 1 compila, assina e envia o pacote.
+echo Escolha uma opcao:
+echo [1] Compilar, instalar e abrir em Samsung Tizen
+echo [2] Ver instrucoes para abrir pelo navegador da TV
+echo [3] Testar conexao com a Smart TV
+echo [4] Abrir pasta do pacote WGT
 echo [5] Sair
 echo.
-set /p opcao="Digite a opcao desejada (1-5): "
+set /p opcao="Digite a opcao (1-5): "
 
 if "%opcao%"=="1" goto tizen_install
 if "%opcao%"=="2" goto browser_method
@@ -32,32 +28,15 @@ goto fim
 :tizen_install
 cls
 echo =======================================================
-echo PASSO A PASSO: INSTALACAO VIA TIZEN / MODO DESENVOLVEDOR
+echo INSTALACAO NATIVA PARA SAMSUNG TIZEN
 echo =======================================================
 echo.
-echo 1. Na sua Smart TV Samsung, abra o aplicativo APPS.
-echo 2. No controle remoto, digite a sequencia: 1 2 3 4 5
-echo 3. A janela "Developer Mode" vai abrir:
-echo    - Mude para "ON" (Ligado).
-echo    - No campo "Host PC IP", digite o IP deste computador.
-echo 4. Reinicie a Smart TV (segure o botao Power do controle por 5s
-echo    ate o logo da Samsung reaparecer).
+echo Ative o Developer Mode na TV e informe o IP exibido no menu de Rede.
+echo O endereco pode incluir uma porta, por exemplo: 192.168.15.5:26101
 echo.
-echo 5. No computador:
-where sdb >nul 2>&1
-if %errorlevel% equ 0 (
-    echo SDB detectado! Conectando na TV...
-    sdb connect 192.168.15.5
-    echo Instalando Cinelar-signed.wgt...
-    if exist "%~dp0Cinelar-signed.wgt" (
-        tizen install -n "%~dp0Cinelar-signed.wgt"
-    ) else (
-        echo [AVISO] Execute build-tv.ps1 primeiro para gerar Cinelar-signed.wgt
-    )
-) else (
-    echo [AVISO] O comando SDB/Tizen Studio nao esta instalado no Windows PATH.
-    echo Voce pode executar .\build-tv.ps1 no PowerShell para compilar e instalar automaticamente!
-)
+set /p tv_ip="IP da TV: "
+if "%tv_ip%"=="" goto fim
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-tv.ps1" -TvIp "%tv_ip%" -Deploy -Launch
 echo.
 pause
 goto fim
@@ -65,39 +44,34 @@ goto fim
 :browser_method
 cls
 echo =======================================================
-echo METODO RAPIDO: NAVEGADOR DA SMART TV (100%% FUNCIONAL)
+echo ABRIR PELO NAVEGADOR DA SMART TV
 echo =======================================================
 echo.
-echo 1. Na sua Smart TV, abra o aplicativo "Internet" (Navegador).
-echo 2. Digite na barra de enderecos:
-echo.
-echo    http://192.168.15.9:8085
-echo.
-echo 3. O Cine Lar carregara imediatamente com:
-echo    - Layout TV completo (10-foot UI adaptada para controle remoto).
-echo    - Player cinematografico com retomada automatica.
-echo    - Suporte a nuvem Google Drive e torrents sob demanda.
-echo.
-echo 4. DICA DE OURO: No menu de opcoes do navegador da TV (tres pontinhos),
-echo    clique em "Adicionar a Tela Inicial" ou "Fixar na barra de apps".
-echo    Um icone do Cine Lar sera criado direto na barra principal da TV!
+echo 1. No computador, execute iniciar-cinelar.bat e localize o IP da rede.
+echo 2. Abra o navegador da TV e acesse http://IP_DO_COMPUTADOR:8085
+echo 3. Navegue com as setas e o botao OK do controle remoto.
+echo 4. Se o navegador oferecer, fixe o atalho do Cinelar na tela inicial.
 echo.
 pause
 goto fim
 
 :ping_tv
 cls
-echo =======================================================
-echo TESTANDO CONEXAO COM A SMART TV (192.168.15.5)...
-echo =======================================================
-echo.
-ping 192.168.15.5 -n 4
+echo Informe o IP da TV (sem a porta):
+set /p tv_ip="IP da TV: "
+if "%tv_ip%"=="" goto fim
+ping %tv_ip% -n 4
 echo.
 pause
 goto fim
 
 :open_folder
-explorer.exe /select,"%~dp0Cinelar-signed.wgt"
+if exist "%~dp0Cinelar-signed.wgt" (
+    explorer.exe /select,"%~dp0Cinelar-signed.wgt"
+) else (
+    echo Pacote nao encontrado. Execute build-tv.ps1 primeiro.
+    pause
+)
 goto fim
 
 :fim
