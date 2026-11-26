@@ -1400,7 +1400,8 @@ export function App() {
   // 4. Integração do Hook Espacial Ultra-Rápido
   const nav = useSpatialNav({
     isPlayerOpen: Boolean(activeStream),
-    isModalOpen: Boolean(selectedMovie || activeSeeMoreSection),
+    isModalOpen: Boolean(selectedMovie),
+    isSeeMoreOpen: Boolean(activeSeeMoreSection),
     modalActionRef,
     modalStreamBaseIndex,
     isQuickMenuOpen: Boolean(quickMenuMovie),
@@ -1468,16 +1469,12 @@ export function App() {
         setExitPromptOpen(false);
         return true;
       }
-      // Se o foco está no catálogo / conteúdo (zone !== 'header'):
-      // Retorna false para permitir que o useSpatialNav suba o foco diretamente para o header!
-      if (context.zone && context.zone !== 'header') {
+      // Se estiver em qualquer aba secundária (Filmes, Séries, etc.) e não for saída raiz,
+      // deixa o useSpatialNav voltar para a aba Início
+      if (activeTab !== 'home' && !context.isRootExit) {
         return false;
       }
-      // Se o foco está no header e em outra aba, deixa o useSpatialNav voltar para Início
-      if (context.zone === 'header' && !context.isRootExit && activeTab !== 'home') {
-        return false;
-      }
-      // Só exibe confirmação de saída se o usuário já estiver no topo do header na tela inicial (Início)
+      // Se já está na tela Início, abre diálogo de confirmação para sair do aplicativo
       setExitPromptChoice(0);
       setExitPromptOpen(true);
       return true;

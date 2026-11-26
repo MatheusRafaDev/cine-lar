@@ -22,6 +22,7 @@ export const KEYS = {
 export function useSpatialNav({
   isPlayerOpen = false,
   isModalOpen = false,
+  isSeeMoreOpen = false,
   modalActionRef = null,
   modalStreamBaseIndex = 3,
   isQuickMenuOpen = false,
@@ -66,6 +67,7 @@ export function useSpatialNav({
   stateRef.current = {
     isPlayerOpen,
     isModalOpen,
+    isSeeMoreOpen,
     modalActionRef,
     modalStreamBaseIndex,
     isQuickMenuOpen,
@@ -382,7 +384,7 @@ export function useSpatialNav({
     const isYellowKey = code === 405 || key === 'ColorF2Yellow';
     const isBlueKey = code === 406 || key === 'ColorF3Blue';
 
-    if (!s.isPlayerOpen && !s.isModalOpen && !s.isQuickMenuOpen) {
+    if (!s.isPlayerOpen && !s.isModalOpen && !s.isQuickMenuOpen && !s.isSeeMoreOpen) {
       if (isRedKey) {
         e.preventDefault();
         e.stopPropagation();
@@ -631,9 +633,8 @@ export function useSpatialNav({
       e.preventDefault();
       e.stopPropagation();
 
-      // 1. Player fullscreen aberto: fecha o player
-      if (s.isPlayerOpen) {
-        s.onBack?.({ zone: 'player', activeTab: s.activeTab });
+      // 1. Player ou SeeMore gerenciam seus próprios botões voltar internamente sem conflito
+      if (s.isPlayerOpen || s.isSeeMoreOpen) {
         return;
       }
 
@@ -644,47 +645,28 @@ export function useSpatialNav({
         return;
       }
 
-      // 2. Se o foco está em qualquer área de conteúdo (rows, local-filters, hero, busca):
-      // Sobe diretamente para o header sincronizado com a aba atual
-      if (s.activeZone !== 'header') {
-        const handled = s.onBack?.({ zone: s.activeZone, activeTab: s.activeTab });
-        if (handled) return;
-
-        // Salva a posição exata antes de subir para o header
-        tabPositionsRef.current[s.activeTab] = {
-          activeZone: s.activeZone,
-          heroIndex: s.heroIndex,
-          rowIndex: s.rowIndex,
-          colIndex: s.colIndex,
-          localFilterIndex: s.localFilterIndex,
-          searchRowIndex: s.searchRowIndex,
-          searchColIndex: s.searchColIndex,
-          resultsColIndex: s.resultsColIndex
-        };
-
-        const tabIdx = NAV_ITEMS.findIndex(item => item.id === s.activeTab);
-        const targetHeaderIdx = tabIdx >= 0 ? tabIdx : 0;
-        setHeaderIndex(targetHeaderIdx);
-        stateRef.current.headerIndex = targetHeaderIdx;
-        setActiveZone('header');
-        stateRef.current.activeZone = 'header';
+      // 2. Se o foco estiver no modal de detalhes ou menu rápido:
+      if (s.isModalOpen || s.activeZone === 'modal') {
+        s.onBack?.({ zone: 'modal', activeTab: s.activeTab });
         return;
       }
 
-      // 3. Se o usuário JÁ ESTÁ no header e não está na aba Início, volta para Início
-      if (tabChangeTimerRef.current) {
-        clearTimeout(tabChangeTimerRef.current);
-        tabChangeTimerRef.current = null;
-      }
-      if (s.activeTab !== 'home' || s.headerIndex !== 0) {
+      // 3. Se estiver na aba local e com filtro ativo, onBack trata voltando para local-only
+      const handled = s.onBack?.({ zone: s.activeZone, activeTab: s.activeTab });
+      if (handled) return;
+
+      // 4. Se o usuário estiver em qualquer aba secundária (movies, series, favorites, local, downloads, search, settings):
+      // Voltar SEMPRE retorna para a tela inicial (Início), respeitando o fluxo natural de navegação na TV
+      if (s.activeTab !== 'home') {
         setHeaderIndex(0);
         stateRef.current.headerIndex = 0;
         s.onTabChange?.(0);
         return;
       }
 
-      // 4. Se já está no header na aba Início, chama onBack para fechar o app Tizen
-      s.onBack?.({ zone: 'header', activeTab: s.activeTab, isRootExit: true });
+      // 5. Se já está na tela Início (no catálogo, hero ou header):
+      // Pressionar voltar solicita a confirmação para sair do app (sem subir para o header)
+      s.onBack?.({ zone: s.activeZone, activeTab: 'home', isRootExit: true });
       return;
     }
 
