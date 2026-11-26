@@ -189,6 +189,12 @@ export function DownloadsView({
             const isError = item.status === 'error' || item.stage === 'error' || Boolean(item.errorMessage);
             const stage = item.stage || (isError ? 'error' : isDone ? 'completed' : isPaused ? 'paused' : 'downloading');
             const itemId = item.infoHash || item.id || idx;
+            const targetPath = String(item.destinationPath || item.savePath || '').toLowerCase();
+            const isDrive = item.destination === 'drive' ||
+              String(item.saveLocation || '').toLowerCase().includes('drive') ||
+              targetPath.startsWith('g:\\') ||
+              targetPath.startsWith('g:/') ||
+              targetPath.includes('meu drive');
 
             // Cores, ícones e rótulos baseados no ciclo de vida
             let statusLabel = item.stageLabel || 'Baixando';
@@ -275,28 +281,21 @@ export function DownloadsView({
                       <span className="tv-badge-pill tv-download-quality-pill">
                         {item.quality || '1080p Full HD'}
                       </span>
-                      {(() => {
-                        const targetPath = String(item.destinationPath || item.savePath || '').toLowerCase();
-                        const isLocalDisk = targetPath.startsWith('d:\\') || targetPath.startsWith('d:/') || targetPath.startsWith('c:\\') || targetPath.startsWith('c:/');
-                        const isDrive = !isLocalDisk && (item.destination === 'drive' || targetPath.startsWith('g:\\') || targetPath.startsWith('g:/') || targetPath.includes('meu drive') || targetPath.includes('cinelar'));
-                        return (
-                          <span
-                            className="tv-badge-pill"
-                            style={{
-                              background: isDrive ? 'rgba(66, 133, 244, 0.25)' : 'rgba(16, 185, 129, 0.25)',
-                              color: isDrive ? '#8AB4F8' : '#34D399',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}
-                          >
-                            <span className="material-icons" style={{ fontSize: '12px' }}>{isDrive ? 'cloud' : 'folder'}</span>
-                            <span>{isDrive ? 'Google Drive' : 'Local PC'}</span>
-                          </span>
-                        );
-                      })()}
+                      <span
+                        className="tv-badge-pill"
+                        style={{
+                          background: isDrive ? 'rgba(66, 133, 244, 0.25)' : 'rgba(16, 185, 129, 0.25)',
+                          color: isDrive ? '#8AB4F8' : '#34D399',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: '12px' }}>{isDrive ? 'cloud' : 'folder'}</span>
+                        <span>{isDrive ? 'Google Drive' : 'Local PC'}</span>
+                      </span>
                       {item.category && (
                         <span className="tv-badge-pill" style={{ fontSize: '11px', textTransform: 'capitalize' }}>
                           {item.category === 'series' ? 'Série' : 'Filme'}
@@ -315,9 +314,6 @@ export function DownloadsView({
                       </span>
                       <span>
                         {(() => {
-                          const targetPath = String(item.destinationPath || item.savePath || '').toLowerCase();
-                          const isLocalDisk = targetPath.startsWith('d:\\') || targetPath.startsWith('d:/') || targetPath.startsWith('c:\\') || targetPath.startsWith('c:/');
-                          const isDrive = !isLocalDisk && (item.destination === 'drive' || targetPath.startsWith('g:\\') || targetPath.startsWith('g:/') || targetPath.includes('meu drive') || targetPath.includes('cinelar'));
                           if (isError) {
                             if (isDrive && (item.errorMessage?.includes('insuficiente') || item.errorMessage?.includes('Drive') || item.errorMessage?.includes('Google') || item.errorMessage?.includes('espaço') || item.errorMessage?.includes('space'))) {
                               const driveFree = storage?.drive?.freeGB !== null && storage?.drive?.freeGB !== undefined ? `${storage.drive.freeGB} GB` : '0.5 GB';
