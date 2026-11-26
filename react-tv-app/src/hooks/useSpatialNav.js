@@ -633,13 +633,21 @@ export function useSpatialNav({
 
       // 1. Player fullscreen aberto: fecha o player
       if (s.isPlayerOpen) {
-        s.onBack?.();
+        s.onBack?.({ zone: 'player', activeTab: s.activeTab });
+        return;
+      }
+
+      // 1.5. Se estiver nos resultados da busca, voltar retorna para o teclado virtual da busca
+      if (s.activeZone === 'search-results') {
+        setActiveZone('search-keyboard');
+        stateRef.current.activeZone = 'search-keyboard';
         return;
       }
 
       // 2. Se o foco está em qualquer área de conteúdo (rows, local-filters, hero, busca):
+      // Sobe diretamente para o header sincronizado com a aba atual
       if (s.activeZone !== 'header') {
-        const handled = s.onBack?.();
+        const handled = s.onBack?.({ zone: s.activeZone, activeTab: s.activeTab });
         if (handled) return;
 
         // Salva a posição exata antes de subir para o header
@@ -676,7 +684,7 @@ export function useSpatialNav({
       }
 
       // 4. Se já está no header na aba Início, chama onBack para fechar o app Tizen
-      s.onBack?.();
+      s.onBack?.({ zone: 'header', activeTab: s.activeTab, isRootExit: true });
       return;
     }
 

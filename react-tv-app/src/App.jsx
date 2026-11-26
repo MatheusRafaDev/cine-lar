@@ -1400,7 +1400,7 @@ export function App() {
   // 4. Integração do Hook Espacial Ultra-Rápido
   const nav = useSpatialNav({
     isPlayerOpen: Boolean(activeStream),
-    isModalOpen: Boolean(selectedMovie),
+    isModalOpen: Boolean(selectedMovie || activeSeeMoreSection),
     modalActionRef,
     modalStreamBaseIndex,
     isQuickMenuOpen: Boolean(quickMenuMovie),
@@ -1436,7 +1436,7 @@ export function App() {
         }
       }
     },
-    onBack: () => {
+    onBack: (context = {}) => {
       if (activeSeeMoreSection) {
         setActiveSeeMoreSection(null);
         return true;
@@ -1463,11 +1463,21 @@ export function App() {
         nav.setColIndex(0);
         return true;
       }
-      // Se já está no header da página inicial e pressionou voltar novamente, solicita confirmação para não fechar por acidente na TV
+      // Se o diálogo de saída já está aberto, pressionar voltar fecha o diálogo
       if (exitPromptOpen) {
         setExitPromptOpen(false);
         return true;
       }
+      // Se o foco está no catálogo / conteúdo (zone !== 'header'):
+      // Retorna false para permitir que o useSpatialNav suba o foco diretamente para o header!
+      if (context.zone && context.zone !== 'header') {
+        return false;
+      }
+      // Se o foco está no header e em outra aba, deixa o useSpatialNav voltar para Início
+      if (context.zone === 'header' && !context.isRootExit && activeTab !== 'home') {
+        return false;
+      }
+      // Só exibe confirmação de saída se o usuário já estiver no topo do header na tela inicial (Início)
       setExitPromptChoice(0);
       setExitPromptOpen(true);
       return true;
