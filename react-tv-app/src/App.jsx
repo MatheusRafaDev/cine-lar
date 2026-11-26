@@ -1494,11 +1494,7 @@ export function App() {
       }
 
       if (zone === 'hero') {
-        if (heroIndex === 0 || isPlayKey) {
-          handlePlayMovieDirect(heroMovie);
-        } else {
-          setSelectedMovie(heroMovie);
-        }
+        handlePlayMovieDirect(heroMovie);
         return;
       }
 

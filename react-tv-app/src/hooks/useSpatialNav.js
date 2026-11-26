@@ -927,11 +927,8 @@ export function useSpatialNav({
           return next;
         });
       } else if (s.activeZone === 'hero') {
-        setHeroIndex(i => {
-          const next = Math.min(1, i + 1);
-          stateRef.current.heroIndex = next;
-          return next;
-        });
+        setHeroIndex(0);
+        stateRef.current.heroIndex = 0;
       } else if (s.activeZone === 'rows') {
         const curColCount = s.getColCount ? s.getColCount(s.rowIndex) : 30;
         setColIndex(c => {

@@ -62,15 +62,6 @@ function HeroBannerComponent({ movie, isZoneFocused, focusedIndex, onPlay, onInf
             <span className="material-icons">play_arrow</span>
             <span>Assistir Agora</span>
           </button>
-
-          <button
-            type="button"
-            className={`tv-btn tv-btn-secondary ${isInfoFocused ? 'focused' : ''}`}
-            onClick={onInfo}
-          >
-            <span className="material-icons">info</span>
-            <span>Mais Informações</span>
-          </button>
         </div>
       </motion.div>
     </section>
