@@ -39,6 +39,8 @@ export function SettingsView({
   const [detailedStatus, setDetailedStatus] = useState(null);
   const [storageData, setStorageData] = useState(null);
   const [driveConfig, setDriveConfigState] = useState(() => getDriveConfig());
+  const [folderIdInput, setFolderIdInput] = useState(() => getDriveConfig().folderId || '');
+  const [apiKeyInput, setApiKeyInput] = useState(() => getDriveConfig().apiKey || '');
   const [toastMessage, setToastMessage] = useState('');
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
@@ -133,6 +135,14 @@ export function SettingsView({
     } finally {
       setIsOrganizing(false);
     }
+  };
+
+  const handleSaveDriveConfig = () => {
+    const newCfg = { folderId: folderIdInput.trim(), apiKey: apiKeyInput.trim() };
+    setDriveConfig(newCfg);
+    setDriveConfigState(newCfg);
+    showToast('Configurações do Google Drive salvas com sucesso!');
+    if (onRefreshLibrary) onRefreshLibrary();
   };
 
   const handleClearCache = () => {
@@ -445,59 +455,90 @@ export function SettingsView({
                 </p>
               </div>
 
-              {/* Status da Configuração Atual */}
-              <div style={{ background: 'rgba(255, 255, 255, 0.04)', padding: '20px', borderRadius: '14px', marginBottom: '24px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF', marginBottom: '12px' }}>
-                  Credenciais e Conexão com Google Drive API
+              {/* Formulário de Configuração Direta (Sem Modal) */}
+              <div style={{ background: 'rgba(255, 255, 255, 0.04)', padding: '24px', borderRadius: '14px', marginBottom: '24px' }}>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', marginBottom: '16px' }}>
+                  Configurações de Conexão com a Nuvem
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '13px' }}>
-                  <div>
-                    <span style={{ color: 'var(--text-subtle)' }}>ID da Pasta: </span>
-                    <strong style={{ color: driveConfig.folderId ? '#4ade80' : 'var(--text-muted)' }}>
-                      {driveConfig.folderId ? driveConfig.folderId : 'Não configurado'}
-                    </strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-subtle)' }}>Chave de API: </span>
-                    <strong style={{ color: driveConfig.apiKey ? '#4ade80' : 'var(--text-muted)' }}>
-                      {driveConfig.apiKey ? 'Configurada (API Ativa)' : 'Opcional (Acesso Direto)'}
-                    </strong>
-                  </div>
-                </div>
-              </div>
 
-              {/* Botões de Ação */}
-              <div style={{ display: 'flex', gap: '14px' }}>
-                <button
-                  type="button"
-                  className="tv-btn tv-btn-primary"
-                  onClick={onOpenDriveConfig}
-                  style={{
-                    background: '#4285F4',
-                    borderColor: '#4285F4',
-                    color: '#FFF',
-                    padding: '12px 24px',
-                    borderRadius: '10px',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <span className="material-icons" style={{ fontSize: '18px' }}>settings</span>
-                  <span>Configurar ID da Pasta e Chave</span>
-                </button>
-                <button
-                  type="button"
-                  className="tv-btn tv-btn-secondary"
-                  onClick={() => {
-                    onRefreshLibrary();
-                    showToast('Arquivos do Google Drive sincronizados!');
-                  }}
-                  style={{ padding: '12px 24px', borderRadius: '10px', fontWeight: 700 }}
-                >
-                  Sincronizar Arquivos da Nuvem
-                </button>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#8AB4F8', marginBottom: '8px' }}>
+                    ID ou Link da Pasta do Google Drive (Cinelar):
+                  </label>
+                  <input
+                    type="text"
+                    value={folderIdInput}
+                    onChange={e => setFolderIdInput(e.target.value)}
+                    placeholder="Ex: 1A2b3C4d5E... ou link de compartilhamento"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'rgba(0, 0, 0, 0.5)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      borderRadius: '10px',
+                      color: '#FFF',
+                      fontSize: '14px'
+                    }}
+                  />
+                  <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-subtle)', marginTop: '4px' }}>
+                    A pasta deve estar compartilhada como &quot;Qualquer pessoa com o link&quot;.
+                  </span>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#8AB4F8', marginBottom: '8px' }}>
+                    Chave de API do Google Cloud (Opcional):
+                  </label>
+                  <input
+                    type="text"
+                    value={apiKeyInput}
+                    onChange={e => setApiKeyInput(e.target.value)}
+                    placeholder="Opcional: chave de API do Google Cloud Console"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'rgba(0, 0, 0, 0.5)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      borderRadius: '10px',
+                      color: '#FFF',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '14px' }}>
+                  <button
+                    type="button"
+                    className="tv-btn tv-btn-primary"
+                    onClick={handleSaveDriveConfig}
+                    style={{
+                      background: '#4285F4',
+                      borderColor: '#4285F4',
+                      color: '#FFF',
+                      padding: '12px 24px',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <span className="material-icons" style={{ fontSize: '18px' }}>save</span>
+                    <span>Salvar Configuração</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="tv-btn tv-btn-secondary"
+                    onClick={() => {
+                      onRefreshLibrary();
+                      showToast('Arquivos do Google Drive sincronizados!');
+                    }}
+                    style={{ padding: '12px 24px', borderRadius: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <span className="material-icons" style={{ fontSize: '18px' }}>cloud_sync</span>
+                    <span>Sincronizar Arquivos da Nuvem</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

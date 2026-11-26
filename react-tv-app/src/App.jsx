@@ -63,7 +63,6 @@ export function App() {
   });
   const [localFilterId, setLocalFilterId] = useState('local-only');
   const [driveMovies, setDriveMovies] = useState([]);
-  const [isDriveConfigOpen, setIsDriveConfigOpen] = useState(false);
   const [downloads, setDownloads] = useState([]);
   const [downloadsStorage, setDownloadsStorage] = useState(null);
   const [downloadsStats, setDownloadsStats] = useState(null);
@@ -81,7 +80,6 @@ export function App() {
   const [isHomeLoading, setIsHomeLoading] = useState(true);
   const [isMoviesLoading, setIsMoviesLoading] = useState(false);
   const [isSeriesLoading, setIsSeriesLoading] = useState(false);
-  const [activeSeeMoreSection, setActiveSeeMoreSection] = useState(null);
   const toastTimerRef = useRef(null);
   const downloadsRequestInFlightRef = useRef(false);
   const downloadsSnapshotRef = useRef('');
@@ -1583,7 +1581,7 @@ export function App() {
   const nav = useSpatialNav({
     isPlayerOpen: Boolean(activeStream),
     isModalOpen: Boolean(selectedMovie),
-    isSeeMoreOpen: Boolean(activeSeeMoreSection),
+    isSeeMoreOpen: false,
     modalActionRef,
     modalStreamBaseIndex,
     isQuickMenuOpen: Boolean(quickMenuMovie),
@@ -1620,10 +1618,6 @@ export function App() {
       }
     },
     onBack: (context = {}) => {
-      if (activeSeeMoreSection) {
-        setActiveSeeMoreSection(null);
-        return true;
-      }
       // Limpeza de estado do player e modal (prioridade absoluta com useSpatialNav)
       if (activeStream) {
         setActiveStream(null);
@@ -1740,11 +1734,7 @@ export function App() {
           const row = localGridRows[rowIndex];
           if (row && row.movies && row.movies[colIndex]) {
             const mov = row.movies[colIndex];
-            if (isPlayKey) {
-              handlePlayMovieDirect(mov);
-            } else {
-              handleOpenQuickMenuForMovie(mov);
-            }
+            handlePlayMovieDirect(mov);
           }
           return;
         }
@@ -1866,6 +1856,14 @@ export function App() {
     // 6. Se já estiver na aba de Filmes ou Séries: carrega mais filmes direto na fileira sem abrir modal!
     handleLoadMoreInRow(sec);
   }, [genreSections, seriesGenreSections, activeTab, nav, handleLoadMoreInRow, refreshDriveLibrary, showToast]);
+
+  const handleNavigateToDriveSettings = useCallback(() => {
+    handleSelectTab('settings');
+    nav.setRowIndex(1); // Categoria Google Drive
+    nav.setColIndex(0);
+    nav.setActiveZone('rows');
+    showToast('Abrindo configurações da Nuvem Google Drive...');
+  }, [handleSelectTab, nav, showToast]);
 
   // Enquanto o player fullscreen estiver aberto, a interface por baixo nao precisa ser pintada.
   // visibility (e nao display) preserva o layout e a posicao de rolagem ao voltar.
@@ -2017,9 +2015,9 @@ export function App() {
                 localFilterIndex={nav.localFilterIndex}
                 rowIndex={nav.rowIndex}
                 colIndex={nav.colIndex}
-                onSelectMovie={handleOpenQuickMenuForMovie}
+                onSelectMovie={handlePlayMovieDirect}
                 onContextMenuMovie={handleOpenQuickMenuForMovie}
-                onOpenDriveConfig={() => setIsDriveConfigOpen(true)}
+                onOpenDriveConfig={handleNavigateToDriveSettings}
                 serverStatus={serverStatus}
               />
             </motion.div>
@@ -2150,33 +2148,6 @@ export function App() {
             onClose={handleCloseQuickMenu}
             onConfirmDelete={handleConfirmDelete}
             onCancelDelete={() => setConfirmDeleteMode(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Modal de Configuração do Google Drive */}
-      <AnimatePresence>
-        {isDriveConfigOpen && (
-          <DriveConfigModal
-            key="drive-config"
-            isOpen={isDriveConfigOpen}
-            onClose={() => setIsDriveConfigOpen(false)}
-            onSaved={refreshDriveLibrary}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Modal Ver Mais no Final da Seção */}
-      <AnimatePresence>
-        {activeSeeMoreSection && (
-          <SeeMoreModal
-            key="see-more-modal"
-            section={activeSeeMoreSection}
-            isOpen={Boolean(activeSeeMoreSection)}
-            onClose={() => setActiveSeeMoreSection(null)}
-            onLoadMoreToRow={handleLoadMoreInRow}
-            onSelectMovie={setSelectedMovie}
-            onContextMenuMovie={(mov) => handleOpenQuickMenuForMovie(mov, false)}
           />
         )}
       </AnimatePresence>

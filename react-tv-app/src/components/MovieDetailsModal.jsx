@@ -819,13 +819,7 @@ export function MovieDetailsModal({
             actionButtons[idx].action();
           } else {
             const streamIdx = idx - actionButtons.length;
-            const target = isSeries ? episodeStreams[streamIdx] : streams[streamIdx];
-            if (isPlayKey) {
-              handleStreamSelect(streamIdx);
-            } else if (target) {
-              setStreamActionTarget(target);
-              setStreamActionIndex(0);
-            }
+            handleStreamSelect(streamIdx);
           }
         }
       };
@@ -887,11 +881,36 @@ export function MovieDetailsModal({
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ type: 'spring', damping: 28, stiffness: 350 }}
       >
-        {/* Banner Superior do Modal */}
+        {/* Banner Superior da Tela de Detalhes */}
         <div
           className="tv-modal-hero"
           style={{ backgroundImage: `url(${backdrop})` }}
         >
+          <button
+            type="button"
+            className="tv-details-back-btn"
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: '28px',
+              left: '28px',
+              zIndex: 10,
+              background: 'rgba(0, 0, 0, 0.65)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              color: '#FFF',
+              borderRadius: '50px',
+              padding: '10px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '14px'
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: '20px' }}>arrow_back</span>
+            <span>Voltar</span>
+          </button>
           <div className="tv-modal-hero-gradient" />
 
           <div className="tv-modal-hero-content">
@@ -1081,8 +1100,7 @@ export function MovieDetailsModal({
                         key={stream.infoHash || idx}
                         className={`tv-stream-item ${isStreamFocused ? 'focused' : ''} ${parsed.isRecommended ? 'recommended' : ''}`}
                         onClick={() => {
-                          setStreamActionTarget(stream);
-                          setStreamActionIndex(0);
+                          handleStreamSelect(idx);
                         }}
                       >
                         <div className="tv-stream-left">
@@ -1140,7 +1158,7 @@ export function MovieDetailsModal({
                           </span>
                           <div className="tv-stream-play-hint">
                             <span className="material-icons" style={{ fontSize: '16px' }}>play_arrow</span>
-                            <span>OK para Opções</span>
+                            <span>Assistir</span>
                           </div>
                         </div>
                       </div>
@@ -1184,8 +1202,7 @@ export function MovieDetailsModal({
                     key={stream.infoHash || idx}
                     className={`tv-stream-item ${isStreamFocused ? 'focused' : ''} ${parsed.isRecommended ? 'recommended' : ''}`}
                     onClick={() => {
-                      setStreamActionTarget(stream);
-                      setStreamActionIndex(0);
+                      handleStreamSelect(idx);
                     }}
                   >
                     <div className="tv-stream-left">
@@ -1243,7 +1260,7 @@ export function MovieDetailsModal({
                       </span>
                       <div className="tv-stream-play-hint">
                         <span className="material-icons" style={{ fontSize: '16px' }}>play_arrow</span>
-                        <span>OK para Opções</span>
+                        <span>Assistir</span>
                       </div>
                     </div>
                   </div>
