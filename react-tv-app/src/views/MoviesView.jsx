@@ -9,6 +9,7 @@ export function MoviesView({
   colIndex,
   onSelectMovie,
   onContextMenuMovie,
+  onSeeMore,
   serverStatus = 'checking',
   isLoading = false,
   onRetryConnection
@@ -48,12 +49,16 @@ export function MoviesView({
           return (
             <CarouselRow
               key={section.id || idx}
+              sectionId={section.id}
               title={section.title}
               movies={section.movies}
               isRowFocused={isCurrentRowFocused}
               focusedColIndex={colIndex}
               onSelectMovie={onSelectMovie}
               onContextMenuMovie={onContextMenuMovie}
+              onSeeMore={onSeeMore}
+              hasSeeMore={true}
+              isSeries={false}
             />
           );
         })}
@@ -61,3 +66,4 @@ export function MoviesView({
     </div>
   );
 }
+export default MoviesView;

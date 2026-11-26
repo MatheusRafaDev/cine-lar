@@ -9,6 +9,7 @@ export function SeriesView({
   colIndex,
   onSelectSeries,
   onContextMenuMovie,
+  onSeeMore,
   serverStatus = 'checking',
   isLoading = false,
   onRetryConnection
@@ -48,12 +49,16 @@ export function SeriesView({
           return (
             <CarouselRow
               key={section.id || idx}
+              sectionId={section.id}
               title={section.title}
               movies={section.movies}
               isRowFocused={isCurrentRowFocused}
               focusedColIndex={colIndex}
               onSelectMovie={onSelectSeries}
               onContextMenuMovie={onContextMenuMovie}
+              onSeeMore={onSeeMore}
+              hasSeeMore={true}
+              isSeries={true}
             />
           );
         })}

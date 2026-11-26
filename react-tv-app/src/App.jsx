@@ -13,6 +13,7 @@ const SearchView = lazy(() => import('./views/SearchView').then(m => ({ default:
 const SettingsView = lazy(() => import('./views/SettingsView').then(m => ({ default: m.SettingsView })));
 const QuickActionsModal = lazy(() => import('./components/QuickActionsModal').then(m => ({ default: m.QuickActionsModal })));
 const DriveConfigModal = lazy(() => import('./components/DriveConfigModal').then(m => ({ default: m.DriveConfigModal })));
+const SeeMoreModal = lazy(() => import('./components/SeeMoreModal').then(m => ({ default: m.SeeMoreModal })));
 import {
   getTrendingMovies,
   getMovies,
@@ -79,6 +80,7 @@ export function App() {
   const [isHomeLoading, setIsHomeLoading] = useState(true);
   const [isMoviesLoading, setIsMoviesLoading] = useState(false);
   const [isSeriesLoading, setIsSeriesLoading] = useState(false);
+  const [activeSeeMoreSection, setActiveSeeMoreSection] = useState(null);
   const toastTimerRef = useRef(null);
   const downloadsRequestInFlightRef = useRef(false);
   const downloadsSnapshotRef = useRef('');
@@ -640,6 +642,62 @@ export function App() {
     return Math.max(1, currentSections.length);
   }, [activeTab, downloads.length, favoritesGridRows.length, localGridRows.length, currentSections.length]);
 
+  const handleOpenSeeMore = useCallback((sec) => {
+    if (!sec) return;
+    setActiveSeeMoreSection(sec);
+  }, []);
+
+  const handleLoadMoreInRow = useCallback(async (sec, explicitMovies = null) => {
+    if (!sec) return;
+    const secId = sec.id;
+    const isSeries = Boolean(sec.isSeries || secId === 'series-popular' || String(secId).startsWith('series'));
+
+    let newMovies = explicitMovies;
+    if (!newMovies) {
+      showToast(`Carregando mais títulos de "${sec.title}"...`);
+      try {
+        if (secId === 'trending') {
+          newMovies = await getTrendingMovies();
+        } else if (isSeries) {
+          newMovies = await getSeries({ genre: secId, limit: 36 });
+        } else {
+          newMovies = await getMovies({ genre: secId, limit: 36 });
+        }
+      } catch (_) {
+        showToast('Não foi possível buscar mais títulos.');
+        return;
+      }
+    }
+
+    if (!newMovies || newMovies.length === 0) {
+      showToast('Todos os títulos já foram adicionados.');
+      return;
+    }
+
+    const appendMovies = (prevList) => {
+      const existingIds = new Set(prevList.map(m => String(m.id || m.imdbId || m.title).toLowerCase()));
+      const filtered = newMovies.filter(m => !existingIds.has(String(m.id || m.imdbId || m.title).toLowerCase()));
+      if (filtered.length === 0) return prevList;
+      return [...prevList, ...filtered];
+    };
+
+    if (activeTab === 'home') {
+      if (secId === 'trending') {
+        setTrendingMovies(prev => appendMovies(prev));
+      } else if (isSeries) {
+        setSeriesGenreSections(prev => prev.map(s => s.id === secId ? { ...s, movies: appendMovies(s.movies) } : s));
+      } else {
+        setGenreSections(prev => prev.map(s => s.id === secId ? { ...s, movies: appendMovies(s.movies) } : s));
+      }
+    } else if (activeTab === 'movies') {
+      setGenreSections(prev => prev.map(s => s.id === secId ? { ...s, movies: appendMovies(s.movies) } : s));
+    } else if (activeTab === 'series') {
+      setSeriesGenreSections(prev => prev.map(s => s.id === secId ? { ...s, movies: appendMovies(s.movies) } : s));
+    }
+
+    showToast(`✓ Catálogo expandido em "${sec.title}"!`);
+  }, [activeTab, showToast]);
+
   const getColCount = useCallback((rIdx) => {
     if (activeTab === 'downloads') {
       const item = downloads[rIdx];
@@ -656,7 +714,9 @@ export function App() {
       return localGridRows[rIdx]?.movies?.length || 1;
     }
     if (currentSections[rIdx] && currentSections[rIdx].movies) {
-      return currentSections[rIdx].movies.length;
+      const sec = currentSections[rIdx];
+      const hasSeeMore = sec.id !== 'continue-watching' && sec.movies.length > 0;
+      return hasSeeMore ? sec.movies.length + 1 : sec.movies.length;
     }
     return 1;
   }, [activeTab, downloads, favoritesGridRows, localGridRows, currentSections]);
@@ -1348,6 +1408,10 @@ export function App() {
       }
     },
     onBack: () => {
+      if (activeSeeMoreSection) {
+        setActiveSeeMoreSection(null);
+        return true;
+      }
       // Limpeza de estado do player e modal (prioridade absoluta com useSpatialNav)
       if (activeStream) {
         setActiveStream(null);
@@ -1472,14 +1536,21 @@ export function App() {
         }
 
         const sec = currentSections[rowIndex];
-        if (sec && sec.movies && sec.movies[colIndex]) {
-          const mov = sec.movies[colIndex];
-          if (sec.id === 'continue-watching') {
-            handlePlayMovieDirect(mov);
-          } else if (isPlayKey) {
-            handlePlayMovieDirect(mov);
-          } else {
-            setSelectedMovie(mov);
+        if (sec && sec.movies) {
+          const hasSeeMore = sec.id !== 'continue-watching' && sec.movies.length > 0;
+          if (hasSeeMore && colIndex === sec.movies.length) {
+            handleOpenSeeMore(sec);
+            return;
+          }
+          if (sec.movies[colIndex]) {
+            const mov = sec.movies[colIndex];
+            if (sec.id === 'continue-watching') {
+              handlePlayMovieDirect(mov);
+            } else if (isPlayKey) {
+              handlePlayMovieDirect(mov);
+            } else {
+              setSelectedMovie(mov);
+            }
           }
         } else if ((activeTab === 'movies' || activeTab === 'series' || activeTab === 'home') && serverStatus !== 'online') {
           retryServerConnection();
@@ -1555,6 +1626,7 @@ export function App() {
                 onContextMenuMovie={(mov) => handleOpenQuickMenuForMovie(mov, true)}
                 onPlayHero={() => handlePlayMovieDirect(heroMovie)}
                 onInfoHero={() => setSelectedMovie(heroMovie)}
+                onSeeMore={handleOpenSeeMore}
                 isLoading={isHomeLoading}
                 serverStatus={serverStatus}
                 onRetryConnection={retryServerConnection}
@@ -1578,6 +1650,7 @@ export function App() {
                 colIndex={nav.colIndex}
                 onSelectMovie={setSelectedMovie}
                 onContextMenuMovie={handleOpenQuickMenuForMovie}
+                onSeeMore={handleOpenSeeMore}
                 serverStatus={serverStatus}
                 isLoading={isMoviesLoading}
                 onRetryConnection={retryServerConnection}
@@ -1601,6 +1674,7 @@ export function App() {
                 colIndex={nav.colIndex}
                 onSelectSeries={setSelectedMovie}
                 onContextMenuMovie={handleOpenQuickMenuForMovie}
+                onSeeMore={handleOpenSeeMore}
                 serverStatus={serverStatus}
                 isLoading={isSeriesLoading}
                 onRetryConnection={retryServerConnection}
@@ -1798,6 +1872,21 @@ export function App() {
             isOpen={isDriveConfigOpen}
             onClose={() => setIsDriveConfigOpen(false)}
             onSaved={refreshDriveLibrary}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Modal Ver Mais no Final da Seção */}
+      <AnimatePresence>
+        {activeSeeMoreSection && (
+          <SeeMoreModal
+            key="see-more-modal"
+            section={activeSeeMoreSection}
+            isOpen={Boolean(activeSeeMoreSection)}
+            onClose={() => setActiveSeeMoreSection(null)}
+            onLoadMoreToRow={handleLoadMoreInRow}
+            onSelectMovie={setSelectedMovie}
+            onContextMenuMovie={(mov) => handleOpenQuickMenuForMovie(mov, false)}
           />
         )}
       </AnimatePresence>

@@ -12,6 +12,7 @@ export function HomeView({
   colIndex,
   onSelectMovie,
   onContextMenuMovie,
+  onSeeMore,
   onPlayHero,
   onInfoHero,
   isLoading = false,
@@ -59,15 +60,20 @@ export function HomeView({
         {sections.map((section, idx) => {
           const isCurrentRowFocused = isRowsFocused && rowIndex === idx;
           const isContinue = section.id === 'continue-watching';
+          const isSeries = Boolean(section.isSeries || section.id === 'series-popular' || String(section.id).startsWith('series'));
           return (
             <CarouselRow
               key={section.id || idx}
+              sectionId={section.id}
               title={section.title}
               movies={section.movies}
               isRowFocused={isCurrentRowFocused}
               focusedColIndex={colIndex}
               onSelectMovie={(mov) => onSelectMovie?.(mov, isContinue)}
               onContextMenuMovie={(mov) => onContextMenuMovie?.(mov, isContinue)}
+              onSeeMore={onSeeMore}
+              hasSeeMore={!isContinue}
+              isSeries={isSeries}
             />
           );
         })}
