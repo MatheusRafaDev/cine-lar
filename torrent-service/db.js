@@ -653,6 +653,19 @@ export function deleteLocalMediaRecord(filePath) {
     } catch (_) {}
 }
 
+export function updateLocalMediaPath(oldPath, newPath, newSrtPath = null) {
+    if (!oldPath || !newPath) return;
+    try {
+        const database = getDb();
+        const fileName = path.basename(newPath);
+        if (newSrtPath !== null) {
+            database.prepare('UPDATE local_media SET file_path = ?, file_name = ?, srt_path = ? WHERE file_path = ?').run(newPath, fileName, newSrtPath, oldPath);
+        } else {
+            database.prepare('UPDATE local_media SET file_path = ?, file_name = ? WHERE file_path = ?').run(newPath, fileName, oldPath);
+        }
+    } catch (_) {}
+}
+
 export function getMovieById(imdbId) {
     if (!imdbId) return null;
     try {

@@ -12,7 +12,8 @@ import {
   clearAppOfflineCache,
   clearAllWatchHistory,
   getServerDetailedStatus,
-  getStorageTelemetry
+  getStorageTelemetry,
+  executeLibraryOrganization
 } from '../services/api';
 
 const SETTINGS_CATEGORIES = [
@@ -111,6 +112,26 @@ export function SettingsView({
       showToast(`Erro ao re-escanear: ${err.message}`);
     } finally {
       setIsRescanning(false);
+    }
+  };
+
+  const [isOrganizing, setIsOrganizing] = useState(false);
+  const handleOrganizeLibrary = async () => {
+    setIsOrganizing(true);
+    showToast('Organizando pastas e limpando propagandas de torrents...');
+    try {
+      const res = await executeLibraryOrganization();
+      if (res?.success) {
+        const r = res.result || {};
+        showToast(`Sucesso! ${r.renamedFolders || 0} pastas padronizadas, ${r.deletedJunkFiles || 0} propagandas removidas.`);
+        if (onRefreshLibrary) onRefreshLibrary(true);
+      } else {
+        showToast(res?.error || 'Não foi possível organizar a biblioteca.');
+      }
+    } catch (err) {
+      showToast(`Erro ao organizar: ${err.message}`);
+    } finally {
+      setIsOrganizing(false);
     }
   };
 
@@ -372,6 +393,29 @@ export function SettingsView({
                 >
                   <span className="material-icons" style={{ fontSize: '18px' }}>sync</span>
                   <span>{isRescanning ? 'Escaneando...' : 'Re-escanear Agora'}</span>
+                </button>
+              </div>
+
+              {/* Organizador Inteligente de Pastas e Nomes */}
+              <div style={{ background: 'rgba(255, 255, 255, 0.04)', padding: '20px', borderRadius: '14px', marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>Organizador Inteligente de Pastas e Arquivos</span>
+                    <span style={{ fontSize: '11px', background: '#3b82f6', color: '#FFF', padding: '2px 8px', borderRadius: '6px', fontWeight: 600 }}>Kodi / Plex</span>
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Padroniza nomes para Nome (Ano), remove propagandas (.url, banners) e organiza arquivos soltos em D:\Filmes.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="tv-btn tv-btn-secondary"
+                  onClick={handleOrganizeLibrary}
+                  disabled={isOrganizing}
+                  style={{ padding: '12px 24px', borderRadius: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <span className="material-icons" style={{ fontSize: '18px' }}>auto_fix_high</span>
+                  <span>{isOrganizing ? 'Organizando...' : 'Organizar Agora'}</span>
                 </button>
               </div>
             </div>

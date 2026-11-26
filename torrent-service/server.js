@@ -14,6 +14,7 @@ import { askAiMovieRecommendations } from './aiSearch.js';
 import { getLocalLibrary, streamLocalVideo, deleteLocalFile, renameLocalFile, invalidateLocalCache, removeFileFromLocalCache, getMediaInfo } from './localScanner.js';
 import { getOrganizedDownloadPath, groupMediaLibrary } from './organizer.js';
 import { fetchPtBrMetadata, searchPtBrMovie } from './tmdbHelper.js';
+import { analyzeLibrary, executeOrganization } from './libraryOrganizer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -2287,6 +2288,34 @@ const server = http.createServer(async (req, res) => {
                     res.end(JSON.stringify({ error: e.message }));
                 }
             });
+            return;
+        }
+
+        // Preview da organização automática de pastas e arquivos da biblioteca
+        if (pathname === '/api/local/organize-preview' && req.method === 'GET') {
+            try {
+                const targetBase = SAVE_PATH;
+                const preview = await analyzeLibrary(targetBase);
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify(preview));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: err.message }));
+            }
+            return;
+        }
+
+        // Executar organização automática de pastas e arquivos da biblioteca
+        if (pathname === '/api/local/organize-execute' && req.method === 'POST') {
+            try {
+                const targetBase = SAVE_PATH;
+                const result = await executeOrganization(targetBase);
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ success: true, result }));
+            } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: err.message }));
+            }
             return;
         }
 

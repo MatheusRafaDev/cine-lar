@@ -475,6 +475,23 @@ export async function getLocalLibraryData(force = false) {
   }
 }
 
+// 4.1.1 Organizador de Biblioteca (Padronização e Limpeza de Pastas)
+export async function getLibraryOrganizePreview() {
+  try {
+    return await request('/api/local/organize-preview');
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+export async function executeLibraryOrganization() {
+  try {
+    return await request('/api/local/organize-execute', { method: 'POST' });
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
 // 4.2 Integração com Google Drive (Nuvem Cinelar)
 export function getDriveConfig() {
   try {
