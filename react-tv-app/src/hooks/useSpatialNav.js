@@ -40,10 +40,7 @@ export function useSpatialNav({
   onCloseQuickMenu = null,
   onQuickMenuSelect = null,
   onTabChange = null,
-  onLocalFilterChange = null,
-  onPlayPause = null,
-  onSeek = null,
-  onVolume = null
+  onLocalFilterChange = null
 }) {
   const [activeZone, setActiveZone] = useState('rows'); // 'header' | 'hero' | 'rows' | 'modal' | 'player' | 'search-keyboard' | 'search-results' | 'local-filters'
   const [headerIndex, setHeaderIndex] = useState(0);
@@ -98,10 +95,7 @@ export function useSpatialNav({
     onCloseQuickMenu,
     onQuickMenuSelect,
     onTabChange,
-    onLocalFilterChange,
-    onPlayPause,
-    onSeek,
-    onVolume
+    onLocalFilterChange
   };
 
   const lastKeyRef = useRef({ code: 0, time: 0 });
@@ -376,7 +370,7 @@ export function useSpatialNav({
 
     const isBack = code === KEYS.BACK_TIZEN || code === KEYS.BACK_ESC || code === KEYS.BACKSPACE || key === 'Back' || key === 'Escape';
     const isEnter = code === KEYS.ENTER || key === 'Enter';
-    const isPlayPause = code === KEYS.MEDIA_PLAY_PAUSE || code === KEYS.MEDIA_PLAY || code === KEYS.MEDIA_PAUSE || code === KEYS.MEDIA_STOP || key === 'MediaPlayPause' || key === ' ';
+    const isPlayPause = code === KEYS.MEDIA_PLAY_PAUSE || code === KEYS.MEDIA_PLAY || key === 'MediaPlayPause' || key === 'MediaPlay' || key === ' ';
     const isLeft = code === KEYS.LEFT || key === 'ArrowLeft';
     const isRight = code === KEYS.RIGHT || key === 'ArrowRight';
     const isUp = code === KEYS.UP || key === 'ArrowUp';

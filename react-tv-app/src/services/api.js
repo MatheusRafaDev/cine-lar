@@ -24,6 +24,11 @@ function getCatalogCache(key, loader, ttlMs = 5 * 60 * 1000) {
   return requestPromise;
 }
 
+export function clearCatalogCache() {
+  catalogCache.clear();
+  catalogInFlight.clear();
+}
+
 export function getStoredServerIp() {
   try {
     return localStorage.getItem('mf_server_ip') || '';
@@ -39,6 +44,22 @@ export function setStoredServerIp(ip) {
     } else {
       localStorage.removeItem('mf_server_ip');
     }
+  } catch (_) {}
+}
+
+export function getStoredApiToken() {
+  try {
+    return localStorage.getItem('mf_api_token') || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+export function setStoredApiToken(token) {
+  try {
+    const value = typeof token === 'string' ? token.trim() : '';
+    if (value) localStorage.setItem('mf_api_token', value);
+    else localStorage.removeItem('mf_api_token');
   } catch (_) {}
 }
 
@@ -111,10 +132,18 @@ export async function getStorageTelemetry() {
 
 function getApiToken() {
   try {
-    return localStorage.getItem('mf_api_token') || DEFAULT_API_TOKEN || '';
+    return getStoredApiToken() || DEFAULT_API_TOKEN || '';
   } catch (_) {
     return DEFAULT_API_TOKEN || '';
   }
+}
+
+function getApiHeaders(headers = {}) {
+  const token = getApiToken();
+  return {
+    ...(token ? { 'X-Api-Token': token } : {}),
+    ...headers
+  };
 }
 
 export function getServerUrl() {
@@ -173,7 +202,10 @@ async function request(endpoint, options = {}) {
       }
     });
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const payload = await res.json().catch(() => null);
+      const error = new Error(payload?.error || `HTTP ${res.status}: ${res.statusText}`);
+      error.status = res.status;
+      throw error;
     }
     return await res.json();
   } catch (err) {
@@ -1011,7 +1043,7 @@ export function saveWatchProgress({
     try {
       fetch(`${getServerUrl()}/api/user/progress`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           userId: 'default',
           movieId: effectiveId,
@@ -1093,7 +1125,8 @@ export function clearWatchProgress(movieOrId) {
     idsToDelete.forEach(pid => {
       try {
         fetch(`${getServerUrl()}/api/user/history?movieId=${encodeURIComponent(pid)}&userId=default`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: getApiHeaders()
         }).catch(() => {});
       } catch (_) {}
     });
@@ -1227,7 +1260,7 @@ export function toggleFavorite(movie) {
     try {
       fetch(`${getServerUrl()}/api/user/favorites/toggle`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           userId: 'default',
           movie: {

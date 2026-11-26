@@ -1,6 +1,7 @@
 import React from 'react';
 import { HeroBanner } from '../components/HeroBanner';
 import { CarouselRow } from '../components/CarouselRow';
+import { EmptyCatalogPanel, ServerStatusPanel } from '../components/StatusStatePanel';
 
 export function HomeView({
   heroMovie,
@@ -14,7 +15,8 @@ export function HomeView({
   onPlayHero,
   onInfoHero,
   isLoading = false,
-  serverStatus = 'checking'
+  serverStatus = 'checking',
+  onRetryConnection
 }) {
   const isHeroFocused = activeZone === 'hero';
   const isRowsFocused = activeZone === 'rows';
@@ -40,12 +42,19 @@ export function HomeView({
             <span>Carregando catálogo e biblioteca local…</span>
           </div>
         )}
-        {!isLoading && !heroMovie && sections.length === 0 && serverStatus === 'offline' && (
-          <div className="tv-home-feedback offline" role="alert">
-            <span className="material-icons">wifi_off</span>
-            <strong>Servidor não encontrado</strong>
-            <span>Verifique se o serviço Cinelar está ligado e se a TV está na mesma rede.</span>
-          </div>
+        {!isLoading && !heroMovie && sections.length === 0 && serverStatus !== 'online' && (
+          <ServerStatusPanel
+            status={serverStatus}
+            title="Servidor não encontrado"
+            onRetry={onRetryConnection}
+            isFocused={isRowsFocused && rowIndex === 0}
+          />
+        )}
+        {!isLoading && !heroMovie && sections.length === 0 && serverStatus === 'online' && (
+          <EmptyCatalogPanel
+            title="Sua biblioteca está vazia"
+            message="O servidor está conectado. Navegue por Filmes e Séries para explorar o catálogo."
+          />
         )}
         {sections.map((section, idx) => {
           const isCurrentRowFocused = isRowsFocused && rowIndex === idx;

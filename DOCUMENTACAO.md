@@ -353,7 +353,7 @@ O MatheusFlix adota integralmente as diretrizes do **Cinelar TV Design System**:
 
 ### 7.1. Pre-requisitos
 - Sistema operacional Windows 10/11 ou Linux x64.
-- Node.js instalado (versao 18 ou superior).
+- Node.js instalado (versao 22.13.0 ou superior; o backend usa `node:sqlite` sem flags experimentais).
 
 ### 7.2. Passo a Passo de Execucao
 1. Clone o projeto para o diretorio desejado.

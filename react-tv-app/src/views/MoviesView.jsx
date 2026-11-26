@@ -1,5 +1,6 @@
 import React from 'react';
 import { CarouselRow } from '../components/CarouselRow';
+import { EmptyCatalogPanel, ServerStatusPanel } from '../components/StatusStatePanel';
 
 export function MoviesView({
   genreSections = [],
@@ -7,7 +8,10 @@ export function MoviesView({
   rowIndex,
   colIndex,
   onSelectMovie,
-  onContextMenuMovie
+  onContextMenuMovie,
+  serverStatus = 'checking',
+  isLoading = false,
+  onRetryConnection
 }) {
   const isRowsFocused = activeZone === 'rows';
 
@@ -18,6 +22,27 @@ export function MoviesView({
       </div>
 
       <div className="tv-sections-container">
+        {genreSections.length === 0 && isLoading && (
+          <div className="tv-home-feedback" role="status" aria-live="polite">
+            <span className="tv-home-spinner" />
+            <strong>Carregando filmes</strong>
+            <span>Buscando títulos disponíveis no servidor…</span>
+          </div>
+        )}
+        {genreSections.length === 0 && !isLoading && serverStatus !== 'online' && (
+          <ServerStatusPanel
+            status={serverStatus}
+            title="Não foi possível carregar os filmes"
+            onRetry={onRetryConnection}
+            isFocused={isRowsFocused && rowIndex === 0}
+          />
+        )}
+        {genreSections.length === 0 && !isLoading && serverStatus === 'online' && (
+          <EmptyCatalogPanel
+            title="Nenhum filme disponível"
+            message="O servidor está conectado, mas não encontrou filmes no catálogo. Tente atualizar o catálogo no computador."
+          />
+        )}
         {genreSections.map((section, idx) => {
           const isCurrentRowFocused = isRowsFocused && rowIndex === idx;
           return (

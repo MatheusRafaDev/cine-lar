@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { MotionConfig } from 'framer-motion';
 import App from './App';
 import './styles/fonts.css';
 import './styles/tv.css';
@@ -9,7 +10,9 @@ if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <React.StrictMode>
-      <App />
+      <MotionConfig reducedMotion="user">
+        <App />
+      </MotionConfig>
     </React.StrictMode>
   );
 }

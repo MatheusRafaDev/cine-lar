@@ -3,7 +3,7 @@
 
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6.0.1-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-v22.13%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Samsung Tizen](https://img.shields.io/badge/Samsung-Tizen_TV-1428A0?style=for-the-badge&logo=samsung&logoColor=white)](https://developer.samsung.com/smarttv)
 [![WebTorrent](https://img.shields.io/badge/WebTorrent-2.5-E74C3C?style=for-the-badge&logo=bittorrent&logoColor=white)](https://webtorrent.io/)
 [![SQLite](https://img.shields.io/badge/SQLite-WAL_Engine-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
@@ -119,7 +119,7 @@ A interface conta com as seguintes seções estruturadas no Design System Cinela
 ## 5. Requisitos do Sistema
 
 - **Sistema Operacional:** Windows 10/11 (ou Linux/macOS com ajustes de caminhos).
-- **Node.js:** Versão 18.0.0 ou superior (Node.js 20 LTS recomendado).
+- **Node.js:** Versão 22.13.0 ou superior. O backend usa `node:sqlite` sem flags experimentais.
 - **FFmpeg e FFprobe (Opcional, mas Recomendado):**
   - Utilizado para detecção de codecs e remux MKV->MP4 sob demanda.
   - Reconhecido automaticamente em `C:\ffmpeg\bin\ffmpeg.exe` ou via `PATH` do sistema.
@@ -219,10 +219,17 @@ As configurações podem ser definidas no arquivo `torrent-service/.env` ou atra
 | `HOST` | `0.0.0.0` | Endereço de escuta da rede |
 | `SAVE_PATH` | `D:\Filmes` | Diretório raiz para varredura e download de mídias |
 | `TMDB_API_KEY` | *(opcional)* | Chave da API do TheMovieDB para capas e sinopses em PT-BR |
-| `MUTATION_API_TOKEN` | *(opcional)* | Token de segurança para operações de renomeação/exclusão |
-| `ALLOWED_MUTATION_ORIGINS`| *(opcional)* | Lista de origens permitidas para requisições de alteração |
+| `MUTATION_API_TOKEN` | *(obrigatório para escrita)* | Token exigido nas chamadas POST, PUT, PATCH e DELETE da API |
+| `ALLOWED_ORIGINS` | *(opcional)* | Origens CORS adicionais exatas, separadas por vírgula |
+| `ALLOWED_MUTATION_ORIGINS` | *(legado)* | Alias de `ALLOWED_ORIGINS`, mantido para compatibilidade |
 | `FFMPEG_PATH` | *(auto)* | Caminho customizado para o executável `ffmpeg.exe` |
 | `FFPROBE_PATH` | *(auto)* | Caminho customizado para o executável `ffprobe.exe` |
+
+Configure um token exclusivo em `torrent-service/.env` antes de usar operações de escrita. Por exemplo, gere um valor aleatório longo no PowerShell com `[guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N')` e atribua-o a `MUTATION_API_TOKEN`. Reinicie o servidor e informe o mesmo valor em **Configurações > Servidor & Rede > Token de acesso da API** na TV. Sem token no servidor, as rotas de escrita ficam desativadas; com token ausente ou incorreto no cliente, retornam `401`.
+
+Os corpos JSON recebidos pela API têm limite de `1 MiB`. Corpos acima do limite retornam `413 BODY_TOO_LARGE`, e JSON inválido retorna `400 INVALID_JSON`.
+
+Por padrão, o CORS só responde a origens listadas em `ALLOWED_ORIGINS` (ou na configuração antiga `ALLOWED_MUTATION_ORIGINS`). Para o Vite local, cujo `vite.config.js` usa a porta `3000`, inclua a origem exata usada no navegador, como `http://localhost:3000` ou `http://127.0.0.1:3000`. O app servido pelo próprio backend usa a mesma origem e não precisa dessa configuração. Só adicione `null` se um pacote instalado na TV realmente enviar essa origem: ela representa qualquer origem opaca do navegador e não identifica exclusivamente o app.
 
 ---
 

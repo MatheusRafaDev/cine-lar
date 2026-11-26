@@ -3,14 +3,35 @@ import { MovieCard } from './MovieCard';
 
 function CarouselRowComponent({
   title,
+  sectionId,
   movies = [],
   isRowFocused,
   focusedColIndex,
   onSelectMovie,
-  onContextMenuMovie
+  onContextMenuMovie,
+  onSeeMore,
+  hasSeeMore = true,
+  isSeries = false
 }) {
   const rowRef = useRef(null);
   const trackRef = useRef(null);
+  const seeMoreCardRef = useRef(null);
+  const isSeeMoreFocused = isRowFocused && hasSeeMore && focusedColIndex === movies.length;
+
+  // Quando o card "Ver Mais" ganha foco, rola suavemente para exibi-lo no carrossel
+  useEffect(() => {
+    if (isSeeMoreFocused && seeMoreCardRef.current) {
+      const el = seeMoreCardRef.current;
+      const track = el.parentElement;
+      if (track && track.classList.contains('tv-carousel-track')) {
+        const cardWidth = el.offsetWidth || 214;
+        const targetLeft = el.offsetLeft - (track.clientWidth / 2) + (cardWidth / 2);
+        track.scrollLeft = Math.max(0, targetLeft);
+      } else {
+        el.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      }
+    }
+  }, [isSeeMoreFocused]);
 
   // Callbacks estaveis: os pais passam funcoes inline (nova identidade a cada render),
   // o que forcava TODOS os cards da linha focada a re-renderizar a cada toque no controle.
@@ -115,6 +136,30 @@ function CarouselRowComponent({
               />
             );
           })}
+
+          {/* Card Especial de "Ver Mais" ao chegar no final da seção */}
+          {hasSeeMore && movies.length > 0 && (
+            <div
+              key="see-more"
+              ref={seeMoreCardRef}
+              className={`tv-card tv-see-more-card ${isSeeMoreFocused ? 'focused' : ''}`}
+              onClick={() => onSeeMore?.({ id: sectionId, title, movies, isSeries })}
+              tabIndex={-1}
+            >
+              <div className="tv-card-poster-wrap tv-see-more-poster-wrap">
+                <div className="tv-see-more-inner">
+                  <div className="tv-see-more-icon-box">
+                    <span className="material-icons">grid_view</span>
+                  </div>
+                  <span className="tv-see-more-title">Ver Mais</span>
+                  <span className="tv-see-more-subtitle">Explorar tudo</span>
+                </div>
+              </div>
+              <div className="tv-card-info" style={{ opacity: 0 }}>
+                <span className="tv-card-title">Ver Mais</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <button
@@ -134,7 +179,7 @@ function CarouselRowComponent({
 // Memorizacao de alta performance: linhas inativas nao sao recalculadas quando o usuario navega pelo controle
 export const CarouselRow = memo(CarouselRowComponent, (prevProps, nextProps) => {
   if (!prevProps.isRowFocused && !nextProps.isRowFocused) {
-    return prevProps.movies === nextProps.movies && prevProps.title === nextProps.title;
+    return prevProps.movies === nextProps.movies && prevProps.title === nextProps.title && prevProps.hasSeeMore === nextProps.hasSeeMore;
   }
   if (prevProps.isRowFocused !== nextProps.isRowFocused) {
     return false;
@@ -142,5 +187,5 @@ export const CarouselRow = memo(CarouselRowComponent, (prevProps, nextProps) => 
   if (prevProps.focusedColIndex !== nextProps.focusedColIndex) {
     return false;
   }
-  return prevProps.movies === nextProps.movies && prevProps.title === nextProps.title;
+  return prevProps.movies === nextProps.movies && prevProps.title === nextProps.title && prevProps.hasSeeMore === nextProps.hasSeeMore;
 });

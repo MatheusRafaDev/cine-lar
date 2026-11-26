@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { searchMovies, getTrendingMovies } from '../services/api';
 import { MovieCard } from '../components/MovieCard';
+import { ServerStatusPanel } from '../components/StatusStatePanel';
 
 export const KEYBOARD_ROWS = [
   ['A', 'B', 'C', 'D', 'E', 'F', 'G', '1', '2', '3'],
@@ -15,7 +16,9 @@ export function SearchView({
   searchColIndex,
   resultsColIndex,
   onSelectMovie,
-  searchActionRef
+  searchActionRef,
+  serverStatus = 'checking',
+  onRetryConnection
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -24,14 +27,23 @@ export function SearchView({
 
   // Carrega sugestões iniciais populares quando a tela abre
   useEffect(() => {
+    if (serverStatus !== 'online') {
+      setResults([]);
+      return;
+    }
     getTrendingMovies().then(movies => {
       if (movies && movies.length > 0) {
         setResults(movies.slice(0, 18));
       }
     });
-  }, []);
+  }, [serverStatus]);
 
   const performSearch = useCallback(async (q) => {
+    if (serverStatus !== 'online') {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
     if (!q || !q.trim()) {
       const trending = await getTrendingMovies();
       setResults(trending.slice(0, 18));
@@ -47,7 +59,7 @@ export function SearchView({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [serverStatus]);
 
   const handleKeyPress = useCallback((k) => {
     setQuery(prev => {
@@ -95,6 +107,8 @@ export function SearchView({
       };
     }
   }, [searchActionRef, handleKeyPress, results, onSelectMovie]);
+
+  useEffect(() => () => clearTimeout(debounceTimerRef.current), []);
 
   const isKeyboardFocused = activeZone === 'search-keyboard';
   const isResultsFocused = activeZone === 'search-results';
@@ -153,9 +167,21 @@ export function SearchView({
             <span className="tv-row-count">{results.length} títulos</span>
           </div>
 
-          {results.length === 0 ? (
+          {results.length === 0 && serverStatus !== 'online' ? (
+            <ServerStatusPanel
+              status={serverStatus}
+              title="Busca indisponível"
+              message="Conecte-se ao servidor para pesquisar filmes e séries."
+              onRetry={onRetryConnection}
+              isFocused={isResultsFocused && resultsColIndex === 0}
+            />
+          ) : results.length === 0 ? (
             <div className="tv-search-empty">
-              Nenhum filme ou série encontrado para esta pesquisa.
+              {loading
+                ? 'Buscando títulos…'
+                : query
+                  ? 'Nenhum filme ou série encontrado para esta pesquisa.'
+                  : 'Nenhuma sugestão disponível no momento.'}
             </div>
           ) : (
             <div className="tv-search-results-grid">
