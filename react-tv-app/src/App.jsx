@@ -1613,6 +1613,9 @@ export function App() {
     }
   });
 
+  const navRef = useRef(nav);
+  navRef.current = nav;
+
   const handleSelectTab = useCallback((tabId) => {
     if (serverStatus === 'offline' && tabId !== 'local' && tabId !== 'settings') {
       showToast('PC Desligado: Apenas Google Drive e Configurações disponíveis.');
@@ -1620,23 +1623,31 @@ export function App() {
     }
     setActiveTab(tabId);
     const idx = navItems.findIndex(i => i.id === tabId);
-    if (idx !== -1) nav.setHeaderIndex(idx);
-  }, [serverStatus, navItems, nav, showToast]);
+    if (idx !== -1 && navRef.current) {
+      navRef.current.setHeaderIndex(idx);
+    }
+  }, [serverStatus, navItems, showToast]);
 
-  // Quando o PC estiver offline, limita estritamente o app para o Google Drive
+  // Quando o PC estiver offline, limita estritamente o app para o Google Drive (executado uma única vez por transição)
+  const prevOfflineHandledRef = useRef(false);
   useEffect(() => {
     if (serverStatus === 'offline') {
-      if (activeTab !== 'local' && activeTab !== 'settings') {
-        setActiveTab('local');
-        setLocalFilterId('gdrive');
-        nav.setHeaderIndex(0);
-        showToast('PC Desligado: Modo Nuvem ativado (Apenas Google Drive)');
-      } else if (activeTab === 'local' && localFilterId !== 'gdrive') {
-        setLocalFilterId('gdrive');
+      if (!prevOfflineHandledRef.current) {
+        prevOfflineHandledRef.current = true;
+        if (activeTab !== 'local' && activeTab !== 'settings') {
+          setActiveTab('local');
+          setLocalFilterId('gdrive');
+          if (navRef.current) navRef.current.setHeaderIndex(0);
+          showToast('PC Desligado: Modo Nuvem ativado (Apenas Google Drive)');
+        } else if (activeTab === 'local' && localFilterId !== 'gdrive') {
+          setLocalFilterId('gdrive');
+        }
+        refreshDriveLibrary();
       }
-      refreshDriveLibrary();
+    } else if (serverStatus === 'online') {
+      prevOfflineHandledRef.current = false;
     }
-  }, [serverStatus, activeTab, localFilterId, refreshDriveLibrary, showToast, nav]);
+  }, [serverStatus, activeTab, localFilterId, refreshDriveLibrary, showToast]);
 
   const handleOpenSeeMore = useCallback((sec) => {
     if (!sec) return;
@@ -1646,10 +1657,12 @@ export function App() {
     // 1. Seção do Disco Local (PC / D:\Filmes): navega para a aba Local com filtro de Pasta Local
     if (secId === 'local-quick' || secId.includes('local') || title.includes('disco local') || title.includes('d:\\filmes') || title.includes('pasta local')) {
       setLocalFilterId('local-only');
-      nav.setLocalFilterIndex(0);
-      nav.setRowIndex(0);
-      nav.setColIndex(0);
-      nav.setActiveZone('rows');
+      if (navRef.current) {
+        navRef.current.setLocalFilterIndex(0);
+        navRef.current.setRowIndex(0);
+        navRef.current.setColIndex(0);
+        navRef.current.setActiveZone('rows');
+      }
       handleSelectTab('local');
       showToast('Exibindo filmes salvos no computador (D:\\Filmes)...');
       return;
@@ -1658,10 +1671,12 @@ export function App() {
     // 2. Seção do Google Drive (Nuvem): navega para a aba Local com filtro de Google Drive
     if (secId === 'drive-quick' || secId.includes('drive') || title.includes('google drive') || title.includes('nuvem')) {
       setLocalFilterId('gdrive');
-      nav.setLocalFilterIndex(1);
-      nav.setRowIndex(0);
-      nav.setColIndex(0);
-      nav.setActiveZone('rows');
+      if (navRef.current) {
+        navRef.current.setLocalFilterIndex(1);
+        navRef.current.setRowIndex(0);
+        navRef.current.setColIndex(0);
+        navRef.current.setActiveZone('rows');
+      }
       handleSelectTab('local');
       refreshDriveLibrary();
       showToast('Exibindo filmes da Nuvem (Google Drive)...');
@@ -1670,9 +1685,11 @@ export function App() {
 
     // 3. Minha Lista / Favoritos: navega para a aba de Favoritos
     if (secId === 'my-list' || secId === 'favorites' || title.includes('minha lista') || title.includes('favoritos')) {
-      nav.setRowIndex(0);
-      nav.setColIndex(0);
-      nav.setActiveZone('rows');
+      if (navRef.current) {
+        navRef.current.setRowIndex(0);
+        navRef.current.setColIndex(0);
+        navRef.current.setActiveZone('rows');
+      }
       handleSelectTab('favorites');
       return;
     }
@@ -1681,14 +1698,16 @@ export function App() {
     if (sec.isSeries || secId === 'series-popular' || secId.startsWith('series') || title.includes('série')) {
       handleSelectTab('series');
       const targetRow = seriesGenreSections.findIndex(s => s.id === sec.id || s.title?.toLowerCase() === sec.title?.toLowerCase());
-      if (targetRow !== -1) {
-        nav.setRowIndex(targetRow);
-        nav.setColIndex(0);
-      } else {
-        nav.setRowIndex(0);
-        nav.setColIndex(0);
+      if (navRef.current) {
+        if (targetRow !== -1) {
+          navRef.current.setRowIndex(targetRow);
+          navRef.current.setColIndex(0);
+        } else {
+          navRef.current.setRowIndex(0);
+          navRef.current.setColIndex(0);
+        }
+        navRef.current.setActiveZone('rows');
       }
-      nav.setActiveZone('rows');
       showToast(`Abrindo catálogo de séries: ${sec.title || ''}...`);
       return;
     }
@@ -1697,29 +1716,33 @@ export function App() {
     if (activeTab === 'home') {
       handleSelectTab('movies');
       const targetRow = genreSections.findIndex(s => s.id === sec.id || s.title?.toLowerCase() === sec.title?.toLowerCase());
-      if (targetRow !== -1) {
-        nav.setRowIndex(targetRow);
-        nav.setColIndex(0);
-      } else {
-        nav.setRowIndex(0);
-        nav.setColIndex(0);
+      if (navRef.current) {
+        if (targetRow !== -1) {
+          navRef.current.setRowIndex(targetRow);
+          navRef.current.setColIndex(0);
+        } else {
+          navRef.current.setRowIndex(0);
+          navRef.current.setColIndex(0);
+        }
+        navRef.current.setActiveZone('rows');
       }
-      nav.setActiveZone('rows');
       showToast(`Filtrando filmes por ${sec.title || 'categoria'}...`);
       return;
     }
 
     // 6. Se já estiver na aba de Filmes ou Séries: carrega mais filmes direto na fileira sem abrir modal!
     handleLoadMoreInRow(sec);
-  }, [genreSections, seriesGenreSections, activeTab, nav, handleLoadMoreInRow, refreshDriveLibrary, showToast]);
+  }, [genreSections, seriesGenreSections, activeTab, handleLoadMoreInRow, refreshDriveLibrary, showToast, handleSelectTab]);
 
   const handleNavigateToDriveSettings = useCallback(() => {
     handleSelectTab('settings');
-    nav.setRowIndex(1); // Categoria Google Drive
-    nav.setColIndex(0);
-    nav.setActiveZone('rows');
+    if (navRef.current) {
+      navRef.current.setRowIndex(1); // Categoria Google Drive
+      navRef.current.setColIndex(0);
+      navRef.current.setActiveZone('rows');
+    }
     showToast('Abrindo configurações da Nuvem Google Drive...');
-  }, [handleSelectTab, nav, showToast]);
+  }, [handleSelectTab, showToast]);
 
   // Enquanto o player fullscreen estiver aberto, a interface por baixo nao precisa ser pintada.
   // visibility (e nao display) preserva o layout e a posicao de rolagem ao voltar.
