@@ -147,16 +147,32 @@ function CarouselRowComponent({
               tabIndex={-1}
             >
               <div className="tv-card-poster-wrap tv-see-more-poster-wrap">
+                {/* Poster sutil desfocado temático da seção no fundo */}
+                {(movies[0]?.poster || movies[0]?.backdrop) && (
+                  <div
+                    className="tv-see-more-bg-poster"
+                    style={{ backgroundImage: `url(${movies[0]?.poster || movies[0]?.backdrop})` }}
+                  />
+                )}
+                <div className="tv-see-more-gradient-overlay" />
+
                 <div className="tv-see-more-inner">
                   <div className="tv-see-more-icon-box">
-                    <span className="material-icons">grid_view</span>
+                    <span className="material-icons">arrow_forward</span>
                   </div>
                   <span className="tv-see-more-title">Ver Mais</span>
-                  <span className="tv-see-more-subtitle">Explorar tudo</span>
+                  <span className="tv-see-more-subtitle">Explorar Seção</span>
+                  <div className="tv-see-more-badge">
+                    <span>{movies.length}+ {isSeries ? 'Séries' : 'Títulos'}</span>
+                    <span className="material-icons" style={{ fontSize: '13px' }}>chevron_right</span>
+                  </div>
                 </div>
               </div>
-              <div className="tv-card-info" style={{ opacity: 0 }}>
-                <span className="tv-card-title">Ver Mais</span>
+              <div className="tv-card-info">
+                <h4 className="tv-card-title" style={{ color: isSeeMoreFocused ? 'var(--focus-border)' : '#FFF' }}>
+                  {title || 'Ver Mais'}
+                </h4>
+                <span className="tv-card-meta">Explorar tudo</span>
               </div>
             </div>
           )}

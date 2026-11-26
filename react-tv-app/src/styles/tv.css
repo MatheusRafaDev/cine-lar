@@ -3424,22 +3424,48 @@ video::cue {
 }
 
 .tv-see-more-poster-wrap {
-  background: linear-gradient(135deg, rgba(30, 36, 56, 0.9) 0%, rgba(17, 20, 31, 0.95) 100%);
-  border: 1px dashed rgba(255, 255, 255, 0.22);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--tv-card-radius, 8px);
+  background: #0d111c;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: block;
+  border-radius: var(--tv-card-radius, 12px);
   position: relative;
   overflow: hidden;
   transition: all 0.22s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.tv-see-more-bg-poster {
+  position: absolute;
+  inset: -12px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(14px) brightness(0.2) saturate(1.4);
+  transform: scale(1.1);
+  transition: all 0.35s ease;
+  z-index: 0;
+}
+
+.tv-see-more-gradient-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(229, 160, 13, 0.08) 0%, rgba(10, 13, 20, 0.75) 60%, rgba(10, 13, 20, 0.96) 100%);
+  transition: background 0.25s ease;
+  z-index: 1;
 }
 
 .tv-card.tv-see-more-card.focused .tv-see-more-poster-wrap,
 .tv-card.tv-see-more-card:hover .tv-see-more-poster-wrap {
   border: 2px solid var(--focus-border, #E5A00D);
-  background: linear-gradient(135deg, rgba(229, 160, 13, 0.25) 0%, rgba(26, 32, 53, 0.95) 100%);
-  box-shadow: 0 0 24px rgba(229, 160, 13, 0.5), inset 0 0 16px rgba(229, 160, 13, 0.2);
+  box-shadow: 0 0 28px rgba(229, 160, 13, 0.55), inset 0 0 16px rgba(229, 160, 13, 0.2);
+}
+
+.tv-card.tv-see-more-card.focused .tv-see-more-bg-poster {
+  filter: blur(8px) brightness(0.32) saturate(1.6);
+  transform: scale(1.18);
+}
+
+.tv-card.tv-see-more-card.focused .tv-see-more-gradient-overlay {
+  background: radial-gradient(circle at 50% 45%, rgba(229, 160, 13, 0.25) 0%, rgba(10, 13, 20, 0.65) 60%, rgba(10, 13, 20, 0.92) 100%);
 }
 
 .tv-card.tv-see-more-card.focused {
@@ -3448,50 +3474,90 @@ video::cue {
 }
 
 .tv-see-more-inner {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 16px 12px;
+  padding: 18px 12px;
   gap: 8px;
+  box-sizing: border-box;
+  z-index: 2;
 }
 
 .tv-see-more-icon-box {
-  width: 52px;
-  height: 52px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
-  background: rgba(229, 160, 13, 0.18);
+  background: rgba(229, 160, 13, 0.16);
+  border: 2px solid rgba(229, 160, 13, 0.35);
   color: var(--focus-border, #E5A00D);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.22s ease, background 0.22s ease;
+  transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  margin-bottom: 2px;
 }
 
 .tv-see-more-icon-box .material-icons {
-  font-size: 28px;
+  font-size: 26px;
+  transition: transform 0.22s ease;
 }
 
 .tv-card.tv-see-more-card.focused .tv-see-more-icon-box {
-  transform: scale(1.15) rotate(90deg);
+  transform: scale(1.15);
   background: var(--focus-border, #E5A00D);
-  color: #000;
+  border-color: #FFFFFF;
+  color: #000000;
+  box-shadow: 0 0 22px rgba(229, 160, 13, 0.7);
+}
+
+.tv-card.tv-see-more-card.focused .tv-see-more-icon-box .material-icons {
+  transform: translateX(2px);
 }
 
 .tv-see-more-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
-  color: #FFF;
+  color: #FFFFFF;
   letter-spacing: 0.3px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 
 .tv-see-more-subtitle {
   font-size: 11px;
-  color: var(--text-muted, #94A3B8);
-  font-weight: 600;
+  color: #CBD5E1;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.8px;
+  opacity: 0.85;
+}
+
+.tv-see-more-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #F1F5F9;
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.22s ease;
+}
+
+.tv-card.tv-see-more-card.focused .tv-see-more-badge {
+  background: rgba(229, 160, 13, 0.25);
+  border-color: var(--focus-border, #E5A00D);
+  color: #FFF;
+  box-shadow: 0 2px 10px rgba(229, 160, 13, 0.35);
 }
 
 /* Modal Backdrop */
