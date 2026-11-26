@@ -101,13 +101,20 @@ export async function analyzeLibrary(basePath = 'D:\\Filmes') {
             let stat = null;
             try { stat = fs.statSync(fullPath); } catch {}
             if (stat && stat.size >= 120 * 1024 * 1024) {
-                const row = mediaMap.get(fullPath.toLowerCase());
-                let title = row?.title;
-                let year = row?.year;
-                if (!title) {
-                    const parsed = cleanMovieName(entry.name);
-                    title = parsed.title;
-                    year = parsed.year;
+                const alreadyParsed = entry.name.match(/^(.+?)\s*\((19\d\d|20\d\d)\)/);
+                let title, year;
+                if (alreadyParsed) {
+                    title = alreadyParsed[1].trim();
+                    year = parseInt(alreadyParsed[2]);
+                } else {
+                    const row = mediaMap.get(fullPath.toLowerCase());
+                    title = row?.title;
+                    year = row?.year;
+                    if (!title) {
+                        const parsed = cleanMovieName(entry.name);
+                        title = parsed.title;
+                        year = parsed.year;
+                    }
                 }
                 const cleanFolder = sanitizeFsName(year ? `${title} (${year})` : title);
                 const ext = path.extname(entry.name);
@@ -155,17 +162,22 @@ export async function analyzeLibrary(basePath = 'D:\\Filmes') {
             const subDirs = subEntries.filter(s => s.isDirectory() && !s.name.startsWith('.'));
             if (subDirs.length > 0 && /\b(trilogia|colecao|coleção|collection|saga|pack)\b/i.test(entry.name)) {
                 // Pasta de Franquia / Coleção
-                let cleanCollectionName = entry.name
-                    .replace(/\(?www\.[^\)\s]+\)?/gi, ' ')
-                    .replace(/\b[a-z0-9\-]+\.(com|net|org|tv|me)(\.br)?\b/gi, ' ')
-                    .replace(/\b(trilogia|colecao|coleção|collection|saga|pack)\s*/gi, '')
-                    .replace(/\b(19\d\d|20\d\d)\s*-\s*(19\d\d|20\d\d)/g, '')
-                    .replace(/\[[^\]]+\]/g, '')
-                    .replace(/\b(1080p|720p|4k|bluray|web-dl|dual|dublado).*/i, '')
-                    .replace(/\s+/g, ' ')
-                    .trim();
+                let targetCollectionFolder = null;
+                if (!entry.name.toLowerCase().endsWith(' - coleção')) {
+                    let cleanCollectionName = entry.name
+                        .replace(/\(?www\.[^\)\s]+\)?/gi, ' ')
+                        .replace(/\b[a-z0-9\-]+\.(com|net|org|tv|me)(\.br)?\b/gi, ' ')
+                        .replace(/\s*-\s*Coleção$/i, '')
+                        .replace(/\b(trilogia|colecao|coleção|collection|saga|pack)\s*/gi, '')
+                        .replace(/\b(19\d\d|20\d\d)\s*-\s*(19\d\d|20\d\d)/g, '')
+                        .replace(/\[[^\]]+\]/g, '')
+                        .replace(/\b(1080p|720p|4k|bluray|web-dl|dual|dublado).*/i, '')
+                        .replace(/\s+/g, ' ')
+                        .trim();
 
-                const targetCollectionFolder = sanitizeFsName(`${cleanCollectionName} - Coleção`);
+                    targetCollectionFolder = sanitizeFsName(`${cleanCollectionName} - Coleção`);
+                }
+
                 if (targetCollectionFolder && targetCollectionFolder.toLowerCase() !== entry.name.toLowerCase()) {
                     collectionRenames.push({
                         currentPath: fullPath,
@@ -184,13 +196,20 @@ export async function analyzeLibrary(basePath = 'D:\\Filmes') {
                     if (movieFiles.length === 1) {
                         const mFile = movieFiles[0];
                         const fullVideo = path.join(subDirPath, mFile.name);
-                        const row = mediaMap.get(fullVideo.toLowerCase());
-                        let title = row?.title;
-                        let year = row?.year;
-                        if (!title) {
-                            const parsed = cleanMovieName(subDir.name);
-                            title = parsed.title;
-                            year = parsed.year;
+                        const alreadySubFormatted = subDir.name.match(/^(.+?)\s*\((19\d\d|20\d\d)\)$/);
+                        let title, year;
+                        if (alreadySubFormatted) {
+                            title = alreadySubFormatted[1].trim();
+                            year = parseInt(alreadySubFormatted[2]);
+                        } else {
+                            const row = mediaMap.get(fullVideo.toLowerCase());
+                            title = row?.title;
+                            year = row?.year;
+                            if (!title) {
+                                const parsed = cleanMovieName(subDir.name);
+                                title = parsed.title;
+                                year = parsed.year;
+                            }
                         }
                         const cleanSubFolder = sanitizeFsName(year ? `${title} (${year})` : title);
                         const ext = path.extname(mFile.name);
@@ -224,13 +243,20 @@ export async function analyzeLibrary(basePath = 'D:\\Filmes') {
             if (videoFiles.length === 1) {
                 const vf = videoFiles[0];
                 const fullVideo = path.join(fullPath, vf.name);
-                const row = mediaMap.get(fullVideo.toLowerCase());
-                let title = row?.title;
-                let year = row?.year;
-                if (!title) {
-                    const parsed = cleanMovieName(entry.name);
-                    title = parsed.title;
-                    year = parsed.year;
+                const alreadyFormatted = entry.name.match(/^(.+?)\s*\((19\d\d|20\d\d)\)$/);
+                let title, year;
+                if (alreadyFormatted) {
+                    title = alreadyFormatted[1].trim();
+                    year = parseInt(alreadyFormatted[2]);
+                } else {
+                    const row = mediaMap.get(fullVideo.toLowerCase());
+                    title = row?.title;
+                    year = row?.year;
+                    if (!title) {
+                        const parsed = cleanMovieName(entry.name);
+                        title = parsed.title;
+                        year = parsed.year;
+                    }
                 }
 
                 const cleanFolder = sanitizeFsName(year ? `${title} (${year})` : title);
