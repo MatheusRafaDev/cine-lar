@@ -353,41 +353,7 @@ export function SettingsView({
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(255, 255, 255, 0.04)', padding: '20px', borderRadius: '14px', marginBottom: '20px' }}>
-                <label htmlFor="server-api-token" style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#FFFFFF', marginBottom: '8px' }}>
-                  Token de acesso da API
-                </label>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
-                  Digite o mesmo valor de MUTATION_API_TOKEN configurado no .env do servidor. O token fica salvo neste dispositivo.
-                </p>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <input
-                    id="server-api-token"
-                    type="password"
-                    autoComplete="off"
-                    value={apiToken}
-                    onChange={e => setApiToken(e.target.value)}
-                    placeholder="Token configurado no computador"
-                    style={{
-                      flex: 1,
-                      padding: '12px 16px',
-                      background: 'rgba(0, 0, 0, 0.5)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: '10px',
-                      color: '#FFF',
-                      fontSize: '14px'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="tv-btn tv-btn-primary"
-                    onClick={handleSaveApiToken}
-                    style={{ padding: '12px 20px', borderRadius: '10px', fontWeight: 700 }}
-                  >
-                    Salvar token
-                  </button>
-                </div>
-              </div>
+
 
               {/* Re-escanear Biblioteca */}
               <div style={{ background: 'rgba(255, 255, 255, 0.04)', padding: '20px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

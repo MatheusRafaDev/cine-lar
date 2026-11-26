@@ -117,13 +117,9 @@ function isAllowedMediaPath(targetPath) {
 }
 
 function requireConfiguredMutationToken(req, res) {
+    // Se não houver MUTATION_API_TOKEN no .env, permite operações na rede local sem exigir token
     if (!MUTATION_API_TOKEN) {
-        res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({
-            error: 'As operações de escrita estão desativadas: configure MUTATION_API_TOKEN no arquivo .env do servidor.',
-            code: 'MUTATION_AUTH_NOT_CONFIGURED'
-        }));
-        return true;
+        return false;
     }
 
     const headerToken = typeof req.headers['x-api-token'] === 'string' ? req.headers['x-api-token'].trim() : '';
