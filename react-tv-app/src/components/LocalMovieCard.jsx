@@ -181,9 +181,7 @@ function LocalMovieCardComponent({ movie, isFocused, onSelect, onClick, onContex
           );
         })()}
 
-        <div className="tv-card-badge-quality">
-          {quality}
-        </div>
+
 
         {/* Barra de Progresso quando há reprodução iniciada */}
         {progress !== null && progress > 0 && (
