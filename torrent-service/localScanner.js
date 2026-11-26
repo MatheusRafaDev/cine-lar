@@ -194,6 +194,10 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
         // 1. Processa vídeos encontrados no diretório atual
         if (videoFiles.length > 0) {
             for (const vf of videoFiles) {
+                // Ignora amostras, trailers, teasers e extras
+                if (/\b(sample|trailer|teaser|featurette)\b/i.test(vf.name)) {
+                    continue;
+                }
                 const fullVideo = path.join(dir, vf.name);
                 const resolvedVideo = path.resolve(fullVideo).toLowerCase();
                 if (downloadingPaths && downloadingPaths.some(dp => resolvedVideo.startsWith(dp))) {
@@ -205,31 +209,44 @@ function collectLocalVideos(dir, maxDepth = 4, currentDepth = 0, downloadingPath
                 try {
                     stat = fs.statSync(fullVideo);
                 } catch {}
-                if (stat) {
-                    let folderName = path.basename(dir);
-                    const parentDir = path.basename(path.dirname(dir));
-                    const isGenericFolder = /^(filmes|matheusflix|cinelar|downloads|videos|movies|depois do filme|bonus|bônus|extras|curtas)$/i.test(folderName) ||
-                        /\b(trilogia|colecao|coleção|collection|saga|pack)\b/i.test(folderName);
-                    if (isGenericFolder || currentDepth === 0 || videoFiles.length > 1) {
-                        folderName = vf.name.replace(/\.[^.]+$/, '');
-                    } else if (/^(temporada|season|s\d+)/i.test(folderName) && parentDir && !/^(series|filmes|matheusflix|cinelar)$/i.test(parentDir)) {
-                        folderName = `${parentDir} ${folderName}`;
-                    }
-                    items.push({
-                        videoFile: fullVideo,
-                        srtFile: srt ? path.join(dir, srt.name) : null,
-                        folderName,
-                        fileName: vf.name,
-                        stat
-                    });
+                // Arquivos menores que 120MB não são filmes completos (a menos que seja episódio de série s01e01)
+                if (!stat || (stat.size < 120 * 1024 * 1024 && !/s\d+e\d+/i.test(vf.name))) {
+                    continue;
                 }
+                let folderName = path.basename(dir);
+                const parentDir = path.basename(path.dirname(dir));
+                const isGenericFolder = /^(filmes|matheusflix|cinelar|downloads|videos|movies|depois do filme|bonus|bônus|extras|curtas)$/i.test(folderName) ||
+                    /\b(trilogia|colecao|coleção|collection|saga|pack)\b/i.test(folderName);
+                if (isGenericFolder || currentDepth === 0 || videoFiles.length > 1) {
+                    folderName = vf.name.replace(/\.[^.]+$/, '');
+                } else if (/^(temporada|season|s\d+)/i.test(folderName) && parentDir && !/^(series|filmes|matheusflix|cinelar)$/i.test(parentDir)) {
+                    folderName = `${parentDir} ${folderName}`;
+                }
+                items.push({
+                    videoFile: fullVideo,
+                    srtFile: srt ? path.join(dir, srt.name) : null,
+                    folderName,
+                    fileName: vf.name,
+                    stat
+                });
             }
         }
 
-        // 2. Sempre pesquisa subdiretórios recursivamente até o limite de profundidade (ignorando pastas ocultas como .tmp.driveupload e lixeiras)
-        const subDirs = entries.filter(e => e.isDirectory() && !e.name.startsWith('.') && !e.name.startsWith('$'));
+        // 2. Sempre pesquisa subdiretórios recursivamente até o limite de profundidade (ignorando pastas de extras, bonus, amostras e lixeiras)
+        const isExcludedFolder = (folderName) => {
+            return /^(depois do filme|bonus|bônus|extras|featurettes|sample|samples|curtas|cortos|behind the scenes|featurette)$/i.test(folderName);
+        };
+        const subDirs = entries.filter(e => {
+            if (!e.isDirectory() && !e.isSymbolicLink()) return false;
+            if (e.name.startsWith('.') || e.name.startsWith('$')) return false;
+            if (isExcludedFolder(e.name)) return false;
+            return true;
+        });
         for (const sd of subDirs) {
             const fullSub = path.join(dir, sd.name);
+            let exists = false;
+            try { exists = fs.existsSync(fullSub); } catch {}
+            if (!exists) continue; // ignora junctions/symlinks quebrados
             const resolvedSub = path.resolve(fullSub).toLowerCase();
             if (downloadingPaths && downloadingPaths.some(dp => resolvedSub.startsWith(dp))) {
                 continue;
@@ -260,7 +277,7 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
             }
 
             const db = getDb();
-            const results = [];
+            let results = [];
             const usedIds = new Set();
             const makeUniqueId = (baseId, fallbackPath) => {
                 let candidate = baseId || `local_${encodeURIComponent(fallbackPath)}`;
@@ -366,45 +383,56 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                                 if (yearMatch) match = yearMatch;
                             }
 
-                            let titleBr = '';
-                            let descBr = '';
-                            if (match.imdb_id) {
-                                try {
-                                    const existingRow = db.prepare('SELECT title, description FROM movies WHERE imdb_id = ?').get(match.imdb_id);
-                                    if (existingRow && existingRow.title) {
-                                        titleBr = existingRow.title;
-                                        descBr = existingRow.description;
-                                    }
-                                } catch (e) {}
-                            }
-                            if (!titleBr && match.imdb_id) {
-                                try {
-                                    const tmdb = await fetchPtBrMetadata(match.imdb_id);
-                                    if (tmdb?.titleBr) {
-                                        titleBr = tmdb.titleBr;
-                                        descBr = tmdb.overviewBr;
-                                    }
-                                } catch (e) {}
+                            // Validação de similaridade entre o arquivo e o retorno do Cinemeta (evita falsos positivos em arquivos avulsos)
+                            const normWords = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length >= 3);
+                            const qWords = normWords(searchTitle);
+                            const mWords = normWords((match?.name || '') + ' ' + (match?.title || ''));
+                            const hasCommon = qWords.some(w => mWords.includes(w));
+                            if (!hasCommon) {
+                                match = null;
                             }
 
-                            const finalTitle = titleBr || cleanName || match.name;
-                            match.title = finalTitle;
-                            match.original_title = match.name;
-                            match.is_local = 1;
-                            if (descBr) match.description = descBr;
-                            upsertMovie(match);
+                            if (match) {
+                                let titleBr = '';
+                                let descBr = '';
+                                if (match.imdb_id) {
+                                    try {
+                                        const existingRow = db.prepare('SELECT title, description FROM movies WHERE imdb_id = ?').get(match.imdb_id);
+                                        if (existingRow && existingRow.title) {
+                                            titleBr = existingRow.title;
+                                            descBr = existingRow.description;
+                                        }
+                                    } catch (e) {}
+                                }
+                                if (!titleBr && match.imdb_id) {
+                                    try {
+                                        const tmdb = await fetchPtBrMetadata(match.imdb_id);
+                                        if (tmdb?.titleBr) {
+                                            titleBr = tmdb.titleBr;
+                                            descBr = tmdb.overviewBr;
+                                        }
+                                    } catch (e) {}
+                                }
 
-                            movieData = {
-                                imdb_id: match.imdb_id,
-                                title: finalTitle,
-                                original_title: match.name,
-                                year: parseInt(match.releaseInfo || match.year, 10) || detectedYear,
-                                genres: translateGenres(match.genres),
-                                rating: parseFloat(match.imdbRating) || 8.0,
-                                poster: match.poster || '',
-                                backdrop: match.background || match.backdrop || '',
-                                description: descBr || match.description || 'Filme salvo na sua biblioteca local.'
-                            };
+                                const finalTitle = titleBr || cleanName || match.name;
+                                match.title = finalTitle;
+                                match.original_title = match.name;
+                                match.is_local = 1;
+                                if (descBr) match.description = descBr;
+                                upsertMovie(match);
+
+                                movieData = {
+                                    imdb_id: match.imdb_id,
+                                    title: finalTitle,
+                                    original_title: match.name,
+                                    year: parseInt(match.releaseInfo || match.year, 10) || detectedYear,
+                                    genres: translateGenres(match.genres),
+                                    rating: parseFloat(match.imdbRating) || 8.0,
+                                    poster: match.poster || '',
+                                    backdrop: match.background || match.backdrop || '',
+                                    description: descBr || match.description || 'Filme salvo na sua biblioteca local.'
+                                };
+                            }
                         }
                     } catch (err) {}
                 }
@@ -538,8 +566,11 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
         }
 
         try {
-            pruneDeletedLocalMedia(collected.map(c => c.videoFile));
+            pruneDeletedLocalMedia(collected.map(c => c.videoFile), savePath);
         } catch (_) {}
+
+            // Garante que apenas arquivos que realmente existem no disco físico sejam retornados
+            results = results.filter(m => m.filePath && fs.existsSync(m.filePath));
 
             // Sort alphabetically by title
             results.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));

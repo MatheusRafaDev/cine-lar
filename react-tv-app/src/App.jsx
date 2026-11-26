@@ -163,8 +163,8 @@ export function App() {
     }).catch(() => {});
   }, []);
 
-  const refreshLocalLibrary = useCallback(() => {
-    getLocalLibraryData().then(data => {
+  const refreshLocalLibrary = useCallback((force = false) => {
+    getLocalLibraryData(force).then(data => {
       const isNotDeleted = (m) => {
         const mp = String(m?.filePath || m?.videoPath || '').toLowerCase().trim();
         return !mp || !deletedLocalPathsRef.current.has(mp);
@@ -230,7 +230,7 @@ export function App() {
   // Inicialização leve da Home: valida conexão antes de buscar o catálogo.
   useEffect(() => {
     refreshUserData();
-    refreshLocalLibrary();
+    refreshLocalLibrary(true);
     let cancelled = false;
     getServerStatus().then(async isOnline => {
       if (cancelled) return;
@@ -650,10 +650,10 @@ export function App() {
     const addTitleKeys = (rawTitle, info) => {
       if (!rawTitle) return;
       const k = normalizeKey(rawTitle);
-      if (k) {
+      if (k && k.length >= 3) {
         map.set(`title:${k}`, info);
         const withoutYear = stripYear(k);
-        if (withoutYear && withoutYear !== k) {
+        if (withoutYear && withoutYear !== k && withoutYear.length >= 3) {
           map.set(`title:${withoutYear}`, info);
         }
       }
@@ -707,9 +707,11 @@ export function App() {
       addTitleKeys(m.originalTitle, info);
     });
 
-    // 3. Downloads concluídos (100%)
+    // 3. Downloads concluídos (100% gravado e finalizado)
     (downloads || []).forEach(d => {
-      if (!d || (d.status !== 'completed' && d.stage !== 'completed' && parseFloat(d.progress) < 100)) return;
+      if (!d) return;
+      const isComplete = d.status === 'completed' || d.stage === 'completed' || (typeof d.progress === 'number' && d.progress >= 100);
+      if (!isComplete) return;
       const isDrive = d.destination === 'drive' || String(d.savePath || '').toLowerCase().startsWith('g:');
       const info = {
         isLocal: true,
@@ -767,7 +769,7 @@ export function App() {
       for (const cand of checkCandidates) {
         if (!cand) continue;
         const k = normalizeKey(cand);
-        if (!k) continue;
+        if (!k || k.length < 3) continue;
         matched = localMatchMap.get(`title:${k}`) || localMatchMap.get(`title:${stripYear(k)}`);
         if (matched) break;
       }

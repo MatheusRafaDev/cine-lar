@@ -623,15 +623,24 @@ export function upsertLocalMedia(item) {
     );
 }
 
-export function pruneDeletedLocalMedia(existingFilePaths = []) {
-    if (!existingFilePaths || existingFilePaths.length === 0) return;
+export function pruneDeletedLocalMedia(existingFilePaths = [], savePath = null) {
     const database = getDb();
     const rows = database.prepare('SELECT file_path FROM local_media').all();
-    const existingSet = new Set(existingFilePaths.map(p => p.toLowerCase()));
+    const existingSet = new Set((existingFilePaths || []).map(p => p.toLowerCase()));
+    const normSave = savePath ? path.resolve(savePath).toLowerCase() : null;
     const delStmt = database.prepare('DELETE FROM local_media WHERE file_path = ?');
     for (const row of rows) {
-        if (!existingSet.has(row.file_path.toLowerCase())) {
+        const rowPath = String(row.file_path || '').toLowerCase();
+        // Se o arquivo não existir fisicamente no disco, remove imediatamente do banco
+        if (!fs.existsSync(row.file_path)) {
             delStmt.run(row.file_path);
+            continue;
+        }
+        // Se for passado savePath, remove itens que estavam naquela pasta mas não foram mais encontrados
+        if (normSave && (rowPath.startsWith(normSave + path.sep) || rowPath === normSave)) {
+            if (!existingSet.has(rowPath)) {
+                delStmt.run(row.file_path);
+            }
         }
     }
 }

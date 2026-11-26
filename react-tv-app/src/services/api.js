@@ -376,9 +376,9 @@ export function prefetchCatalogs() {
 }
 
 // 4. Obter filmes locais da pasta D:\Filmes
-export async function getLocalMovies() {
+export async function getLocalMovies(force = false) {
   try {
-    const data = await request('/api/local-movies');
+    const data = await request(`/api/local-movies${force ? '?force=true' : ''}`);
     const list = data.movies || [];
     return list.map(normalizeMovie);
   } catch (_) {
@@ -419,9 +419,9 @@ export function extractYearFromName(raw) {
 }
 
 // 4.1 Obter biblioteca local completa com franquias e filmes avulsos estruturados (com persistência offline no localStorage)
-export async function getLocalLibraryData() {
+export async function getLocalLibraryData(force = false) {
   try {
-    const data = await request('/api/local-movies');
+    const data = await request(`/api/local-movies${force ? '?force=true' : ''}`);
     const movies = (data.movies || []).map(normalizeMovie);
     const franchises = (data.franchises || []).map(f => ({
       ...f,

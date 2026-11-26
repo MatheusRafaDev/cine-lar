@@ -2045,6 +2045,12 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
+                // Filtro de integridade estrita: só retorna filmes cujos arquivos realmente existem no disco
+                movies = movies.filter(m => {
+                    const p = m.filePath || m.videoPath;
+                    return p && fs.existsSync(p);
+                });
+
                 const totalBytes = movies.reduce((acc, m) => acc + (m.sizeBytes || 0), 0);
                 const grouped = groupMediaLibrary(movies);
 
@@ -2078,6 +2084,10 @@ const server = http.createServer(async (req, res) => {
                 const isRealDrive = cinelarPath && (cinelarPath.toLowerCase().startsWith('g:\\') || cinelarPath.toLowerCase().includes('meu drive'));
                 if (isRealDrive && fs.existsSync(cinelarPath)) {
                     movies = await getLocalLibrary(cinelarPath, false, getActiveDownloadingPaths());
+                    movies = movies.filter(m => {
+                        const p = m.filePath || m.videoPath;
+                        return p && fs.existsSync(p);
+                    });
                 }
                 const cloudMovies = movies.map(m => ({
                     ...m,
