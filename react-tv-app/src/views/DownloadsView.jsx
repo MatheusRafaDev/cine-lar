@@ -14,6 +14,7 @@ export function DownloadsView({
   onPauseDownload,
   onResumeDownload,
   onCancelDownload,
+  onSwitchDestination,
   onContextMenu
 }) {
   const isListFocused = activeZone === 'rows';
@@ -277,7 +278,7 @@ export function DownloadsView({
                       {(() => {
                         const targetPath = String(item.destinationPath || item.savePath || '').toLowerCase();
                         const isLocalDisk = targetPath.startsWith('d:\\') || targetPath.startsWith('d:/') || targetPath.startsWith('c:\\') || targetPath.startsWith('c:/');
-                        const isDrive = !isLocalDisk && (item.destination === 'drive' || targetPath.startsWith('g:\\') || targetPath.startsWith('g:/') || targetPath.includes('meu drive'));
+                        const isDrive = !isLocalDisk && (item.destination === 'drive' || targetPath.startsWith('g:\\') || targetPath.startsWith('g:/') || targetPath.includes('meu drive') || targetPath.includes('cinelar'));
                         return (
                           <span
                             className="tv-badge-pill"
@@ -313,7 +314,20 @@ export function DownloadsView({
                          stage === 'completed' ? 'check_circle' : 'cloud_download'}
                       </span>
                       <span>
-                        {item.stageMessage || (isDone ? 'Download concluído e gravado no disco.' : isPaused ? 'Download pausado. Clique em Retomar quando quiser continuar.' : isError ? (item.errorMessage || 'Falha no download.') : 'Baixando...')}
+                        {(() => {
+                          const targetPath = String(item.destinationPath || item.savePath || '').toLowerCase();
+                          const isLocalDisk = targetPath.startsWith('d:\\') || targetPath.startsWith('d:/') || targetPath.startsWith('c:\\') || targetPath.startsWith('c:/');
+                          const isDrive = !isLocalDisk && (item.destination === 'drive' || targetPath.startsWith('g:\\') || targetPath.startsWith('g:/') || targetPath.includes('meu drive') || targetPath.includes('cinelar'));
+                          if (isError) {
+                            if (isDrive && (item.errorMessage?.includes('insuficiente') || item.errorMessage?.includes('Drive') || item.errorMessage?.includes('Google') || item.errorMessage?.includes('espaço') || item.errorMessage?.includes('space'))) {
+                              const driveFree = storage?.drive?.freeGB !== null && storage?.drive?.freeGB !== undefined ? `${storage.drive.freeGB} GB` : '0.5 GB';
+                              const pcFree = storage?.freeSpaceGB || storage?.local?.freeGB || 266;
+                              return `Espaço insuficiente no Google Drive (apenas ${driveFree} livres). Clique em "Baixar no PC" para usar os ${pcFree} GB livres do computador.`;
+                            }
+                            return item.errorMessage || item.stageMessage || 'Falha no download.';
+                          }
+                          return item.stageMessage || (isDone ? 'Download concluído e gravado no disco.' : isPaused ? 'Download pausado. Clique em Retomar quando quiser continuar.' : 'Baixando...');
+                        })()}
                       </span>
                     </div>
                   </div>
@@ -380,8 +394,22 @@ export function DownloadsView({
                     <span>{isDone ? 'Assistir' : 'Assistir Agora'}</span>
                   </button>
 
-                  {/* Botão 2: Pausar / Retomar (apenas se não estiver concluído) */}
-                  {!isDone && (
+                  {/* Botão 2: Se for erro no Drive por falta de espaço, oferece Baixar no PC diretamente */}
+                  {!isDone && isDrive && isError ? (
+                    <button
+                      type="button"
+                      className={`tv-btn tv-btn-primary tv-download-btn ${isItemFocused && actionIndex === 1 ? 'focused' : ''}`}
+                      style={{ background: '#10b981', borderColor: '#059669', color: '#fff' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSwitchDestination?.(item, 'local');
+                      }}
+                      title="Mudar destino e baixar no PC (D:\Filmes)"
+                    >
+                      <span className="material-icons" style={{ fontSize: '18px' }}>folder</span>
+                      <span>Baixar no PC (D:)</span>
+                    </button>
+                  ) : !isDone ? (
                     <button
                       type="button"
                       className={`tv-btn tv-btn-secondary tv-download-btn ${isItemFocused && actionIndex === 1 ? 'focused' : ''}`}
@@ -393,7 +421,7 @@ export function DownloadsView({
                       </span>
                       <span>{isPaused ? 'Retomar' : 'Pausar'}</span>
                     </button>
-                  )}
+                  ) : null}
 
                   {/* Botão 3: Excluir / Cancelar (Ação Instantânea) */}
                   <button

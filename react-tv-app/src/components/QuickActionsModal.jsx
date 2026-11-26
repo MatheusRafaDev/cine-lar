@@ -128,6 +128,16 @@ export const QuickActionsModal = memo(function QuickActionsModal({
         subtitle: isDlPaused ? 'Retomar transferência dos arquivos no computador' : 'Pausar download temporariamente para liberar internet',
         icon: isDlPaused ? 'play_arrow' : 'pause'
       });
+
+      const isDriveDownload = movie.destination === 'drive' || String(movie.destinationPath || movie.savePath || '').toLowerCase().startsWith('g:');
+      if (isDriveDownload) {
+        actions.push({
+          id: 'switch_to_local',
+          title: 'Mudar para Pasta Local (PC)',
+          subtitle: 'Transferir download para D:\\Filmes (266+ GB Livres)',
+          icon: 'folder'
+        });
+      }
     }
 
     // 3. Ver Detalhes

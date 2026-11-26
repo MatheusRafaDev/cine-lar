@@ -27,6 +27,7 @@ import {
   startDownload,
   pauseDownload,
   resumeDownload,
+  switchDownloadDestination,
   getWatchHistory,
   syncWatchHistoryWithServer,
   getSavedProgress,
@@ -1047,6 +1048,20 @@ export function App() {
     refreshDownloadsInfo();
   }, [refreshDownloadsInfo, showToast]);
 
+  const handleSwitchDownloadDestination = useCallback(async (item, newDestination = 'local') => {
+    const id = item.infoHash || item.id;
+    if (!id) return;
+    const destName = newDestination === 'drive' ? 'Google Drive' : 'Pasta Local (D:\\Filmes)';
+    showToast(`Alterando destino de "${item.title || 'Filme'}" para ${destName}...`);
+    const result = await switchDownloadDestination(id, newDestination);
+    if (!result || result.success === false) {
+      showToast(result?.error || 'Não foi possível alterar o destino.');
+      return;
+    }
+    showToast(`Destino alterado para ${destName}. Download iniciado!`);
+    refreshDownloadsInfo();
+  }, [refreshDownloadsInfo, showToast]);
+
   const findMatchingLocalMovie = useCallback((target) => {
     if (!target || !localMovies || localMovies.length === 0) return null;
     const tPath = String(target.filePath || target.videoPath || '').toLowerCase().trim();
@@ -1269,6 +1284,11 @@ export function App() {
       case 'delete_download':
         setQuickMenuMovie(null);
         handleCancelDownload(target, true);
+        break;
+
+      case 'switch_to_local':
+        setQuickMenuMovie(null);
+        handleSwitchDownloadDestination(target, 'local');
         break;
 
       case 'favorite': {
@@ -1767,6 +1787,7 @@ export function App() {
                 onPauseDownload={handlePauseDownload}
                 onResumeDownload={handleResumeDownload}
                 onCancelDownload={handleCancelDownload}
+                onSwitchDestination={handleSwitchDownloadDestination}
                 onContextMenu={handleOpenQuickMenuForMovie}
               />
             </motion.div>
@@ -1822,6 +1843,7 @@ export function App() {
           <MovieDetailsModal
             key={selectedMovie.id || selectedMovie.imdbId || 'movie-modal'}
             movie={selectedMovie}
+            storage={downloadsStorage}
             isZoneFocused={nav.activeZone === 'modal'}
             focusedIndex={nav.modalIndex}
             modalActionRef={modalActionRef}

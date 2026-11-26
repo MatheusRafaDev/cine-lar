@@ -642,7 +642,14 @@ function attachPermanentTorrentHandlers(torrent, infoHash) {
             item.status = 'error';
             item.error = err.message;
             if (err.message?.includes('ENOSPC') || err.code === 'ENOSPC' || err.message?.toLowerCase().includes('space')) {
-                item.errorMessage = 'Espaço em disco insuficiente no destino selecionado.';
+                const targetPath = String(item.destinationPath || item.savePath || '').toLowerCase();
+                const isLocalDisk = targetPath.startsWith('d:\\') || targetPath.startsWith('d:/') || targetPath.startsWith('c:\\') || targetPath.startsWith('c:/');
+                const isDrive = !isLocalDisk && (item.destination === 'drive' || targetPath.startsWith('g:\\') || targetPath.startsWith('g:/') || targetPath.includes('meu drive') || targetPath.includes('cinelar'));
+                if (isDrive) {
+                    item.errorMessage = 'Espaço insuficiente no Google Drive (G:). Mude o destino para a Pasta Local (D:).';
+                } else {
+                    item.errorMessage = 'Espaço em disco insuficiente no destino selecionado.';
+                }
             } else {
                 item.errorMessage = `Erro de transferência: ${err.message}`;
             }
@@ -2970,7 +2977,20 @@ const server = http.createServer(async (req, res) => {
                         streamIdleTimers.delete(infoHash);
                     }
 
-                    const isDriveTarget = data.destination === 'drive' || data.destination === 'gdrive';
+                    let isDriveTarget = data.destination === 'drive' || data.destination === 'gdrive';
+                    if (isDriveTarget) {
+                        let driveFreeGB = null;
+                        try {
+                            if (PLATFORM_DOWNLOAD_PATH && fs.existsSync(PLATFORM_DOWNLOAD_PATH)) {
+                                const st = fs.statfsSync(PLATFORM_DOWNLOAD_PATH);
+                                driveFreeGB = (st.bfree * st.bsize) / (1024 ** 3);
+                            }
+                        } catch (_) {}
+                        if (driveFreeGB !== null && driveFreeGB < 1.5 && !data.forceDrive) {
+                            console.warn(`[TorrentService] Espaço insuficiente no Google Drive (${driveFreeGB.toFixed(1)} GB livres). Redirecionando download para Pasta Local (D:\\Filmes)...`);
+                            isDriveTarget = false;
+                        }
+                    }
                     const baseFolder = isDriveTarget ? PLATFORM_DOWNLOAD_PATH : SAVE_PATH;
                     const org = getOrganizedDownloadPath(baseFolder, title, filename, { isSeries, seriesName, season, episode });
                     try {
@@ -3083,11 +3103,113 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        // Switch download destination (e.g. migrate from Google Drive to local PC or vice-versa)
+        if (pathname.startsWith('/api/downloads/') && pathname.endsWith('/switch-destination') && req.method === 'POST') {
+            const id = pathname.replace('/api/downloads/', '').replace('/switch-destination', '').trim().toLowerCase();
+            readJsonBody(req, res).then(async body => {
+                if (body === BODY_READ_FAILED) return;
+                const targetDest = (body?.destination === 'drive' || body?.destination === 'gdrive') ? 'drive' : 'local';
+                const meta = downloadsRegistry.get(id);
+                if (!meta) {
+                    res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ success: false, error: 'Download não encontrado' }));
+                    return;
+                }
+
+                // Destrói instância do torrent atual se estiver ativa
+                const existingTorrent = getActiveTorrent(id);
+                if (existingTorrent) {
+                    try {
+                        existingTorrent.destroy();
+                    } catch (_) {}
+                }
+
+                const isDriveTarget = targetDest === 'drive';
+                const baseFolder = isDriveTarget ? PLATFORM_DOWNLOAD_PATH : SAVE_PATH;
+                const org = getOrganizedDownloadPath(baseFolder, meta.title, meta.filename, {
+                    isSeries: meta.isSeries,
+                    seriesName: meta.seriesName,
+                    season: meta.season,
+                    episode: meta.episode
+                });
+
+                try {
+                    if (!fs.existsSync(org.targetPath)) {
+                        fs.mkdirSync(org.targetPath, { recursive: true });
+                    }
+                } catch (e) {
+                    console.warn('[TorrentService] Could not create target directory:', e.message);
+                }
+
+                meta.destination = isDriveTarget ? 'drive' : 'local';
+                meta.destinationPath = org.displayPath;
+                meta.savePath = org.targetPath;
+                meta.saveLocation = isDriveTarget ? 'Google Drive (G:\\Meu Drive\\cinelar)' : 'Pasta Local (D:\\Filmes)';
+                meta.status = 'downloading';
+                meta.isPaused = false;
+                meta.errorMessage = null;
+                meta.error = null;
+
+                if (meta.magnet) {
+                    try {
+                        const torrent = client.add(meta.magnet, { path: org.targetPath }, (t) => {
+                            console.log(`[TorrentService] Torrent iniciado no novo destino (${targetDest}): "${t.name}" em ${org.targetPath}`);
+                            const video = selectBestVideoFile(t.files);
+                            if (video) prioritizeVideoForStreaming(t, video);
+                        });
+                        attachPermanentTorrentHandlers(torrent, id);
+                    } catch (e) {
+                        console.warn(`[TorrentService] Erro ao reiniciar torrent no novo destino:`, e.message);
+                    }
+                }
+
+                persistDownloads();
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({
+                    success: true,
+                    id,
+                    destination: meta.destination,
+                    destinationPath: meta.destinationPath,
+                    savePath: meta.savePath,
+                    saveLocation: meta.saveLocation,
+                    message: `Destino alterado para ${meta.saveLocation}`
+                }));
+            });
+            return;
+        }
+
         // Resume download
         if (pathname.startsWith('/api/downloads/') && pathname.endsWith('/resume') && req.method === 'POST') {
             const id = pathname.replace('/api/downloads/', '').replace('/resume', '').trim().toLowerCase();
             let torrent = getActiveTorrent(id);
             const meta = downloadsRegistry.get(id);
+
+            // Se o download deu erro de espaço no Google Drive e não tem espaço suficiente no Drive, migra automaticamente para D:\Filmes
+            if (meta) {
+                const targetCheck = String(meta.destinationPath || meta.savePath || '').toLowerCase();
+                const isLocal = targetCheck.startsWith('d:\\') || targetCheck.startsWith('d:/') || targetCheck.startsWith('c:\\') || targetCheck.startsWith('c:/');
+                const isDrive = !isLocal && (meta.destination === 'drive' || targetCheck.startsWith('g:\\') || targetCheck.startsWith('g:/') || targetCheck.includes('meu drive') || targetCheck.includes('cinelar'));
+                if (isDrive && (meta.errorMessage?.includes('insuficiente') || meta.status === 'error')) {
+                    console.log(`[TorrentService] Retomando download "${meta.title}" que falhou no Google Drive por falta de espaço. Migrando para Pasta Local (D:\\Filmes)...`);
+                    if (torrent) {
+                        try { torrent.destroy(); } catch (_) {}
+                        torrent = null;
+                    }
+                    const org = getOrganizedDownloadPath(SAVE_PATH, meta.title, meta.filename, {
+                        isSeries: meta.isSeries,
+                        seriesName: meta.seriesName,
+                        season: meta.season,
+                        episode: meta.episode
+                    });
+                    try {
+                        if (!fs.existsSync(org.targetPath)) fs.mkdirSync(org.targetPath, { recursive: true });
+                    } catch (_) {}
+                    meta.destination = 'local';
+                    meta.destinationPath = org.displayPath;
+                    meta.savePath = org.targetPath;
+                    meta.saveLocation = 'Pasta Local (D:\\Filmes)';
+                }
+            }
 
             if (torrent) {
                 try {

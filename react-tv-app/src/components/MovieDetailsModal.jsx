@@ -92,6 +92,7 @@ export function parseStreamDetails(stream, index) {
 
 export function MovieDetailsModal({
   movie,
+  storage = null,
   isZoneFocused,
   focusedIndex,
   onClose,
@@ -118,7 +119,9 @@ export function MovieDetailsModal({
   // Estados para escolha de versão de download e ação de stream
   const [downloadPickerOpen, setDownloadPickerOpen] = useState(false);
   const [downloadPickerIndex, setDownloadPickerIndex] = useState(0);
-  const [downloadDestination, setDownloadDestination] = useState(movie?.preferredDestination || 'local'); // 'local' | 'drive'
+  const driveFreeGB = storage?.drive?.freeGB;
+  const isDriveLowSpace = driveFreeGB !== null && driveFreeGB !== undefined && driveFreeGB < 2.0;
+  const [downloadDestination, setDownloadDestination] = useState((isDriveLowSpace && movie?.preferredDestination === 'drive') ? 'local' : (movie?.preferredDestination || 'local')); // 'local' | 'drive'
   const [streamActionTarget, setStreamActionTarget] = useState(null);
   const [streamActionIndex, setStreamActionIndex] = useState(0);
 
@@ -126,16 +129,17 @@ export function MovieDetailsModal({
   const [seriesDownloadModalOpen, setSeriesDownloadModalOpen] = useState(false);
   const [seriesDownloadStep, setSeriesDownloadStep] = useState('options'); // 'options' | 'packs'
   const [seriesDownloadModalIndex, setSeriesDownloadModalIndex] = useState(0);
-  const [seriesDownloadDestination, setSeriesDownloadDestination] = useState(movie?.preferredDestination || 'local'); // 'local' | 'drive'
+  const [seriesDownloadDestination, setSeriesDownloadDestination] = useState((isDriveLowSpace && movie?.preferredDestination === 'drive') ? 'local' : (movie?.preferredDestination || 'local')); // 'local' | 'drive'
   const [seasonPacks, setSeasonPacks] = useState([]);
   const [loadingSeasonPacks, setLoadingSeasonPacks] = useState(false);
 
   useEffect(() => {
     if (movie?.preferredDestination) {
-      setDownloadDestination(movie.preferredDestination);
-      setSeriesDownloadDestination(movie.preferredDestination);
+      const dest = (isDriveLowSpace && movie.preferredDestination === 'drive') ? 'local' : movie.preferredDestination;
+      setDownloadDestination(dest);
+      setSeriesDownloadDestination(dest);
     }
-  }, [movie?.preferredDestination]);
+  }, [movie?.preferredDestination, isDriveLowSpace]);
 
   const isSeries = Boolean(details?.isSeries || details?.type === 'series' || movie?.isSeries || movie?.type === 'series');
   const targetCheckPath = String(details?.filePath || details?.videoPath || movie?.filePath || movie?.videoPath || '').toLowerCase();
@@ -1258,45 +1262,53 @@ export function MovieDetailsModal({
                 {title} {isSeries && selectedEpisode ? `• T${selectedSeason}E${selectedEpisode.episode || selectedEpisode.number}` : ''} • Destino: {downloadDestination === 'drive' ? 'Google Drive (G:\\Meu Drive\\cinelar)' : 'Pasta Local (D:\\Filmes)'}
               </p>
               {/* Seletor de Destino: Pasta Local vs Google Drive */}
-              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  className={`tv-btn ${downloadDestination === 'local' ? 'tv-btn-primary' : 'tv-btn-secondary'}`}
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '13px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: downloadDestination === 'local' ? '#10B981' : undefined,
-                    color: downloadDestination === 'local' ? '#FFF' : undefined,
-                    fontWeight: 700
-                  }}
-                  onClick={() => setDownloadDestination('local')}
-                >
-                  <span className="material-icons" style={{ fontSize: '16px' }}>folder</span>
-                  <span>📁 Pasta Local (D:\Filmes)</span>
-                </button>
-                <button
-                  type="button"
-                  className={`tv-btn ${downloadDestination === 'drive' ? 'tv-btn-primary' : 'tv-btn-secondary'}`}
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '13px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: downloadDestination === 'drive' ? '#4285F4' : undefined,
-                    color: downloadDestination === 'drive' ? '#FFF' : undefined,
-                    fontWeight: 700
-                  }}
-                  onClick={() => setDownloadDestination('drive')}
-                >
-                  <span className="material-icons" style={{ fontSize: '16px' }}>cloud</span>
-                  <span>☁️ Google Drive (G:\Meu Drive\cinelar)</span>
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className={`tv-btn ${downloadDestination === 'local' ? 'tv-btn-primary' : 'tv-btn-secondary'}`}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: downloadDestination === 'local' ? '#10B981' : undefined,
+                      color: downloadDestination === 'local' ? '#FFF' : undefined,
+                      fontWeight: 700
+                    }}
+                    onClick={() => setDownloadDestination('local')}
+                  >
+                    <span className="material-icons" style={{ fontSize: '16px' }}>folder</span>
+                    <span>📁 Pasta Local (D:\Filmes) • {storage?.freeSpaceGB || storage?.local?.freeGB || 266} GB Livres</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`tv-btn ${downloadDestination === 'drive' ? 'tv-btn-primary' : 'tv-btn-secondary'}`}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: downloadDestination === 'drive' ? '#4285F4' : undefined,
+                      color: downloadDestination === 'drive' ? '#FFF' : undefined,
+                      fontWeight: 700
+                    }}
+                    onClick={() => setDownloadDestination('drive')}
+                  >
+                    <span className="material-icons" style={{ fontSize: '16px' }}>cloud</span>
+                    <span>☁️ Google Drive • {storage?.drive?.freeGB !== null && storage?.drive?.freeGB !== undefined ? `${storage.drive.freeGB} GB Livres` : 'G:\\Meu Drive'}</span>
+                  </button>
+                </div>
+                {isDriveLowSpace && (
+                  <div style={{ fontSize: '12px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span className="material-icons" style={{ fontSize: '15px' }}>warning</span>
+                    <span>Atenção: Google Drive possui apenas {driveFreeGB} GB livres. Recomendamos salvar na Pasta Local (D:\Filmes) para não faltar espaço.</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1378,7 +1390,7 @@ export function MovieDetailsModal({
                 }}
               >
                 <span className="material-icons">folder</span>
-                <span>📁 Salvar na Pasta Local (D:\Filmes)</span>
+                <span>📁 Salvar na Pasta Local (D:\Filmes) • {storage?.freeSpaceGB || storage?.local?.freeGB || 266} GB Livres</span>
               </button>
 
               {/* Botão 1: Baixar no Google Drive */}
@@ -1397,7 +1409,7 @@ export function MovieDetailsModal({
                 }}
               >
                 <span className="material-icons">cloud</span>
-                <span>☁️ Salvar no Google Drive (G:\Meu Drive\cinelar)</span>
+                <span>☁️ Salvar no Google Drive ({driveFreeGB !== null && driveFreeGB !== undefined ? `${driveFreeGB} GB Livres` : 'G:\\Meu Drive'})</span>
               </button>
 
               {/* Botão 2: Assistir Agora */}

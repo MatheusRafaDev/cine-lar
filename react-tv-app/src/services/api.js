@@ -720,6 +720,19 @@ export async function resumeDownload(id) {
   }
 }
 
+// 7.1 Alternar destino de download (Google Drive <-> Pasta Local)
+export async function switchDownloadDestination(id, destination = 'local') {
+  try {
+    return await request(`/api/downloads/${encodeURIComponent(id)}/switch-destination`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destination })
+    });
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
 // 8. Iniciar download explícito
 export async function startDownload(params) {
   try {
