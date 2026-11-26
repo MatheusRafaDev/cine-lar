@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param (
     [string]$TvIp = "192.168.15.4:26101",
     [bool]$Deploy = $true,
@@ -91,7 +91,7 @@ $configXml = @"
 <widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://cinelar.tv/Cinelar" version="2.1.0" viewmodes="fullscreen">
     <access origin="*" subdomains="true"></access>
     <tizen:application id="AprZAARz4r.Cinelar" package="AprZAARz4r" required_version="2.3"/>
-    <author href="http://192.168.15.2:8085" email="apps@cinelar.local">Cinelar</author>
+    <author href="http://192.168.15.6:8085" email="apps@cinelar.local">Cinelar</author>
     <content src="index.html"/>
     <description>Cinelar TV App para Samsung Smart TV</description>
     <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
@@ -128,9 +128,15 @@ if ($Deploy) {
     if ($LASTEXITCODE -ne 0) {
         throw "Falha na conexao SDB com $TvIp (codigo $LASTEXITCODE)."
     }
-    & $tzTool install -e $TvIp -p $wgtOut
-    if ($LASTEXITCODE -ne 0) {
-        throw "Falha ao instalar o Cinelar na TV (codigo $LASTEXITCODE)."
+    try {
+        & $tzTool install -e $TvIp -p $wgtOut
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "tz install retornou codigo $LASTEXITCODE. Aplicando instalacao direta via SDB..." -ForegroundColor Yellow
+            & $sdbTool -s $TvIp install $wgtOut
+        }
+    } catch {
+        Write-Host "Falha no tz install. Aplicando instalacao direta via SDB..." -ForegroundColor Yellow
+        & $sdbTool -s $TvIp install $wgtOut
     }
 
     if ($Launch) {

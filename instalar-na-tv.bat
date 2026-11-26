@@ -6,7 +6,7 @@ echo          CINE LAR TV - INSTALADOR PARA SMART TV
 echo =======================================================
 echo.
 echo Pacote: %~dp0Cinelar-signed.wgt
-echo Servidor: http://192.168.15.2:8085
+echo Servidor: http://192.168.15.6:8085
 echo.
 echo Escolha uma opcao:
 echo [1] Compilar, instalar e abrir em Samsung Tizen (192.168.15.4)
@@ -47,7 +47,7 @@ echo ABRIR PELO NAVEGADOR DA SMART TV
 echo =======================================================
 echo.
 echo 1. Na sua Smart TV, abra o aplicativo "Internet" (Navegador).
-echo 2. Digite na barra de enderecos: http://192.168.15.2:8085
+echo 2. Digite na barra de enderecos: http://192.168.15.6:8085
 echo 3. Navegue com o controle remoto.
 echo 4. Fixe o atalho do Cinelar na tela inicial da TV.
 echo.
