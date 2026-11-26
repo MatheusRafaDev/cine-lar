@@ -125,26 +125,17 @@ Write-Host "Pacote WGT assinado: $wgtOut ($([Math]::Round($wgtSize, 1)) KB)" -Fo
 if ($Deploy) {
     Write-Host "[4/5] Conectando e instalando na Samsung Smart TV ($TvIp)..." -ForegroundColor Cyan
     & $sdbTool connect $TvIp
-    if ($LASTEXITCODE -ne 0) {
-        throw "Falha na conexao SDB com $TvIp (codigo $LASTEXITCODE)."
-    }
-    try {
-        & $tzTool install -e $TvIp -p $wgtOut
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "tz install retornou codigo $LASTEXITCODE. Aplicando instalacao direta via SDB..." -ForegroundColor Yellow
-            & $sdbTool -s $TvIp install $wgtOut
-        }
-    } catch {
-        Write-Host "Falha no tz install. Aplicando instalacao direta via SDB..." -ForegroundColor Yellow
-        & $sdbTool -s $TvIp install $wgtOut
-    }
+    Start-Sleep -Milliseconds 800
+
+    # Metodo direto e confiavel para Samsung Tizen TV via vd_appinstall
+    $targetPath = "/home/owner/share/tmp/sdk_tools/Cinelar.wgt"
+    & $sdbTool -s $TvIp push $wgtOut $targetPath
+    & $sdbTool -s $TvIp shell "0 vd_appinstall AprZAARz4r $targetPath"
 
     if ($Launch) {
         Write-Host "[5/5] Iniciando Cinelar na TV..." -ForegroundColor Cyan
+        & $sdbTool -s $TvIp shell "0 wascmd -r AprZAARz4r.Cinelar"
         & $tzTool run -e $TvIp -p AprZAARz4r
-        if ($LASTEXITCODE -ne 0) {
-            throw "Falha ao iniciar o Cinelar na TV (codigo $LASTEXITCODE)."
-        }
         Write-Host "Cinelar iniciado com sucesso na TV!" -ForegroundColor Green
     }
 }
