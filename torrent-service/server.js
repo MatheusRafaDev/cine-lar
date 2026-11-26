@@ -85,6 +85,34 @@ export function resolveGoogleDrivePath() {
 let PLATFORM_DOWNLOAD_PATH = resolveGoogleDrivePath();
 const MUTATION_API_TOKEN = (process.env.MUTATION_API_TOKEN || '').trim();
 
+function sendJsonResponse(req, res, statusCode, data, cacheControl = 'private, max-age=15') {
+    const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
+    const acceptEncoding = (req && req.headers && req.headers['accept-encoding']) || '';
+    const headers = {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': cacheControl,
+        'Access-Control-Allow-Origin': '*'
+    };
+
+    if (jsonStr.length > 1024 && /\bgzip\b/.test(acceptEncoding)) {
+        headers['Content-Encoding'] = 'gzip';
+        zlib.gzip(Buffer.from(jsonStr, 'utf8'), (err, compressed) => {
+            if (err) {
+                res.writeHead(statusCode, headers);
+                res.end(jsonStr);
+                return;
+            }
+            headers['Content-Length'] = compressed.length;
+            res.writeHead(statusCode, headers);
+            res.end(compressed);
+        });
+    } else {
+        headers['Content-Length'] = Buffer.byteLength(jsonStr);
+        res.writeHead(statusCode, headers);
+        res.end(jsonStr);
+    }
+}
+
 function getLocalIpAddress() {
     try {
         const nets = os.networkInterfaces();
@@ -1700,11 +1728,7 @@ const server = http.createServer(async (req, res) => {
                 } catch (err) {}
             }
 
-            res.writeHead(200, {
-                'Content-Type': 'application/json; charset=utf-8',
-                'Cache-Control': 'private, max-age=120'
-            });
-            res.end(JSON.stringify({ movies: results.movies }));
+            sendJsonResponse(req, res, 200, { movies: results.movies }, 'private, max-age=120');
             return;
         }
 
@@ -2055,11 +2079,7 @@ const server = http.createServer(async (req, res) => {
                 const totalBytes = movies.reduce((acc, m) => acc + (m.sizeBytes || 0), 0);
                 const grouped = groupMediaLibrary(movies);
 
-                res.writeHead(200, {
-                    'Content-Type': 'application/json; charset=utf-8',
-                    'Cache-Control': 'private, max-age=15'
-                });
-                res.end(JSON.stringify({
+                sendJsonResponse(req, res, 200, {
                     movies,
                     count: movies.length,
                     totalSize: formatBytes(totalBytes),
@@ -2068,7 +2088,7 @@ const server = http.createServer(async (req, res) => {
                     standaloneMovies: grouped.standaloneMovies,
                     savePath: SAVE_PATH,
                     drivePath: PLATFORM_DOWNLOAD_PATH
-                }));
+                }, 'private, max-age=15');
             } catch (err) {
                 console.error('[TorrentService] Local movies error:', err.message);
                 res.writeHead(500, { 'Content-Type': 'application/json' });

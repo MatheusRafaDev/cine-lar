@@ -575,6 +575,8 @@ button {
   padding: 0;
   width: 100%;
   box-sizing: border-box;
+  content-visibility: auto;
+  contain-intrinsic-size: 340px;
 }
 
 .tv-row-title-box {
@@ -660,6 +662,8 @@ button {
   box-sizing: border-box;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  transform: translateZ(0);
+  will-change: scroll-position;
 }
 
 .tv-carousel-track::-webkit-scrollbar {
@@ -678,9 +682,10 @@ button {
   position: relative;
   cursor: pointer;
   outline: none;
-  contain: layout style;
+  contain: layout style paint;
   transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   content-visibility: auto;
+  will-change: transform;
   box-sizing: border-box;
 }
 
