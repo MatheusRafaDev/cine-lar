@@ -279,16 +279,13 @@ export function searchCatalog({ q = '', genre = 'all', year = null, sort = 'tren
     // Search query
     const cleanQuery = q.trim();
     if (cleanQuery) {
-        try {
-            // Check if FTS matches anything
-            // Format query for prefix matching on each word: "dead*"
-            const ftsQuery = cleanQuery.split(/\s+/).filter(Boolean).map(w => `${w.replace(/["'*]/g, '')}*`).join(' ');
-            if (ftsQuery) {
-                whereClauses.push(`imdb_id IN (SELECT imdb_id FROM movies_fts WHERE movies_fts MATCH ?)`);
-                params.push(ftsQuery);
-            }
-        } catch (e) {
-            // Fallback to LIKE
+        // Remove caracteres especiais que causam erro de sintaxe no SQLite FTS (como hífens em WALL-E ou Spider-Man)
+        const safeTokens = cleanQuery.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean);
+        if (safeTokens.length > 0) {
+            const ftsQuery = safeTokens.map(w => `"${w}"*`).join(' ');
+            whereClauses.push(`imdb_id IN (SELECT imdb_id FROM movies_fts WHERE movies_fts MATCH ?)`);
+            params.push(ftsQuery);
+        } else {
             whereClauses.push(`(title LIKE ? OR original_title LIKE ? OR description LIKE ?)`);
             const likeTerm = `%${cleanQuery}%`;
             params.push(likeTerm, likeTerm, likeTerm);
@@ -380,9 +377,10 @@ export function syncLocalMoviesInDb(localMovies = []) {
 
     // 2. Marca estritamente os filmes validados fisicamente no disco
     const updateById = database.prepare('UPDATE movies SET is_local = 1 WHERE imdb_id = ?');
-    const updateByTitle = database.prepare('UPDATE movies SET is_local = 1 WHERE LOWER(title) = LOWER(?) OR LOWER(original_title) = LOWER(?)');
+    const updateByTitle = database.prepare('UPDATE movies SET is_local = 1 WHERE (LOWER(title) = LOWER(?) OR LOWER(original_title) = LOWER(?)) AND (? IS NULL OR year = ?)');
 
     for (const m of localMovies) {
+        if (!m) continue;
         const id = m.imdbId || m.imdb_id;
         if (id) {
             try {
@@ -390,7 +388,8 @@ export function syncLocalMoviesInDb(localMovies = []) {
             } catch (e) {}
         } else if (m.title && m.title.length > 2) {
             try {
-                updateByTitle.run(m.title, m.originalTitle || m.title);
+                const yr = m.year ? parseInt(m.year, 10) : null;
+                updateByTitle.run(m.title, m.originalTitle || m.title, yr, yr);
             } catch (e) {}
         }
     }

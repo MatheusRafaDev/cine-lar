@@ -73,7 +73,6 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
   const title = movie.title || movie.name || 'Sem título';
   const year = movie.year || (movie.releaseDate ? String(movie.releaseDate).slice(0, 4) : '');
   const rating = movie.imdbRating || movie.rating || null;
-  const isLocal = Boolean(movie.isLocal || movie.filePath || movie.videoPath);
   const cardPath = String(movie.filePath || movie.videoPath || '').toLowerCase();
   const isDrive = Boolean(
     movie.isCloud ||
@@ -82,8 +81,11 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
     cardPath.startsWith('g:\\') ||
     cardPath.startsWith('g:/') ||
     cardPath.includes('meu drive') ||
-    (movie.streamUrl && (movie.streamUrl.includes('drive.google.com') || movie.streamUrl.includes('drive.usercontent.google.com')))
+    (movie.streamUrl && (movie.streamUrl.includes('drive.google.com') || movie.streamUrl.includes('drive.usercontent.google.com'))) ||
+    String(movie.id || '').startsWith('gdrive_')
   );
+  const hasValidFilePath = Boolean(cardPath && (cardPath.includes(':\\') || cardPath.includes(':/') || cardPath.startsWith('\\\\')));
+  const isLocal = Boolean((movie.isLocal && (hasValidFilePath || isDrive)) || hasValidFilePath);
   const isLocalDisk = isLocal && !isDrive;
 
   const saved = getSavedProgress(movie);

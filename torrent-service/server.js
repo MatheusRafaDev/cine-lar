@@ -827,43 +827,103 @@ export function invalidateLocalSetsCache() {
 
 /**
  * Cruza a lista de filmes do catálogo com a biblioteca local (D:\filmes)
- * garantindo que qualquer filme já baixado seja sinalizado com is_local: 1
+ * garantindo que apenas filmes fisicamente existentes no disco sejam marcados com is_local: 1
  */
 async function markLocalMoviesInList(movieList) {
     if (!movieList || !movieList.length) return;
     try {
         const now = Date.now();
-        if (!cachedLocalSets || (now - cachedLocalSetsTimestamp > 60000)) {
+        if (!cachedLocalSets || (now - cachedLocalSetsTimestamp > 15000)) {
             const localMovies = await getLocalLibrary(SAVE_PATH, false, getActiveDownloadingPaths());
-            const localImdbSet = new Set(localMovies.map(m => m.imdbId).filter(Boolean));
-            const localTitlesSet = new Set(
-                localMovies.flatMap(m => [
-                    (m.cleanName || '').toLowerCase().trim(),
-                    (m.title || '').toLowerCase().trim(),
-                    (m.originalTitle || m.original_title || '').toLowerCase().trim()
-                ]).filter(Boolean)
-            );
-            cachedLocalSets = { localImdbSet, localTitlesSet };
+            const verifiedLocals = (localMovies || []).filter(m => m.filePath && fs.existsSync(m.filePath));
+
+            const localImdbMap = new Map();
+            const localTitlesMap = new Map();
+
+            for (const lm of verifiedLocals) {
+                if (lm.imdbId) {
+                    localImdbMap.set(lm.imdbId.toLowerCase().trim(), lm);
+                }
+                const yr = lm.year ? parseInt(lm.year, 10) : null;
+                const titles = [
+                    lm.title,
+                    lm.cleanName,
+                    lm.originalTitle,
+                    lm.original_title
+                ].filter(Boolean);
+
+                for (const t of titles) {
+                    const norm = t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+                    if (norm.length >= 3) {
+                        if (!localTitlesMap.has(norm)) {
+                            localTitlesMap.set(norm, []);
+                        }
+                        localTitlesMap.get(norm).push({ year: yr, filePath: lm.filePath, movie: lm });
+                    }
+                }
+            }
+
+            cachedLocalSets = { localImdbMap, localTitlesMap };
             cachedLocalSetsTimestamp = now;
         }
 
-        const { localImdbSet, localTitlesSet } = cachedLocalSets;
+        const { localImdbMap, localTitlesMap } = cachedLocalSets;
 
         movieList.forEach(m => {
-            const id = m.imdb_id || m.imdbId || m.id;
-            const title = (m.title || m.name || '').toLowerCase().trim();
-            const origTitle = (m.original_title || '').toLowerCase().trim();
-            const isLocal = Boolean(
-                (id && localImdbSet.has(id)) ||
-                (title && localTitlesSet.has(title)) ||
-                (origTitle && localTitlesSet.has(origTitle))
-            );
+            const id = (m.imdb_id || m.imdbId || m.id || '').toLowerCase().trim();
+            const mYear = m.year ? parseInt(m.year, 10) : (m.release_date ? parseInt(String(m.release_date).slice(0, 4), 10) : null);
+
+            let isLocal = false;
+            let matchedPath = null;
+
+            // 1. Checagem exata por IMDB ID
+            if (id && id.startsWith('tt') && localImdbMap.has(id)) {
+                const match = localImdbMap.get(id);
+                if (match?.filePath && fs.existsSync(match.filePath)) {
+                    isLocal = true;
+                    matchedPath = match.filePath;
+                }
+            }
+
+            // 2. Checagem por Título + Ano estrito
+            if (!isLocal) {
+                const candidates = [
+                    m.title,
+                    m.name,
+                    m.original_title,
+                    m.originalTitle,
+                    m.cleanName
+                ].filter(Boolean);
+
+                for (const cand of candidates) {
+                    const norm = cand.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+                    if (norm.length >= 3 && localTitlesMap.has(norm)) {
+                        const matches = localTitlesMap.get(norm);
+                        const valid = matches.find(item => {
+                            if (!item.filePath || !fs.existsSync(item.filePath)) return false;
+                            if (mYear && item.year) {
+                                return Math.abs(mYear - item.year) <= 1;
+                            }
+                            return true;
+                        });
+                        if (valid) {
+                            isLocal = true;
+                            matchedPath = valid.filePath;
+                            break;
+                        }
+                    }
+                }
+            }
+
             m.is_local = isLocal ? 1 : 0;
             m.isLocal = isLocal;
+            if (matchedPath && !m.filePath) {
+                m.filePath = matchedPath;
+            }
         });
     } catch {
         movieList.forEach(m => {
-            if (!m.isLocal) {
+            if (!m.isLocal || !m.filePath) {
                 m.is_local = 0;
                 m.isLocal = false;
             }

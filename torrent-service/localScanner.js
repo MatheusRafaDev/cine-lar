@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import https from 'https';
 import http from 'http';
 import { spawn, execFileSync } from 'child_process';
-import { upsertMovie, getDb, translateGenres, getLocalMediaByPath, upsertLocalMedia, pruneDeletedLocalMedia, deleteLocalMediaRecord } from './db.js';
+import { upsertMovie, getDb, translateGenres, getLocalMediaByPath, upsertLocalMedia, pruneDeletedLocalMedia, deleteLocalMediaRecord, syncLocalMoviesInDb } from './db.js';
 import { detectFranchise, detectSeries } from './organizer.js';
 import { fetchPtBrMetadata, searchPtBrMovie } from './tmdbHelper.js';
 
@@ -298,7 +298,8 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                 // 0. VERIFICAÇÃO ULTRA-RÁPIDA EM SQLite: Se o arquivo já foi indexado, não mudou e JÁ TEM CAPA (poster), carrega instantaneamente
                 try {
                     const cached = getLocalMediaByPath(videoFile);
-                    const isStaleGenericCache = cached && String(cached.clean_name || '').toLowerCase() !== String(cleanName || '').toLowerCase();
+                    const normStr = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const isStaleGenericCache = cached && normStr(cached.clean_name) !== normStr(cleanName);
                     if (cached && cached.poster && !isStaleGenericCache && cached.file_size === stat.size && Math.abs(cached.mtime_ms - stat.mtimeMs) < 1000) {
                         const baseId = cached.imdb_id || `local_${encodeURIComponent(cached.clean_name || cached.title)}`;
                         results.push({
@@ -380,7 +381,15 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
                                     const mYear = parseInt(m.releaseInfo || m.year, 10);
                                     return mYear === detectedYear || Math.abs(mYear - detectedYear) <= 1;
                                 });
-                                if (yearMatch) match = yearMatch;
+                                if (yearMatch) {
+                                    match = yearMatch;
+                                } else if (match) {
+                                    const mYear = parseInt(match.releaseInfo || match.year, 10);
+                                    if (mYear && Math.abs(mYear - detectedYear) > 1) {
+                                        // Descarta se o ano for discrepante para evitar atribuir filmes de anos totalmente diferentes
+                                        match = null;
+                                    }
+                                }
                             }
 
                             // Validação de similaridade entre o arquivo e o retorno do Cinemeta (evita falsos positivos em arquivos avulsos)
@@ -571,6 +580,10 @@ export async function getLocalLibrary(savePath = 'D:\\filmes', force = false, do
 
             // Garante que apenas arquivos que realmente existem no disco físico sejam retornados
             results = results.filter(m => m.filePath && fs.existsSync(m.filePath));
+
+            try {
+                syncLocalMoviesInDb(results);
+            } catch (_) {}
 
             // Sort alphabetically by title
             results.sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));

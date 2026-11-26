@@ -439,7 +439,7 @@ export function App() {
       );
     };
 
-    const pcMovies = localMovies.filter(m => !isStrictDriveMovie(m));
+    const pcMovies = localMovies.filter(m => !isStrictDriveMovie(m) && (m.filePath || m.videoPath));
     const cloudMovies = (driveMovies || []).filter(isStrictDriveMovie);
 
     if (pcMovies.length > 0) {
@@ -618,7 +618,7 @@ export function App() {
       if (k && k.length >= 3) {
         map.set(`title:${k}`, info);
         const withoutYear = stripYear(k);
-        if (withoutYear && withoutYear !== k && withoutYear.length >= 3) {
+        if (withoutYear && withoutYear !== k && withoutYear.length >= 5) {
           map.set(`title:${withoutYear}`, info);
         }
       }
@@ -699,7 +699,7 @@ export function App() {
 
   const enrichMovieWithLocalStatus = useCallback((movie) => {
     if (!movie) return movie;
-    if (movie.isLocal && movie.filePath) return movie;
+    if (movie.isLocal && (movie.filePath || movie.videoPath)) return movie;
 
     const normalizeKey = (str) => {
       if (!str) return '';
@@ -738,7 +738,7 @@ export function App() {
         if (!cand) continue;
         const k = normalizeKey(cand);
         if (!k || k.length < 3) continue;
-        matched = localMatchMap.get(`title:${k}`) || localMatchMap.get(`title:${stripYear(k)}`);
+        matched = localMatchMap.get(`title:${k}`) || (k.length >= 5 ? localMatchMap.get(`title:${stripYear(k)}`) : null);
         if (matched) break;
       }
     }
@@ -751,7 +751,7 @@ export function App() {
       }
     }
 
-    if (matched) {
+    if (matched && (matched.filePath || matched.videoPath)) {
       return {
         ...movie,
         isLocal: true,
@@ -761,6 +761,17 @@ export function App() {
         streamUrl: movie.streamUrl || matched.streamUrl
       };
     }
+
+    // Se o filme veio marcado como isLocal/is_local do catálogo online sem arquivo físico comprovado, limpa falso positivo
+    if ((movie.isLocal || movie.is_local) && !movie.filePath && !movie.videoPath) {
+      return {
+        ...movie,
+        isLocal: false,
+        is_local: 0,
+        isDrive: false
+      };
+    }
+
     return movie;
   }, [localMatchMap]);
 
