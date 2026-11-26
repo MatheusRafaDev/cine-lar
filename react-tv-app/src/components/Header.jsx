@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 
-export const NAV_ITEMS = [
+export const ONLINE_NAV_ITEMS = [
   { id: 'home', label: 'Início' },
   { id: 'movies', label: 'Filmes' },
   { id: 'series', label: 'Séries' },
@@ -12,7 +12,24 @@ export const NAV_ITEMS = [
   { id: 'settings', label: 'Configurações' }
 ];
 
-function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, serverStatus = 'checking', activeDownloadsCount = 0 }) {
+export const OFFLINE_NAV_ITEMS = [
+  { id: 'local', label: 'Google Drive' },
+  { id: 'settings', label: 'Configurações' }
+];
+
+export const NAV_ITEMS = ONLINE_NAV_ITEMS;
+
+function HeaderComponent({
+  activeTab,
+  onSelectTab,
+  isZoneFocused,
+  focusedIndex,
+  serverStatus = 'checking',
+  activeDownloadsCount = 0,
+  navItems = null
+}) {
+  const currentNavItems = navItems || (serverStatus === 'offline' ? OFFLINE_NAV_ITEMS : ONLINE_NAV_ITEMS);
+
   const [clockTime, setClockTime] = React.useState(() => {
     const d = new Date();
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -31,14 +48,23 @@ function HeaderComponent({ activeTab, onSelectTab, isZoneFocused, focusedIndex, 
     : serverStatus === 'offline'
     ? 'PC Desligado: Acesso direto via Google Drive (Nuvem)'
     : 'Verificando conexão com o servidor local...';
+
+  const handleLogoClick = () => {
+    if (serverStatus === 'offline') {
+      onSelectTab('local');
+    } else {
+      onSelectTab('home');
+    }
+  };
+
   return (
     <header className="tv-header">
-      <div className="tv-logo-box" onClick={() => onSelectTab('home')}>
+      <div className="tv-logo-box" onClick={handleLogoClick}>
         <span className="tv-logo-text">CINELAR</span>
       </div>
 
       <nav className="tv-nav-items">
-        {NAV_ITEMS.map((item, idx) => {
+        {currentNavItems.map((item, idx) => {
           const isFocused = isZoneFocused && focusedIndex === idx;
           const isActive = activeTab === item.id;
           return (

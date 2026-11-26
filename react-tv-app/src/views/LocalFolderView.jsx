@@ -37,30 +37,31 @@ export function LocalFolderView({
   const franchisesCount = localLibrary.franchises ? localLibrary.franchises.length : 0;
   const savePath = localLibrary.savePath || 'D:\\Filmes';
 
-  const isCollectionsMode = activeFilter === 'collections';
-  const isDriveMode = activeFilter === 'gdrive';
-  const isLocalOnlyMode = activeFilter === 'local-only';
-  const isAllMode = activeFilter === 'all';
+  const isOffline = serverStatus === 'offline';
+  const isCollectionsMode = !isOffline && activeFilter === 'collections';
+  const isDriveMode = isOffline || activeFilter === 'gdrive';
+  const isLocalOnlyMode = !isOffline && activeFilter === 'local-only';
+  const isAllMode = !isOffline && activeFilter === 'all';
   const filteredMovieCount = gridRows.reduce((acc, r) => acc + (r.movies ? r.movies.length : 0), 0);
 
-  const viewTitle = isDriveMode
-    ? 'Nuvem (Google Drive)'
+  const viewTitle = isOffline || isDriveMode
+    ? 'Google Drive (Nuvem)'
     : isLocalOnlyMode
     ? 'Pasta Local (PC)'
     : isCollectionsMode
     ? 'Coleções & Franquias'
     : 'Todos os Arquivos';
 
-  const viewLocationPath = isDriveMode
-    ? 'G:\\Meu Drive\\cinelar ➔ Google Drive'
+  const viewLocationPath = isOffline || isDriveMode
+    ? 'Google Drive (Acesso Direto à Nuvem)'
     : isLocalOnlyMode
     ? 'D:\\Filmes (Local PC)'
     : isCollectionsMode
     ? 'D:\\Filmes\\Franquias'
     : 'D:\\Filmes (Local) + G:\\Meu Drive (Nuvem)';
 
-  const viewStatsLabel = isDriveMode
-    ? `${filteredMovieCount} filmes na nuvem`
+  const viewStatsLabel = isOffline || isDriveMode
+    ? `${filteredMovieCount} ${filteredMovieCount === 1 ? 'filme na nuvem' : 'filmes na nuvem'}`
     : isLocalOnlyMode
     ? `${filteredMovieCount} filmes no PC`
     : isCollectionsMode
@@ -73,8 +74,8 @@ export function LocalFolderView({
       <div className="tv-page-header tv-local-header">
         <div className="tv-page-header-row">
           <h1 className="tv-page-title">{viewTitle}</h1>
-          <span className="tv-badge-pill tv-badge-path" style={isDriveMode ? { borderColor: '#4285F4', color: '#8AB4F8' } : isLocalOnlyMode ? { borderColor: '#10B981', color: '#34D399' } : {}}>
-            <span className="material-icons" style={{ fontSize: '14px' }}>{isDriveMode ? 'cloud' : 'folder'}</span>
+          <span className="tv-badge-pill tv-badge-path" style={(isOffline || isDriveMode) ? { borderColor: '#4285F4', color: '#8AB4F8' } : isLocalOnlyMode ? { borderColor: '#10B981', color: '#34D399' } : {}}>
+            <span className="material-icons" style={{ fontSize: '14px' }}>{(isOffline || isDriveMode) ? 'cloud' : 'folder'}</span>
             <span>{viewLocationPath}</span>
           </span>
           <span className="tv-badge-pill tv-badge-stats">
@@ -94,36 +95,40 @@ export function LocalFolderView({
         </div>
       </div>
 
-      {/* 2. Alternador de Exibição: Pasta Local | Nuvem (Google Drive) | Franquias */}
-      <div className="tv-local-toggle-container">
-        <div className="tv-local-toggle-bar">
-          {filters.map((f, idx) => {
-            const isFocused = isFiltersFocused && localFilterIndex === idx;
-            const isActive = activeFilter === f.id;
-            return (
-              <button
-                key={f.id}
-                ref={el => filterRefs.current[idx] = el}
-                type="button"
-                className={`tv-local-toggle-btn ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}`}
-                onClick={() => onSelectFilter(f.id, idx)}
-              >
-                {f.icon && <span className="material-icons" style={{ fontSize: '18px' }}>{f.icon}</span>}
-                <span>{f.label}</span>
-              </button>
-            );
-          })}
+      {/* 2. Alternador de Exibição: Ocultado quando o PC estiver desligado para limitar estritamente ao Drive */}
+      {!isOffline && filters.length > 1 && (
+        <div className="tv-local-toggle-container">
+          <div className="tv-local-toggle-bar">
+            {filters.map((f, idx) => {
+              const isFocused = isFiltersFocused && localFilterIndex === idx;
+              const isActive = activeFilter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  ref={el => filterRefs.current[idx] = el}
+                  type="button"
+                  className={`tv-local-toggle-btn ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}`}
+                  onClick={() => onSelectFilter(f.id, idx)}
+                >
+                  {f.icon && <span className="material-icons" style={{ fontSize: '18px' }}>{f.icon}</span>}
+                  <span>{f.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 3. Área de Conteúdo: Grid Full-Page Vertical (Sem Carrossel) */}
       {gridRows.length === 0 ? (
-        isDriveMode ? (
+        (isOffline || isDriveMode) ? (
           <div className="tv-empty-container" style={{ padding: '60px 20px', maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
             <span className="material-icons" style={{ fontSize: '64px', color: '#4285F4' }}>cloud_sync</span>
             <h2 style={{ fontSize: '24px', fontWeight: 700, marginTop: '16px' }}>Sincronização com Google Drive</h2>
             <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '15px', marginTop: '8px' }}>
-              A sua pasta <strong>G:\Meu Drive\cinelar</strong> é sincronizada com o Google Drive para você assistir diretamente na TV mesmo com o computador desligado.
+              {isOffline
+                ? 'O computador está desligado. Você está no Modo Nuvem, exibindo apenas conteúdos do Google Drive.'
+                : 'A sua pasta G:\\Meu Drive\\cinelar é sincronizada com o Google Drive para você assistir diretamente na TV mesmo com o computador desligado.'}
             </p>
             <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button

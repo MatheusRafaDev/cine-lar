@@ -269,7 +269,7 @@ export function useSpatialNav({
       const targetZone = savedTab?.activeZone || 'search-keyboard';
       setActiveZone(targetZone);
       stateRef.current.activeZone = targetZone;
-    } else if (s.activeTab === 'local' && (!savedTab || savedTab.activeZone === 'local-filters')) {
+    } else if (s.activeTab === 'local' && (s.localFilterCount || 0) > 1 && (!savedTab || savedTab.activeZone === 'local-filters')) {
       setActiveZone('local-filters');
       stateRef.current.activeZone = 'local-filters';
     } else {
@@ -772,8 +772,13 @@ export function useSpatialNav({
             return nextR;
           });
         } else if (s.activeTab === 'local') {
-          setActiveZone('local-filters');
-          stateRef.current.activeZone = 'local-filters';
+          if ((s.localFilterCount || 0) > 1) {
+            setActiveZone('local-filters');
+            stateRef.current.activeZone = 'local-filters';
+          } else {
+            setActiveZone('header');
+            stateRef.current.activeZone = 'header';
+          }
         } else if (s.activeTab === 'home' && s.hasHero) {
           setActiveZone('hero');
           stateRef.current.activeZone = 'hero';

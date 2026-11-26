@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Header, NAV_ITEMS } from './components/Header';
+import { Header, NAV_ITEMS, ONLINE_NAV_ITEMS, OFFLINE_NAV_ITEMS } from './components/Header';
 const MovieDetailsModal = lazy(() => import('./components/MovieDetailsModal').then(m => ({ default: m.MovieDetailsModal })));
 const CinemaPlayer = lazy(() => import('./components/CinemaPlayer').then(m => ({ default: m.CinemaPlayer })));
 const HomeView = lazy(() => import('./views/HomeView').then(m => ({ default: m.HomeView })));
@@ -464,14 +464,18 @@ export function App() {
   }, [watchHistory, favorites, trendingMovies, seriesGenreSections, localMovies, driveMovies, genreSections]);
 
   // Filtros disponíveis na visualização local: Pasta Local (PC) | Nuvem (Google Drive) | Todos | Franquias
+  // Quando o PC estiver desligado, limita estritamente ao Google Drive
   const localFilters = useMemo(() => {
+    if (serverStatus === 'offline') {
+      return [{ id: 'gdrive', label: 'Google Drive', icon: 'cloud' }];
+    }
     return [
       { id: 'local-only', label: 'Pasta Local (PC)', icon: 'folder' },
       { id: 'gdrive', label: 'Nuvem (Google Drive)', icon: 'cloud' },
       { id: 'all', label: 'Todos os Arquivos', icon: 'auto_awesome_motion' },
       { id: 'collections', label: 'Franquias', icon: 'collections_bookmark' }
     ];
-  }, []);
+  }, [serverStatus]);
 
   // Seções e linhas em grid full-page (8 colunas) para a visualização Local
   const localGridRows = useMemo(() => {
@@ -493,8 +497,10 @@ export function App() {
       );
     };
 
+    const effectiveFilterId = serverStatus === 'offline' ? 'gdrive' : localFilterId;
+
     // 1. Apenas Pasta Local do PC (D:\Filmes, excluindo qualquer pasta da nuvem)
-    if (localFilterId === 'local-only') {
+    if (effectiveFilterId === 'local-only') {
       const all = localLibrary?.movies || [];
       const pcOnly = all.filter(m => !isStrictDriveMovie(m));
       const rows = [];
@@ -511,14 +517,14 @@ export function App() {
     }
 
     // 2. Modo Nuvem / Google Drive (G:\Meu Drive\cinelar) - NUNCA exibe arquivos do disco D:
-    if (localFilterId === 'gdrive') {
+    if (effectiveFilterId === 'gdrive') {
       const gMovies = (driveMovies || []).filter(isStrictDriveMovie);
       const rows = [];
       for (let i = 0; i < gMovies.length; i += COL_COUNT) {
         rows.push({
           id: `gdrive-grid-${i}`,
           title: i === 0 ? 'Filmes na Nuvem (Google Drive)' : '',
-          subtitle: i === 0 ? `${gMovies.length} ${gMovies.length === 1 ? 'filme disponível' : 'filmes disponíveis'} sincronizados com Google Drive (G:\\Meu Drive\\cinelar)` : '',
+          subtitle: i === 0 ? `${gMovies.length} ${gMovies.length === 1 ? 'filme disponível' : 'filmes disponíveis'} sincronizados com Google Drive` : '',
           icon: 'cloud',
           movies: gMovies.slice(i, i + COL_COUNT)
         });
@@ -527,7 +533,7 @@ export function App() {
     }
 
     // 3. Modo Franquias (Coleções Agrupadas)
-    if (localFilterId === 'collections') {
+    if (effectiveFilterId === 'collections') {
       const rows = [];
       (localLibrary?.franchises || []).forEach(f => {
         const fMovies = f.movies || [];
@@ -570,7 +576,7 @@ export function App() {
       });
     }
     return rows;
-  }, [localLibrary, localFilterId, driveMovies]);
+  }, [localLibrary, localFilterId, driveMovies, serverStatus]);
 
   // Seções e linhas em grade full-page (8 colunas) para a visualização de Favoritos
   const favoritesGridRows = useMemo(() => {
@@ -1400,6 +1406,11 @@ export function App() {
     }
   }, [activeTab, heroMovie, downloads, favoritesGridRows, localGridRows, currentSections]);
 
+  // Menus de navegação dinâmicos: no modo offline, exibe exclusivamente o Google Drive e Configurações
+  const navItems = useMemo(() => {
+    return serverStatus === 'offline' ? OFFLINE_NAV_ITEMS : ONLINE_NAV_ITEMS;
+  }, [serverStatus]);
+
   // 4. Integração do Hook Espacial Ultra-Rápido
   const nav = useSpatialNav({
     isPlayerOpen: Boolean(activeStream),
@@ -1411,13 +1422,13 @@ export function App() {
     hasHero: activeTab === 'home' && Boolean(heroMovie),
     rowCount,
     getColCount,
-    headerCount: NAV_ITEMS.length,
-    localFilterCount: localFilters.length,
+    headerCount: navItems.length,
+    localFilterCount: serverStatus === 'offline' ? 0 : localFilters.length,
     modalItemsCount,
     searchActionRef: searchInputRef,
     onLongPress: handleLongPress,
     onTabChange: (newHeaderIdx) => {
-      const item = NAV_ITEMS[newHeaderIdx];
+      const item = navItems[newHeaderIdx];
       if (item && item.id !== activeTab) {
         setActiveTab(item.id);
       }
@@ -1448,20 +1459,30 @@ export function App() {
         refreshUserData();
         return true; // Modal fechado: useSpatialNav restaura o foco exato do card de origem
       }
-      // Se estiver na aba local e com filtro de coleção/franquia ou drive ativo, voltar restaura para a Pasta Local do PC
-      if (activeTab === 'local' && localFilterId !== 'local-only') {
-        setLocalFilterId('local-only');
-        nav.setLocalFilterIndex(0);
-        nav.setRowIndex(0);
-        nav.setColIndex(0);
-        return true;
+      // Se o PC estiver desligado, o Cinelar opera exclusivamente no modo Google Drive
+      if (serverStatus === 'offline') {
+        if (activeTab !== 'local') {
+          setActiveTab('local');
+          setLocalFilterId('gdrive');
+          nav.setHeaderIndex(0);
+          return true;
+        }
+      } else {
+        // Se estiver na aba local e com filtro de coleção/franquia ou drive ativo, voltar restaura para a Pasta Local do PC
+        if (activeTab === 'local' && localFilterId !== 'local-only') {
+          setLocalFilterId('local-only');
+          nav.setLocalFilterIndex(0);
+          nav.setRowIndex(0);
+          nav.setColIndex(0);
+          return true;
+        }
+        // Se estiver em qualquer aba secundária (Filmes, Séries, etc.) e não for saída raiz,
+        // deixa o useSpatialNav voltar para a aba Início
+        if (activeTab !== 'home' && !context.isRootExit) {
+          return false;
+        }
       }
-      // Se estiver em qualquer aba secundária (Filmes, Séries, etc.) e não for saída raiz,
-      // deixa o useSpatialNav voltar para a aba Início
-      if (activeTab !== 'home' && !context.isRootExit) {
-        return false;
-      }
-      // Pressionar voltar duas vezes na Home fecha o app diretamente, sem nenhum modal
+      // Pressionar voltar duas vezes fecha o app diretamente, sem nenhum modal
       const now = Date.now();
       if (lastBackPressRef.current && (now - lastBackPressRef.current) < 2500) {
         confirmAppExit();
@@ -1592,11 +1613,30 @@ export function App() {
     }
   });
 
-  const handleSelectTab = (tabId) => {
+  const handleSelectTab = useCallback((tabId) => {
+    if (serverStatus === 'offline' && tabId !== 'local' && tabId !== 'settings') {
+      showToast('PC Desligado: Apenas Google Drive e Configurações disponíveis.');
+      return;
+    }
     setActiveTab(tabId);
-    const idx = NAV_ITEMS.findIndex(i => i.id === tabId);
+    const idx = navItems.findIndex(i => i.id === tabId);
     if (idx !== -1) nav.setHeaderIndex(idx);
-  };
+  }, [serverStatus, navItems, nav, showToast]);
+
+  // Quando o PC estiver offline, limita estritamente o app para o Google Drive
+  useEffect(() => {
+    if (serverStatus === 'offline') {
+      if (activeTab !== 'local' && activeTab !== 'settings') {
+        setActiveTab('local');
+        setLocalFilterId('gdrive');
+        nav.setHeaderIndex(0);
+        showToast('PC Desligado: Modo Nuvem ativado (Apenas Google Drive)');
+      } else if (activeTab === 'local' && localFilterId !== 'gdrive') {
+        setLocalFilterId('gdrive');
+      }
+      refreshDriveLibrary();
+    }
+  }, [serverStatus, activeTab, localFilterId, refreshDriveLibrary, showToast, nav]);
 
   const handleOpenSeeMore = useCallback((sec) => {
     if (!sec) return;
@@ -1696,6 +1736,7 @@ export function App() {
           focusedIndex={nav.headerIndex}
           serverStatus={serverStatus}
           activeDownloadsCount={activeDownloadsCount}
+          navItems={navItems}
         />
       </div>
 
