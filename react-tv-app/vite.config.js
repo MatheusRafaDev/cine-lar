@@ -1,14 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import legacy from '@vitejs/plugin-legacy';
 
 export default defineConfig({
   plugins: [
-    react(),
-    legacy({
-      targets: ['chrome >= 69', 'not IE 11'],
-      additionalLegacyPolyfills: ['regenerator-runtime/runtime']
-    })
+    react()
   ],
   base: './', // Essencial para rodar como arquivo local ou empacotado no Tizen (.wgt)
   server: {
@@ -16,6 +11,7 @@ export default defineConfig({
     host: true
   },
   build: {
+    target: ['chrome69', 'safari12'],
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,

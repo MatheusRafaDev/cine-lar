@@ -351,27 +351,31 @@ export function App() {
     setServerStatus(isOnline ? 'online' : 'offline');
     if (!isOnline) return false;
 
-    clearCatalogCache();
-    setLoadedAllMovies(false);
-    setLoadedAllSeries(false);
+    // Apenas busca o catálogo se ainda estiver vazio, evitando recarregar a tela do nada
     if (activeTab === 'home') {
-      await loadHomeCatalog();
+      if (!genreSections.length || !trendingMovies.length) {
+        await loadHomeCatalog();
+      }
       syncFavoritesWithServer().then(favs => {
         if (favs?.length) setFavorites(favs);
       }).catch(() => {});
     } else if (activeTab === 'movies') {
-      setIsMoviesLoading(true);
-      setLoadedAllMovies(false);
+      if (!genreSections.length) {
+        setIsMoviesLoading(true);
+        setLoadedAllMovies(false);
+      }
     } else if (activeTab === 'series') {
-      setIsSeriesLoading(true);
-      setLoadedAllSeries(false);
+      if (!seriesGenreSections.length) {
+        setIsSeriesLoading(true);
+        setLoadedAllSeries(false);
+      }
     } else if (activeTab === 'local') {
       refreshLocalLibrary();
     } else if (activeTab === 'downloads') {
       refreshDownloadsInfo();
     }
     return true;
-  }, [activeTab, loadHomeCatalog, refreshLocalLibrary, refreshDownloadsInfo]);
+  }, [activeTab, genreSections.length, trendingMovies.length, seriesGenreSections.length, loadHomeCatalog, refreshLocalLibrary, refreshDownloadsInfo]);
 
   const activeDownloadsCount = useMemo(() => {
     return (downloads || []).filter(d => {
@@ -387,13 +391,18 @@ export function App() {
     }
   }, [activeTab, refreshLocalLibrary]);
 
-  // Polling para downloads ativos: a cada 2s na aba Downloads, a cada 5s nas demais abas
+  // Polling inteligente: atualiza na aba Downloads a cada 2.5s; nas demais apenas se houver download ativo
   useEffect(() => {
     refreshDownloadsInfo();
-    const intervalMs = activeTab === 'downloads' ? 2000 : 5000;
-    const interval = setInterval(refreshDownloadsInfo, intervalMs);
-    return () => clearInterval(interval);
-  }, [activeTab, refreshDownloadsInfo]);
+    if (activeTab === 'downloads') {
+      const interval = setInterval(refreshDownloadsInfo, 2500);
+      return () => clearInterval(interval);
+    }
+    if (activeDownloadsCount > 0) {
+      const interval = setInterval(refreshDownloadsInfo, 8000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, activeDownloadsCount, refreshDownloadsInfo]);
 
   // Suporte Híbrido TV / Web: visibilidade inteligente do cursor do mouse
   useEffect(() => {
@@ -1552,8 +1561,6 @@ export function App() {
               setSelectedMovie(mov);
             }
           }
-        } else if ((activeTab === 'movies' || activeTab === 'series' || activeTab === 'home') && serverStatus !== 'online') {
-          retryServerConnection();
         }
         return;
       }
