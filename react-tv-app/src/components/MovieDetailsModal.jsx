@@ -425,10 +425,10 @@ export function MovieDetailsModal({
     }
   }, [isSeries, selectedEpisode, selectedSeason, title, details, poster, movie, onDownloadStarted]);
 
-  // Ação 2: Download para o PC ou Drive (com escolha de versão)
+  // Ação 2: Download direto para o PC (sem nenhum modal)
   const handleDownload = useCallback(() => {
     if (isLocal) {
-      showToast('Este arquivo já está salvo no seu computador.');
+      showToast('Este arquivo já está salvo no seu computador em D:\\Filmes.');
       return;
     }
 
@@ -443,16 +443,8 @@ export function MovieDetailsModal({
       return;
     }
 
-    if (avail.length === 1) {
-      // Abre o diálogo de ação permitindo ao usuário escolher onde baixar (Local ou Drive)
-      setStreamActionTarget(avail[0]);
-      setStreamActionIndex(1);
-      return;
-    }
-
-    setDownloadPickerIndex(0);
-    setDownloadPickerOpen(true);
-  }, [isLocal, downloading, isSeries, episodeStreams, streams]);
+    executeDownloadStream(avail[0], 'local');
+  }, [isLocal, downloading, isSeries, episodeStreams, streams, executeDownloadStream]);
 
   // Ação 3: Favoritos
   const handleToggleFav = useCallback(() => {
@@ -471,46 +463,27 @@ export function MovieDetailsModal({
     onClose?.();
   }, [details, movie, title, onClose]);
 
-  // Abre o diálogo para baixar temporada ou toda a série
-  const handleOpenSeriesDownloadDialog = useCallback(async (startAtPacks = false) => {
+  // Baixa temporada direto sem modal
+  const handleOpenSeriesDownloadDialog = useCallback(async () => {
     if (isLocal) {
       showToast('Esta série já está salva no computador em D:\\Filmes\\Series.');
       return;
     }
-    setSeriesDownloadModalOpen(true);
-    setSeriesDownloadModalIndex(0);
-
-    if (startAtPacks) {
-      setSeriesDownloadStep('packs');
-      setLoadingSeasonPacks(true);
-      try {
-        const imdb = details?.imdbId || movie?.imdbId || details?.id || movie?.id;
-        const packs = await getSeasonTorrents({ imdbId: imdb, season: selectedSeason, title });
-        setSeasonPacks(packs);
-      } catch (_) {
-        setSeasonPacks([]);
-      } finally {
-        setLoadingSeasonPacks(false);
-      }
-    } else {
-      setSeriesDownloadStep('options');
-    }
-  }, [isLocal, details, movie, selectedSeason, title]);
-
-  const handleSelectSeasonPacksStep = useCallback(async () => {
-    setSeriesDownloadStep('packs');
-    setSeriesDownloadModalIndex(0);
-    setLoadingSeasonPacks(true);
+    showToast(`Buscando download da Temporada ${selectedSeason}...`);
     try {
       const imdb = details?.imdbId || movie?.imdbId || details?.id || movie?.id;
       const packs = await getSeasonTorrents({ imdbId: imdb, season: selectedSeason, title });
-      setSeasonPacks(packs);
-    } catch (_) {
-      setSeasonPacks([]);
-    } finally {
-      setLoadingSeasonPacks(false);
+      if (packs && packs.length > 0) {
+        handleExecuteSeasonPackDownload(packs[0], 'local');
+      } else if (episodeStreams && episodeStreams.length > 0) {
+        executeDownloadStream(episodeStreams[0], 'local');
+      } else {
+        showToast('Nenhum pacote de temporada encontrado.');
+      }
+    } catch (err) {
+      showToast(`Erro ao baixar temporada: ${err.message}`);
     }
-  }, [details, movie, selectedSeason, title]);
+  }, [isLocal, details, movie, selectedSeason, title, handleExecuteSeasonPackDownload, episodeStreams, executeDownloadStream]);
 
   const handleExecuteSeasonPackDownload = useCallback(async (pack, destination = 'local') => {
     if (!pack || !pack.magnet) {
@@ -698,123 +671,16 @@ export function MovieDetailsModal({
 
   const streamBaseIndex = actionButtons.length;
 
-  // Vincula controlador de ações e sub-diálogos com prioridade total para o controle remoto da TV
+  // Vincula controlador de ações e teclado do controle remoto
   useEffect(() => {
     if (modalActionRef) {
       modalActionRef.current = {
-        isSubDialogOpen: () => Boolean(downloadPickerOpen || streamActionTarget || seriesDownloadModalOpen),
-        handleBack: () => {
-          if (seriesDownloadModalOpen) {
-            if (seriesDownloadStep === 'packs') {
-              setSeriesDownloadStep('options');
-              setSeriesDownloadModalIndex(0);
-              return true;
-            }
-            setSeriesDownloadModalOpen(false);
-            return true;
-          }
-          if (downloadPickerOpen) {
-            setDownloadPickerOpen(false);
-            return true;
-          }
-          if (streamActionTarget) {
-            setStreamActionTarget(null);
-            return true;
-          }
-          return false;
-        },
-        handleSubNav: (delta) => {
-          if (seriesDownloadModalOpen) {
-            if (seriesDownloadStep === 'options') {
-              setSeriesDownloadModalIndex(prev => delta > 0 ? Math.min(2, prev + 1) : Math.max(0, prev - 1));
-            } else if (seriesDownloadStep === 'packs') {
-              const maxIdx = seasonPacks.length;
-              setSeriesDownloadModalIndex(prev => delta > 0 ? Math.min(maxIdx, prev + 1) : Math.max(0, prev - 1));
-            }
-          } else if (downloadPickerOpen) {
-            setDownloadPickerIndex(prev => delta > 0 ? Math.min(currentAvailableStreams.length - 1, prev + 1) : Math.max(0, prev - 1));
-          } else if (streamActionTarget) {
-            setStreamActionIndex(prev => delta > 0 ? Math.min(3, prev + 1) : Math.max(0, prev - 1));
-          }
-        },
-        handleSubDir: (delta) => {
-          if (downloadPickerOpen) {
-            setDownloadDestination(prev => (prev === 'local' ? 'drive' : 'local'));
-            return;
-          }
-          if (seriesDownloadModalOpen) {
-            setSeriesDownloadDestination(prev => (prev === 'local' ? 'drive' : 'local'));
-            return;
-          }
-        },
-        handleSubEnter: () => {
-          if (seriesDownloadModalOpen) {
-            if (seriesDownloadStep === 'options') {
-              if (seriesDownloadModalIndex === 0) {
-                handleSelectSeasonPacksStep();
-              } else if (seriesDownloadModalIndex === 1) {
-                handleExecuteDownloadAllSeasons(seriesDownloadDestination);
-              } else {
-                setSeriesDownloadModalOpen(false);
-              }
-            } else if (seriesDownloadStep === 'packs') {
-              if (seriesDownloadModalIndex < seasonPacks.length) {
-                const pack = seasonPacks[seriesDownloadModalIndex];
-                if (pack) handleExecuteSeasonPackDownload(pack, seriesDownloadDestination);
-              } else {
-                setSeriesDownloadStep('options');
-                setSeriesDownloadModalIndex(0);
-              }
-            }
-          } else if (downloadPickerOpen) {
-            const selected = currentAvailableStreams[downloadPickerIndex];
-            if (selected) executeDownloadStream(selected, downloadDestination);
-          } else if (streamActionTarget) {
-            const st = streamActionTarget;
-            setStreamActionTarget(null);
-            if (streamActionIndex === 0) {
-              executeDownloadStream(st, 'local');
-            } else if (streamActionIndex === 1) {
-              executeDownloadStream(st, 'drive');
-            } else if (streamActionIndex === 2) {
-              if (isSeries) {
-                const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
-                onPlayStream({
-                  id: `${details.imdbId || details.id || movie.id}-s${selectedSeason}e${epNum}`,
-                  movieId: details.id || movie.id,
-                  imdbId: details.imdbId || movie.imdbId,
-                  streamUrl: st.streamUrl,
-                  title: `${title} - T${selectedSeason}E${epNum}: ${selectedEpisode?.name || 'Episódio'}`,
-                  poster: selectedEpisode?.thumbnail || poster,
-                  infoHash: st.infoHash,
-                  quality: st.quality,
-                  isLocal: false,
-                  isSeries: true,
-                  season: selectedSeason,
-                  episode: epNum,
-                  episodeName: selectedEpisode?.name || '',
-                  resumePosition: resumePos
-                });
-              } else {
-                onPlayStream({
-                  id: details.id || movie.id,
-                  movieId: details.id || movie.id,
-                  imdbId: details.imdbId || movie.imdbId,
-                  streamUrl: st.streamUrl || `/api/stream/${st.infoHash}?magnet=${encodeURIComponent(st.magnet)}`,
-                  title: `${title} - ${st.quality || '1080p'}`,
-                  poster,
-                  infoHash: st.infoHash,
-                  quality: st.quality,
-                  isLocal: false,
-                  resumePosition: resumePos
-                });
-              }
-            }
-          }
-        },
-        triggerAction: (idx, isPlayKey) => {
-          if (downloadPickerOpen || streamActionTarget || seriesDownloadModalOpen) return;
-
+        isSubDialogOpen: () => false,
+        handleBack: () => false,
+        handleSubNav: () => {},
+        handleSubDir: () => {},
+        handleSubEnter: () => {},
+        triggerAction: (idx) => {
           if (idx < actionButtons.length) {
             actionButtons[idx].action();
           } else {
@@ -824,35 +690,7 @@ export function MovieDetailsModal({
         }
       };
     }
-  }, [
-    modalActionRef,
-    downloadPickerOpen,
-    downloadPickerIndex,
-    streamActionTarget,
-    streamActionIndex,
-    seriesDownloadModalOpen,
-    seriesDownloadStep,
-    seriesDownloadModalIndex,
-    seasonPacks,
-    currentAvailableStreams,
-    executeDownloadStream,
-    handleSelectSeasonPacksStep,
-    handleExecuteSeasonPackDownload,
-    handleExecuteDownloadAllSeasons,
-    isSeries,
-    selectedEpisode,
-    selectedSeason,
-    details,
-    movie,
-    title,
-    poster,
-    resumePos,
-    onPlayStream,
-    actionButtons,
-    handleStreamSelect,
-    episodeStreams,
-    streams
-  ]);
+  }, [modalActionRef, actionButtons, handleStreamSelect]);
 
   if (!movie) return null;
 
@@ -1271,443 +1109,6 @@ export function MovieDetailsModal({
         </div>
       </motion.div>
 
-      {/* 1. Diálogo de Escolha de Versão para Download */}
-      {downloadPickerOpen && (
-        <div className="tv-version-picker-backdrop" onClick={() => setDownloadPickerOpen(false)}>
-          <div className="tv-version-picker-modal" onClick={e => e.stopPropagation()}>
-            <div className="tv-version-picker-header">
-              <h2 className="tv-version-picker-title">Escolher Versão para Download</h2>
-              <p className="tv-version-picker-subtitle">
-                {title} {isSeries && selectedEpisode ? `• T${selectedSeason}E${selectedEpisode.episode || selectedEpisode.number}` : ''} • Destino: {downloadDestination === 'drive' ? 'Google Drive (G:\\Meu Drive\\cinelar)' : 'Pasta Local (D:\\Filmes)'}
-              </p>
-              {/* Seletor de Destino: Pasta Local vs Google Drive */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    className={`tv-btn ${downloadDestination === 'local' ? 'tv-btn-primary' : 'tv-btn-secondary'}`}
-                    style={{
-                      padding: '8px 16px',
-                      fontSize: '13px',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: downloadDestination === 'local' ? '#10B981' : undefined,
-                      color: downloadDestination === 'local' ? '#FFF' : undefined,
-                      fontWeight: 700
-                    }}
-                    onClick={() => setDownloadDestination('local')}
-                  >
-                    <span className="material-icons" style={{ fontSize: '16px' }}>folder</span>
-                    <span>📁 Pasta Local (D:\Filmes) • {storage?.freeSpaceGB || storage?.local?.freeGB || 266} GB Livres</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`tv-btn ${downloadDestination === 'drive' ? 'tv-btn-primary' : 'tv-btn-secondary'}`}
-                    style={{
-                      padding: '8px 16px',
-                      fontSize: '13px',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: downloadDestination === 'drive' ? '#4285F4' : undefined,
-                      color: downloadDestination === 'drive' ? '#FFF' : undefined,
-                      fontWeight: 700
-                    }}
-                    onClick={() => setDownloadDestination('drive')}
-                  >
-                    <span className="material-icons" style={{ fontSize: '16px' }}>cloud</span>
-                    <span>☁️ Google Drive • {storage?.drive?.freeGB !== null && storage?.drive?.freeGB !== undefined ? `${storage.drive.freeGB} GB Livres` : 'G:\\Meu Drive'}</span>
-                  </button>
-                </div>
-                {isDriveLowSpace && (
-                  <div style={{ fontSize: '12px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span className="material-icons" style={{ fontSize: '15px' }}>warning</span>
-                    <span>Atenção: Google Drive possui apenas {driveFreeGB} GB livres. Recomendamos salvar na Pasta Local (D:\Filmes) para não faltar espaço.</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="tv-version-picker-list">
-              {currentAvailableStreams.map((st, sIdx) => {
-                const isSelected = downloadPickerIndex === sIdx;
-                const parsed = parseStreamDetails(st, sIdx);
-                const is4K = String(parsed.quality).toLowerCase().includes('4k');
-                const isCam = String(parsed.quality).toLowerCase().includes('cam');
-                return (
-                  <div
-                    key={st.infoHash || sIdx}
-                    className={`tv-version-picker-item ${isSelected ? 'focused' : ''}`}
-                    onClick={() => executeDownloadStream(st, downloadDestination)}
-                  >
-                    <div className="tv-version-item-left">
-                      <span className="material-icons tv-version-icon" style={{ color: downloadDestination === 'drive' ? '#4285F4' : '#10B981' }}>
-                        {downloadDestination === 'drive' ? 'cloud_download' : 'file_download'}
-                      </span>
-                      <div className="tv-version-item-info">
-                        <div className="tv-version-title">
-                          Opção {parsed.optionNumber}: {parsed.quality} • {parsed.audio}
-                        </div>
-                        <div className="tv-version-meta-row">
-                          <span className={`tv-version-badge-quality ${is4K ? 'q-4k' : isCam ? 'q-cam' : 'q-1080p'}`}>{parsed.quality}</span>
-                          <span className="tv-version-badge-size">• {parsed.size}</span>
-                          <span style={{ color: '#4ade80' }}>• {parsed.healthLabel}</span>
-                          <span style={{ color: 'var(--text-subtle)' }}>• {parsed.releaseType}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button type="button" className="tv-version-btn-action" style={{ background: downloadDestination === 'drive' ? '#4285F4' : undefined }}>
-                      <span className="material-icons" style={{ fontSize: '18px' }}>download</span>
-                      <span>Baixar ({downloadDestination === 'drive' ? 'Google Drive' : 'Pasta Local'})</span>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="tv-version-picker-footer">
-              <span>◄ ► LEFT/RIGHT: Alternar Destino (Local / Drive) • ▲ ▼ UP/DOWN: Navegar • ENTER: Baixar</span>
-              <span>VOLTAR: Fechar</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2. Diálogo de Ação de Stream Individual (Assistir / Baixar) */}
-      {streamActionTarget && (
-        <div className="tv-version-picker-backdrop" onClick={() => setStreamActionTarget(null)}>
-          <div className="tv-stream-action-modal" onClick={e => e.stopPropagation()}>
-            <div className="tv-stream-action-header">
-              <span className="tv-version-badge-quality" style={{ alignSelf: 'flex-start' }}>{streamActionTarget.quality || '1080p'}</span>
-              <h2 className="tv-stream-action-title">Opções para esta Versão</h2>
-              <p className="tv-stream-action-subtitle">
-                {title} • {streamActionTarget.quality || '1080p'} ({streamActionTarget.size || 'HD'})
-              </p>
-              <div style={{ fontSize: '13px', color: 'var(--text-subtle)', marginTop: '4px' }}>
-                {streamActionTarget.audio ? `${streamActionTarget.audio} • ` : ''}Escolha se deseja reproduzir agora ou baixar para o computador:
-              </div>
-            </div>
-
-            <div className="tv-stream-action-buttons">
-              {/* Botão 0: Baixar na Pasta Local */}
-              <button
-                type="button"
-                className={`tv-stream-action-btn btn-download ${streamActionIndex === 0 ? 'focused' : ''}`}
-                style={{
-                  background: streamActionIndex === 0 ? '#10B981' : 'rgba(16, 185, 129, 0.15)',
-                  color: streamActionIndex === 0 ? '#FFF' : '#34D399',
-                  border: streamActionIndex === 0 ? '2px solid #FFF' : '1px solid rgba(16, 185, 129, 0.3)'
-                }}
-                onClick={() => {
-                  const st = streamActionTarget;
-                  setStreamActionTarget(null);
-                  executeDownloadStream(st, 'local');
-                }}
-              >
-                <span className="material-icons">folder</span>
-                <span>📁 Salvar na Pasta Local (D:\Filmes) • {storage?.freeSpaceGB || storage?.local?.freeGB || 266} GB Livres</span>
-              </button>
-
-              {/* Botão 1: Baixar no Google Drive */}
-              <button
-                type="button"
-                className={`tv-stream-action-btn ${streamActionIndex === 1 ? 'focused' : ''}`}
-                style={{
-                  background: streamActionIndex === 1 ? '#4285F4' : 'rgba(66, 133, 244, 0.15)',
-                  color: streamActionIndex === 1 ? '#FFF' : '#8AB4F8',
-                  border: streamActionIndex === 1 ? '2px solid #FFF' : '1px solid rgba(66, 133, 244, 0.3)'
-                }}
-                onClick={() => {
-                  const st = streamActionTarget;
-                  setStreamActionTarget(null);
-                  executeDownloadStream(st, 'drive');
-                }}
-              >
-                <span className="material-icons">cloud</span>
-                <span>☁️ Salvar no Google Drive ({driveFreeGB !== null && driveFreeGB !== undefined ? `${driveFreeGB} GB Livres` : 'G:\\Meu Drive'})</span>
-              </button>
-
-              {/* Botão 2: Assistir Agora */}
-              <button
-                type="button"
-                className={`tv-stream-action-btn btn-play ${streamActionIndex === 2 ? 'focused' : ''}`}
-                onClick={() => {
-                  const st = streamActionTarget;
-                  setStreamActionTarget(null);
-                  if (isSeries) {
-                    const epNum = selectedEpisode?.episode || selectedEpisode?.number || 1;
-                    onPlayStream({
-                      id: `${details.imdbId || details.id || movie.id}-s${selectedSeason}e${epNum}`,
-                      movieId: details.id || movie.id,
-                      imdbId: details.imdbId || movie.imdbId,
-                      streamUrl: st.streamUrl,
-                      title: `${title} - T${selectedSeason}E${epNum}: ${selectedEpisode?.name || 'Episódio'}`,
-                      poster: selectedEpisode?.thumbnail || poster,
-                      infoHash: st.infoHash,
-                      quality: st.quality,
-                      isLocal: false,
-                      isSeries: true,
-                      season: selectedSeason,
-                      episode: epNum,
-                      episodeName: selectedEpisode?.name || '',
-                      resumePosition: resumePos
-                    });
-                  } else {
-                    onPlayStream({
-                      id: details.id || movie.id,
-                      movieId: details.id || movie.id,
-                      imdbId: details.imdbId || movie.imdbId,
-                      streamUrl: st.streamUrl || `/api/stream/${st.infoHash}?magnet=${encodeURIComponent(st.magnet)}`,
-                      title: `${title} - ${st.quality || '1080p'}`,
-                      poster,
-                      infoHash: st.infoHash,
-                      quality: st.quality,
-                      isLocal: false,
-                      resumePosition: resumePos
-                    });
-                  }
-                }}
-              >
-                <span className="material-icons">play_circle</span>
-                <span>▶️ Assistir Agora (Torrent Streaming)</span>
-              </button>
-
-              {/* Botão 3: Cancelar */}
-              <button
-                type="button"
-                className={`tv-stream-action-btn ${streamActionIndex === 3 ? 'focused' : ''}`}
-                onClick={() => setStreamActionTarget(null)}
-              >
-                <span className="material-icons">close</span>
-                <span>Cancelar</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. Diálogo Especial: Download de Séries (Temporada Completa / Série Completa) */}
-      {seriesDownloadModalOpen && (
-        <div className="tv-version-picker-backdrop" onClick={() => setSeriesDownloadModalOpen(false)}>
-          <div className="tv-series-download-modal" onClick={e => e.stopPropagation()}>
-            <div className="tv-series-download-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span className="material-icons" style={{ fontSize: '32px', color: 'var(--primary)' }}>cloud_download</span>
-                <div>
-                  <h2 className="tv-series-download-title">Download de Episódios da Série</h2>
-                  <div className="tv-series-download-subtitle">
-                    {title} • {seasons.length > 0 ? `${seasons.length} Temporadas` : 'Temporada 1'} • Salvar em {seriesDownloadDestination === 'drive' ? 'G:\\Meu Drive\\cinelar\\Series' : 'D:\\Filmes\\Series'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Seletor de Destino Série */}
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button
-                  type="button"
-                  className={`tv-btn ${seriesDownloadDestination === 'local' ? 'tv-btn-primary' : 'tv-btn-secondary'}`}
-                  style={{
-                    padding: '6px 14px',
-                    fontSize: '12px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: seriesDownloadDestination === 'local' ? '#10B981' : undefined,
-                    color: seriesDownloadDestination === 'local' ? '#FFF' : undefined,
-                    fontWeight: 700
-                  }}
-                  onClick={() => setSeriesDownloadDestination('local')}
-                >
-                  <span className="material-icons" style={{ fontSize: '15px' }}>folder</span>
-                  <span>📁 Pasta Local (D:\Filmes\Series)</span>
-                </button>
-                <button
-                  type="button"
-                  className={`tv-btn ${seriesDownloadDestination === 'drive' ? 'tv-btn-primary' : 'tv-btn-secondary'}`}
-                  style={{
-                    padding: '6px 14px',
-                    fontSize: '12px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: seriesDownloadDestination === 'drive' ? '#4285F4' : undefined,
-                    color: seriesDownloadDestination === 'drive' ? '#FFF' : undefined,
-                    fontWeight: 700
-                  }}
-                  onClick={() => setSeriesDownloadDestination('drive')}
-                >
-                  <span className="material-icons" style={{ fontSize: '15px' }}>cloud</span>
-                  <span>☁️ Google Drive (G:\Meu Drive\cinelar\Series)</span>
-                </button>
-              </div>
-            </div>
-
-            {seriesDownloadStep === 'options' && (
-              <div className="tv-series-download-options">
-                {/* Opção 0: Baixar Temporada Completa */}
-                <div
-                  className={`tv-series-option-card ${seriesDownloadModalIndex === 0 ? 'focused' : ''}`}
-                  onClick={handleSelectSeasonPacksStep}
-                >
-                  <div className="tv-series-option-icon-box">
-                    <span className="material-icons">folder_zip</span>
-                  </div>
-                  <div className="tv-series-option-text">
-                    <div className="tv-series-option-title">Baixar Temporada {selectedSeason} Completa</div>
-                    <div className="tv-series-option-desc">
-                      Baixa todos os {currentEpisodes.length} episódios da Temporada {selectedSeason} em pasta organizada ({seriesDownloadDestination === 'drive' ? 'G:\\Meu Drive\\cinelar\\Series' : 'D:\\Filmes\\Series'}\{title}\Temporada {String(selectedSeason).padStart(2, '0')}). Permite escolher a qualidade e versão do pacote.
-                    </div>
-                  </div>
-                  <button type="button" className="tv-version-btn-action">
-                    <span className="material-icons">arrow_forward</span>
-                    <span>Escolher Versão</span>
-                  </button>
-                </div>
-
-                {/* Opção 1: Baixar Todas as Temporadas da Série */}
-                <div
-                  className={`tv-series-option-card ${seriesDownloadModalIndex === 1 ? 'focused' : ''}`}
-                  onClick={() => handleExecuteDownloadAllSeasons(seriesDownloadDestination)}
-                >
-                  <div className="tv-series-option-icon-box" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' }}>
-                    <span className="material-icons">library_add_check</span>
-                  </div>
-                  <div className="tv-series-option-text">
-                    <div className="tv-series-option-title">Baixar Todas as Temporadas da Série</div>
-                    <div className="tv-series-option-desc">
-                      Enfileira o download completo de todas as {seasons.length} temporadas ({seriesMeta?.videos?.length || currentEpisodes.length} episódios no total), salvando em {seriesDownloadDestination === 'drive' ? 'G:\\Meu Drive\\cinelar\\Series' : 'D:\\Filmes\\Series'}.
-                    </div>
-                  </div>
-                  <button type="button" className="tv-version-btn-action" style={{ background: '#22c55e', color: '#000' }}>
-                    <span className="material-icons">download</span>
-                    <span>Baixar Tudo</span>
-                  </button>
-                </div>
-
-                {/* Opção 2: Fechar */}
-                <div
-                  className={`tv-series-option-card ${seriesDownloadModalIndex === 2 ? 'focused' : ''}`}
-                  onClick={() => setSeriesDownloadModalOpen(false)}
-                >
-                  <div className="tv-series-option-icon-box" style={{ background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-muted)' }}>
-                    <span className="material-icons">close</span>
-                  </div>
-                  <div className="tv-series-option-text">
-                    <div className="tv-series-option-title">Cancelar</div>
-                    <div className="tv-series-option-desc">Retornar aos detalhes da série sem iniciar download.</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {seriesDownloadStep === 'packs' && (
-              <div className="tv-series-packs-view">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <span style={{ fontSize: '15px', color: 'var(--text-muted)' }}>
-                    Versões e Qualidades Disponíveis para a <strong>Temporada {selectedSeason}</strong>:
-                  </span>
-                  <button
-                    type="button"
-                    className="tv-btn tv-btn-secondary"
-                    style={{ padding: '6px 14px', fontSize: '13px' }}
-                    onClick={() => {
-                      setSeriesDownloadStep('options');
-                      setSeriesDownloadModalIndex(0);
-                    }}
-                  >
-                    <span className="material-icons" style={{ fontSize: '16px' }}>arrow_back</span>
-                    <span>Voltar</span>
-                  </button>
-                </div>
-
-                {loadingSeasonPacks && (
-                  <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <span className="material-icons" style={{ fontSize: '32px' }}>sync</span>
-                    <p style={{ marginTop: '10px' }}>Buscando pacotes completos da Temporada {selectedSeason}...</p>
-                  </div>
-                )}
-
-                {!loadingSeasonPacks && seasonPacks.length === 0 && (
-                  <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-subtle)' }}>
-                    <p>Nenhum pacote consolidado de temporada encontrado no momento.</p>
-                    <button
-                      type="button"
-                      className="tv-btn tv-btn-primary"
-                      style={{ marginTop: '12px' }}
-                      onClick={() => handleExecuteDownloadAllSeasons(seriesDownloadDestination)}
-                    >
-                      Baixar episódios disponíveis individualmente
-                    </button>
-                  </div>
-                )}
-
-                {!loadingSeasonPacks && seasonPacks.length > 0 && (
-                  <div className="tv-series-packs-list">
-                    {seasonPacks.map((pack, pIdx) => {
-                      const isFocused = seriesDownloadModalIndex === pIdx;
-                      const is4K = String(pack.quality || '').toLowerCase().includes('4k');
-                      const isPt = Boolean(pack.isPt || pack.isDubbed);
-                      return (
-                        <div
-                          key={pack.infoHash || pIdx}
-                          className={`tv-version-picker-item ${isFocused ? 'focused' : ''}`}
-                          onClick={() => handleExecuteSeasonPackDownload(pack, seriesDownloadDestination)}
-                        >
-                          <div className="tv-version-item-left">
-                            <span className="material-icons tv-version-icon" style={{ color: isPt ? 'var(--primary)' : 'var(--text-muted)' }}>
-                              {isPt ? 'star' : 'folder_zip'}
-                            </span>
-                            <div className="tv-version-item-info">
-                              <div className="tv-version-title">{pack.label || pack.title || `${title} S${String(selectedSeason).padStart(2, '0')}`}</div>
-                              <div className="tv-version-meta-row">
-                                <span className={`tv-version-badge-quality ${is4K ? 'q-4k' : ''}`}>{pack.quality || '1080p Full HD'}</span>
-                                {pack.size && <span className="tv-version-badge-size">• {pack.size}</span>}
-                                {isPt && <span style={{ color: '#22c55e', fontWeight: 600 }}>• Dual Áudio / Dublado PT-BR</span>}
-                              </div>
-                            </div>
-                          </div>
-
-                          <button type="button" className="tv-version-btn-action">
-                            <span className="material-icons" style={{ fontSize: '18px' }}>download</span>
-                            <span>Baixar Temporada</span>
-                          </button>
-                        </div>
-                      );
-                    })}
-
-                    {/* Botão voltar no final da lista */}
-                    <div
-                      className={`tv-version-picker-item ${seriesDownloadModalIndex === seasonPacks.length ? 'focused' : ''}`}
-                      onClick={() => {
-                        setSeriesDownloadStep('options');
-                        setSeriesDownloadModalIndex(0);
-                      }}
-                    >
-                      <div className="tv-version-item-left">
-                        <span className="material-icons tv-version-icon">arrow_back</span>
-                        <div className="tv-version-item-info">
-                          <div className="tv-version-title">Voltar às Opções de Série</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="tv-version-picker-footer">
-              <span>◄ ► LEFT/RIGHT: Alternar Destino (Local / Drive) • ▲ ▼ UP/DOWN: Navegar • ENTER: Confirmar</span>
-              <span>VOLTAR: Fechar</span>
-            </div>
-          </div>
-        </div>
-      )}
     </motion.div>
   );
 }

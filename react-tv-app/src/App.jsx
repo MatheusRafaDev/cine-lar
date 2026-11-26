@@ -11,9 +11,6 @@ const LocalFolderView = lazy(() => import('./views/LocalFolderView').then(m => (
 const DownloadsView = lazy(() => import('./views/DownloadsView').then(m => ({ default: m.DownloadsView })));
 const SearchView = lazy(() => import('./views/SearchView').then(m => ({ default: m.SearchView })));
 const SettingsView = lazy(() => import('./views/SettingsView').then(m => ({ default: m.SettingsView })));
-const QuickActionsModal = lazy(() => import('./components/QuickActionsModal').then(m => ({ default: m.QuickActionsModal })));
-const DriveConfigModal = lazy(() => import('./components/DriveConfigModal').then(m => ({ default: m.DriveConfigModal })));
-const SeeMoreModal = lazy(() => import('./components/SeeMoreModal').then(m => ({ default: m.SeeMoreModal })));
 import {
   getTrendingMovies,
   getMovies,
@@ -70,17 +67,13 @@ export function App() {
   const [favorites, setFavorites] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [activeStream, setActiveStream] = useState(null);
-  const [quickMenuMovie, setQuickMenuMovie] = useState(null);
-  const [quickMenuContext, setQuickMenuContext] = useState({ isInContinueWatching: false, isLocal: false });
-  const [confirmDeleteMode, setConfirmDeleteMode] = useState(false);
-  const [exitPromptOpen, setExitPromptOpen] = useState(false);
-  const [exitPromptChoice, setExitPromptChoice] = useState(0);
   const [toastMessage, setToastMessage] = useState('');
   const [serverStatus, setServerStatus] = useState('checking');
   const [isHomeLoading, setIsHomeLoading] = useState(true);
   const [isMoviesLoading, setIsMoviesLoading] = useState(false);
   const [isSeriesLoading, setIsSeriesLoading] = useState(false);
   const toastTimerRef = useRef(null);
+  const lastBackPressRef = useRef(0);
   const downloadsRequestInFlightRef = useRef(false);
   const downloadsSnapshotRef = useRef('');
 
@@ -102,40 +95,8 @@ export function App() {
         return;
       }
     } catch (_) {}
-    setExitPromptOpen(false);
-    showToast('O encerramento direto está disponível no app Samsung Tizen.');
+    showToast('Pressione o botão Home do controle da TV para sair.');
   }, [showToast]);
-
-  useEffect(() => {
-    if (!exitPromptOpen) return undefined;
-
-    const handleExitPromptKey = (event) => {
-      const code = event.keyCode || event.which || 0;
-      const key = event.key || '';
-      const isBack = code === 10009 || code === 27 || code === 8 || key === 'Back' || key === 'Escape';
-      const isConfirm = code === 13 || key === 'Enter';
-      const isLeft = code === 37 || key === 'ArrowLeft';
-      const isRight = code === 39 || key === 'ArrowRight';
-
-      event.preventDefault();
-      event.stopPropagation();
-      event.stopImmediatePropagation?.();
-
-      if (isBack) {
-        setExitPromptOpen(false);
-      } else if (isLeft) {
-        setExitPromptChoice(0);
-      } else if (isRight) {
-        setExitPromptChoice(1);
-      } else if (isConfirm) {
-        if (exitPromptChoice === 1) confirmAppExit();
-        else setExitPromptOpen(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleExitPromptKey, true);
-    return () => window.removeEventListener('keydown', handleExitPromptKey, true);
-  }, [exitPromptOpen, exitPromptChoice, confirmAppExit]);
 
   const searchInputRef = useRef({ handleKeyPress: null });
   const modalActionRef = useRef({});
@@ -668,7 +629,8 @@ export function App() {
         isDrive,
         filePath: m.filePath || m.videoPath,
         videoPath: m.videoPath || m.filePath,
-        streamUrl: m.streamUrl
+        streamUrl: m.streamUrl,
+        year: m.year
       };
 
       if (m.imdbId && String(m.imdbId).startsWith('tt')) {
@@ -691,7 +653,8 @@ export function App() {
         isDrive: true,
         filePath: m.filePath || m.videoPath,
         videoPath: m.videoPath || m.filePath,
-        streamUrl: m.streamUrl
+        streamUrl: m.streamUrl,
+        year: m.year
       };
       if (m.imdbId && String(m.imdbId).startsWith('tt')) {
         map.set(`imdb:${String(m.imdbId).toLowerCase().trim()}`, info);
@@ -716,7 +679,8 @@ export function App() {
         isDrive,
         filePath: d.savePath,
         videoPath: d.savePath,
-        streamUrl: d.streamUrl
+        streamUrl: d.streamUrl,
+        year: d.year
       };
       if (d.imdbId && String(d.imdbId).startsWith('tt')) {
         map.set(`imdb:${String(d.imdbId).toLowerCase().trim()}`, info);
@@ -773,11 +737,19 @@ export function App() {
       }
     }
 
+    if (matched && movie.year && matched.year) {
+      const my = parseInt(movie.year, 10);
+      const ly = parseInt(matched.year, 10);
+      if (!isNaN(my) && !isNaN(ly) && Math.abs(my - ly) > 1) {
+        matched = null;
+      }
+    }
+
     if (matched) {
       return {
         ...movie,
         isLocal: true,
-        isDrive: matched.isDrive,
+        isDrive: Boolean(matched.isDrive),
         filePath: movie.filePath || matched.filePath,
         videoPath: movie.videoPath || matched.videoPath,
         streamUrl: movie.streamUrl || matched.streamUrl
@@ -1088,41 +1060,7 @@ export function App() {
     return baseButtons;
   }, [selectedMovie]);
 
-  // 3.5. Ações dinâmicas para o Menu de Ações Rápidas (Segurar OK no controle)
-  const quickMenuActionsList = useMemo(() => {
-    if (!quickMenuMovie) return [];
-    if (confirmDeleteMode) {
-      return ['confirm_delete', 'cancel_delete'];
-    }
-    if (quickMenuContext.isDownload) {
-      const isDlDone = quickMenuMovie.status === 'completed' || (quickMenuMovie.progress && quickMenuMovie.progress >= 100);
-      return isDlDone
-        ? ['play', 'details', 'delete_download']
-        : ['play', 'pause_resume', 'details', 'delete_download'];
-    }
-    const list = ['play'];
-    if (quickMenuContext.isInContinueWatching) {
-      list.push('remove_history');
-    }
-    list.push('details');
-    list.push('favorite');
-    if (!quickMenuContext.isLocal && !quickMenuMovie.isLocal) {
-      list.push('download');
-    }
-    if (quickMenuContext.isLocal || quickMenuMovie.isLocal || quickMenuMovie.filePath) {
-      list.push('delete_local');
-    }
-    return list;
-  }, [quickMenuMovie, confirmDeleteMode, quickMenuContext]);
 
-  const handleCloseQuickMenu = useCallback(() => {
-    if (confirmDeleteMode) {
-      setConfirmDeleteMode(false);
-      nav.setQuickMenuIndex?.(0);
-      return;
-    }
-    setQuickMenuMovie(null);
-  }, [confirmDeleteMode]);
 
   // Remove otimisticamente um arquivo local de todos os estados da UI em 0ms
   const removeLocalMovieFromState = useCallback((target) => {
@@ -1392,10 +1330,6 @@ export function App() {
     refreshLocalLibrary();
   }, [activeTab, downloads, findMatchingLocalMovie, removeLocalMovieFromState, refreshUserData, showToast, refreshDownloadsInfo, refreshLocalLibrary]);
 
-  const handleConfirmDelete = useCallback(() => {
-    if (!quickMenuMovie) return;
-    executeDeleteLocalMovie(quickMenuMovie);
-  }, [quickMenuMovie, executeDeleteLocalMovie]);
 
   const handleStartDownloadTarget = useCallback((target, destination = 'local') => {
     if (!target) return;
@@ -1437,118 +1371,10 @@ export function App() {
     });
   }, [showToast, refreshDownloadsInfo]);
 
-  const handleQuickActionSelect = useCallback((actionId) => {
-    if (!quickMenuMovie) return;
-    const target = quickMenuMovie;
 
-    switch (actionId) {
-      case 'play':
-        setQuickMenuMovie(null);
-        handlePlayMovieDirect(target);
-        break;
-
-      case 'details':
-        setQuickMenuMovie(null);
-        setSelectedMovie(target);
-        break;
-
-      case 'pause_resume':
-        setQuickMenuMovie(null);
-        if (target.isPaused || target.status === 'paused') {
-          handleResumeDownload(target);
-        } else {
-          handlePauseDownload(target);
-        }
-        break;
-
-      case 'delete_download':
-        setQuickMenuMovie(null);
-        handleCancelDownload(target, true);
-        break;
-
-      case 'switch_to_local':
-        setQuickMenuMovie(null);
-        handleSwitchDownloadDestination(target, 'local');
-        break;
-
-      case 'favorite': {
-        const added = toggleFavorite(target);
-        showToast(added ? 'Adicionado à Minha Lista' : 'Removido de Minha Lista');
-        refreshUserData();
-        setQuickMenuMovie(null);
-        break;
-      }
-
-      case 'download_local': {
-        setQuickMenuMovie(null);
-        handleStartDownloadTarget(target, 'local');
-        break;
-      }
-
-      case 'download_drive': {
-        setQuickMenuMovie(null);
-        handleStartDownloadTarget(target, 'drive');
-        break;
-      }
-
-      case 'download': {
-        setQuickMenuMovie(null);
-        handleStartDownloadTarget(target, 'local');
-        break;
-      }
-
-      case 'remove_history':
-        clearWatchProgress(target);
-        refreshUserData();
-        showToast(`"${target.title || target.name || 'Título'}" removido de Continuar Assistindo`);
-        setQuickMenuMovie(null);
-        nav.setColIndex(c => Math.max(0, c - 1));
-        break;
-
-      case 'delete_local':
-        setConfirmDeleteMode(true);
-        nav.setQuickMenuIndex?.(0);
-        break;
-
-      case 'confirm_delete':
-        handleConfirmDelete();
-        break;
-
-      case 'cancel_delete':
-        setConfirmDeleteMode(false);
-        nav.setQuickMenuIndex?.(0);
-        break;
-
-      default:
-        setQuickMenuMovie(null);
-        break;
-    }
-  }, [quickMenuMovie, handlePlayMovieDirect, showToast, refreshUserData, executeDeleteLocalMovie, handleConfirmDelete, handleResumeDownload, handlePauseDownload, handleCancelDownload]);
-
-  // Abertura centralizada do menu de opções do título
-  const handleOpenQuickMenuForMovie = useCallback((target, forceContinueWatching = false) => {
-    if (!target) return;
-    const matchedLocal = findMatchingLocalMovie(target);
-    const resolvedFilePath = target.filePath || target.videoPath || matchedLocal?.filePath || matchedLocal?.videoPath || '';
-    const isLocal = Boolean(resolvedFilePath || target.isLocal || activeTab === 'local');
-    const isDownload = Boolean(
-      activeTab === 'downloads' ||
-      target.status === 'downloading' ||
-      target.status === 'paused'
-    );
-    const isContinueWatching = Boolean(forceContinueWatching || isInWatchHistory(target) || (target.position && target.position > 10));
-    const enrichedTarget = resolvedFilePath && !target.filePath
-      ? { ...target, filePath: resolvedFilePath, videoPath: resolvedFilePath, isLocal: true }
-      : target;
-
-    setConfirmDeleteMode(false);
-    setQuickMenuContext({ isInContinueWatching: isContinueWatching, isLocal, isDownload, downloadItem: enrichedTarget });
-    setQuickMenuMovie(enrichedTarget);
-  }, [activeTab, findMatchingLocalMovie]);
 
   const handleLongPress = useCallback(({ zone, heroIndex, rowIndex, colIndex, resultsColIndex }) => {
     let target = null;
-
     if (zone === 'hero') {
       target = heroMovie;
     } else if (zone === 'rows') {
@@ -1562,8 +1388,6 @@ export function App() {
         const sec = currentSections[rowIndex];
         if (sec && sec.movies && sec.movies[colIndex]) {
           target = sec.movies[colIndex];
-          handleOpenQuickMenuForMovie(target, sec.id === 'continue-watching');
-          return;
         }
       }
     } else if (zone === 'search-results') {
@@ -1571,11 +1395,10 @@ export function App() {
         target = searchInputRef.current.getResult(resultsColIndex);
       }
     }
-
     if (target) {
-      handleOpenQuickMenuForMovie(target);
+      setSelectedMovie(target);
     }
-  }, [activeTab, heroMovie, downloads, favoritesGridRows, localGridRows, currentSections, handleOpenQuickMenuForMovie]);
+  }, [activeTab, heroMovie, downloads, favoritesGridRows, localGridRows, currentSections]);
 
   // 4. Integração do Hook Espacial Ultra-Rápido
   const nav = useSpatialNav({
@@ -1584,8 +1407,6 @@ export function App() {
     isSeeMoreOpen: false,
     modalActionRef,
     modalStreamBaseIndex,
-    isQuickMenuOpen: Boolean(quickMenuMovie),
-    quickMenuCount: quickMenuActionsList.length,
     activeTab,
     hasHero: activeTab === 'home' && Boolean(heroMovie),
     rowCount,
@@ -1595,11 +1416,6 @@ export function App() {
     modalItemsCount,
     searchActionRef: searchInputRef,
     onLongPress: handleLongPress,
-    onCloseQuickMenu: handleCloseQuickMenu,
-    onQuickMenuSelect: (idx) => {
-      const actId = quickMenuActionsList[idx];
-      if (actId) handleQuickActionSelect(actId);
-    },
     onTabChange: (newHeaderIdx) => {
       const item = NAV_ITEMS[newHeaderIdx];
       if (item && item.id !== activeTab) {
@@ -1640,19 +1456,19 @@ export function App() {
         nav.setColIndex(0);
         return true;
       }
-      // Se o diálogo de saída já está aberto, pressionar voltar fecha o diálogo
-      if (exitPromptOpen) {
-        setExitPromptOpen(false);
-        return true;
-      }
       // Se estiver em qualquer aba secundária (Filmes, Séries, etc.) e não for saída raiz,
       // deixa o useSpatialNav voltar para a aba Início
       if (activeTab !== 'home' && !context.isRootExit) {
         return false;
       }
-      // Se já está na tela Início, abre diálogo de confirmação para sair do aplicativo
-      setExitPromptChoice(0);
-      setExitPromptOpen(true);
+      // Pressionar voltar duas vezes na Home fecha o app diretamente, sem nenhum modal
+      const now = Date.now();
+      if (lastBackPressRef.current && (now - lastBackPressRef.current) < 2500) {
+        confirmAppExit();
+        return true;
+      }
+      lastBackPressRef.current = now;
+      showToast('Pressione Voltar novamente para sair do Cinelar.');
       return true;
     },
     onEnter: ({ zone, index, headerIndex, heroIndex, rowIndex, colIndex, filterIndex, searchRowIndex, searchColIndex, resultsColIndex, isPlayKey }) => {
@@ -1908,7 +1724,7 @@ export function App() {
                     setSelectedMovie(mov);
                   }
                 }}
-                onContextMenuMovie={(mov) => handleOpenQuickMenuForMovie(mov, true)}
+                onContextMenuMovie={(mov) => setSelectedMovie(mov)}
                 onPlayHero={() => handlePlayMovieDirect(heroMovie)}
                 onInfoHero={() => setSelectedMovie(heroMovie)}
                 onSeeMore={handleOpenSeeMore}
@@ -1934,7 +1750,7 @@ export function App() {
                 rowIndex={nav.rowIndex}
                 colIndex={nav.colIndex}
                 onSelectMovie={setSelectedMovie}
-                onContextMenuMovie={handleOpenQuickMenuForMovie}
+                onContextMenuMovie={(mov) => setSelectedMovie(mov)}
                 onSeeMore={handleOpenSeeMore}
                 serverStatus={serverStatus}
                 isLoading={isMoviesLoading}
@@ -1958,7 +1774,7 @@ export function App() {
                 rowIndex={nav.rowIndex}
                 colIndex={nav.colIndex}
                 onSelectSeries={setSelectedMovie}
-                onContextMenuMovie={handleOpenQuickMenuForMovie}
+                onContextMenuMovie={(mov) => setSelectedMovie(mov)}
                 onSeeMore={handleOpenSeeMore}
                 serverStatus={serverStatus}
                 isLoading={isSeriesLoading}
@@ -1983,7 +1799,7 @@ export function App() {
                 rowIndex={nav.rowIndex}
                 colIndex={nav.colIndex}
                 onSelectMovie={setSelectedMovie}
-                onContextMenuMovie={handleOpenQuickMenuForMovie}
+                onContextMenuMovie={(mov) => setSelectedMovie(mov)}
               />
             </motion.div>
           )}
@@ -2016,7 +1832,7 @@ export function App() {
                 rowIndex={nav.rowIndex}
                 colIndex={nav.colIndex}
                 onSelectMovie={handlePlayMovieDirect}
-                onContextMenuMovie={handleOpenQuickMenuForMovie}
+                onContextMenuMovie={(mov) => setSelectedMovie(mov)}
                 onOpenDriveConfig={handleNavigateToDriveSettings}
                 serverStatus={serverStatus}
               />
@@ -2046,7 +1862,7 @@ export function App() {
                 onResumeDownload={handleResumeDownload}
                 onCancelDownload={handleCancelDownload}
                 onSwitchDestination={handleSwitchDownloadDestination}
-                onContextMenu={handleOpenQuickMenuForMovie}
+                onContextMenu={(mov) => setSelectedMovie(mov)}
               />
             </motion.div>
           )}
@@ -2133,69 +1949,7 @@ export function App() {
         />
       )}
 
-      {/* Menu de Ações Rápidas (Segurar OK no controle) */}
-      <AnimatePresence>
-        {quickMenuMovie && (
-          <QuickActionsModal
-            key="quick-menu"
-            movie={quickMenuMovie}
-            context={quickMenuContext}
-            isFav={isFavorite(quickMenuMovie.id, quickMenuMovie.imdbId, quickMenuMovie.title)}
-            isOpen={Boolean(quickMenuMovie)}
-            focusedIndex={nav.quickMenuIndex}
-            confirmDeleteMode={confirmDeleteMode}
-            onSelectAction={handleQuickActionSelect}
-            onClose={handleCloseQuickMenu}
-            onConfirmDelete={handleConfirmDelete}
-            onCancelDelete={() => setConfirmDeleteMode(false)}
-          />
-        )}
-      </AnimatePresence>
 
-      {/* Notificação Toast Global */}
-      <AnimatePresence>
-        {exitPromptOpen && (
-          <motion.div
-            className="tv-exit-overlay"
-            role="presentation"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setExitPromptOpen(false)}
-          >
-            <motion.section
-              className="tv-exit-dialog"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="tv-exit-title"
-              initial={{ opacity: 0, scale: 0.94, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <h2 id="tv-exit-title">Deseja sair do Cinelar?</h2>
-              <p>Você pode voltar para continuar assistindo a qualquer momento.</p>
-              <div className="tv-exit-actions">
-                <button
-                  type="button"
-                  className={`tv-btn tv-btn-secondary ${exitPromptChoice === 0 ? 'focused' : ''}`}
-                  onClick={() => setExitPromptOpen(false)}
-                >
-                  Continuar assistindo
-                </button>
-                <button
-                  type="button"
-                  className={`tv-btn tv-btn-primary ${exitPromptChoice === 1 ? 'focused' : ''}`}
-                  onClick={confirmAppExit}
-                >
-                  Sair
-                </button>
-              </div>
-              <p style={{ marginTop: '18px', fontSize: '13px' }}>Esquerda/direita seleciona · OK confirma · Voltar cancela</p>
-            </motion.section>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {toastMessage && (
@@ -2214,7 +1968,7 @@ export function App() {
       </AnimatePresence>
 
       {/* Barra de Atalhos Coloridos do Controle da TV (Samsung / Tizen) */}
-      {!activeStream && !selectedMovie && !quickMenuMovie && (
+      {!activeStream && !selectedMovie && (
         <aside className="tv-remote-hints" aria-label="Atalhos coloridos do controle remoto">
           <div className="tv-hint-item">
             <span className="tv-hint-dot red" />

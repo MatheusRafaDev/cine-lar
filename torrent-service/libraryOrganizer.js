@@ -24,27 +24,29 @@ export function isJunkFile(fileName) {
     if (!fileName) return false;
     const lower = fileName.toLowerCase().trim();
 
-    // 1. Atalhos de sites e links
-    if (lower.endsWith('.url') || lower.endsWith('.lnk') || lower.endsWith('.torrent')) {
+    // 1. Atalhos de sites, links e metadados de torrents
+    if (lower.endsWith('.url') || lower.endsWith('.lnk') || lower.endsWith('.torrent') || lower.endsWith('.nfo')) {
         return true;
     }
 
     // 2. Arquivos de texto informativos de trackers
     if (lower.endsWith('.txt')) {
-        if (/^(leia|leia\s*importante|important|readme|read\s*me|fan\s*page|visite|acesse|downloaded\s*from|info)/i.test(lower) ||
-            /\b(thepiratefilmes|bludv|wolverdonfilmes|totti9|andretpf|comandotorrents|cinecombo)\b/i.test(lower) ||
-            /\.com|\.net|\.org|\.me|\.tv/i.test(lower)) {
+        return true;
+    }
+
+    // 3. Imagens de propaganda e banners de sites
+    if (/\.(png|jpg|jpeg|bmp|gif|webp)$/i.test(lower)) {
+        if (/\b(thepiratefilmes|bludv|wolverdonfilmes|totti9|andretpf|comandotorrents|acesse|banner|classifica[çc][ãa]o|filmesbluraytorrent|uploader|semeie|calma|findme|poster|cover|capa)\b/i.test(lower) ||
+            /^vlcsnap-/i.test(lower) ||
+            /^screenshot/i.test(lower) ||
+            /^[a-z]\.jpg$/i.test(lower)) {
             return true;
         }
     }
 
-    // 3. Imagens de propaganda e banners de sites
-    if (/\.(png|jpg|jpeg|bmp|gif)$/i.test(lower)) {
-        if (/\b(thepiratefilmes|bludv|wolverdonfilmes|totti9|andretpf|comandotorrents|acesse|banner|classifica[çc][ãa]o|filmesbluraytorrent)\b/i.test(lower) ||
-            /^vlcsnap-/i.test(lower) ||
-            /^screenshot/i.test(lower)) {
-            return true;
-        }
+    // 4. Arquivos sem extensão conhecidos de trackers ou links
+    if (/^(créditos|creditos|legenda|mediainfo|findme)$/i.test(lower)) {
+        return true;
     }
 
     return false;
@@ -146,10 +148,17 @@ export async function analyzeLibrary(basePath = 'D:\\Filmes') {
         if (entry.isDirectory() && !entry.name.startsWith('.') && !entry.name.startsWith('$')) {
             const subEntries = fs.readdirSync(fullPath, { withFileTypes: true });
 
-            // Identifica arquivos de lixo dentro da pasta
+            // Identifica arquivos e subpastas de lixo dentro da pasta
             for (const sub of subEntries) {
                 const subPath = path.join(fullPath, sub.name);
-                if (sub.isFile() && isJunkFile(sub.name)) {
+                if (sub.isDirectory() && /^(screenshots|depois do filme|sample|samples|créditos|creditos)$/i.test(sub.name)) {
+                    junkFiles.push({
+                        path: subPath,
+                        name: sub.name,
+                        parent: fullPath,
+                        isDir: true
+                    });
+                } else if (sub.isFile() && isJunkFile(sub.name)) {
                     junkFiles.push({
                         path: subPath,
                         name: sub.name,

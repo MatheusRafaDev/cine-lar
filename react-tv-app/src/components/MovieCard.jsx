@@ -75,15 +75,16 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
   const rating = movie.imdbRating || movie.rating || null;
   const isLocal = Boolean(movie.isLocal || movie.filePath || movie.videoPath);
   const cardPath = String(movie.filePath || movie.videoPath || '').toLowerCase();
-  const isLocalDisk = cardPath.startsWith('d:\\') || cardPath.startsWith('d:/') || cardPath.startsWith('c:\\') || cardPath.startsWith('c:/');
-  const isDrive = !isLocalDisk && Boolean(
+  const isDrive = Boolean(
     movie.isCloud ||
     movie.isDrive ||
     movie.storageLocation === 'drive' ||
     cardPath.startsWith('g:\\') ||
     cardPath.startsWith('g:/') ||
-    cardPath.includes('meu drive')
+    cardPath.includes('meu drive') ||
+    (movie.streamUrl && (movie.streamUrl.includes('drive.google.com') || movie.streamUrl.includes('drive.usercontent.google.com')))
   );
+  const isLocalDisk = isLocal && !isDrive;
 
   const saved = getSavedProgress(movie);
   const progress = (movie.progress !== undefined && movie.progress !== null) ? movie.progress : (saved?.progress || null);
