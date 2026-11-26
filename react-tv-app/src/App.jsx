@@ -652,10 +652,7 @@ export function App() {
     return Math.max(1, currentSections.length);
   }, [activeTab, downloads.length, favoritesGridRows.length, localGridRows.length, currentSections.length]);
 
-  const handleOpenSeeMore = useCallback((sec) => {
-    if (!sec) return;
-    setActiveSeeMoreSection(sec);
-  }, []);
+
 
   const handleLoadMoreInRow = useCallback(async (sec, explicitMovies = null) => {
     if (!sec) return;
@@ -1609,6 +1606,81 @@ export function App() {
     const idx = NAV_ITEMS.findIndex(i => i.id === tabId);
     if (idx !== -1) nav.setHeaderIndex(idx);
   };
+
+  const handleOpenSeeMore = useCallback((sec) => {
+    if (!sec) return;
+    const secId = String(sec.id || '').toLowerCase();
+    const title = String(sec.title || '').toLowerCase();
+
+    // 1. Seção do Disco Local (PC / D:\Filmes): navega para a aba Local com filtro de Pasta Local
+    if (secId === 'local-quick' || secId.includes('local') || title.includes('disco local') || title.includes('d:\\filmes') || title.includes('pasta local')) {
+      setLocalFilterId('local-only');
+      nav.setLocalFilterIndex(0);
+      nav.setRowIndex(0);
+      nav.setColIndex(0);
+      nav.setActiveZone('rows');
+      handleSelectTab('local');
+      showToast('Exibindo filmes salvos no computador (D:\\Filmes)...');
+      return;
+    }
+
+    // 2. Seção do Google Drive (Nuvem): navega para a aba Local com filtro de Google Drive
+    if (secId === 'drive-quick' || secId.includes('drive') || title.includes('google drive') || title.includes('nuvem')) {
+      setLocalFilterId('gdrive');
+      nav.setLocalFilterIndex(1);
+      nav.setRowIndex(0);
+      nav.setColIndex(0);
+      nav.setActiveZone('rows');
+      handleSelectTab('local');
+      refreshDriveLibrary();
+      showToast('Exibindo filmes da Nuvem (Google Drive)...');
+      return;
+    }
+
+    // 3. Minha Lista / Favoritos: navega para a aba de Favoritos
+    if (secId === 'my-list' || secId === 'favorites' || title.includes('minha lista') || title.includes('favoritos')) {
+      nav.setRowIndex(0);
+      nav.setColIndex(0);
+      nav.setActiveZone('rows');
+      handleSelectTab('favorites');
+      return;
+    }
+
+    // 4. Séries em Destaque / Séries: navega para a aba de Séries
+    if (sec.isSeries || secId === 'series-popular' || secId.startsWith('series') || title.includes('série')) {
+      handleSelectTab('series');
+      const targetRow = seriesGenreSections.findIndex(s => s.id === sec.id || s.title?.toLowerCase() === sec.title?.toLowerCase());
+      if (targetRow !== -1) {
+        nav.setRowIndex(targetRow);
+        nav.setColIndex(0);
+      } else {
+        nav.setRowIndex(0);
+        nav.setColIndex(0);
+      }
+      nav.setActiveZone('rows');
+      showToast(`Abrindo catálogo de séries: ${sec.title || ''}...`);
+      return;
+    }
+
+    // 5. Categorias de Filmes vindas da Home: navega para a aba Filmes focando na categoria
+    if (activeTab === 'home') {
+      handleSelectTab('movies');
+      const targetRow = genreSections.findIndex(s => s.id === sec.id || s.title?.toLowerCase() === sec.title?.toLowerCase());
+      if (targetRow !== -1) {
+        nav.setRowIndex(targetRow);
+        nav.setColIndex(0);
+      } else {
+        nav.setRowIndex(0);
+        nav.setColIndex(0);
+      }
+      nav.setActiveZone('rows');
+      showToast(`Filtrando filmes por ${sec.title || 'categoria'}...`);
+      return;
+    }
+
+    // 6. Se já estiver na aba de Filmes ou Séries: carrega mais filmes direto na fileira sem abrir modal!
+    handleLoadMoreInRow(sec);
+  }, [genreSections, seriesGenreSections, activeTab, nav, handleLoadMoreInRow, refreshDriveLibrary, showToast]);
 
   // Enquanto o player fullscreen estiver aberto, a interface por baixo nao precisa ser pintada.
   // visibility (e nao display) preserva o layout e a posicao de rolagem ao voltar.
