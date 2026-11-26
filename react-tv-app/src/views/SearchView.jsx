@@ -18,7 +18,8 @@ export function SearchView({
   onSelectMovie,
   searchActionRef,
   serverStatus = 'checking',
-  onRetryConnection
+  onRetryConnection,
+  enrichMovie
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -98,15 +99,20 @@ export function SearchView({
         },
         selectResult: (colIdx) => {
           if (results && results[colIdx]) {
-            onSelectMovie(results[colIdx]);
+            const raw = results[colIdx];
+            onSelectMovie(enrichMovie ? enrichMovie(raw) : raw);
           }
         },
         getResult: (colIdx) => {
-          return results && results[colIdx] ? results[colIdx] : null;
+          if (results && results[colIdx]) {
+            const raw = results[colIdx];
+            return enrichMovie ? enrichMovie(raw) : raw;
+          }
+          return null;
         }
       };
     }
-  }, [searchActionRef, handleKeyPress, results, onSelectMovie]);
+  }, [searchActionRef, handleKeyPress, results, onSelectMovie, enrichMovie]);
 
   useEffect(() => () => clearTimeout(debounceTimerRef.current), []);
 
@@ -185,8 +191,9 @@ export function SearchView({
             </div>
           ) : (
             <div className="tv-search-results-grid">
-              {results.map((movie, idx) => {
+              {results.map((rawMovie, idx) => {
                 const isCardFocused = isResultsFocused && resultsColIndex === idx;
+                const movie = enrichMovie ? enrichMovie(rawMovie) : rawMovie;
                 return (
                   <MovieCard
                     key={movie.id || movie.imdbId || idx}

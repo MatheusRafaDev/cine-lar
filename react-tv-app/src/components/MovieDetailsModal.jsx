@@ -911,7 +911,9 @@ export function MovieDetailsModal({
                   <span className="tv-badge-pill" style={{ background: '#3b82f6', color: '#FFFFFF' }}>Série de TV</span>
                 )}
                 {isLocal && (
-                  <span className="tv-badge-pill" style={{ background: '#22c55e', color: '#000', fontWeight: 800 }}>Arquivo Local (D:\Filmes)</span>
+                  <span className="tv-badge-pill" style={{ background: isDrive ? '#3b82f6' : '#22c55e', color: isDrive ? '#FFFFFF' : '#000000', fontWeight: 800 }}>
+                    {isDrive ? '☁ Google Drive' : '📁 Arquivo Local (D:\\Filmes)'}
+                  </span>
                 )}
               </div>
 

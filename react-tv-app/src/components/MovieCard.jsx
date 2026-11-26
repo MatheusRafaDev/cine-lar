@@ -181,11 +181,11 @@ function MovieCardComponent({ movie, isFocused, onSelect, onClick, onContextMenu
         )}
 
         {isLocal && (
-          <div className={`tv-card-badge-local ${isDrive ? 'cloud' : ''}`}>
-            <span className="material-icons" style={{ fontSize: '11px', marginRight: '2px' }}>
+          <div className={`tv-card-badge-local ${isDrive ? 'cloud' : ''}`} title={isDrive ? 'Salvo no Google Drive' : 'Salvo no PC (D:\\Filmes)'}>
+            <span className="material-icons" style={{ fontSize: '11px', marginRight: '3px' }}>
               {isDrive ? 'cloud' : 'folder'}
             </span>
-            <span>{isDrive ? 'Drive' : 'PC'}</span>
+            <span>{isDrive ? 'Drive' : 'PC (D:)'}</span>
           </div>
         )}
 
@@ -228,6 +228,8 @@ export const MovieCard = memo(MovieCardComponent, (prevProps, nextProps) => {
   if (prevProps.isFocused !== nextProps.isFocused) return false;
   if (prevProps.movie !== nextProps.movie) {
     if (prevProps.movie?.id !== nextProps.movie?.id) return false;
+    if (prevProps.movie?.isLocal !== nextProps.movie?.isLocal) return false;
+    if (prevProps.movie?.isDrive !== nextProps.movie?.isDrive) return false;
     if (prevProps.movie?.progress !== nextProps.movie?.progress) return false;
     if (prevProps.movie?.poster !== nextProps.movie?.poster) return false;
     if (prevProps.movie?.title !== nextProps.movie?.title) return false;

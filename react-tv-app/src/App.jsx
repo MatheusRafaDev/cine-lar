@@ -628,20 +628,203 @@ export function App() {
     return rows;
   }, [favorites]);
 
+  // Mapeamento otimizado de filmes locais (D:\Filmes) e nuvem (Google Drive) para marcar badges nos cards
+  const localMatchMap = useMemo(() => {
+    const map = new Map();
+
+    const normalizeKey = (str) => {
+      if (!str) return '';
+      return String(str)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const stripYear = (key) => {
+      return key.replace(/\s+(19|20)\d{2}$/, '').trim();
+    };
+
+    const addTitleKeys = (rawTitle, info) => {
+      if (!rawTitle) return;
+      const k = normalizeKey(rawTitle);
+      if (k) {
+        map.set(`title:${k}`, info);
+        const withoutYear = stripYear(k);
+        if (withoutYear && withoutYear !== k) {
+          map.set(`title:${withoutYear}`, info);
+        }
+      }
+    };
+
+    // 1. Filmes Locais do PC (D:\Filmes)
+    (localMovies || []).forEach(m => {
+      if (!m) return;
+      const targetPath = String(m.filePath || m.videoPath || '').toLowerCase();
+      const isLocalDisk = targetPath.startsWith('d:\\') || targetPath.startsWith('d:/') || targetPath.startsWith('c:\\') || targetPath.startsWith('c:/');
+      const isDrive = !isLocalDisk && (targetPath.startsWith('g:\\') || targetPath.startsWith('g:/') || targetPath.includes('meu drive') || m.isCloud || m.isDrive || m.storageLocation === 'drive');
+      const info = {
+        isLocal: true,
+        isDrive,
+        filePath: m.filePath || m.videoPath,
+        videoPath: m.videoPath || m.filePath,
+        streamUrl: m.streamUrl
+      };
+
+      if (m.imdbId && String(m.imdbId).startsWith('tt')) {
+        map.set(`imdb:${String(m.imdbId).toLowerCase().trim()}`, info);
+      }
+      if (m.id && String(m.id).startsWith('tt')) {
+        map.set(`imdb:${String(m.id).toLowerCase().trim()}`, info);
+      }
+      addTitleKeys(m.title, info);
+      addTitleKeys(m.cleanName, info);
+      addTitleKeys(m.original_title, info);
+      addTitleKeys(m.originalTitle, info);
+    });
+
+    // 2. Filmes do Google Drive
+    (driveMovies || []).forEach(m => {
+      if (!m) return;
+      const info = {
+        isLocal: true,
+        isDrive: true,
+        filePath: m.filePath || m.videoPath,
+        videoPath: m.videoPath || m.filePath,
+        streamUrl: m.streamUrl
+      };
+      if (m.imdbId && String(m.imdbId).startsWith('tt')) {
+        map.set(`imdb:${String(m.imdbId).toLowerCase().trim()}`, info);
+      }
+      if (m.id && String(m.id).startsWith('tt')) {
+        map.set(`imdb:${String(m.id).toLowerCase().trim()}`, info);
+      }
+      addTitleKeys(m.title, info);
+      addTitleKeys(m.cleanName, info);
+      addTitleKeys(m.original_title, info);
+      addTitleKeys(m.originalTitle, info);
+    });
+
+    // 3. Downloads concluídos (100%)
+    (downloads || []).forEach(d => {
+      if (!d || (d.status !== 'completed' && d.stage !== 'completed' && parseFloat(d.progress) < 100)) return;
+      const isDrive = d.destination === 'drive' || String(d.savePath || '').toLowerCase().startsWith('g:');
+      const info = {
+        isLocal: true,
+        isDrive,
+        filePath: d.savePath,
+        videoPath: d.savePath,
+        streamUrl: d.streamUrl
+      };
+      if (d.imdbId && String(d.imdbId).startsWith('tt')) {
+        map.set(`imdb:${String(d.imdbId).toLowerCase().trim()}`, info);
+      }
+      addTitleKeys(d.title, info);
+    });
+
+    return map;
+  }, [localMovies, driveMovies, downloads]);
+
+  const enrichMovieWithLocalStatus = useCallback((movie) => {
+    if (!movie) return movie;
+    if (movie.isLocal && movie.filePath) return movie;
+
+    const normalizeKey = (str) => {
+      if (!str) return '';
+      return String(str)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const stripYear = (key) => {
+      return key.replace(/\s+(19|20)\d{2}$/, '').trim();
+    };
+
+    let matched = null;
+    if (movie.imdbId && String(movie.imdbId).startsWith('tt')) {
+      matched = localMatchMap.get(`imdb:${String(movie.imdbId).toLowerCase().trim()}`);
+    }
+    if (!matched && movie.id && String(movie.id).startsWith('tt')) {
+      matched = localMatchMap.get(`imdb:${String(movie.id).toLowerCase().trim()}`);
+    }
+
+    const checkCandidates = [
+      movie.title,
+      movie.name,
+      movie.original_title,
+      movie.originalTitle,
+      movie.original_name,
+      movie.cleanName
+    ];
+
+    if (!matched) {
+      for (const cand of checkCandidates) {
+        if (!cand) continue;
+        const k = normalizeKey(cand);
+        if (!k) continue;
+        matched = localMatchMap.get(`title:${k}`) || localMatchMap.get(`title:${stripYear(k)}`);
+        if (matched) break;
+      }
+    }
+
+    if (matched) {
+      return {
+        ...movie,
+        isLocal: true,
+        isDrive: matched.isDrive,
+        filePath: movie.filePath || matched.filePath,
+        videoPath: movie.videoPath || matched.videoPath,
+        streamUrl: movie.streamUrl || matched.streamUrl
+      };
+    }
+    return movie;
+  }, [localMatchMap]);
+
+  const enrichedGenreSections = useMemo(() => {
+    if (!genreSections || genreSections.length === 0) return [];
+    return genreSections.map(sec => ({
+      ...sec,
+      movies: (sec.movies || []).map(enrichMovieWithLocalStatus)
+    }));
+  }, [genreSections, enrichMovieWithLocalStatus]);
+
+  const enrichedHomeSections = useMemo(() => {
+    if (!homeSections || homeSections.length === 0) return [];
+    return homeSections.map(sec => ({
+      ...sec,
+      movies: (sec.movies || []).map(enrichMovieWithLocalStatus)
+    }));
+  }, [homeSections, enrichMovieWithLocalStatus]);
+
+  const enrichedSeriesGenreSections = useMemo(() => {
+    if (!seriesGenreSections || seriesGenreSections.length === 0) return [];
+    return seriesGenreSections.map(sec => ({
+      ...sec,
+      movies: (sec.movies || []).map(enrichMovieWithLocalStatus)
+    }));
+  }, [seriesGenreSections, enrichMovieWithLocalStatus]);
+
   // Filme em destaque (Hero)
   const heroMovie = useMemo(() => {
-    return trendingMovies.length > 0 ? trendingMovies[0] : (localMovies[0] || null);
-  }, [trendingMovies, localMovies]);
+    const raw = trendingMovies.length > 0 ? trendingMovies[0] : (localMovies[0] || null);
+    return raw ? enrichMovieWithLocalStatus(raw) : null;
+  }, [trendingMovies, localMovies, enrichMovieWithLocalStatus]);
 
   // 3. Cálculo dinâmico do número de linhas e colunas para a navegação espacial
   const currentSections = useMemo(() => {
-    if (activeTab === 'home') return homeSections;
-    if (activeTab === 'movies') return genreSections;
-    if (activeTab === 'series') return seriesGenreSections;
+    if (activeTab === 'home') return enrichedHomeSections;
+    if (activeTab === 'movies') return enrichedGenreSections;
+    if (activeTab === 'series') return enrichedSeriesGenreSections;
     if (activeTab === 'favorites') return favoritesGridRows;
     if (activeTab === 'local') return localGridRows;
     return [];
-  }, [activeTab, homeSections, genreSections, seriesGenreSections, favoritesGridRows, localGridRows]);
+  }, [activeTab, enrichedHomeSections, enrichedGenreSections, enrichedSeriesGenreSections, favoritesGridRows, localGridRows]);
 
   const rowCount = useMemo(() => {
     if (activeTab === 'downloads') return Math.max(1, downloads.length);
@@ -1713,7 +1896,7 @@ export function App() {
             >
               <HomeView
                 heroMovie={heroMovie}
-                sections={homeSections}
+                sections={enrichedHomeSections}
                 activeZone={nav.activeZone}
                 heroIndex={nav.heroIndex}
                 rowIndex={nav.rowIndex}
@@ -1746,7 +1929,7 @@ export function App() {
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             >
               <MoviesView
-                genreSections={genreSections}
+                genreSections={enrichedGenreSections}
                 activeZone={nav.activeZone}
                 rowIndex={nav.rowIndex}
                 colIndex={nav.colIndex}
@@ -1770,7 +1953,7 @@ export function App() {
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             >
               <SeriesView
-                genreSections={seriesGenreSections}
+                genreSections={enrichedSeriesGenreSections}
                 activeZone={nav.activeZone}
                 rowIndex={nav.rowIndex}
                 colIndex={nav.colIndex}
@@ -1886,6 +2069,7 @@ export function App() {
                 searchActionRef={searchInputRef}
                 serverStatus={serverStatus}
                 onRetryConnection={retryServerConnection}
+                enrichMovie={enrichMovieWithLocalStatus}
               />
             </motion.div>
           )}
@@ -1917,7 +2101,7 @@ export function App() {
         {selectedMovie && (
           <MovieDetailsModal
             key={selectedMovie.id || selectedMovie.imdbId || 'movie-modal'}
-            movie={selectedMovie}
+            movie={selectedMovie ? enrichMovieWithLocalStatus(selectedMovie) : null}
             storage={downloadsStorage}
             isZoneFocused={nav.activeZone === 'modal'}
             focusedIndex={nav.modalIndex}
